@@ -16,7 +16,7 @@ export function LegalPage({ title, updated, children }: { title: string; updated
         </p>
         <div style={{ marginTop: 32, fontSize: 16, lineHeight: 1.7, color: 'var(--color-text)' }}>{children}</div>
         <p style={{ fontSize: 13.5, color: 'var(--color-text-muted)', marginTop: 40, paddingTop: 20, borderTop: '1px solid var(--color-border)' }}>
-          Questions? Email <a href="mailto:hello@kingstonenergies.com" style={{ color: 'var(--ke-green-700)' }}>hello@kingstonenergies.com</a> or call{' '}
+          Questions? Email <a href="mailto:kingstonenergygroup@outlook.com" style={{ color: 'var(--ke-green-700)' }}>kingstonenergygroup@outlook.com</a> or call{' '}
           <a href="tel:+18763389958" style={{ color: 'var(--ke-green-700)' }}>876-338-9958</a>.
         </p>
       </article>

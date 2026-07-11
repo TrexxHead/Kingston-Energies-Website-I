@@ -38,7 +38,7 @@ export default function WarrantyPage() {
 
       <LegalSection heading="Making a claim">
         <p>
-          Contact us at <a href="mailto:hello@kingstonenergies.com" style={{ color: 'var(--ke-green-700)' }}>hello@kingstonenergies.com</a>{' '}
+          Contact us at <a href="mailto:kingstonenergygroup@outlook.com" style={{ color: 'var(--ke-green-700)' }}>kingstonenergygroup@outlook.com</a>{' '}
           or 876-338-9958 with your order number and a description of the issue. We&apos;ll assess it and, where covered,
           repair or replace the device.
         </p>

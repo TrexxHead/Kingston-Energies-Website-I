@@ -30,6 +30,10 @@ export const authOptions: NextAuthOptions = {
           return null
         }
 
+        if (!user.emailVerified) {
+          throw new Error('EMAIL_NOT_VERIFIED')
+        }
+
         return {
           id: user.id,
           email: user.email,
@@ -63,8 +67,14 @@ export const authOptions: NextAuthOptions = {
             name: user.name ?? user.email,
             password: '',
             role: 'USER',
+            emailVerified: new Date(),
           },
         })
+
+        // Google already verifies the email — mark existing unverified accounts verified too.
+        if (!dbUser.emailVerified) {
+          await prisma.user.update({ where: { id: dbUser.id }, data: { emailVerified: new Date() } })
+        }
 
         user.id = dbUser.id
         user.role = dbUser.role

@@ -132,6 +132,9 @@ export default function ContactPage() {
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, letterSpacing: '.18em', color: 'var(--color-text-muted)' }}>
                   OR&nbsp;CALL&nbsp;NOW&nbsp;—&nbsp;<a href="tel:+18763389958" style={{ color: 'var(--ke-green-600)' }}>876-338-9958</a>
                 </div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, letterSpacing: '.18em', color: 'var(--color-text-muted)' }}>
+                  OR&nbsp;EMAIL&nbsp;—&nbsp;<a href="mailto:kingstonenergygroup@outlook.com" style={{ color: 'var(--ke-green-600)' }}>kingstonenergygroup@outlook.com</a>
+                </div>
               </div>
             )}
 

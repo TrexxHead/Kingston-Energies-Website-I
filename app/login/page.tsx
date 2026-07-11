@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import AuthShell from '../_design-system/AuthShell'
 import GoogleButton from '../_design-system/GoogleButton'
+import ResendVerificationLink from '../_design-system/ResendVerificationLink'
 import {
   authLabelStyle,
   authInputStyle,
@@ -16,6 +17,12 @@ import {
 
 const OAUTH_ERROR_MESSAGE =
   'Google sign-in isn\'t configured yet. Please use email and password, or try again later.'
+
+const VERIFY_BANNERS: Record<string, { tone: 'ok' | 'err'; text: string }> = {
+  success: { tone: 'ok', text: 'Email confirmed — you can sign in now.' },
+  expired: { tone: 'err', text: 'That verification link expired. Sign in to request a new one.' },
+  invalid: { tone: 'err', text: 'That verification link is invalid. Sign in to request a new one.' },
+}
 
 export default function LoginPage() {
   return (
@@ -29,20 +36,25 @@ function LoginForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const searchParams = useSearchParams()
+  const verifyBanner = searchParams.get('verify')
   const [error, setError] = useState(() => (searchParams.get('error') ? OAUTH_ERROR_MESSAGE : ''))
+  const [unverified, setUnverified] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setUnverified(false)
     setSubmitting(true)
 
     const result = await signIn('credentials', { email, password, redirect: false })
 
     setSubmitting(false)
 
-    if (result?.error) {
+    if (result?.error === 'EMAIL_NOT_VERIFIED') {
+      setUnverified(true)
+    } else if (result?.error) {
       setError('Invalid email or password')
     } else {
       router.push('/hub')
@@ -69,6 +81,24 @@ function LoginForm() {
         or
         <div style={{ flex: 1, height: 1, background: 'var(--ke-dark-hairline)' }} />
       </div>
+
+      {!error && !unverified && verifyBanner && VERIFY_BANNERS[verifyBanner] && (
+        <div
+          style={
+            VERIFY_BANNERS[verifyBanner].tone === 'ok'
+              ? { ...authErrorStyle, background: 'var(--ke-green-950, rgba(52,168,83,.12))', color: 'var(--ke-green-400)' }
+              : authErrorStyle
+          }
+        >
+          {VERIFY_BANNERS[verifyBanner].text}
+        </div>
+      )}
+
+      {unverified && (
+        <div style={authErrorStyle}>
+          Confirm your email before signing in. <ResendVerificationLink email={email} />
+        </div>
+      )}
 
       {error && <div style={authErrorStyle}>{error}</div>}
 

@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { Lock } from 'lucide-react'
+import { Lock, Mail } from 'lucide-react'
 
 function InstagramGlyph({ size = 14 }: { size?: number }) {
   return (
@@ -66,6 +66,13 @@ export default function Footer() {
           </Link>
           <a href="tel:+18763389958" style={{ fontSize: 13, color: 'rgba(234,242,236,.55)' }}>
             876-338-9958
+          </a>
+          <a
+            href="mailto:kingstonenergygroup@outlook.com"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'rgba(234,242,236,.55)' }}
+          >
+            <Mail size={13} />
+            kingstonenergygroup@outlook.com
           </a>
           <a
             href="https://instagram.com/kingstonenergies"

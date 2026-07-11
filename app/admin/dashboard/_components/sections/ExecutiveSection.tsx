@@ -3,6 +3,7 @@
 import { TriangleAlert } from 'lucide-react'
 import Badge from '../ui/Badge'
 import { cardStyle, h3Style } from '../ui/card'
+import SheetsSyncCard from './SheetsSyncCard'
 import { execStats, revenueBars, bestSellers, lowStockAlerts, customerGrowth } from '../mockData'
 
 export default function ExecutiveSection() {
@@ -99,6 +100,8 @@ export default function ExecutiveSection() {
           </div>
         </div>
       </div>
+
+      <SheetsSyncCard />
     </div>
   )
 }

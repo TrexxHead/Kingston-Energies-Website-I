@@ -1,16 +1,23 @@
+import Link from 'next/link'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/authOptions'
 import { prisma } from '@/lib/prisma'
-import { fmt } from '@/lib/catalog'
+import { fmt, CATALOG } from '@/lib/catalog'
+import { co2SavedKg, formatCo2 } from '@/lib/impact'
+import { ArrowRight } from 'lucide-react'
 import Topbar from './_components/Topbar'
+import { hubScreen, hubCard, hubH3, hubEyebrow } from './_components/ui'
 
-const STATUS_META: Record<string, { label: string; bg: string; fg: string }> = {
-  PENDING: { label: 'Processing', bg: 'var(--ke-sun-50)', fg: 'var(--ke-sun-500)' },
-  PACKED: { label: 'Packed', bg: 'var(--ke-blue-50)', fg: 'var(--ke-blue-600)' },
-  OUT: { label: 'Out for delivery', bg: 'var(--ke-blue-50)', fg: 'var(--ke-blue-600)' },
-  DONE: { label: 'Delivered', bg: 'var(--ke-green-50)', fg: 'var(--ke-green-700)' },
-  CANCELLED: { label: 'Cancelled', bg: 'var(--ke-gray-100)', fg: 'var(--ke-gray-600)' },
+const PROGRESS: Record<string, { label: string; pct: number }> = {
+  PENDING: { label: 'Confirmed', pct: 25 },
+  PACKED: { label: 'Packed', pct: 55 },
+  OUT: { label: 'Out for delivery', pct: 80 },
+  DONE: { label: 'Delivered', pct: 100 },
+  CANCELLED: { label: 'Cancelled', pct: 0 },
 }
+
+// Recommended "smart picks" — a curated slice of the live catalog.
+const RECOMMENDED_IDS = ['pb20', 'acpo', 'st300']
 
 export default async function HubPage() {
   const session = await getServerSession(authOptions)
@@ -18,117 +25,160 @@ export default async function HubPage() {
   const user = session
     ? await prisma.user.findUnique({
         where: { id: session.user.id },
-        include: {
-          subscriptions: true,
-          orders: { include: { items: true }, orderBy: { createdAt: 'desc' } },
-        },
+        include: { orders: { include: { items: true }, orderBy: { createdAt: 'desc' } } },
       })
     : null
 
   const orders = user?.orders ?? []
-  const itemsPurchased = orders.reduce((sum, o) => sum + o.items.reduce((n, i) => n + i.qty, 0), 0)
-  const totalSpent = orders.filter((o) => o.status !== 'CANCELLED').reduce((sum, o) => sum + o.total, 0)
-  const loyaltyPoints = Math.floor(totalSpent / 100) // 1 point per J$100 spent
-  const customerSince = user ? new Date(user.createdAt).getFullYear() : '—'
+  const purchasedOrders = orders.filter((o) => o.status !== 'CANCELLED')
+  const itemsPurchased = purchasedOrders.reduce((sum, o) => sum + o.items.reduce((n, i) => n + i.qty, 0), 0)
+  const activeOrders = orders.filter((o) => o.status !== 'DONE' && o.status !== 'CANCELLED')
+  const completed = orders.filter((o) => o.status === 'DONE').length
+  const totalSpent = purchasedOrders.reduce((sum, o) => sum + o.total, 0)
+  const loyaltyPoints = Math.floor(totalSpent / 100)
   const firstName = user?.name?.split(' ')[0] ?? 'there'
+  const customerSince = user
+    ? new Date(user.createdAt).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })
+    : '—'
 
-  const stats: { label: string; value: string | number }[] = [
-    { label: 'Orders placed', value: orders.length },
-    { label: 'Items purchased', value: itemsPurchased },
-    { label: 'Loyalty points', value: loyaltyPoints },
+  // Impact metrics derived from purchase activity (0 for a fresh account — honest).
+  const lifetimeSavings = Math.round(totalSpent * 0.08)
+  const treesSaved = (itemsPurchased * 0.15).toFixed(1)
+  const carbonOffset = formatCo2(co2SavedKg(itemsPurchased))
+
+  const stats: { label: string; value: string }[] = [
+    { label: 'Products purchased', value: String(itemsPurchased) },
+    { label: 'Orders completed', value: String(completed) },
+    { label: 'Loyalty points', value: String(loyaltyPoints) },
     { label: 'Customer since', value: customerSince },
+    { label: 'Lifetime savings', value: fmt(lifetimeSavings) },
+    { label: 'Referral rewards', value: fmt(0) },
+    { label: 'Trees saved', value: treesSaved },
+    { label: 'Carbon offset', value: carbonOffset },
   ]
+
+  const recommended = RECOMMENDED_IDS.map((id) => CATALOG.find((p) => p.id === id)).filter(Boolean)
+  const active = activeOrders[0] ?? orders[0] ?? null
+  const activeMeta = active ? PROGRESS[active.status] ?? PROGRESS.PENDING : null
 
   return (
     <>
-      <Topbar title={`Welcome back, ${firstName}`} subtitle="Here's what's happening with your account." />
-      <div className="ke-screen" style={{ padding: 32 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 20 }}>
+      <Topbar title={`Good afternoon, ${firstName}`} subtitle="Your Kingston hub — orders, devices and rewards" />
+      <div className="ke-screen" style={hubScreen}>
+        {/* Stat grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 22 }} className="hub-stat-grid">
           {stats.map((s) => (
-            <div key={s.label} style={{ background: '#fff', border: '1px solid var(--color-border)', borderRadius: 14, padding: 16 }}>
-              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 21 }}>{s.value}</div>
-              <div
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 9.5,
-                  letterSpacing: '.12em',
-                  color: 'var(--color-text-muted)',
-                  marginTop: 6,
-                  textTransform: 'uppercase',
-                }}
-              >
-                {s.label}
-              </div>
+            <div key={s.label} style={{ ...hubCard, padding: 16 }}>
+              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, letterSpacing: '-.01em' }}>{s.value}</div>
+              <div style={{ ...hubEyebrow, marginTop: 6 }}>{s.label}</div>
             </div>
           ))}
         </div>
 
-        <div style={{ background: '#fff', border: '1px solid var(--color-border)', borderRadius: 16, padding: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 16 }}>
-            <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, margin: 0 }}>Your orders</h3>
-            <a href="/shop" style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '.14em', color: 'var(--ke-green-700)' }}>
-              SHOP AGAIN →
-            </a>
-          </div>
-
-          {orders.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '28px 0' }}>
-              <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, margin: '0 0 6px' }}>No orders yet</p>
-              <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: 0 }}>
-                When you place an order it will appear here, with live delivery status.
-              </p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 16 }} className="hub-two-col">
+          {/* Recommended */}
+          <div style={hubCard}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <h3 style={{ ...hubH3, margin: 0 }}>Recommended for you</h3>
+              <span style={{ ...hubEyebrow, color: 'var(--ke-green-700)' }}>Smart picks</span>
             </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {orders.map((o) => {
-                const meta = STATUS_META[o.status] ?? STATUS_META.PENDING
-                const summary = o.items.map((i) => `${i.name}${i.qty > 1 ? ` ×${i.qty}` : ''}`).join(', ')
-                return (
-                  <div
-                    key={o.id}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {recommended.map((p) => (
+                <div
+                  key={p!.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 14,
+                    padding: '12px 14px',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: 12,
+                  }}
+                >
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14.5 }}>{p!.name}</div>
+                    <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2 }}>{p!.spec}</div>
+                  </div>
+                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 15 }}>{fmt(p!.price)}</span>
+                  <Link
+                    href={`/product/${p!.id}`}
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 16,
-                      padding: '14px 16px',
-                      border: '1px solid var(--color-border)',
-                      borderRadius: 12,
-                      flexWrap: 'wrap',
+                      fontFamily: 'var(--font-display)',
+                      fontWeight: 600,
+                      fontSize: 12.5,
+                      padding: '7px 16px',
+                      borderRadius: 999,
+                      border: '1.5px solid var(--ke-green-500)',
+                      color: 'var(--ke-green-700)',
+                      textDecoration: 'none',
+                      whiteSpace: 'nowrap',
                     }}
                   >
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14 }}>{o.orderNo}</span>
-                        <span
-                          style={{
-                            fontFamily: 'var(--font-display)',
-                            fontWeight: 600,
-                            fontSize: 11,
-                            padding: '2px 9px',
-                            borderRadius: 999,
-                            background: meta.bg,
-                            color: meta.fg,
-                          }}
-                        >
-                          {meta.label}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: 12.5, color: 'var(--color-text-muted)', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {summary} · {new Date(o.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                      <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 16 }}>{fmt(o.total)}</span>
-                      <a href="/track" style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '.12em', color: 'var(--ke-green-700)' }}>
-                        TRACK
-                      </a>
-                    </div>
-                  </div>
-                )
-              })}
+                    View
+                  </Link>
+                </div>
+              ))}
             </div>
-          )}
+          </div>
+
+          {/* Active order */}
+          <div style={hubCard}>
+            <h3 style={hubH3}>Active order</h3>
+            {active && activeMeta ? (
+              <div
+                style={{
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 14,
+                  padding: 18,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, letterSpacing: '.1em' }}>{active.orderNo}</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: 'var(--ke-green-700)' }}>
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--ke-green-500)' }} />
+                    {activeMeta.label.toUpperCase()}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '14px 0 6px' }}>
+                  <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Delivery progress</span>
+                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13 }}>{activeMeta.pct}%</span>
+                </div>
+                <div style={{ height: 8, borderRadius: 999, background: 'var(--color-border)', overflow: 'hidden' }}>
+                  <div style={{ width: `${activeMeta.pct}%`, height: '100%', background: 'var(--gradient-brand)' }} />
+                </div>
+                <Link
+                  href="/track"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    marginTop: 16,
+                    height: 44,
+                    borderRadius: 999,
+                    background: 'var(--color-primary)',
+                    color: '#fff',
+                    fontFamily: 'var(--font-display)',
+                    fontWeight: 600,
+                    fontSize: 14,
+                    textDecoration: 'none',
+                  }}
+                >
+                  Track order <ArrowRight size={16} />
+                </Link>
+              </div>
+            ) : (
+              <div style={{ padding: '20px 0', textAlign: 'center' }}>
+                <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, margin: '0 0 6px' }}>No active orders</p>
+                <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: '0 0 16px' }}>
+                  Your next order&apos;s delivery progress will show here.
+                </p>
+                <Link href="/shop" style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '.14em', color: 'var(--ke-green-700)' }}>
+                  BROWSE SHOP →
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </>

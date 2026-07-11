@@ -1,11 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { signIn } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import AuthShell from '../_design-system/AuthShell'
 import GoogleButton from '../_design-system/GoogleButton'
+import ResendVerificationLink from '../_design-system/ResendVerificationLink'
 import {
   authLabelStyle,
   authInputStyle,
@@ -20,7 +19,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const router = useRouter()
+  const [sentTo, setSentTo] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -33,23 +32,38 @@ export default function SignupPage() {
       body: JSON.stringify({ name, email, password }),
     })
 
+    setSubmitting(false)
+
     if (!response.ok) {
       const body = await response.json().catch(() => ({}))
       setError(body.error ?? 'Something went wrong. Please try again.')
-      setSubmitting(false)
       return
     }
 
-    const result = await signIn('credentials', { email, password, redirect: false })
+    setSentTo(email)
+  }
 
-    setSubmitting(false)
-
-    if (result?.error) {
-      setError('Account created — please sign in.')
-      router.push('/login')
-    } else {
-      router.push('/hub')
-    }
+  if (sentTo) {
+    return (
+      <AuthShell
+        title="Check your inbox"
+        subtitle={`We sent a confirmation link to ${sentTo}.`}
+        footer={
+          <>
+            Already confirmed?{' '}
+            <Link href="/login" style={{ color: 'var(--ke-green-400)' }}>
+              Sign in
+            </Link>
+          </>
+        }
+      >
+        <p style={{ fontSize: 14, color: 'var(--ke-dark-text-muted)', lineHeight: 1.6 }}>
+          Click the link in that email to activate your account, then come back and sign in.
+          Didn&apos;t get it? Check spam, or{' '}
+          <ResendVerificationLink email={sentTo} />.
+        </p>
+      </AuthShell>
+    )
   }
 
   return (

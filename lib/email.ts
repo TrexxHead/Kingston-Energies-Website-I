@@ -17,6 +17,12 @@ interface OrderEmailInput {
   items: { name: string; qty: number; price: number }[]
 }
 
+interface VerificationEmailInput {
+  to: string
+  name: string
+  verifyUrl: string
+}
+
 const FROM = process.env.EMAIL_FROM // e.g. "Kingston Energies <orders@kingstonenergies.com>"
 const API_KEY = process.env.EMAIL_API_KEY
 
@@ -39,6 +45,23 @@ export async function sendOrderConfirmation(input: OrderEmailInput): Promise<voi
   } catch (err) {
     // Never let email failure break the order flow.
     console.error('[email] failed to send order confirmation:', err)
+  }
+}
+
+export async function sendVerificationEmail(input: VerificationEmailInput): Promise<void> {
+  const subject = 'Confirm your Kingston Energies account'
+  const html = renderVerificationHtml(input)
+
+  if (!isEmailConfigured()) {
+    // Dev fallback: print the link so signup is testable without an email provider configured.
+    console.info(`[email] skipped (no provider configured): "${subject}" → ${input.to}\n  verify link: ${input.verifyUrl}`)
+    return
+  }
+
+  try {
+    await deliver({ to: input.to, subject, html })
+  } catch (err) {
+    console.error('[email] failed to send verification email:', err)
   }
 }
 
@@ -80,6 +103,22 @@ function renderOrderHtml(input: OrderEmailInput): string {
         <td style="padding:12px 0 0;border-top:1px solid #e2e8e4;text-align:right;font-weight:700">${fmt(input.total)}</td></tr>
       </table>
       <p style="font-size:13px;color:#556059;margin-top:20px">We'll let you know when it's on the way. Track your order any time at kingstonenergies.com/track.</p>
+    </div>
+  </div>`
+}
+
+function renderVerificationHtml(input: VerificationEmailInput): string {
+  return `
+  <div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;color:#1c2a25">
+    <div style="background:linear-gradient(135deg,#04547c,#1c4a44);padding:28px 24px;border-radius:16px 16px 0 0">
+      <div style="color:#fff;font-size:20px;font-weight:800">Kingston Energies</div>
+      <div style="color:rgba(234,242,236,.8);font-size:13px;margin-top:4px">Confirm your account</div>
+    </div>
+    <div style="border:1px solid #e2e8e4;border-top:none;padding:24px;border-radius:0 0 16px 16px">
+      <p>Hi ${input.name}, welcome to Kingston Energies.</p>
+      <p style="font-size:14px;color:#556059">Confirm your email address to activate your account and start tracking orders.</p>
+      <a href="${input.verifyUrl}" style="display:inline-block;margin-top:16px;padding:12px 24px;background:#1c4a44;color:#fff;text-decoration:none;border-radius:999px;font-weight:700;font-size:14px">Confirm my email</a>
+      <p style="font-size:12px;color:#8a938d;margin-top:20px">This link expires in 24 hours. If you didn't create this account, you can ignore this email.</p>
     </div>
   </div>`
 }

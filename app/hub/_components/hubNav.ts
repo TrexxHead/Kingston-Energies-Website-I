@@ -1,18 +1,20 @@
-export type HubRoute = 'hub' | 'orders' | 'mydevices' | 'rewards' | 'profile' | 'overview' | 'connected'
-
 export interface HubNavItem {
-  route: HubRoute
   icon: string
   label: string
-  href: string | null
+  href: string
 }
 
-export const HUB_NAV_ITEMS: HubNavItem[] = [
-  { route: 'hub', icon: 'layout-dashboard', label: 'Hub', href: '/hub' },
-  { route: 'orders', icon: 'package', label: 'Orders', href: '/hub/orders' },
-  { route: 'mydevices', icon: 'smartphone', label: 'My devices', href: null },
-  { route: 'rewards', icon: 'award', label: 'Rewards', href: null },
-  { route: 'profile', icon: 'user-round', label: 'Profile', href: '/hub/profile' },
-  { route: 'overview', icon: 'activity', label: 'Overview', href: null },
-  { route: 'connected', icon: 'wifi', label: 'Connected home', href: null },
+// Primary account areas.
+export const HUB_MAIN_NAV: HubNavItem[] = [
+  { icon: 'layout-dashboard', label: 'Overview', href: '/hub' },
+  { icon: 'package', label: 'Orders', href: '/hub/orders' },
+  { icon: 'battery-charging', label: 'My devices', href: '/hub/devices' },
+  { icon: 'gift', label: 'Rewards', href: '/hub/rewards' },
+  { icon: 'user-round', label: 'Profile', href: '/hub/profile' },
+]
+
+// Footer utilities.
+export const HUB_FOOTER_NAV: HubNavItem[] = [
+  { icon: 'life-buoy', label: 'Support', href: '/hub/support' },
+  { icon: 'settings', label: 'Settings', href: '/hub/settings' },
 ]

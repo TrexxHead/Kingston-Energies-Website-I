@@ -31,7 +31,7 @@ export default function ReturnsPage() {
 
       <LegalSection heading="How to start a return">
         <p>
-          Email <a href="mailto:hello@kingstonenergies.com" style={{ color: 'var(--ke-green-700)' }}>hello@kingstonenergies.com</a>{' '}
+          Email <a href="mailto:kingstonenergygroup@outlook.com" style={{ color: 'var(--ke-green-700)' }}>kingstonenergygroup@outlook.com</a>{' '}
           with your order number and reason, or call 876-338-9958. We&apos;ll confirm the return address and next steps.
         </p>
       </LegalSection>

@@ -79,8 +79,8 @@ async function main() {
   const adminPassword = await bcrypt.hash(adminPasswordPlain, 10)
   const admin = await prisma.user.upsert({
     where: { email: adminEmail },
-    update: { password: adminPassword, role: 'ADMIN' }, // keep the password in sync on every seed
-    create: { email: adminEmail, name: 'Ops Admin', password: adminPassword, role: 'ADMIN' },
+    update: { password: adminPassword, role: 'ADMIN', emailVerified: new Date() }, // keep the password in sync on every seed
+    create: { email: adminEmail, name: 'Ops Admin', password: adminPassword, role: 'ADMIN', emailVerified: new Date() },
   })
   console.log(`Seeded admin user: ${admin.email}`)
 

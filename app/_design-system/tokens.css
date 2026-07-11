@@ -167,3 +167,12 @@
   .kp-4col{ grid-template-columns:repeat(2,1fr) !important; }
   .kp-hide-sm{ display:none !important; }
 }
+
+/* Hub responsive grids */
+@media (max-width:1100px){
+  .hub-stat-grid{ grid-template-columns:repeat(2,1fr) !important; }
+  .hub-three-col{ grid-template-columns:1fr !important; }
+}
+@media (max-width:900px){
+  .hub-two-col{ grid-template-columns:1fr !important; }
+}

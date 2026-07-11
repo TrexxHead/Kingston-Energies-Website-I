@@ -37,6 +37,7 @@ KEY FACTS:
 - Solar power stations are on the roadmap (early access) — point interested people to /contact to join the waitlist.
 - Follow us on Instagram @kingstonenergies (https://instagram.com/kingstonenergies).
 - Phone: 876-338-9958.
+- Email for questions and support: kingstonenergygroup@outlook.com.
 
 RULES:
 - Only answer questions about Kingston Energies, its products, and using this website. If asked something unrelated, politely redirect to how you can help.
@@ -69,7 +70,7 @@ const FALLBACK_RULES: FallbackRule[] = [
   { keywords: ['promo', 'discount', 'coupon', 'code', 'voucher'], answer: 'Use code KINGSTON10 at the cart for 10% off. Delivery is also free on orders over J$10,000.' },
   { keywords: ['account', 'sign in', 'login', 'log in', 'register', 'sign up', 'hub', 'dashboard'], answer: 'Sign in at /login or create an account at /signup. Your dashboard (the Kingston Hub) is at /hub.' },
   { keywords: ['instagram', 'social', 'follow', 'facebook'], answer: 'Follow us on Instagram @kingstonenergies — https://instagram.com/kingstonenergies' },
-  { keywords: ['contact', 'quote', 'phone', 'call', 'email', 'bulk', 'business'], answer: 'Get in touch or request a quote at /contact, or call 876-338-9958. We handle bulk and business orders too.' },
+  { keywords: ['contact', 'quote', 'phone', 'call', 'email', 'bulk', 'business'], answer: 'Get in touch or request a quote at /contact, call 876-338-9958, or email kingstonenergygroup@outlook.com. We handle bulk and business orders too.' },
   { keywords: ['service', 'what do you', 'offer', 'help with'], answer: 'See what we offer on /services — portable power, fast charging, accessories, repairs & warranty, business orders, and solar early-access.' },
   { keywords: ['deliver', 'free delivery', 'shipping cost'], answer: 'Delivery is free on orders over J$10,000, otherwise a flat J$800 — Kingston-wide.' },
 ]

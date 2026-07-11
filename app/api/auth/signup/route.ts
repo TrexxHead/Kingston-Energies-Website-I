@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server'
+import { randomBytes } from 'crypto'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { hashPassword } from '@/lib/password'
 import { rateLimit, clientIp } from '@/lib/rateLimit'
+import { sendVerificationEmail } from '@/lib/email'
+
+const VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
 const signupSchema = z.object({
   name: z.string().min(1).max(120),
@@ -44,6 +49,14 @@ export async function POST(request: Request) {
       role: 'USER',
     },
   })
+
+  const token = randomBytes(32).toString('hex')
+  await prisma.verificationToken.create({
+    data: { identifier: email, token, expires: new Date(Date.now() + VERIFICATION_TTL_MS) },
+  })
+
+  const verifyUrl = `${siteUrl}/api/auth/verify?token=${token}&email=${encodeURIComponent(email)}`
+  await sendVerificationEmail({ to: email, name, verifyUrl })
 
   return NextResponse.json({ id: user.id, email: user.email }, { status: 201 })
 }

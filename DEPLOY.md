@@ -260,9 +260,9 @@ CRON_SECRET="<random string>"
 
 ## Known Limitations (Next Priorities)
 
-- **Shop ↔ Admin divergence:** Public shop reads `lib/catalog.ts`, admin reads DB. Later: unify to single source.
-- **Live payment capture:** Orders record method but don't charge. Wire PayPal/Google Pay SDK when credentials available.
-- **Tests incomplete:** 13 unit tests pass; E2E + component tests are the next layer (for 80%+ coverage).
+- ✅ **Shop ↔ Admin unified:** `lib/products.ts` joins the static catalog (`lib/catalog.ts` — images, specs, copy) with live DB price/stock by product name, so admin Inventory edits show up on the storefront immediately. Falls back to static catalog prices if the DB is unreachable. Admin dashboard reads/writes the DB directly via `/api/admin/products`.
+- **Live payment capture:** Orders record the chosen method but don't charge. The checkout UI (card/Google Pay/PayPal/COD) is built and ready — wiring the actual PayPal/Google Pay SDK just needs `NEXT_PUBLIC_PAYPAL_CLIENT_ID`/`PAYPAL_CLIENT_SECRET`/`NEXT_PUBLIC_GOOGLE_PAY_MERCHANT_ID` from your merchant accounts (see "Later: Fill in the Blanks").
+- **Tests:** 23 unit tests pass (up from 13 — added coverage for `lib/products.ts` DB-fallback behavior, `lib/impact.ts`, `lib/password.ts`, `lib/initials.ts`). E2E + component tests are still the next layer for deeper coverage.
 - **Email:** Gracefully no-ops if `EMAIL_API_KEY` not set; configure Resend for production.
 
 ---

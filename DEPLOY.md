@@ -1,6 +1,6 @@
 # Kingston Energies — Deployment & Handoff Guide
 
-**Last Updated:** 2026-07-10 (session 2: email verification + live Google Sheets sync)  
+**Last Updated:** 2026-07-21 (session 3: dropped Apple Sign In from scope; final blocker is real product prices + photos)  
 **Status:** Ready for production deployment (pending GitHub push + Supabase setup)
 
 ---
@@ -41,10 +41,11 @@
 3. **Vercel** — deployment not attempted (blocked on user: GitHub repo exists + env vars configured)
 4. **Jordyn AI Live** — Anthropic API key is valid but account has no credits (blocked on user: add balance at console.anthropic.com/billing)
 5. **Live Payments** — PayPal/Google Pay not wired (blocked on user: PayPal + Google Pay credentials)
-6. **Real Instagram Prices** — placeholder JMD prices in use; actual product list not imported (blocked on user: provide price list)
-7. **Google Sheets Live Sync** — code is built and ready; needs a Google Cloud service account + a blank Google Sheet shared with it (blocked on user: ~10 min one-time setup, steps below)
-8. **Apple Sign In** — explicitly deferred (needs a paid Apple Developer Program account); Google + Email/password are live now
-9. **Email delivery** — without a Resend API key, verification/order emails log to the server console instead of sending (fine for testing, required before real users sign up)
+6. **Google Sheets Live Sync** — code is built and ready; needs a Google Cloud service account + a blank Google Sheet shared with it (blocked on user: ~10 min one-time setup, steps below)
+7. **Email delivery** — without a Resend API key, verification/order emails log to the server console instead of sending (fine for testing, required before real users sign up)
+8. **Real Instagram Prices & Photos** — placeholder JMD prices and stock photos in use; actual product list (names, prices, specs) and real product photos not imported (blocked on user: provide list + images)
+
+> **Note:** Apple Sign In has been dropped from scope — Google + Email/password cover sign-in for now.
 
 ---
 
@@ -193,11 +194,6 @@ Once the site is live, you can add features without redeploying code:
 - Follow "Step 4: Live Google Sheets Setup" above (~10 min, one-time)
 - Once configured, sales/customers/inventory data syncs automatically every 15 min + on-demand from the admin dashboard
 
-**Apple Sign In:**
-- Enroll in the Apple Developer Program ($99/year) at developer.apple.com
-- Create a Services ID + Sign in with Apple key (Team ID, Key ID, `.p8` private key)
-- Send me those four values and I'll wire up the provider (same pattern as Google)
-
 ---
 
 ## Technical Details for Next Session
@@ -247,7 +243,7 @@ CRON_SECRET="<random string>"
 
 - **Google**: sign in via OAuth, auto-verified (Google already confirms emails), works immediately once `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` are set.
 - **Email/password**: sign-up sends a confirmation link (24h expiry) via `lib/email.ts` → `sendVerificationEmail`. Login is blocked with a "confirm your email" message + one-click resend until the link is clicked. Without `EMAIL_API_KEY` configured, the link is logged to the server console instead of emailed — still fully testable locally.
-- **Apple**: not implemented — needs a paid Apple Developer Program account (Services ID, Team ID, Key ID, `.p8` private key). Ask to add it once you have those credentials; the codebase already follows the same provider pattern Google uses, so it's a contained addition.
+- **Apple**: out of scope for now — Google + Email/password cover sign-in.
 
 ---
 

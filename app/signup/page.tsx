@@ -15,6 +15,7 @@ import {
 
 export default function SignupPage() {
   const [name, setName] = useState('')
+  const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -29,7 +30,7 @@ export default function SignupPage() {
     const response = await fetch('/api/auth/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({ name, username: username.trim() || undefined, email, password }),
     })
 
     setSubmitting(false)
@@ -93,6 +94,20 @@ export default function SignupPage() {
         <div style={{ marginBottom: 14 }}>
           <label style={authLabelStyle}>Name</label>
           <input value={name} onChange={(e) => setName(e.target.value)} required style={authInputStyle} />
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <label style={authLabelStyle}>Username <span style={{ color: 'var(--ke-dark-text-muted)', fontWeight: 400 }}>(optional — sign in with this or your email)</span></label>
+          <input
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="e.g. jowayne876"
+            autoCapitalize="none"
+            autoCorrect="off"
+            minLength={3}
+            maxLength={30}
+            style={authInputStyle}
+          />
         </div>
 
         <div style={{ marginBottom: 14 }}>

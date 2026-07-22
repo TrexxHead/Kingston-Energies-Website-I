@@ -23,6 +23,12 @@ interface VerificationEmailInput {
   verifyUrl: string
 }
 
+interface PasswordResetEmailInput {
+  to: string
+  name: string
+  resetUrl: string
+}
+
 const FROM = process.env.EMAIL_FROM // e.g. "Kingston Energies <orders@kingstonenergies.com>"
 const API_KEY = process.env.EMAIL_API_KEY
 
@@ -65,6 +71,23 @@ export async function sendVerificationEmail(input: VerificationEmailInput): Prom
   }
 }
 
+export async function sendPasswordResetEmail(input: PasswordResetEmailInput): Promise<void> {
+  const subject = 'Reset your Kingston Energies password'
+  const html = renderPasswordResetHtml(input)
+
+  if (!isEmailConfigured()) {
+    // Dev fallback: print the link so reset is testable without an email provider configured.
+    console.info(`[email] skipped (no provider configured): "${subject}" → ${input.to}\n  reset link: ${input.resetUrl}`)
+    return
+  }
+
+  try {
+    await deliver({ to: input.to, subject, html })
+  } catch (err) {
+    console.error('[email] failed to send password reset email:', err)
+  }
+}
+
 async function deliver({ to, subject, html }: { to: string; subject: string; html: string }): Promise<void> {
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -103,6 +126,22 @@ function renderOrderHtml(input: OrderEmailInput): string {
         <td style="padding:12px 0 0;border-top:1px solid #e2e8e4;text-align:right;font-weight:700">${fmt(input.total)}</td></tr>
       </table>
       <p style="font-size:13px;color:#556059;margin-top:20px">We'll let you know when it's on the way. Track your order any time at kingstonenergies.com/track.</p>
+    </div>
+  </div>`
+}
+
+function renderPasswordResetHtml(input: PasswordResetEmailInput): string {
+  return `
+  <div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;color:#1c2a25">
+    <div style="background:linear-gradient(135deg,#04547c,#1c4a44);padding:28px 24px;border-radius:16px 16px 0 0">
+      <div style="color:#fff;font-size:20px;font-weight:800">Kingston Energies</div>
+      <div style="color:rgba(234,242,236,.8);font-size:13px;margin-top:4px">Reset your password</div>
+    </div>
+    <div style="border:1px solid #e2e8e4;border-top:none;padding:24px;border-radius:0 0 16px 16px">
+      <p>Hi ${input.name}, we got a request to reset your password.</p>
+      <p style="font-size:14px;color:#556059">Click below to choose a new one. If you didn't ask for this, you can safely ignore this email — your password won't change.</p>
+      <a href="${input.resetUrl}" style="display:inline-block;margin-top:16px;padding:12px 24px;background:#1c4a44;color:#fff;text-decoration:none;border-radius:999px;font-weight:700;font-size:14px">Reset my password</a>
+      <p style="font-size:12px;color:#8a938d;margin-top:20px">This link expires in 1 hour.</p>
     </div>
   </div>`
 }

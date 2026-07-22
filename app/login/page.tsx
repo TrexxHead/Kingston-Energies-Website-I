@@ -104,18 +104,25 @@ function LoginForm() {
 
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: 14 }}>
-          <label style={authLabelStyle}>Email</label>
+          <label style={authLabelStyle}>Email or username</label>
           <input
-            type="email"
+            type="text"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            autoCapitalize="none"
+            autoCorrect="off"
             style={authInputStyle}
           />
         </div>
 
         <div>
-          <label style={authLabelStyle}>Password</label>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <label style={authLabelStyle}>Password</label>
+            <Link href="/forgot-password" style={{ fontSize: 12.5, color: 'var(--ke-green-400)' }}>
+              Forgot password?
+            </Link>
+          </div>
           <input
             type="password"
             value={password}

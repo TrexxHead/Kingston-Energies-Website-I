@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/authOptions'
 import { prisma } from '@/lib/prisma'
 import { fmt, CATALOG } from '@/lib/catalog'
 import { co2SavedKg, formatCo2 } from '@/lib/impact'
+import { recommendProductsForNeed, customerNeedLabel, NEED_PITCH, type CustomerNeed } from '@/lib/crm'
 import { ArrowRight } from 'lucide-react'
 import Topbar from './_components/Topbar'
 import { hubScreen, hubCard, hubH3, hubEyebrow } from './_components/ui'
@@ -57,7 +58,12 @@ export default async function HubPage() {
     { label: 'Carbon offset', value: carbonOffset },
   ]
 
-  const recommended = RECOMMENDED_IDS.map((id) => CATALOG.find((p) => p.id === id)).filter(Boolean)
+  // IDIC "Customize": if we know the customer's primary need, tailor the picks
+  // to it; otherwise fall back to the curated default set.
+  const need = (user?.primaryNeed as CustomerNeed | null) ?? null
+  const recommended = need
+    ? recommendProductsForNeed(CATALOG, need, 3)
+    : RECOMMENDED_IDS.map((id) => CATALOG.find((p) => p.id === id)).filter(Boolean)
   const active = activeOrders[0] ?? orders[0] ?? null
   const activeMeta = active ? PROGRESS[active.status] ?? PROGRESS.PENDING : null
 
@@ -78,10 +84,18 @@ export default async function HubPage() {
         <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 16 }} className="hub-two-col">
           {/* Recommended */}
           <div style={hubCard}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: need ? 6 : 16 }}>
               <h3 style={{ ...hubH3, margin: 0 }}>Recommended for you</h3>
-              <span style={{ ...hubEyebrow, color: 'var(--ke-green-700)' }}>Smart picks</span>
+              <span style={{ ...hubEyebrow, color: 'var(--ke-green-700)' }}>{need ? customerNeedLabel(need) : 'Smart picks'}</span>
             </div>
+            {need && (
+              <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: '0 0 14px' }}>
+                {NEED_PITCH[need]}{' '}
+                <Link href="/hub/profile" style={{ color: 'var(--ke-green-700)', textDecoration: 'underline' }}>
+                  Change
+                </Link>
+              </p>
+            )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {recommended.map((p) => (
                 <div

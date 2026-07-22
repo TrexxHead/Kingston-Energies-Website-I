@@ -176,3 +176,49 @@ export function npsScore(scores: number[]): NpsSummary {
 export function isValidNpsScore(value: unknown): value is number {
   return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 10
 }
+
+/* ------------------------------------------------------------------ *
+ * IDIC "Customize" — tailor what we show based on what we learned
+ *
+ * Closes the loop: the primary need captured in "Identify" drives a
+ * personalised product recommendation. Each need maps to an ordered list of
+ * product categories (most to least relevant). The ranking helper is generic
+ * over any product carrying a `cat`, so it stays decoupled from the catalog.
+ * ------------------------------------------------------------------ */
+
+/** Ordered category priorities per need. Category ids match lib/catalog.ts. */
+export const NEED_CATEGORY_PRIORITY: Record<CustomerNeed, string[]> = {
+  EVERYDAY: ['powerbanks', 'chargers', 'accessories'],
+  BACKUP: ['stations', 'powerbanks', 'chargers'],
+  OFFGRID: ['stations', 'powerbanks', 'accessories'],
+  BUSINESS: ['stations', 'chargers', 'powerbanks'],
+}
+
+/** A one-line, need-specific pitch for the Hub recommendation card. */
+export const NEED_PITCH: Record<CustomerNeed, string> = {
+  EVERYDAY: 'Pocket-friendly power to keep your phone going all day.',
+  BACKUP: 'Ride out the next outage without missing a beat.',
+  OFFGRID: 'Dependable power for wherever the grid does not reach.',
+  BUSINESS: 'Keep your shop, stall or work site running.',
+}
+
+/**
+ * Rank products for a customer's need: items in a higher-priority category
+ * come first (preserving the catalog's own order within a category), and
+ * anything outside the need's categories is dropped. With no need, order is
+ * left unchanged. Generic over any product exposing a `cat` string.
+ */
+export function recommendProductsForNeed<T extends { cat: string }>(
+  products: T[],
+  need: CustomerNeed | null | undefined,
+  limit = 3
+): T[] {
+  if (!need) return products.slice(0, limit)
+  const priority = NEED_CATEGORY_PRIORITY[need]
+  const ranked = products
+    .map((p, i) => ({ p, i, rank: priority.indexOf(p.cat) }))
+    .filter((x) => x.rank !== -1)
+    .sort((a, b) => (a.rank !== b.rank ? a.rank - b.rank : a.i - b.i))
+    .map((x) => x.p)
+  return ranked.slice(0, limit)
+}

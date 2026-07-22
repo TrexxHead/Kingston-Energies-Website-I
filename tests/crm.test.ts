@@ -9,6 +9,7 @@ import {
   npsBucket,
   npsScore,
   isValidNpsScore,
+  recommendProductsForNeed,
 } from '@/lib/crm'
 
 describe('CUSTOMER_NEEDS', () => {
@@ -135,5 +136,37 @@ describe('isValidNpsScore', () => {
     expect(isValidNpsScore(-1)).toBe(false)
     expect(isValidNpsScore(5.5)).toBe(false)
     expect(isValidNpsScore('7')).toBe(false)
+  })
+})
+
+describe('recommendProductsForNeed', () => {
+  const sample = [
+    { id: 'a', cat: 'powerbanks' },
+    { id: 'b', cat: 'chargers' },
+    { id: 'c', cat: 'stations' },
+    { id: 'd', cat: 'accessories' },
+    { id: 'e', cat: 'powerbanks' },
+  ]
+
+  it('prioritises stations first for BACKUP', () => {
+    const result = recommendProductsForNeed(sample, 'BACKUP', 3)
+    expect(result[0].cat).toBe('stations')
+  })
+
+  it('drops categories outside the need priority', () => {
+    // OFFGRID priority = stations, powerbanks, accessories (no chargers)
+    const result = recommendProductsForNeed(sample, 'OFFGRID', 10)
+    expect(result.some((p) => p.cat === 'chargers')).toBe(false)
+  })
+
+  it('preserves catalog order within the same category rank', () => {
+    // EVERYDAY: powerbanks first — a and e, in original order
+    const result = recommendProductsForNeed(sample, 'EVERYDAY', 2)
+    expect(result.map((p) => p.id)).toEqual(['a', 'e'])
+  })
+
+  it('returns the first N unchanged when no need is set', () => {
+    const result = recommendProductsForNeed(sample, null, 2)
+    expect(result.map((p) => p.id)).toEqual(['a', 'b'])
   })
 })

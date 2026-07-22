@@ -10,6 +10,7 @@ const SEGMENT = { VIP: 'VIP', Repeat: 'REPEAT', New: 'NEW' }
 const PRODUCTS = [
   { name: 'Charmast 10,400', cat: 'powerbanks', sku: 'KE-PB-104', barcode: '8 901234 001', price: 5500, stock: 42, threshold: 10, spec: '10,400MAH · DIGITAL DISPLAY · USB-C & USB-A', badge: 'Best seller' },
   { name: 'IFIDOL MagSafe Power Bank', cat: 'powerbanks', sku: 'KE-PB-MAG', barcode: '8 901234 002', price: 8000, stock: 20, threshold: 10, spec: 'MAGSAFE · 16,000MAH · 22.5W USB-C', badge: 'MagSafe' },
+  { name: 'UGREEN 10,000', cat: 'powerbanks', sku: 'KE-PB-UGR', barcode: '8 901234 006', price: 5500, stock: 20, threshold: 10, spec: 'MAGSAFE · 10,000MAH · MAGNETIC WIRELESS', badge: 'MagSafe' },
   { name: 'MIADY 10,000', cat: 'powerbanks', sku: 'KE-PB-MIA', barcode: '8 901234 005', price: 5500, stock: 24, threshold: 10, spec: '10,000MAH · 22.5W PD · COMPACT', badge: null },
   { name: 'OtterBox 10,000 Leather', cat: 'powerbanks', sku: 'KE-PB-OTT', barcode: '8 901234 003', price: 8000, stock: 15, threshold: 10, spec: '10,000MAH · PREMIUM · REPAIRABLE', badge: 'Repairable' },
   { name: '20W USB-C Fast Charger', cat: 'chargers', sku: 'KE-CH-020', barcode: '8 901234 010', price: 3000, stock: 60, threshold: 15, spec: '20W PD · IPHONE & ANDROID', badge: null },

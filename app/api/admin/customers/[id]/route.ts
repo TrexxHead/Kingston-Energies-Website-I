@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { guardAdmin } from '@/lib/requireAdmin'
+import { customerValueTier, monthsSince } from '@/lib/crm'
 
 const patchSchema = z.object({
   segment: z.enum(['VIP', 'REPEAT', 'NEW']).nullish(),
@@ -26,6 +27,14 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   if (!user) return NextResponse.json({ error: 'Customer not found' }, { status: 404 })
 
   const ltv = user.orders.reduce((sum, o) => sum + o.total, 0)
+  const lastOrder = user.orders[0]?.createdAt ?? null // orders are ordered desc
+  const openTickets = user.tickets.filter((t) => t.status !== 'RESOLVED').length
+  const valueTier = customerValueTier({
+    ltv,
+    orderCount: user.orders.length,
+    monthsSinceLastOrder: monthsSince(lastOrder),
+    openTickets,
+  })
 
   return NextResponse.json({
     customer: {
@@ -36,6 +45,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       segment: user.segment,
       loyaltyTier: user.loyaltyTier,
       primaryNeed: user.primaryNeed,
+      valueTier,
       since: new Date(user.createdAt).getFullYear(),
       ltv,
       orderCount: user.orders.length,

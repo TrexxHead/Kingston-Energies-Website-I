@@ -10,7 +10,7 @@ import TextInput from '../ui/TextInput'
 import { cardStyle, h3Style } from '../ui/card'
 import { fmt } from '../mockData'
 import { initials } from '@/lib/initials'
-import { CUSTOMER_NEEDS, customerNeedLabel, type CustomerNeed } from '@/lib/crm'
+import { CUSTOMER_NEEDS, customerNeedLabel, VALUE_TIERS, type CustomerNeed, type ValueTier } from '@/lib/crm'
 
 type Segment = 'VIP' | 'REPEAT' | 'NEW'
 type TicketStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED'
@@ -23,6 +23,7 @@ interface CustomerRow {
   segment: Segment | null
   loyaltyTier: string | null
   primaryNeed: CustomerNeed | null
+  valueTier: ValueTier
   since: number
   orderCount: number
   ltv: number
@@ -53,6 +54,7 @@ const avatarGradient = { background: 'var(--gradient-brand)' }
 export default function CustomersSection() {
   const [customers, setCustomers] = useState<CustomerRow[]>([])
   const [seg, setSeg] = useState<'all' | Segment>('all')
+  const [tier, setTier] = useState<'all' | ValueTier>('all')
   const [search, setSearch] = useState('')
   const [selId, setSelId] = useState<string | null>(null)
   const [detail, setDetail] = useState<CustomerDetail | null>(null)
@@ -86,6 +88,7 @@ export default function CustomersSection() {
 
   const rows = customers.filter((c) => {
     if (seg !== 'all' && c.segment !== seg) return false
+    if (tier !== 'all' && c.valueTier !== tier) return false
     if (search && !`${c.name} ${c.email}`.toLowerCase().includes(search.toLowerCase())) return false
     return true
   })
@@ -152,6 +155,12 @@ export default function CustomersSection() {
               <Pill key={p.id} label={p.label} selected={seg === p.id} onClick={() => setSeg(p.id)} />
             ))}
           </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flexBasis: '100%' }}>
+            <Pill label="All value" selected={tier === 'all'} onClick={() => setTier('all')} />
+            {(Object.keys(VALUE_TIERS) as ValueTier[]).map((t) => (
+              <Pill key={t} label={`${t} · ${VALUE_TIERS[t].label}`} selected={tier === t} onClick={() => setTier(t)} />
+            ))}
+          </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <div style={{ position: 'relative' }}>
               <Search size={14} style={{ position: 'absolute', left: 11, top: 10, color: 'var(--color-text-subtle)' }} />
@@ -185,6 +194,7 @@ export default function CustomersSection() {
                     {c.primaryNeed ? ` · ${customerNeedLabel(c.primaryNeed)}` : ''}
                   </div>
                 </div>
+                <Badge tone={VALUE_TIERS[c.valueTier].tone}>{c.valueTier}</Badge>
                 {c.segment && <Badge tone={SEGMENT_TONE[c.segment]}>{SEGMENT_LABEL[c.segment]}</Badge>}
                 <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 13.5, width: 60, textAlign: 'right' }}>{fmt(Math.round(c.ltv))}</span>
               </div>
@@ -208,6 +218,12 @@ export default function CustomersSection() {
                   <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15 }}>{detail.name}</div>
                   <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{detail.email}{detail.phone ? ` · ${detail.phone}` : ''} · CLV {fmt(Math.round(detail.ltv))}</div>
                 </div>
+                <Badge tone={VALUE_TIERS[detail.valueTier].tone}>{detail.valueTier} · {VALUE_TIERS[detail.valueTier].label}</Badge>
+              </div>
+
+              <div style={{ background: 'var(--ke-gray-50, #f6f7f6)', borderRadius: 10, padding: '10px 12px', marginBottom: 14, fontSize: 12, color: 'var(--color-text-muted)' }}>
+                <span style={{ fontWeight: 600, color: 'var(--color-text)' }}>Strategy: </span>
+                {VALUE_TIERS[detail.valueTier].strategy}
               </div>
 
               <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>

@@ -10,6 +10,7 @@ import TextInput from '../ui/TextInput'
 import { cardStyle, h3Style } from '../ui/card'
 import { fmt } from '../mockData'
 import { initials } from '@/lib/initials'
+import { CUSTOMER_NEEDS, customerNeedLabel, type CustomerNeed } from '@/lib/crm'
 
 type Segment = 'VIP' | 'REPEAT' | 'NEW'
 type TicketStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED'
@@ -21,6 +22,7 @@ interface CustomerRow {
   phone: string | null
   segment: Segment | null
   loyaltyTier: string | null
+  primaryNeed: CustomerNeed | null
   since: number
   orderCount: number
   ltv: number
@@ -88,7 +90,7 @@ export default function CustomersSection() {
     return true
   })
 
-  const patchDetail = async (data: Record<string, string>) => {
+  const patchDetail = async (data: Record<string, string | null>) => {
     if (!detail) return
     await fetch(`/api/admin/customers/${detail.id}`, {
       method: 'PATCH',
@@ -178,7 +180,10 @@ export default function CustomersSection() {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13.5 }}>{c.name}</div>
-                  <div style={{ fontSize: 11.5, color: 'var(--color-text-muted)' }}>{c.orderCount} orders · since {c.since}</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--color-text-muted)' }}>
+                    {c.orderCount} orders · since {c.since}
+                    {c.primaryNeed ? ` · ${customerNeedLabel(c.primaryNeed)}` : ''}
+                  </div>
                 </div>
                 {c.segment && <Badge tone={SEGMENT_TONE[c.segment]}>{SEGMENT_LABEL[c.segment]}</Badge>}
                 <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 13.5, width: 60, textAlign: 'right' }}>{fmt(Math.round(c.ltv))}</span>
@@ -223,6 +228,16 @@ export default function CustomersSection() {
                   </select>
                 </label>
               </div>
+
+              <label style={{ display: 'block', marginBottom: 14 }}>
+                <span style={overline}>PRIMARY NEED</span>
+                <select value={detail.primaryNeed ?? ''} onChange={(e) => patchDetail({ primaryNeed: e.target.value === '' ? null : e.target.value })} style={detailSelect}>
+                  <option value="">Unknown</option>
+                  {CUSTOMER_NEEDS.map((n) => (
+                    <option key={n.id} value={n.id}>{n.label}</option>
+                  ))}
+                </select>
+              </label>
 
               <div style={overline}>PURCHASE HISTORY</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>

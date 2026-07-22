@@ -7,6 +7,7 @@ import { prisma } from '@/lib/prisma'
 const updateSchema = z.object({
   name: z.string().min(1).max(120),
   email: z.string().email(),
+  primaryNeed: z.enum(['EVERYDAY', 'BACKUP', 'OFFGRID', 'BUSINESS']).nullish(),
 })
 
 export async function PATCH(request: Request) {
@@ -21,7 +22,7 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: 'Invalid profile details' }, { status: 400 })
   }
 
-  const { name, email } = parsed.data
+  const { name, email, primaryNeed } = parsed.data
 
   const existing = await prisma.user.findUnique({ where: { email } })
   if (existing && existing.id !== session.user.id) {
@@ -30,8 +31,13 @@ export async function PATCH(request: Request) {
 
   const updated = await prisma.user.update({
     where: { id: session.user.id },
-    data: { name, email },
+    data: { name, email, ...(primaryNeed !== undefined ? { primaryNeed } : {}) },
   })
 
-  return NextResponse.json({ id: updated.id, name: updated.name, email: updated.email })
+  return NextResponse.json({
+    id: updated.id,
+    name: updated.name,
+    email: updated.email,
+    primaryNeed: updated.primaryNeed,
+  })
 }

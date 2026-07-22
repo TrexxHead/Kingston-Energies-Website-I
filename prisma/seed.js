@@ -22,12 +22,12 @@ const PRODUCTS = [
 ]
 
 const CUSTOMERS = [
-  { key: 'jowayne', name: 'JoWayne Fearon', email: 'jowayne.fearon@example.com', segment: 'VIP', tier: 'Gold', phone: '876-555-0114', since: 2024 },
-  { key: 'renee', name: 'Renée B.', email: 'renee.b@example.com', segment: 'Repeat', tier: 'Silver', phone: '876-555-0132', since: 2025 },
-  { key: 'marcus', name: 'Marcus D.', email: 'marcus.d@example.com', segment: 'Repeat', tier: 'Silver', phone: '876-555-0177', since: 2025 },
-  { key: 'alicia', name: 'Alicia K.', email: 'alicia.k@example.com', segment: 'New', tier: 'Bronze', phone: '876-555-0190', since: 2026 },
-  { key: 'devon', name: 'Devon R.', email: 'devon.r@example.com', segment: 'New', tier: 'Bronze', phone: '876-555-0201', since: 2026 },
-  { key: 'paula', name: 'Paula S.', email: 'paula.s@example.com', segment: 'VIP', tier: 'Gold', phone: '876-555-0222', since: 2025 },
+  { key: 'jowayne', name: 'JoWayne Fearon', email: 'jowayne.fearon@example.com', segment: 'VIP', tier: 'Gold', phone: '876-555-0114', since: 2024, need: 'BUSINESS' },
+  { key: 'renee', name: 'Renée B.', email: 'renee.b@example.com', segment: 'Repeat', tier: 'Silver', phone: '876-555-0132', since: 2025, need: 'BACKUP' },
+  { key: 'marcus', name: 'Marcus D.', email: 'marcus.d@example.com', segment: 'Repeat', tier: 'Silver', phone: '876-555-0177', since: 2025, need: 'EVERYDAY' },
+  { key: 'alicia', name: 'Alicia K.', email: 'alicia.k@example.com', segment: 'New', tier: 'Bronze', phone: '876-555-0190', since: 2026, need: 'OFFGRID' },
+  { key: 'devon', name: 'Devon R.', email: 'devon.r@example.com', segment: 'New', tier: 'Bronze', phone: '876-555-0201', since: 2026, need: null },
+  { key: 'paula', name: 'Paula S.', email: 'paula.s@example.com', segment: 'VIP', tier: 'Gold', phone: '876-555-0222', since: 2025, need: 'BACKUP' },
 ]
 
 // Orders matching the kanban mock (order no / customer / status / total) + a few historical DONE orders for VIPs.
@@ -102,10 +102,10 @@ async function main() {
   for (const c of CUSTOMERS) {
     const user = await prisma.user.upsert({
       where: { email: c.email },
-      update: { name: c.name, segment: SEGMENT[c.segment], loyaltyTier: c.tier, phone: c.phone },
+      update: { name: c.name, segment: SEGMENT[c.segment], loyaltyTier: c.tier, phone: c.phone, primaryNeed: c.need ?? null },
       create: {
         email: c.email, name: c.name, password: '', role: 'USER',
-        segment: SEGMENT[c.segment], loyaltyTier: c.tier, phone: c.phone,
+        segment: SEGMENT[c.segment], loyaltyTier: c.tier, phone: c.phone, primaryNeed: c.need ?? null,
         createdAt: new Date(`${c.since}-03-01T00:00:00Z`),
       },
     })

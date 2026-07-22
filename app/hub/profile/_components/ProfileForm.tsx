@@ -2,15 +2,18 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { CUSTOMER_NEEDS, type CustomerNeed } from '@/lib/crm'
 
 interface ProfileFormProps {
   initialName: string
   initialEmail: string
+  initialNeed: CustomerNeed | null
 }
 
-export default function ProfileForm({ initialName, initialEmail }: ProfileFormProps) {
+export default function ProfileForm({ initialName, initialEmail, initialNeed }: ProfileFormProps) {
   const [name, setName] = useState(initialName)
   const [email, setEmail] = useState(initialEmail)
+  const [need, setNeed] = useState<CustomerNeed | ''>(initialNeed ?? '')
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -25,7 +28,7 @@ export default function ProfileForm({ initialName, initialEmail }: ProfileFormPr
     const response = await fetch('/api/account', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email }),
+      body: JSON.stringify({ name, email, primaryNeed: need === '' ? null : need }),
     })
 
     setSubmitting(false)
@@ -110,6 +113,37 @@ export default function ProfileForm({ initialName, initialEmail }: ProfileFormPr
             outline: 'none',
           }}
         />
+      </div>
+
+      <div style={{ marginBottom: 20 }}>
+        <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: 6 }}>
+          What do you mainly need power for?
+        </label>
+        <select
+          value={need}
+          onChange={(e) => setNeed(e.target.value as CustomerNeed | '')}
+          style={{
+            width: '100%',
+            height: 44,
+            padding: '0 14px',
+            border: '1.5px solid var(--color-border)',
+            borderRadius: 10,
+            fontSize: 14,
+            outline: 'none',
+            background: '#fff',
+            appearance: 'none',
+          }}
+        >
+          <option value="">Prefer not to say</option>
+          {CUSTOMER_NEEDS.map((n) => (
+            <option key={n.id} value={n.id}>
+              {n.label} — {n.detail}
+            </option>
+          ))}
+        </select>
+        <p style={{ fontSize: 11.5, color: 'var(--color-text-muted)', margin: '6px 0 0' }}>
+          Helps us recommend the right gear and tailor offers to how you use it.
+        </p>
       </div>
 
       <button

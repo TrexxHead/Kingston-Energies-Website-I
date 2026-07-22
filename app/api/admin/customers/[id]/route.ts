@@ -6,6 +6,7 @@ import { guardAdmin } from '@/lib/requireAdmin'
 const patchSchema = z.object({
   segment: z.enum(['VIP', 'REPEAT', 'NEW']).nullish(),
   loyaltyTier: z.string().max(40).nullish(),
+  primaryNeed: z.enum(['EVERYDAY', 'BACKUP', 'OFFGRID', 'BUSINESS']).nullish(),
   phone: z.string().max(40).nullish(),
   name: z.string().min(1).max(120).optional(),
 })
@@ -34,6 +35,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       phone: user.phone,
       segment: user.segment,
       loyaltyTier: user.loyaltyTier,
+      primaryNeed: user.primaryNeed,
       since: new Date(user.createdAt).getFullYear(),
       ltv,
       orderCount: user.orders.length,

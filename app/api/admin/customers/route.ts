@@ -31,6 +31,7 @@ export async function GET() {
       phone: u.phone,
       segment: u.segment,
       loyaltyTier: u.loyaltyTier,
+      primaryNeed: u.primaryNeed,
       since: new Date(u.createdAt).getFullYear(),
       orderCount,
       ltv,

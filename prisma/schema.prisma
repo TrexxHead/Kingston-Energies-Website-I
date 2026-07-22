@@ -20,6 +20,7 @@ model User {
   phone         String?
   segment       CustomerSegment?
   loyaltyTier   String?
+  primaryNeed   CustomerNeed?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -219,6 +220,15 @@ enum CustomerSegment {
   VIP
   REPEAT
   NEW
+}
+
+// IDIC "Identify" — the primary use-case a customer's portable-power purchase
+// serves. Kept in sync with CUSTOMER_NEEDS in lib/crm.ts.
+enum CustomerNeed {
+  EVERYDAY
+  BACKUP
+  OFFGRID
+  BUSINESS
 }
 
 enum ProductCategory {

@@ -6,19 +6,19 @@ const prisma = new PrismaClient()
 const CATEGORY = { powerbanks: 'POWERBANKS', chargers: 'CHARGERS', stations: 'STATIONS', accessories: 'ACCESSORIES' }
 const SEGMENT = { VIP: 'VIP', Repeat: 'REPEAT', New: 'NEW' }
 
+// Names must match lib/catalog.ts exactly — the storefront joins price/stock by name.
 const PRODUCTS = [
-  { name: 'Charmast 10,400', cat: 'powerbanks', sku: 'KE-PB-104', barcode: '8 901234 001', price: 7999, stock: 42, threshold: 10, spec: '10,400MAH · 3 PORTS · LED', badge: 'Best seller' },
-  { name: 'Charmast 20,000 PD', cat: 'powerbanks', sku: 'KE-PB-200', barcode: '8 901234 002', price: 11999, stock: 18, threshold: 10, spec: '20,000MAH · USB-C PD 22.5W', badge: 'Max capacity' },
-  { name: 'OtterBox 10,000 Leather', cat: 'powerbanks', sku: 'KE-PB-OTT', barcode: '8 901234 003', price: 9999, stock: 15, threshold: 10, spec: '10,000MAH · LEATHER', badge: 'Repairable' },
-  { name: '20W USB-C Fast Charger', cat: 'chargers', sku: 'KE-CH-020', barcode: '8 901234 010', price: 2999, stock: 60, threshold: 15, spec: '20W PD', badge: null },
-  { name: '33W GaN Dual-Port', cat: 'chargers', sku: 'KE-CH-033', barcode: '8 901234 011', price: 4999, stock: 4, threshold: 10, spec: 'USB-C + USB-A · GAN', badge: 'New' },
-  { name: 'Braided USB-C Cable', cat: 'chargers', sku: 'KE-CB-100', barcode: '8 901234 020', price: 2499, stock: 6, threshold: 15, spec: '1M BRAIDED', badge: null },
-  { name: 'Car Charger', cat: 'chargers', sku: 'KE-CH-CAR', barcode: '8 901234 021', price: 3499, stock: 20, threshold: 10, spec: '12V · DUAL PORT', badge: null },
-  { name: 'Slim 10,000 Pearl', cat: 'powerbanks', sku: 'KE-PB-SLM', barcode: '8 901234 004', price: 6999, stock: 30, threshold: 10, spec: '10,000MAH · POCKET SLIM', badge: null },
-  { name: 'Power Station 300', cat: 'stations', sku: 'KE-ST-300', barcode: '8 901234 030', price: 49999, stock: 3, threshold: 5, spec: '300W · AC + USB-C', badge: 'Pre-order' },
-  { name: 'Power Station 500', cat: 'stations', sku: 'KE-ST-500', barcode: '8 901234 031', price: 79999, stock: 7, threshold: 5, spec: '500W · SOLAR-READY', badge: 'Solar-ready' },
-  { name: 'Nulaxy Phone Stand', cat: 'accessories', sku: 'KE-AC-STD', barcode: '8 901234 040', price: 2999, stock: 25, threshold: 10, spec: 'ALUMINIUM · FOLDABLE', badge: null },
-  { name: 'Tech Pouch', cat: 'accessories', sku: 'KE-AC-PCH', barcode: '8 901234 041', price: 2499, stock: 22, threshold: 10, spec: 'WATER-RESISTANT', badge: null },
+  { name: 'Charmast 10,400', cat: 'powerbanks', sku: 'KE-PB-104', barcode: '8 901234 001', price: 5500, stock: 42, threshold: 10, spec: '10,400MAH · DIGITAL DISPLAY · USB-C & USB-A', badge: 'Best seller' },
+  { name: 'IFIDOL MagSafe Power Bank', cat: 'powerbanks', sku: 'KE-PB-MAG', barcode: '8 901234 002', price: 8000, stock: 20, threshold: 10, spec: 'MAGSAFE · 16,000MAH · 22.5W USB-C', badge: 'MagSafe' },
+  { name: 'MIADY 10,000', cat: 'powerbanks', sku: 'KE-PB-MIA', barcode: '8 901234 005', price: 5500, stock: 24, threshold: 10, spec: '10,000MAH · 22.5W PD · COMPACT', badge: null },
+  { name: 'OtterBox 10,000 Leather', cat: 'powerbanks', sku: 'KE-PB-OTT', barcode: '8 901234 003', price: 8000, stock: 15, threshold: 10, spec: '10,000MAH · PREMIUM · REPAIRABLE', badge: 'Repairable' },
+  { name: '20W USB-C Fast Charger', cat: 'chargers', sku: 'KE-CH-020', barcode: '8 901234 010', price: 3000, stock: 60, threshold: 15, spec: '20W PD · IPHONE & ANDROID', badge: null },
+  { name: 'USB-C to Lightning Charger 20W', cat: 'chargers', sku: 'KE-CH-LTG', barcode: '8 901234 012', price: 3000, stock: 40, threshold: 15, spec: 'USB-C TO LIGHTNING · 20W PD', badge: null },
+  { name: 'Braided USB-C Cable', cat: 'chargers', sku: 'KE-CB-100', barcode: '8 901234 020', price: 2500, stock: 30, threshold: 15, spec: '6FT BRAIDED · FAST CHARGE', badge: null },
+  { name: 'Anker Power Station', cat: 'stations', sku: 'KE-ST-ANK', barcode: '8 901234 030', price: 25000, stock: 6, threshold: 5, spec: 'PORTABLE POWER STATION · AC + USB-C', badge: 'Flagship' },
+  { name: 'Litheli 100W Solar Panel', cat: 'stations', sku: 'KE-SL-100', barcode: '8 901234 032', price: 15000, stock: 8, threshold: 5, spec: '100W · FOLDABLE · IP54', badge: 'Solar-ready' },
+  { name: 'Nulaxy Phone Stand', cat: 'accessories', sku: 'KE-AC-STD', barcode: '8 901234 040', price: 1500, stock: 25, threshold: 10, spec: 'ALUMINIUM · FOLDABLE', badge: null },
+  { name: 'Tech Pouch', cat: 'accessories', sku: 'KE-AC-PCH', barcode: '8 901234 041', price: 2499, stock: 22, threshold: 10, spec: 'WATER-RESISTANT ORGANIZER', badge: null },
 ]
 
 const CUSTOMERS = [
@@ -74,12 +74,12 @@ const NPS_RESPONSES = [
 // productId matches the lib/catalog.ts ids so each review can link to /product/<id>.
 const REVIEWS = [
   { productId: 'pb10', author: 'Renée B.', location: 'Kingston', rating: 5, body: 'The Charmast 10,400 gets me through two full days on one charge. The LED read-out is a nice touch — no more guessing.' },
-  { productId: 'pb20', author: 'Marcus D.', location: 'Portmore', rating: 5, body: 'Charged my laptop and phone on a weekend trip with power to spare. The 20,000 PD is the real deal.' },
-  { productId: 'chgan', author: 'Alicia K.', location: 'Spanish Town', rating: 4, body: 'Tiny 33W GaN charger that fills my phone crazy fast. Wish it came in white, but it works beautifully.' },
+  { productId: 'pbmag', author: 'Marcus D.', location: 'Portmore', rating: 5, body: 'The MagSafe bank snaps right onto my iPhone and tops it up wirelessly. 16,000mAh gets me through a whole weekend.' },
+  { productId: 'ch20', author: 'Alicia K.', location: 'Spanish Town', rating: 4, body: 'Tiny 20W USB-C charger that fills my phone crazy fast. Works with both my iPhone and my sister’s Android.' },
   { productId: 'pbot', author: 'Devon R.', location: 'Kingston', rating: 5, body: 'The OtterBox leather bank looks premium and survived a drop off my desk. Feels built to last.' },
   { productId: 'st300', author: 'Paula S.', location: 'Mandeville', rating: 5, body: 'Ran my fridge and fan through a 3-hour outage. Kingston Energies delivered exactly what they promised.' },
   { productId: 'chcab', author: 'JoWayne F.', location: 'Kingston', rating: 5, body: 'Braided cable that actually lasts — fast charge every time and it hasn’t frayed after months of daily use.' },
-  { productId: 'pbsl', author: 'Simone A.', location: 'Ocho Rios', rating: 4, body: 'Slim Pearl slips right into my bag and disappears. Perfect for a top-up on the go.' },
+  { productId: 'pbmi', author: 'Simone A.', location: 'Ocho Rios', rating: 4, body: 'The MIADY is slim enough to disappear in my bag and the 22.5W output tops me up fast. Perfect on the go.' },
   { productId: 'acst', author: 'Kemar T.', location: 'Kingston', rating: 5, body: 'Sturdy aluminium stand, folds flat, holds my phone at the perfect angle for calls. Great value.' },
 ]
 

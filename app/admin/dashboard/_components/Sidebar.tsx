@@ -8,6 +8,7 @@ import {
   Megaphone,
   Wallet,
   ChartScatter,
+  BookOpen,
   ExternalLink,
 } from 'lucide-react'
 import Link from 'next/link'
@@ -21,6 +22,7 @@ const ICONS: Record<string, typeof LayoutDashboard> = {
   megaphone: Megaphone,
   wallet: Wallet,
   'chart-scatter': ChartScatter,
+  'book-open': BookOpen,
 }
 
 interface SidebarProps {

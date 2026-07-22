@@ -2,16 +2,29 @@ import { prisma } from '@/lib/prisma'
 import { getProduct, fmt } from '@/lib/catalog'
 import ReviewCarousel, { type ReviewCard } from './ReviewCarousel'
 
+/** Fisher–Yates shuffle (returns a new array). */
+function shuffle<T>(input: T[]): T[] {
+  const arr = [...input]
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[arr[i], arr[j]] = [arr[j], arr[i]]
+  }
+  return arr
+}
+
 export default async function Reviews() {
-  // Guard the DB read so a build (or a transient DB blip) can never break the homepage.
+  // Pull a wide, recent pool then randomise, so the featured strip rotates
+  // through different customer reviews (including newly submitted ones) rather
+  // than always showing the same newest handful. Guarded so a DB blip can never
+  // break the homepage.
   let rows: Awaited<ReturnType<typeof prisma.review.findMany>> = []
   try {
-    rows = await prisma.review.findMany({ orderBy: { createdAt: 'desc' }, take: 20 })
+    rows = await prisma.review.findMany({ orderBy: { createdAt: 'desc' }, take: 60 })
   } catch {
     return null
   }
 
-  const reviews: ReviewCard[] = rows
+  const reviews: ReviewCard[] = shuffle(rows)
     .map((r): ReviewCard | null => {
       const product = getProduct(r.productId)
       if (!product) return null // only surface reviews whose product is in the catalog
@@ -28,6 +41,7 @@ export default async function Reviews() {
       }
     })
     .filter((r): r is ReviewCard => r !== null)
+    .slice(0, 12)
 
   if (reviews.length === 0) return null
 

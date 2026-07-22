@@ -20,14 +20,16 @@ const GALLERY = [
   '/images/otterbox-hand.jpg',
 ]
 
-const SEED_REVIEWS = [
-  { stars: 5, text: 'Charges my phone three times over. The LED display is a game changer — no more guessing.', who: 'RENÉE B.', date: 'JUN 2026' },
-  { stars: 5, text: 'Slim enough for my pocket, tough enough for the road. Kingston-made and it shows.', who: 'MARCUS D.', date: 'MAY 2026' },
-]
+export interface ProductReview {
+  stars: number
+  text: string
+  who: string
+  date: string
+}
 
 const monoOverline = { fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '.24em', color: 'var(--color-text-muted)' } as const
 
-export default function ProductClient({ product }: { product: ShopProduct }) {
+export default function ProductClient({ product, initialReviews = [] }: { product: ShopProduct; initialReviews?: ProductReview[] }) {
   const { addItem } = useCart()
   const { pushToast } = useToast()
   const { status } = useSession()
@@ -35,7 +37,7 @@ export default function ProductClient({ product }: { product: ShopProduct }) {
 
   const [capacity, setCapacity] = useState(0)
   const [finish, setFinish] = useState(0)
-  const [reviews, setReviews] = useState(SEED_REVIEWS)
+  const [reviews, setReviews] = useState<ProductReview[]>(initialReviews)
   const [revOpen, setRevOpen] = useState(false)
   const [revStars, setRevStars] = useState(5)
   const [revText, setRevText] = useState('')
@@ -45,6 +47,7 @@ export default function ProductClient({ product }: { product: ShopProduct }) {
   const soldOut = product.inStock === false
   const lowStock = product.stock !== null && product.stock > 0 && product.stock <= 5
   const capacities = [product.cap ?? '10,400mAh', '20,000mAh', 'Fast PD']
+  const avgRating = reviews.length ? reviews.reduce((s, r) => s + r.stars, 0) / reviews.length : 0
 
   const handleAdd = () => {
     if (soldOut) return
@@ -193,10 +196,17 @@ export default function ProductClient({ product }: { product: ShopProduct }) {
         <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 40, display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
           <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 30, letterSpacing: '-.02em', margin: 0 }}>Reviews</h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <span style={{ color: '#f7941e', fontSize: 15, letterSpacing: 2 }}>★★★★★</span>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, letterSpacing: '.16em', color: 'var(--color-text-muted)' }}>
-              4.8&nbsp;·&nbsp;{reviews.length}&nbsp;REVIEWS
-            </span>
+            {reviews.length > 0 && (
+              <>
+                <span style={{ color: '#f7941e', fontSize: 15, letterSpacing: 2 }}>
+                  {'★'.repeat(Math.round(avgRating))}
+                  <span style={{ color: 'var(--ke-gray-300)' }}>{'★'.repeat(5 - Math.round(avgRating))}</span>
+                </span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, letterSpacing: '.16em', color: 'var(--color-text-muted)' }}>
+                  {avgRating.toFixed(1)}&nbsp;·&nbsp;{reviews.length}&nbsp;{reviews.length === 1 ? 'REVIEW' : 'REVIEWS'}
+                </span>
+              </>
+            )}
             {reviewed ? (
               <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, color: 'var(--ke-green-700)' }}>✓ You reviewed this</span>
             ) : (
@@ -236,6 +246,12 @@ export default function ProductClient({ product }: { product: ShopProduct }) {
                 {submitting ? 'Submitting…' : 'Submit review — earn 50 pts'}
               </Button>
             </div>
+          </div>
+        )}
+
+        {reviews.length === 0 && !revOpen && (
+          <div style={{ background: '#fff', border: '1px solid var(--color-border)', borderRadius: 18, padding: '32px 24px', marginTop: 22, textAlign: 'center', color: 'var(--color-text-muted)', fontSize: 14 }}>
+            No reviews yet — be the first to share your experience.
           </div>
         )}
 

@@ -9,6 +9,10 @@ import Stats from '@/components/home/Stats'
 import Reviews from '@/components/home/Reviews'
 import CTA from '@/components/home/CTA'
 
+// Re-render at most every 2 minutes so newly submitted reviews surface and the
+// featured strip reshuffles, without making the marketing homepage fully dynamic.
+export const revalidate = 120
+
 export default function Home() {
   return (
     <div style={{ fontFamily: 'var(--font-body)', color: '#eaf2ec', background: '#0d1714', minHeight: '100vh' }}>

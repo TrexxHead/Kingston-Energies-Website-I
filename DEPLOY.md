@@ -1,6 +1,6 @@
 # Kingston Energies — Deployment & Handoff Guide
 
-**Last Updated:** 2026-07-21 (session 3: dropped Apple Sign In from scope; final blocker is real product prices + photos)  
+**Last Updated:** 2026-07-22 (session 4: IDIC CRM framework, NPS, service playbook, docs manager, security pass)  
 **Status:** Ready for production deployment (pending GitHub push + Supabase setup)
 
 ---
@@ -23,8 +23,17 @@
 - Multi-method checkout (Visa/Mastercard, Google Pay, PayPal, Cash on Delivery) — method persisted on orders
 - Legal pages (privacy, terms, returns, warranty)
 - SEO (sitemap.xml, robots.txt, Open Graph metadata)
-- Rate limiting (signup, orders, chat, resend-verification endpoints)
-- Tests (13 passing: rate-limit, catalog, Jordyn)
+- Rate limiting (signup, orders, chat, resend-verification, nps, contact endpoints)
+- Tests (50 passing: rate-limit, catalog, products, impact, password, initials, Jordyn, full CRM taxonomy)
+
+**CRM — IDIC framework (MGMT 3069 course material):**
+- **Identify** — customers set a *primary need* (Everyday / Backup / Off-grid / Business) at signup and in the Hub; shown and editable in admin
+- **Differentiate** — each customer auto-tagged into a value tier (MVC / SGC / MGC / LMC / BZC) computed from LTV + recency; admin Customers tab filters by tier and shows a CRM insights strip (Pareto 80/20, tier counts, % identified)
+- **Interact** — NPS survey after every order and after a Jordyn chat; admin Analytics tab shows overall + per-source NPS, distribution, and recent comments
+- **Customize** — Hub recommendations and Jordyn's answers tailored to the customer's need
+- **Service Playbook** (admin tab + `docs/SERVICE_PLAYBOOK.md`) — customer-centric guide (IDIC, SERVQUAL/RATER, service culture, complaint handling, guarantee design)
+- **Policies & documentation manager** — store Google Drive (or any) share links in the admin Playbook tab; optional `NEXT_PUBLIC_DRIVE_FOLDER_URL` button
+- All CRM logic centralised in `lib/crm.ts` (fully unit-tested); see `docs/SECURITY_REVIEW.md` and `docs/WHATSAPP_JORDYN.md` for the security pass and the WhatsApp-Jordyn plan
 
 **Build & Deploy Ready:**
 - ✅ Production build passes (`npm run build`)

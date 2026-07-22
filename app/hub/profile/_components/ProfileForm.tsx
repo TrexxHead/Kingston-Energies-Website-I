@@ -6,12 +6,14 @@ import { CUSTOMER_NEEDS, type CustomerNeed } from '@/lib/crm'
 
 interface ProfileFormProps {
   initialName: string
+  initialUsername: string
   initialEmail: string
   initialNeed: CustomerNeed | null
 }
 
-export default function ProfileForm({ initialName, initialEmail, initialNeed }: ProfileFormProps) {
+export default function ProfileForm({ initialName, initialUsername, initialEmail, initialNeed }: ProfileFormProps) {
   const [name, setName] = useState(initialName)
+  const [username, setUsername] = useState(initialUsername)
   const [email, setEmail] = useState(initialEmail)
   const [need, setNeed] = useState<CustomerNeed | ''>(initialNeed ?? '')
   const [error, setError] = useState('')
@@ -28,7 +30,7 @@ export default function ProfileForm({ initialName, initialEmail, initialNeed }: 
     const response = await fetch('/api/account', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, primaryNeed: need === '' ? null : need }),
+      body: JSON.stringify({ name, username: username.trim(), email, primaryNeed: need === '' ? null : need }),
     })
 
     setSubmitting(false)
@@ -82,6 +84,28 @@ export default function ProfileForm({ initialName, initialEmail, initialNeed }: 
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
+          style={{
+            width: '100%',
+            height: 44,
+            padding: '0 14px',
+            border: '1.5px solid var(--color-border)',
+            borderRadius: 10,
+            fontSize: 14,
+            outline: 'none',
+          }}
+        />
+      </div>
+
+      <div style={{ marginBottom: 14 }}>
+        <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: 6 }}>
+          Username <span style={{ fontWeight: 400 }}>(optional — sign in with this or your email)</span>
+        </label>
+        <input
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          placeholder="e.g. jowayne876"
+          autoCapitalize="none"
+          autoCorrect="off"
           style={{
             width: '100%',
             height: 44,

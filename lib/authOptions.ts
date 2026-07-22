@@ -19,8 +19,14 @@ export const authOptions: NextAuthOptions = {
         }
 
         const identifier = credentials.email.trim()
+        // Match email or username, case-insensitively (users don't remember case).
         const user = await prisma.user.findFirst({
-          where: { OR: [{ email: identifier }, { username: identifier }] }
+          where: {
+            OR: [
+              { email: { equals: identifier, mode: 'insensitive' } },
+              { username: { equals: identifier, mode: 'insensitive' } },
+            ],
+          },
         })
 
         if (!user || !user.password) {

@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/authOptions'
 import { prisma } from '@/lib/prisma'
 import { fmt, CATALOG } from '@/lib/catalog'
 import { co2SavedKg, formatCo2 } from '@/lib/impact'
+import { loyaltyPoints } from '@/lib/loyalty'
 import { recommendProductsForNeed, customerNeedLabel, NEED_PITCH, type CustomerNeed } from '@/lib/crm'
 import { ArrowRight } from 'lucide-react'
 import Topbar from './_components/Topbar'
@@ -26,7 +27,10 @@ export default async function HubPage() {
   const user = session?.user?.id
     ? await prisma.user.findUnique({
         where: { id: session.user.id },
-        include: { orders: { include: { items: true }, orderBy: { createdAt: 'desc' } } },
+        include: {
+          orders: { include: { items: true }, orderBy: { createdAt: 'desc' } },
+          _count: { select: { reviews: true } },
+        },
       })
     : null
 
@@ -36,7 +40,7 @@ export default async function HubPage() {
   const activeOrders = orders.filter((o) => o.status !== 'DONE' && o.status !== 'CANCELLED')
   const completed = orders.filter((o) => o.status === 'DONE').length
   const totalSpent = purchasedOrders.reduce((sum, o) => sum + o.total, 0)
-  const loyaltyPoints = Math.floor(totalSpent / 100)
+  const points = loyaltyPoints({ totalSpent, reviewCount: user?._count?.reviews ?? 0 })
   const firstName = user?.name?.split(' ')[0] ?? 'there'
   const customerSince = user
     ? new Date(user.createdAt).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })
@@ -50,7 +54,7 @@ export default async function HubPage() {
   const stats: { label: string; value: string }[] = [
     { label: 'Products purchased', value: String(itemsPurchased) },
     { label: 'Orders completed', value: String(completed) },
-    { label: 'Loyalty points', value: String(loyaltyPoints) },
+    { label: 'Loyalty points', value: String(points) },
     { label: 'Customer since', value: customerSince },
     { label: 'Lifetime savings', value: fmt(lifetimeSavings) },
     { label: 'Referral rewards', value: fmt(0) },

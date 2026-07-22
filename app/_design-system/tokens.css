@@ -176,3 +176,15 @@
 @media (max-width:900px){
   .hub-two-col{ grid-template-columns:1fr !important; }
 }
+
+/* Snugger horizontal padding on phones — trims the oversized 32px gutters
+   used across content sections down to something that fits small screens. */
+@media (max-width:640px){
+  .ke-screen{ padding-left:16px !important; padding-right:16px !important; }
+  .ke-screen section{ padding-left:16px !important; padding-right:16px !important; }
+  .ke-nav-inner{ padding-left:16px !important; padding-right:16px !important; gap:14px !important; }
+  .hub-stat-grid{ grid-template-columns:repeat(2,1fr) !important; }
+}
+@media (max-width:400px){
+  .hub-stat-grid{ grid-template-columns:1fr !important; }
+}

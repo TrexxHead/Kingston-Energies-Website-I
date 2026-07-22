@@ -57,6 +57,20 @@ const TICKETS = [
   { key: 'marcus', subject: 'Warranty claim question', status: 'RESOLVED' },
 ]
 
+// NPS survey responses (IDIC "Interact"). source ORDER = after checkout,
+// SUPPORT = after a Jordyn chat. Scores span promoters/passives/detractors.
+const NPS_RESPONSES = [
+  { key: 'jowayne', score: 10, source: 'ORDER', orderNo: 'KE-0981', comment: 'Fast delivery and the power station is exactly what my shop needed.' },
+  { key: 'paula', score: 9, source: 'ORDER', orderNo: 'KE-0975', comment: 'Great service, would recommend to anyone dealing with outages.' },
+  { key: 'renee', score: 9, source: 'ORDER', orderNo: 'KE-0960' },
+  { key: 'marcus', score: 8, source: 'ORDER', orderNo: 'KE-1023' },
+  { key: 'alicia', score: 6, source: 'ORDER', orderNo: 'KE-1020', comment: 'Product is good but the wrong colour came first time.' },
+  { key: 'marcus', score: 9, source: 'SUPPORT', comment: 'Jordyn answered my warranty question right away.' },
+  { key: 'devon', score: 5, source: 'SUPPORT', comment: 'Still waiting on a fix for my charging issue.' },
+  { key: 'renee', score: 10, source: 'SUPPORT', comment: 'Super helpful and quick.' },
+  { key: 'alicia', score: 7, source: 'SUPPORT' },
+]
+
 // productId matches the lib/catalog.ts ids so each review can link to /product/<id>.
 const REVIEWS = [
   { productId: 'pb10', author: 'Renée B.', location: 'Kingston', rating: 5, body: 'The Charmast 10,400 gets me through two full days on one charge. The LED read-out is a nice touch — no more guessing.' },
@@ -168,6 +182,24 @@ async function main() {
     console.log(`Seeded ${REVIEWS.length} reviews`)
   } else {
     console.log('Reviews already present — skipping review seed')
+  }
+
+  // NPS responses (only if empty) — a mix across order and support surveys
+  if ((await prisma.npsResponse.count()) === 0) {
+    for (const n of NPS_RESPONSES) {
+      await prisma.npsResponse.create({
+        data: {
+          userId: n.key ? customerIds[n.key] : null,
+          score: n.score,
+          comment: n.comment ?? null,
+          source: n.source,
+          orderNo: n.orderNo ?? null,
+        },
+      })
+    }
+    console.log(`Seeded ${NPS_RESPONSES.length} NPS responses`)
+  } else {
+    console.log('NPS responses already present — skipping NPS seed')
   }
 }
 

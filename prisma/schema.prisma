@@ -30,6 +30,7 @@ model User {
   leads         Lead[]
   orders        Order[]
   tickets       SupportTicket[]
+  npsResponses  NpsResponse[]
 }
 
 model Account {
@@ -229,6 +230,28 @@ enum CustomerNeed {
   BACKUP
   OFFGRID
   BUSINESS
+}
+
+// IDIC "Interact" — a Net Promoter Score response collected after an order or
+// a Jordyn support interaction. Score is 0–10; see lib/crm.ts for bucketing.
+model NpsResponse {
+  id        String    @id @default(cuid())
+  userId    String?
+  score     Int
+  comment   String?   @db.Text
+  source    NpsSource @default(ORDER)
+  orderNo   String?
+  createdAt DateTime  @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([source])
+}
+
+enum NpsSource {
+  ORDER
+  SUPPORT
 }
 
 enum ProductCategory {

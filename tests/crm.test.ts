@@ -6,6 +6,9 @@ import {
   customerValueTier,
   monthsSince,
   VALUE_TIER_CONFIG,
+  npsBucket,
+  npsScore,
+  isValidNpsScore,
 } from '@/lib/crm'
 
 describe('CUSTOMER_NEEDS', () => {
@@ -89,5 +92,48 @@ describe('monthsSince', () => {
     const now = new Date('2026-07-01T00:00:00Z')
     const future = new Date('2026-09-01T00:00:00Z')
     expect(monthsSince(future, now)).toBe(0)
+  })
+})
+
+describe('npsBucket', () => {
+  it('buckets scores per the 0-6 / 7-8 / 9-10 rule', () => {
+    expect(npsBucket(0)).toBe('detractor')
+    expect(npsBucket(6)).toBe('detractor')
+    expect(npsBucket(7)).toBe('passive')
+    expect(npsBucket(8)).toBe('passive')
+    expect(npsBucket(9)).toBe('promoter')
+    expect(npsBucket(10)).toBe('promoter')
+  })
+})
+
+describe('npsScore', () => {
+  it('returns a zeroed summary for no responses', () => {
+    expect(npsScore([])).toEqual({ score: 0, promoters: 0, passives: 0, detractors: 0, total: 0 })
+  })
+
+  it('computes NPS as %promoters - %detractors, passives excluded', () => {
+    // 6 promoters, 2 passives, 2 detractors of 10 => 60% - 20% = 40
+    const scores = [10, 10, 9, 9, 9, 9, 8, 7, 3, 5]
+    const summary = npsScore(scores)
+    expect(summary.total).toBe(10)
+    expect(summary.promoters).toBe(6)
+    expect(summary.passives).toBe(2)
+    expect(summary.detractors).toBe(2)
+    expect(summary.score).toBe(40)
+  })
+
+  it('handles an all-detractor set as -100', () => {
+    expect(npsScore([0, 1, 2, 3]).score).toBe(-100)
+  })
+})
+
+describe('isValidNpsScore', () => {
+  it('accepts integers 0-10 and rejects everything else', () => {
+    expect(isValidNpsScore(0)).toBe(true)
+    expect(isValidNpsScore(10)).toBe(true)
+    expect(isValidNpsScore(11)).toBe(false)
+    expect(isValidNpsScore(-1)).toBe(false)
+    expect(isValidNpsScore(5.5)).toBe(false)
+    expect(isValidNpsScore('7')).toBe(false)
   })
 })

@@ -122,3 +122,57 @@ export function monthsSince(date: Date | string | null | undefined, now: Date = 
   if (ms < 0) return 0
   return ms / (1000 * 60 * 60 * 24 * 30.44)
 }
+
+/* ------------------------------------------------------------------ *
+ * IDIC "Interact" — Net Promoter Score
+ *
+ * From the Session 7 material: on a 0–10 scale, 9–10 are Promoters, 7–8
+ * Passives, 0–6 Detractors, and NPS = %Promoters − %Detractors (Passives
+ * excluded from the calculation). We collect a score after each order and
+ * after a Jordyn support interaction, then report the rolled-up figure.
+ * ------------------------------------------------------------------ */
+
+export type NpsBucket = 'promoter' | 'passive' | 'detractor'
+
+/** Where an NPS response was collected. */
+export type NpsSource = 'ORDER' | 'SUPPORT'
+
+/** Bucket a single 0–10 score. */
+export function npsBucket(score: number): NpsBucket {
+  if (score >= 9) return 'promoter'
+  if (score >= 7) return 'passive'
+  return 'detractor'
+}
+
+export interface NpsSummary {
+  /** −100..100, rounded; 0 when there are no responses. */
+  score: number
+  promoters: number
+  passives: number
+  detractors: number
+  total: number
+}
+
+/** Roll a set of 0–10 scores up into an NPS summary. */
+export function npsScore(scores: number[]): NpsSummary {
+  const total = scores.length
+  if (total === 0) return { score: 0, promoters: 0, passives: 0, detractors: 0, total: 0 }
+
+  let promoters = 0
+  let passives = 0
+  let detractors = 0
+  for (const s of scores) {
+    const bucket = npsBucket(s)
+    if (bucket === 'promoter') promoters++
+    else if (bucket === 'passive') passives++
+    else detractors++
+  }
+
+  const score = Math.round(((promoters - detractors) / total) * 100)
+  return { score, promoters, passives, detractors, total }
+}
+
+/** True if a value is an integer NPS score in range 0–10. */
+export function isValidNpsScore(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 10
+}

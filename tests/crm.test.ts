@@ -10,7 +10,24 @@ import {
   npsScore,
   isValidNpsScore,
   recommendProductsForNeed,
+  paretoShare,
 } from '@/lib/crm'
+
+describe('paretoShare', () => {
+  it('returns 0 when there is no value', () => {
+    expect(paretoShare([])).toBe(0)
+    expect(paretoShare([0, 0, 0])).toBe(0)
+  })
+
+  it('reports the top-fraction share of total value', () => {
+    // top 1 of 5 (ceil(5*0.2)=1) holds 60 of 100 => 0.6
+    expect(paretoShare([60, 10, 10, 10, 10], 0.2)).toBeCloseTo(0.6, 5)
+  })
+
+  it('always counts at least one customer in the top fraction', () => {
+    expect(paretoShare([50, 50], 0.01)).toBeCloseTo(0.5, 5)
+  })
+})
 
 describe('CUSTOMER_NEEDS', () => {
   it('has unique ids and non-empty labels', () => {

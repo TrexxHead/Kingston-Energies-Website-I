@@ -10,7 +10,7 @@ import TextInput from '../ui/TextInput'
 import { cardStyle, h3Style } from '../ui/card'
 import { fmt } from '../mockData'
 import { initials } from '@/lib/initials'
-import { CUSTOMER_NEEDS, customerNeedLabel, VALUE_TIERS, type CustomerNeed, type ValueTier } from '@/lib/crm'
+import { CUSTOMER_NEEDS, customerNeedLabel, VALUE_TIERS, paretoShare, type CustomerNeed, type ValueTier } from '@/lib/crm'
 
 type Segment = 'VIP' | 'REPEAT' | 'NEW'
 type TicketStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED'
@@ -147,7 +147,9 @@ export default function CustomersSection() {
   }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 16, alignItems: 'start' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <CrmInsights customers={customers} />
+      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 16, alignItems: 'start' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -326,6 +328,45 @@ export default function CustomersSection() {
           <TextInput label="Subject" value={ticketSubject} onChange={setTicketSubject} placeholder="Describe the issue" />
         </Modal>
       )}
+      </div>
+    </div>
+  )
+}
+
+function CrmInsights({ customers }: { customers: CustomerRow[] }) {
+  if (customers.length === 0) return null
+
+  const tierCounts = (Object.keys(VALUE_TIERS) as ValueTier[]).map((t) => ({
+    tier: t,
+    count: customers.filter((c) => c.valueTier === t).length,
+  }))
+  const withNeed = customers.filter((c) => c.primaryNeed).length
+  const needPct = Math.round((withNeed / customers.length) * 100)
+  const top20Share = Math.round(paretoShare(customers.map((c) => c.ltv), 0.2) * 100)
+
+  return (
+    <div style={{ ...cardStyle, display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'center' }}>
+      <Stat label="Customers" value={String(customers.length)} />
+      <Stat label="Top 20% share of value" value={`${top20Share}%`} hint="Pareto — focus retention here" />
+      <Stat label="Need on file" value={`${needPct}%`} hint={`${withNeed} of ${customers.length} identified`} />
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginLeft: 'auto' }}>
+        {tierCounts.map(({ tier, count }) => (
+          <div key={tier} style={{ textAlign: 'center', minWidth: 46 }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 18, color: count > 0 ? 'var(--color-text)' : 'var(--color-text-subtle)' }}>{count}</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '.1em', color: 'var(--color-text-muted)' }}>{tier}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
+  return (
+    <div>
+      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 24, lineHeight: 1 }}>{value}</div>
+      <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 4 }}>{label}</div>
+      {hint && <div style={{ fontSize: 10, color: 'var(--color-text-subtle)', marginTop: 1 }}>{hint}</div>}
     </div>
   )
 }

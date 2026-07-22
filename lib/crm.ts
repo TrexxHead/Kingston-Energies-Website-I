@@ -186,6 +186,20 @@ export function isValidNpsScore(value: unknown): value is number {
  * over any product carrying a `cat`, so it stays decoupled from the catalog.
  * ------------------------------------------------------------------ */
 
+/**
+ * Pareto (80/20) concentration: what share of total value the top `fraction`
+ * of customers accounts for. Returns a 0–1 ratio (0 when there's no value).
+ * Used in the admin CRM overview to justify focusing on the top tiers.
+ */
+export function paretoShare(values: number[], fraction = 0.2): number {
+  const total = values.reduce((sum, v) => sum + v, 0)
+  if (total <= 0) return 0
+  const sorted = [...values].sort((a, b) => b - a)
+  const topCount = Math.max(1, Math.ceil(sorted.length * fraction))
+  const topSum = sorted.slice(0, topCount).reduce((sum, v) => sum + v, 0)
+  return topSum / total
+}
+
 /** Ordered category priorities per need. Category ids match lib/catalog.ts. */
 export const NEED_CATEGORY_PRIORITY: Record<CustomerNeed, string[]> = {
   EVERYDAY: ['powerbanks', 'chargers', 'accessories'],

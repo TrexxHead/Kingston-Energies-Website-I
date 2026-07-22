@@ -89,7 +89,7 @@ export default function CheckoutPage() {
         <div style={{ background: '#fff', border: '1px solid var(--color-border)', borderRadius: 22, padding: 30, marginTop: 22, boxShadow: 'var(--shadow-md)' }}>
           {step === 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <Field label="Full name"><input defaultValue="JoWayne Fearon" style={inputStyle} /></Field>
+              <Field label="Full name"><input placeholder="Your full name" style={inputStyle} /></Field>
               <div className="kp-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <Field label="Phone"><input placeholder="876…" style={inputStyle} /></Field>
                 <Field label="Email"><input type="email" placeholder="you@example.com" style={inputStyle} /></Field>

@@ -3,6 +3,7 @@ import { authOptions } from '@/lib/authOptions'
 import { prisma } from '@/lib/prisma'
 import { fmt } from '@/lib/catalog'
 import { UserPlus, Ticket, Award } from 'lucide-react'
+import { loyaltyPoints } from '@/lib/loyalty'
 import Topbar from '../_components/Topbar'
 import { hubScreen, hubCard, hubH3 } from '../_components/ui'
 import CopyReferral from './_components/CopyReferral'
@@ -22,12 +23,12 @@ export default async function RewardsPage() {
   const user = session?.user?.id
     ? await prisma.user.findUnique({
         where: { id: session.user.id },
-        include: { orders: true },
+        include: { orders: true, _count: { select: { reviews: true } } },
       })
     : null
 
   const totalSpent = (user?.orders ?? []).filter((o) => o.status !== 'CANCELLED').reduce((s, o) => s + o.total, 0)
-  const points = Math.floor(totalSpent / 100)
+  const points = loyaltyPoints({ totalSpent, reviewCount: user?._count?.reviews ?? 0 })
   const tier = tierFor(points)
   const progressPct = Math.round(((points % REWARD_STEP) / REWARD_STEP) * 100)
   const ptsToNext = REWARD_STEP - (points % REWARD_STEP)

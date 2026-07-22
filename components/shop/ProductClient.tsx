@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import { ArrowRight, Heart } from 'lucide-react'
 import CommerceShell from '@/components/shop/CommerceShell'
 import ProductImage from '@/components/shop/ProductImage'
@@ -28,6 +30,8 @@ const monoOverline = { fontFamily: 'var(--font-mono)', fontSize: 11, letterSpaci
 export default function ProductClient({ product }: { product: ShopProduct }) {
   const { addItem } = useCart()
   const { pushToast } = useToast()
+  const { status } = useSession()
+  const router = useRouter()
 
   const [capacity, setCapacity] = useState(0)
   const [finish, setFinish] = useState(0)
@@ -35,6 +39,8 @@ export default function ProductClient({ product }: { product: ShopProduct }) {
   const [revOpen, setRevOpen] = useState(false)
   const [revStars, setRevStars] = useState(5)
   const [revText, setRevText] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [reviewed, setReviewed] = useState(false)
 
   const soldOut = product.inStock === false
   const lowStock = product.stock !== null && product.stock > 0 && product.stock <= 5
@@ -46,11 +52,44 @@ export default function ProductClient({ product }: { product: ShopProduct }) {
     pushToast('check', 'Added to cart', product.name)
   }
 
-  const submitReview = () => {
-    setReviews((prev) => [{ stars: revStars, text: revText || 'Great product.', who: 'YOU', date: 'TODAY' }, ...prev])
-    setRevOpen(false)
-    setRevText('')
-    pushToast('star', 'Review submitted', 'You earned 50 points')
+  const submitReview = async () => {
+    if (status !== 'authenticated') {
+      pushToast('star', 'Sign in to review', 'Please sign in to leave a review')
+      router.push('/login')
+      return
+    }
+    const text = revText.trim()
+    if (!text) {
+      pushToast('star', 'Add a few words', 'Please write a short review')
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId: product.id, rating: revStars, body: text }),
+      })
+      const data = await res.json().catch(() => ({}))
+
+      if (res.ok) {
+        setReviews((prev) => [{ stars: revStars, text, who: 'YOU', date: 'TODAY' }, ...prev])
+        setRevOpen(false)
+        setRevText('')
+        setReviewed(true)
+        pushToast('star', 'Review submitted', `You earned ${data.pointsEarned ?? 50} points`)
+      } else if (res.status === 409) {
+        setReviewed(true)
+        setRevOpen(false)
+        pushToast('star', 'Already reviewed', 'You can only review a product once')
+      } else {
+        pushToast('star', 'Could not submit', data.error ?? 'Please try again')
+      }
+    } catch {
+      pushToast('star', 'Could not submit', 'Please try again')
+    }
+    setSubmitting(false)
   }
 
   return (
@@ -158,9 +197,13 @@ export default function ProductClient({ product }: { product: ShopProduct }) {
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, letterSpacing: '.16em', color: 'var(--color-text-muted)' }}>
               4.8&nbsp;·&nbsp;{reviews.length}&nbsp;REVIEWS
             </span>
-            <Button size="sm" variant="outline" onClick={() => setRevOpen((v) => !v)}>
-              {revOpen ? 'Cancel' : 'Write a review'}
-            </Button>
+            {reviewed ? (
+              <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, color: 'var(--ke-green-700)' }}>✓ You reviewed this</span>
+            ) : (
+              <Button size="sm" variant="outline" onClick={() => setRevOpen((v) => !v)}>
+                {revOpen ? 'Cancel' : 'Write a review'}
+              </Button>
+            )}
           </div>
         </div>
 
@@ -189,7 +232,9 @@ export default function ProductClient({ product }: { product: ShopProduct }) {
               style={{ width: '100%', marginTop: 14, padding: '12px 14px', border: '1.5px solid var(--color-border)', borderRadius: 12, fontFamily: 'var(--font-body)', fontSize: 14, outline: 'none', resize: 'vertical' }}
             />
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 14 }}>
-              <Button size="sm" onClick={submitReview}>Submit review — earn 50 pts</Button>
+              <Button size="sm" onClick={submitReview} disabled={submitting}>
+                {submitting ? 'Submitting…' : 'Submit review — earn 50 pts'}
+              </Button>
             </div>
           </div>
         )}

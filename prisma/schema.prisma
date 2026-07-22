@@ -32,6 +32,7 @@ model User {
   orders        Order[]
   tickets       SupportTicket[]
   npsResponses  NpsResponse[]
+  reviews       Review[]
 }
 
 model Account {
@@ -202,6 +203,7 @@ model SupportTicket {
 model Review {
   id        String   @id @default(cuid())
   productId String   // catalog product id (e.g. "pb10") — the shop reads lib/catalog.ts, not Product
+  userId    String?
   author    String
   location  String?
   rating    Int      @default(5)
@@ -209,6 +211,11 @@ model Review {
   verified  Boolean  @default(true)
   createdAt DateTime @default(now())
 
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // One review per customer per product (seeded reviews have userId = null and
+  // are unaffected — the constraint only binds rows that have a userId).
+  @@unique([userId, productId])
   @@index([productId])
 }
 

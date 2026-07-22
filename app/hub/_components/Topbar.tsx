@@ -1,8 +1,8 @@
 'use client'
 
-import { useSession } from 'next-auth/react'
-import { Bell } from 'lucide-react'
-import { initials } from '@/lib/initials'
+import { useRouter } from 'next/navigation'
+import { Bell, ChevronLeft } from 'lucide-react'
+import AccountMenu from '@/components/AccountMenu'
 
 interface TopbarProps {
   title: string
@@ -10,8 +10,7 @@ interface TopbarProps {
 }
 
 export default function Topbar({ title, subtitle }: TopbarProps) {
-  const { data: session } = useSession()
-  const name = session?.user?.name ?? session?.user?.email ?? 'Account'
+  const router = useRouter()
 
   return (
     <div
@@ -19,14 +18,37 @@ export default function Topbar({ title, subtitle }: TopbarProps) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '18px 28px',
+        padding: '16px 20px',
         borderBottom: '1px solid var(--color-border)',
         background: '#fff',
+        gap: 12,
       }}
     >
-      <div>
-        <h1 style={{ font: 'var(--text-h3)', margin: 0, color: 'var(--color-text)' }}>{title}</h1>
-        <p style={{ margin: '2px 0 0', fontSize: 12.5, color: 'var(--color-text-muted)' }}>{subtitle}</p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+        <button
+          type="button"
+          onClick={() => router.back()}
+          aria-label="Go back"
+          style={{
+            width: 36,
+            height: 36,
+            flex: 'none',
+            borderRadius: 10,
+            border: '1px solid var(--color-border)',
+            background: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            color: 'var(--color-text)',
+          }}
+        >
+          <ChevronLeft size={18} />
+        </button>
+        <div style={{ minWidth: 0 }}>
+          <h1 style={{ font: 'var(--text-h3)', margin: 0, color: 'var(--color-text)' }}>{title}</h1>
+          <p style={{ margin: '2px 0 0', fontSize: 12.5, color: 'var(--color-text-muted)' }}>{subtitle}</p>
+        </div>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -50,6 +72,7 @@ export default function Topbar({ title, subtitle }: TopbarProps) {
         <button
           type="button"
           aria-label="Notifications"
+          className="kad-hide-sm"
           style={{
             width: 36,
             height: 36,
@@ -65,23 +88,7 @@ export default function Topbar({ title, subtitle }: TopbarProps) {
           <Bell size={17} />
         </button>
 
-        <div
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: '50%',
-            background: 'var(--gradient-brand)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#fff',
-            fontFamily: 'var(--font-display)',
-            fontWeight: 700,
-            fontSize: 12,
-          }}
-        >
-          {initials(name)}
-        </div>
+        <AccountMenu size={36} />
       </div>
     </div>
   )

@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { ArrowRight, BadgeCheck, Sparkles } from 'lucide-react'
 import CommerceShell from '@/components/shop/CommerceShell'
 import { Button, FeatureIcon } from '@/components/shop/ui'
+import NpsSurvey from '@/components/nps/NpsSurvey'
 
 export default function ConfirmPage() {
   const router = useRouter()
@@ -74,6 +75,10 @@ export default function ConfirmPage() {
             <div style={{ fontSize: 13.5, color: 'var(--color-text-muted)', marginTop: 3 }}>Activates your 12-month warranty and earns 25 points.</div>
           </div>
           <Button size="sm" variant="ghost" onClick={() => router.push('/hub')}>My hub</Button>
+        </div>
+
+        <div style={{ marginTop: 20 }}>
+          <NpsSurvey source="ORDER" orderNo={orderNo} question="How likely are you to recommend Kingston Energies after this order?" />
         </div>
       </section>
     </CommerceShell>

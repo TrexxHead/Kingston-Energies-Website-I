@@ -6,6 +6,7 @@ export type SectionId =
   | 'marketing2'
   | 'finance'
   | 'analytics'
+  | 'playbook'
 
 export const fmt = (n: number): string => 'J$' + n.toLocaleString()
 
@@ -19,6 +20,7 @@ export const TITLES: Record<SectionId, [string, string]> = {
   marketing2: ['Marketing', 'Banners, promotions, campaigns'],
   finance: ['Finance', 'Revenue, margins, cash flow'],
   analytics: ['Analytics', 'Traffic, funnel, geography, behavior'],
+  playbook: ['Service playbook', 'Customer-centric guide, frameworks & policies'],
 }
 
 export const NAV_ITEMS: { id: SectionId; icon: string; label: string }[] = [
@@ -29,6 +31,7 @@ export const NAV_ITEMS: { id: SectionId; icon: string; label: string }[] = [
   { id: 'marketing2', icon: 'megaphone', label: 'Marketing' },
   { id: 'finance', icon: 'wallet', label: 'Finance' },
   { id: 'analytics', icon: 'chart-scatter', label: 'Analytics' },
+  { id: 'playbook', icon: 'book-open', label: 'Playbook' },
 ]
 
 export interface Banner {

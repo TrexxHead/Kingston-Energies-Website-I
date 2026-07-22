@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { guardAdmin } from '@/lib/requireAdmin'
+import { customerValueTier, monthsSince } from '@/lib/crm'
 
 const createSchema = z.object({
   name: z.string().min(1).max(120),
@@ -18,12 +19,26 @@ export async function GET() {
   const users = await prisma.user.findMany({
     where: { role: 'USER' },
     orderBy: { createdAt: 'asc' },
-    include: { orders: { select: { total: true } } },
+    include: {
+      orders: { select: { total: true, createdAt: true } },
+      tickets: { select: { status: true } },
+    },
   })
 
   const customers = users.map((u) => {
     const orderCount = u.orders.length
     const ltv = u.orders.reduce((sum, o) => sum + o.total, 0)
+    const lastOrder = u.orders.reduce<Date | null>(
+      (latest, o) => (latest === null || o.createdAt > latest ? o.createdAt : latest),
+      null
+    )
+    const openTickets = u.tickets.filter((t) => t.status !== 'RESOLVED').length
+    const valueTier = customerValueTier({
+      ltv,
+      orderCount,
+      monthsSinceLastOrder: monthsSince(lastOrder),
+      openTickets,
+    })
     return {
       id: u.id,
       name: u.name ?? u.email,
@@ -31,9 +46,11 @@ export async function GET() {
       phone: u.phone,
       segment: u.segment,
       loyaltyTier: u.loyaltyTier,
+      primaryNeed: u.primaryNeed,
       since: new Date(u.createdAt).getFullYear(),
       orderCount,
       ltv,
+      valueTier,
     }
   })
 

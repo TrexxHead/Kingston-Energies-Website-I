@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react'
 
-type Tone = 'green' | 'blue' | 'orange' | 'neutral'
+type Tone = 'green' | 'blue' | 'orange' | 'neutral' | 'red' | 'grey'
 
 interface BadgeProps {
   tone?: Tone
@@ -16,6 +16,8 @@ const TONE_STYLES: Record<Tone, { bg: string; text: string }> = {
   blue: { bg: 'var(--ke-blue-50)', text: 'var(--ke-blue-600)' },
   orange: { bg: 'var(--ke-sun-50)', text: 'var(--ke-sun-500)' },
   neutral: { bg: 'var(--ke-gray-100)', text: 'var(--ke-gray-600)' },
+  red: { bg: 'var(--color-danger-soft)', text: 'var(--color-danger)' },
+  grey: { bg: 'var(--ke-gray-100)', text: 'var(--ke-gray-600)' },
 }
 
 export default function Badge({ tone = 'neutral', dot = false, children, onClick }: BadgeProps) {

@@ -22,12 +22,12 @@ const PRODUCTS = [
 ]
 
 const CUSTOMERS = [
-  { key: 'jowayne', name: 'JoWayne Fearon', email: 'jowayne.fearon@example.com', segment: 'VIP', tier: 'Gold', phone: '876-555-0114', since: 2024 },
-  { key: 'renee', name: 'Renée B.', email: 'renee.b@example.com', segment: 'Repeat', tier: 'Silver', phone: '876-555-0132', since: 2025 },
-  { key: 'marcus', name: 'Marcus D.', email: 'marcus.d@example.com', segment: 'Repeat', tier: 'Silver', phone: '876-555-0177', since: 2025 },
-  { key: 'alicia', name: 'Alicia K.', email: 'alicia.k@example.com', segment: 'New', tier: 'Bronze', phone: '876-555-0190', since: 2026 },
-  { key: 'devon', name: 'Devon R.', email: 'devon.r@example.com', segment: 'New', tier: 'Bronze', phone: '876-555-0201', since: 2026 },
-  { key: 'paula', name: 'Paula S.', email: 'paula.s@example.com', segment: 'VIP', tier: 'Gold', phone: '876-555-0222', since: 2025 },
+  { key: 'jowayne', name: 'JoWayne Fearon', email: 'jowayne.fearon@example.com', segment: 'VIP', tier: 'Gold', phone: '876-555-0114', since: 2024, need: 'BUSINESS' },
+  { key: 'renee', name: 'Renée B.', email: 'renee.b@example.com', segment: 'Repeat', tier: 'Silver', phone: '876-555-0132', since: 2025, need: 'BACKUP' },
+  { key: 'marcus', name: 'Marcus D.', email: 'marcus.d@example.com', segment: 'Repeat', tier: 'Silver', phone: '876-555-0177', since: 2025, need: 'EVERYDAY' },
+  { key: 'alicia', name: 'Alicia K.', email: 'alicia.k@example.com', segment: 'New', tier: 'Bronze', phone: '876-555-0190', since: 2026, need: 'OFFGRID' },
+  { key: 'devon', name: 'Devon R.', email: 'devon.r@example.com', segment: 'New', tier: 'Bronze', phone: '876-555-0201', since: 2026, need: null },
+  { key: 'paula', name: 'Paula S.', email: 'paula.s@example.com', segment: 'VIP', tier: 'Gold', phone: '876-555-0222', since: 2025, need: 'BACKUP' },
 ]
 
 // Orders matching the kanban mock (order no / customer / status / total) + a few historical DONE orders for VIPs.
@@ -55,6 +55,20 @@ const TICKETS = [
   { key: 'devon', subject: 'Power bank not charging fully', status: 'OPEN' },
   { key: 'alicia', subject: 'Wrong color delivered', status: 'IN_PROGRESS' },
   { key: 'marcus', subject: 'Warranty claim question', status: 'RESOLVED' },
+]
+
+// NPS survey responses (IDIC "Interact"). source ORDER = after checkout,
+// SUPPORT = after a Jordyn chat. Scores span promoters/passives/detractors.
+const NPS_RESPONSES = [
+  { key: 'jowayne', score: 10, source: 'ORDER', orderNo: 'KE-0981', comment: 'Fast delivery and the power station is exactly what my shop needed.' },
+  { key: 'paula', score: 9, source: 'ORDER', orderNo: 'KE-0975', comment: 'Great service, would recommend to anyone dealing with outages.' },
+  { key: 'renee', score: 9, source: 'ORDER', orderNo: 'KE-0960' },
+  { key: 'marcus', score: 8, source: 'ORDER', orderNo: 'KE-1023' },
+  { key: 'alicia', score: 6, source: 'ORDER', orderNo: 'KE-1020', comment: 'Product is good but the wrong colour came first time.' },
+  { key: 'marcus', score: 9, source: 'SUPPORT', comment: 'Jordyn answered my warranty question right away.' },
+  { key: 'devon', score: 5, source: 'SUPPORT', comment: 'Still waiting on a fix for my charging issue.' },
+  { key: 'renee', score: 10, source: 'SUPPORT', comment: 'Super helpful and quick.' },
+  { key: 'alicia', score: 7, source: 'SUPPORT' },
 ]
 
 // productId matches the lib/catalog.ts ids so each review can link to /product/<id>.
@@ -102,10 +116,10 @@ async function main() {
   for (const c of CUSTOMERS) {
     const user = await prisma.user.upsert({
       where: { email: c.email },
-      update: { name: c.name, segment: SEGMENT[c.segment], loyaltyTier: c.tier, phone: c.phone },
+      update: { name: c.name, segment: SEGMENT[c.segment], loyaltyTier: c.tier, phone: c.phone, primaryNeed: c.need ?? null },
       create: {
         email: c.email, name: c.name, password: '', role: 'USER',
-        segment: SEGMENT[c.segment], loyaltyTier: c.tier, phone: c.phone,
+        segment: SEGMENT[c.segment], loyaltyTier: c.tier, phone: c.phone, primaryNeed: c.need ?? null,
         createdAt: new Date(`${c.since}-03-01T00:00:00Z`),
       },
     })
@@ -168,6 +182,24 @@ async function main() {
     console.log(`Seeded ${REVIEWS.length} reviews`)
   } else {
     console.log('Reviews already present — skipping review seed')
+  }
+
+  // NPS responses (only if empty) — a mix across order and support surveys
+  if ((await prisma.npsResponse.count()) === 0) {
+    for (const n of NPS_RESPONSES) {
+      await prisma.npsResponse.create({
+        data: {
+          userId: n.key ? customerIds[n.key] : null,
+          score: n.score,
+          comment: n.comment ?? null,
+          source: n.source,
+          orderNo: n.orderNo ?? null,
+        },
+      })
+    }
+    console.log(`Seeded ${NPS_RESPONSES.length} NPS responses`)
+  } else {
+    console.log('NPS responses already present — skipping NPS seed')
   }
 }
 

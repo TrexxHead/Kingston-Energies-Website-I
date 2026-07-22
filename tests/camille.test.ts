@@ -1,5 +1,21 @@
 import { describe, it, expect } from 'vitest'
-import { fallbackAnswer, JORDYN_SYSTEM } from '@/lib/camille'
+import { fallbackAnswer, JORDYN_SYSTEM, jordynSystem } from '@/lib/camille'
+
+describe('jordynSystem', () => {
+  it('returns the base prompt unchanged when no need is provided', () => {
+    expect(jordynSystem(null)).toBe(JORDYN_SYSTEM)
+    expect(jordynSystem()).toBe(JORDYN_SYSTEM)
+  })
+
+  it('appends a customer-context block when a need is known', () => {
+    const prompt = jordynSystem('BACKUP')
+    expect(prompt.startsWith(JORDYN_SYSTEM)).toBe(true)
+    expect(prompt).toContain('CUSTOMER CONTEXT')
+    expect(prompt).toContain('Home backup')
+    // Backup leans to power stations first
+    expect(prompt).toContain('stations')
+  })
+})
 
 describe('fallbackAnswer', () => {
   it('routes power bank questions to the powerbanks category', () => {

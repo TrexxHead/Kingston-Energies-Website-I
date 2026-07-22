@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Send } from 'lucide-react'
 import { JORDYN_GREETING } from '@/lib/camille'
 import CamilleAvatar from '@/components/camille/CamilleAvatar'
+import NpsSurvey from '@/components/nps/NpsSurvey'
 
 interface ChatMessage {
   role: 'user' | 'assistant'
@@ -31,6 +32,9 @@ export default function SupportChat() {
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
+
+  // Offer the NPS survey once Jordyn has actually replied to the customer.
+  const assisted = messages.some((m) => m.role === 'assistant' && m.content.trim().length > 0)
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
@@ -120,6 +124,9 @@ export default function SupportChat() {
             {m.role === 'assistant' ? (m.content ? renderWithLinks(m.content) : <TypingDots />) : m.content}
           </Bubble>
         ))}
+        {assisted && !busy && (
+          <NpsSurvey source="SUPPORT" question="How helpful was Jordyn just now?" />
+        )}
       </div>
 
       {/* Input */}

@@ -20,6 +20,7 @@ model User {
   phone         String?
   segment       CustomerSegment?
   loyaltyTier   String?
+  primaryNeed   CustomerNeed?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -29,6 +30,7 @@ model User {
   leads         Lead[]
   orders        Order[]
   tickets       SupportTicket[]
+  npsResponses  NpsResponse[]
 }
 
 model Account {
@@ -219,6 +221,49 @@ enum CustomerSegment {
   VIP
   REPEAT
   NEW
+}
+
+// IDIC "Identify" — the primary use-case a customer's portable-power purchase
+// serves. Kept in sync with CUSTOMER_NEEDS in lib/crm.ts.
+enum CustomerNeed {
+  EVERYDAY
+  BACKUP
+  OFFGRID
+  BUSINESS
+}
+
+// IDIC "Interact" — a Net Promoter Score response collected after an order or
+// a Jordyn support interaction. Score is 0–10; see lib/crm.ts for bucketing.
+model NpsResponse {
+  id        String    @id @default(cuid())
+  userId    String?
+  score     Int
+  comment   String?   @db.Text
+  source    NpsSource @default(ORDER)
+  orderNo   String?
+  createdAt DateTime  @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([source])
+}
+
+enum NpsSource {
+  ORDER
+  SUPPORT
+}
+
+// Admin policy / documentation links — e.g. Google Drive share URLs for SOPs,
+// warranty policy, staff guides. Stored as links so no Drive API is required.
+model PolicyDoc {
+  id        String   @id @default(cuid())
+  title     String
+  url       String
+  category  String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }
 
 enum ProductCategory {

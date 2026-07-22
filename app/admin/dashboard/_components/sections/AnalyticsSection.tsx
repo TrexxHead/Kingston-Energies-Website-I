@@ -2,6 +2,7 @@
 
 import { cardStyle, h3Style } from '../ui/card'
 import { funnel, heatmapSeed, geography } from '../mockData'
+import NpsCard from './NpsCard'
 
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const maxFunnel = funnel[0].count
@@ -9,6 +10,7 @@ const maxFunnel = funnel[0].count
 export default function AnalyticsSection() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <NpsCard />
       <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 16 }}>
         <div style={cardStyle}>
           <h3 style={h3Style}>Conversion funnel</h3>

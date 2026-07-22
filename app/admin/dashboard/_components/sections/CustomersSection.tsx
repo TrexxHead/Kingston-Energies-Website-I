@@ -10,6 +10,7 @@ import TextInput from '../ui/TextInput'
 import { cardStyle, h3Style } from '../ui/card'
 import { fmt } from '../mockData'
 import { initials } from '@/lib/initials'
+import { CUSTOMER_NEEDS, customerNeedLabel, VALUE_TIERS, paretoShare, type CustomerNeed, type ValueTier } from '@/lib/crm'
 
 type Segment = 'VIP' | 'REPEAT' | 'NEW'
 type TicketStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED'
@@ -21,6 +22,8 @@ interface CustomerRow {
   phone: string | null
   segment: Segment | null
   loyaltyTier: string | null
+  primaryNeed: CustomerNeed | null
+  valueTier: ValueTier
   since: number
   orderCount: number
   ltv: number
@@ -51,6 +54,7 @@ const avatarGradient = { background: 'var(--gradient-brand)' }
 export default function CustomersSection() {
   const [customers, setCustomers] = useState<CustomerRow[]>([])
   const [seg, setSeg] = useState<'all' | Segment>('all')
+  const [tier, setTier] = useState<'all' | ValueTier>('all')
   const [search, setSearch] = useState('')
   const [selId, setSelId] = useState<string | null>(null)
   const [detail, setDetail] = useState<CustomerDetail | null>(null)
@@ -84,11 +88,12 @@ export default function CustomersSection() {
 
   const rows = customers.filter((c) => {
     if (seg !== 'all' && c.segment !== seg) return false
+    if (tier !== 'all' && c.valueTier !== tier) return false
     if (search && !`${c.name} ${c.email}`.toLowerCase().includes(search.toLowerCase())) return false
     return true
   })
 
-  const patchDetail = async (data: Record<string, string>) => {
+  const patchDetail = async (data: Record<string, string | null>) => {
     if (!detail) return
     await fetch(`/api/admin/customers/${detail.id}`, {
       method: 'PATCH',
@@ -142,12 +147,20 @@ export default function CustomersSection() {
   }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 16, alignItems: 'start' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <CrmInsights customers={customers} />
+      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 16, alignItems: 'start' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {SEGMENT_PILLS.map((p) => (
               <Pill key={p.id} label={p.label} selected={seg === p.id} onClick={() => setSeg(p.id)} />
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flexBasis: '100%' }}>
+            <Pill label="All value" selected={tier === 'all'} onClick={() => setTier('all')} />
+            {(Object.keys(VALUE_TIERS) as ValueTier[]).map((t) => (
+              <Pill key={t} label={`${t} · ${VALUE_TIERS[t].label}`} selected={tier === t} onClick={() => setTier(t)} />
             ))}
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -178,8 +191,12 @@ export default function CustomersSection() {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13.5 }}>{c.name}</div>
-                  <div style={{ fontSize: 11.5, color: 'var(--color-text-muted)' }}>{c.orderCount} orders · since {c.since}</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--color-text-muted)' }}>
+                    {c.orderCount} orders · since {c.since}
+                    {c.primaryNeed ? ` · ${customerNeedLabel(c.primaryNeed)}` : ''}
+                  </div>
                 </div>
+                <Badge tone={VALUE_TIERS[c.valueTier].tone}>{c.valueTier}</Badge>
                 {c.segment && <Badge tone={SEGMENT_TONE[c.segment]}>{SEGMENT_LABEL[c.segment]}</Badge>}
                 <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 13.5, width: 60, textAlign: 'right' }}>{fmt(Math.round(c.ltv))}</span>
               </div>
@@ -203,6 +220,12 @@ export default function CustomersSection() {
                   <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15 }}>{detail.name}</div>
                   <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{detail.email}{detail.phone ? ` · ${detail.phone}` : ''} · CLV {fmt(Math.round(detail.ltv))}</div>
                 </div>
+                <Badge tone={VALUE_TIERS[detail.valueTier].tone}>{detail.valueTier} · {VALUE_TIERS[detail.valueTier].label}</Badge>
+              </div>
+
+              <div style={{ background: 'var(--ke-gray-50, #f6f7f6)', borderRadius: 10, padding: '10px 12px', marginBottom: 14, fontSize: 12, color: 'var(--color-text-muted)' }}>
+                <span style={{ fontWeight: 600, color: 'var(--color-text)' }}>Strategy: </span>
+                {VALUE_TIERS[detail.valueTier].strategy}
               </div>
 
               <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
@@ -223,6 +246,16 @@ export default function CustomersSection() {
                   </select>
                 </label>
               </div>
+
+              <label style={{ display: 'block', marginBottom: 14 }}>
+                <span style={overline}>PRIMARY NEED</span>
+                <select value={detail.primaryNeed ?? ''} onChange={(e) => patchDetail({ primaryNeed: e.target.value === '' ? null : e.target.value })} style={detailSelect}>
+                  <option value="">Unknown</option>
+                  {CUSTOMER_NEEDS.map((n) => (
+                    <option key={n.id} value={n.id}>{n.label}</option>
+                  ))}
+                </select>
+              </label>
 
               <div style={overline}>PURCHASE HISTORY</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
@@ -295,6 +328,45 @@ export default function CustomersSection() {
           <TextInput label="Subject" value={ticketSubject} onChange={setTicketSubject} placeholder="Describe the issue" />
         </Modal>
       )}
+      </div>
+    </div>
+  )
+}
+
+function CrmInsights({ customers }: { customers: CustomerRow[] }) {
+  if (customers.length === 0) return null
+
+  const tierCounts = (Object.keys(VALUE_TIERS) as ValueTier[]).map((t) => ({
+    tier: t,
+    count: customers.filter((c) => c.valueTier === t).length,
+  }))
+  const withNeed = customers.filter((c) => c.primaryNeed).length
+  const needPct = Math.round((withNeed / customers.length) * 100)
+  const top20Share = Math.round(paretoShare(customers.map((c) => c.ltv), 0.2) * 100)
+
+  return (
+    <div style={{ ...cardStyle, display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'center' }}>
+      <Stat label="Customers" value={String(customers.length)} />
+      <Stat label="Top 20% share of value" value={`${top20Share}%`} hint="Pareto — focus retention here" />
+      <Stat label="Need on file" value={`${needPct}%`} hint={`${withNeed} of ${customers.length} identified`} />
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginLeft: 'auto' }}>
+        {tierCounts.map(({ tier, count }) => (
+          <div key={tier} style={{ textAlign: 'center', minWidth: 46 }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 18, color: count > 0 ? 'var(--color-text)' : 'var(--color-text-subtle)' }}>{count}</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '.1em', color: 'var(--color-text-muted)' }}>{tier}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
+  return (
+    <div>
+      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 24, lineHeight: 1 }}>{value}</div>
+      <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 4 }}>{label}</div>
+      {hint && <div style={{ fontSize: 10, color: 'var(--color-text-subtle)', marginTop: 1 }}>{hint}</div>}
     </div>
   )
 }

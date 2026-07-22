@@ -1,6 +1,6 @@
 # Kingston Energies — Deployment & Handoff Guide
 
-**Last Updated:** 2026-07-10 (session 2: email verification + live Google Sheets sync)  
+**Last Updated:** 2026-07-22 (session 4: IDIC CRM framework, NPS, service playbook, docs manager, security pass)  
 **Status:** Ready for production deployment (pending GitHub push + Supabase setup)
 
 ---
@@ -23,8 +23,17 @@
 - Multi-method checkout (Visa/Mastercard, Google Pay, PayPal, Cash on Delivery) — method persisted on orders
 - Legal pages (privacy, terms, returns, warranty)
 - SEO (sitemap.xml, robots.txt, Open Graph metadata)
-- Rate limiting (signup, orders, chat, resend-verification endpoints)
-- Tests (13 passing: rate-limit, catalog, Jordyn)
+- Rate limiting (signup, orders, chat, resend-verification, nps, contact endpoints)
+- Tests (50 passing: rate-limit, catalog, products, impact, password, initials, Jordyn, full CRM taxonomy)
+
+**CRM — IDIC framework (MGMT 3069 course material):**
+- **Identify** — customers set a *primary need* (Everyday / Backup / Off-grid / Business) at signup and in the Hub; shown and editable in admin
+- **Differentiate** — each customer auto-tagged into a value tier (MVC / SGC / MGC / LMC / BZC) computed from LTV + recency; admin Customers tab filters by tier and shows a CRM insights strip (Pareto 80/20, tier counts, % identified)
+- **Interact** — NPS survey after every order and after a Jordyn chat; admin Analytics tab shows overall + per-source NPS, distribution, and recent comments
+- **Customize** — Hub recommendations and Jordyn's answers tailored to the customer's need
+- **Service Playbook** (admin tab + `docs/SERVICE_PLAYBOOK.md`) — customer-centric guide (IDIC, SERVQUAL/RATER, service culture, complaint handling, guarantee design)
+- **Policies & documentation manager** — store Google Drive (or any) share links in the admin Playbook tab; optional `NEXT_PUBLIC_DRIVE_FOLDER_URL` button
+- All CRM logic centralised in `lib/crm.ts` (fully unit-tested); see `docs/SECURITY_REVIEW.md` and `docs/WHATSAPP_JORDYN.md` for the security pass and the WhatsApp-Jordyn plan
 
 **Build & Deploy Ready:**
 - ✅ Production build passes (`npm run build`)
@@ -41,10 +50,11 @@
 3. **Vercel** — deployment not attempted (blocked on user: GitHub repo exists + env vars configured)
 4. **Jordyn AI Live** — Anthropic API key is valid but account has no credits (blocked on user: add balance at console.anthropic.com/billing)
 5. **Live Payments** — PayPal/Google Pay not wired (blocked on user: PayPal + Google Pay credentials)
-6. **Real Instagram Prices** — placeholder JMD prices in use; actual product list not imported (blocked on user: provide price list)
-7. **Google Sheets Live Sync** — code is built and ready; needs a Google Cloud service account + a blank Google Sheet shared with it (blocked on user: ~10 min one-time setup, steps below)
-8. **Apple Sign In** — explicitly deferred (needs a paid Apple Developer Program account); Google + Email/password are live now
-9. **Email delivery** — without a Resend API key, verification/order emails log to the server console instead of sending (fine for testing, required before real users sign up)
+6. **Google Sheets Live Sync** — code is built and ready; needs a Google Cloud service account + a blank Google Sheet shared with it (blocked on user: ~10 min one-time setup, steps below)
+7. **Email delivery** — without a Resend API key, verification/order emails log to the server console instead of sending (fine for testing, required before real users sign up)
+8. **Real Instagram Prices & Photos** — placeholder JMD prices and stock photos in use; actual product list (names, prices, specs) and real product photos not imported (blocked on user: provide list + images)
+
+> **Note:** Apple Sign In has been dropped from scope — Google + Email/password cover sign-in for now.
 
 ---
 
@@ -193,11 +203,6 @@ Once the site is live, you can add features without redeploying code:
 - Follow "Step 4: Live Google Sheets Setup" above (~10 min, one-time)
 - Once configured, sales/customers/inventory data syncs automatically every 15 min + on-demand from the admin dashboard
 
-**Apple Sign In:**
-- Enroll in the Apple Developer Program ($99/year) at developer.apple.com
-- Create a Services ID + Sign in with Apple key (Team ID, Key ID, `.p8` private key)
-- Send me those four values and I'll wire up the provider (same pattern as Google)
-
 ---
 
 ## Technical Details for Next Session
@@ -247,7 +252,7 @@ CRON_SECRET="<random string>"
 
 - **Google**: sign in via OAuth, auto-verified (Google already confirms emails), works immediately once `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` are set.
 - **Email/password**: sign-up sends a confirmation link (24h expiry) via `lib/email.ts` → `sendVerificationEmail`. Login is blocked with a "confirm your email" message + one-click resend until the link is clicked. Without `EMAIL_API_KEY` configured, the link is logged to the server console instead of emailed — still fully testable locally.
-- **Apple**: not implemented — needs a paid Apple Developer Program account (Services ID, Team ID, Key ID, `.p8` private key). Ask to add it once you have those credentials; the codebase already follows the same provider pattern Google uses, so it's a contained addition.
+- **Apple**: out of scope for now — Google + Email/password cover sign-in.
 
 ---
 
@@ -264,9 +269,9 @@ CRON_SECRET="<random string>"
 
 ## Known Limitations (Next Priorities)
 
-- **Shop ↔ Admin divergence:** Public shop reads `lib/catalog.ts`, admin reads DB. Later: unify to single source.
-- **Live payment capture:** Orders record method but don't charge. Wire PayPal/Google Pay SDK when credentials available.
-- **Tests incomplete:** 13 unit tests pass; E2E + component tests are the next layer (for 80%+ coverage).
+- ✅ **Shop ↔ Admin unified:** `lib/products.ts` joins the static catalog (`lib/catalog.ts` — images, specs, copy) with live DB price/stock by product name, so admin Inventory edits show up on the storefront immediately. Falls back to static catalog prices if the DB is unreachable. Admin dashboard reads/writes the DB directly via `/api/admin/products`.
+- **Live payment capture:** Orders record the chosen method but don't charge. The checkout UI (card/Google Pay/PayPal/COD) is built and ready — wiring the actual PayPal/Google Pay SDK just needs `NEXT_PUBLIC_PAYPAL_CLIENT_ID`/`PAYPAL_CLIENT_SECRET`/`NEXT_PUBLIC_GOOGLE_PAY_MERCHANT_ID` from your merchant accounts (see "Later: Fill in the Blanks").
+- **Tests:** 23 unit tests pass (up from 13 — added coverage for `lib/products.ts` DB-fallback behavior, `lib/impact.ts`, `lib/password.ts`, `lib/initials.ts`). E2E + component tests are still the next layer for deeper coverage.
 - **Email:** Gracefully no-ops if `EMAIL_API_KEY` not set; configure Resend for production.
 
 ---

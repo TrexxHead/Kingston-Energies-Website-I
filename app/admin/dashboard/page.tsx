@@ -11,6 +11,7 @@ import CustomersSection from './_components/sections/CustomersSection'
 import MarketingSection from './_components/sections/MarketingSection'
 import FinanceSection from './_components/sections/FinanceSection'
 import AnalyticsSection from './_components/sections/AnalyticsSection'
+import PlaybookSection from './_components/sections/PlaybookSection'
 import {
   initialBanners,
   initialPromos,
@@ -68,6 +69,8 @@ export default function AdminDashboard() {
         return <FinanceSection />
       case 'analytics':
         return <AnalyticsSection />
+      case 'playbook':
+        return <PlaybookSection />
       default:
         return null
     }

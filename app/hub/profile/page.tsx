@@ -45,7 +45,7 @@ export default async function ProfilePage() {
             {user.role === 'ADMIN' ? 'Administrator' : 'Customer'} · Member since{' '}
             {new Date(user.createdAt).getFullYear()}
           </p>
-          <ProfileForm initialName={user.name ?? ''} initialEmail={user.email} />
+          <ProfileForm initialName={user.name ?? ''} initialEmail={user.email} initialNeed={user.primaryNeed} />
         </div>
 
         <div style={cardStyle}>

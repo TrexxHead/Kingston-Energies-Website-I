@@ -1,4 +1,5 @@
 import { CATALOG, fmt } from '@/lib/catalog'
+import { customerNeedLabel, NEED_CATEGORY_PRIORITY, type CustomerNeed } from '@/lib/crm'
 
 /** Jordyn — the Kingston Energies customer assistant. */
 
@@ -47,6 +48,19 @@ RULES:
 
 export const JORDYN_GREETING =
   "Hi, I'm Jordyn 👋 — your Kingston Energies assistant. Ask me about our power banks and chargers, how to place an order, tracking a delivery, or finding your way around the site."
+
+/**
+ * IDIC "Customize" for Jordyn: when we know a signed-in customer's primary
+ * need, append a short context block so recommendations lean the right way.
+ * Returns the base system prompt unchanged when there's no need on file.
+ */
+export function jordynSystem(need?: CustomerNeed | null): string {
+  if (!need) return JORDYN_SYSTEM
+  const cats = NEED_CATEGORY_PRIORITY[need].join(', ')
+  return `${JORDYN_SYSTEM}
+
+CUSTOMER CONTEXT: This customer told us their main use for portable power is "${customerNeedLabel(need)}". When they ask for a recommendation, lean toward these product categories in order: ${cats}. Keep it natural — don't announce that you know their preference.`
+}
 
 /**
  * Lightweight keyword fallback for when no ANTHROPIC_API_KEY is configured.

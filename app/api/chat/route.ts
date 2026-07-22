@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { z } from 'zod'
-import { JORDYN_SYSTEM, fallbackAnswer } from '@/lib/camille'
+import { getServerSession } from 'next-auth'
+import { jordynSystem, fallbackAnswer } from '@/lib/camille'
+import { authOptions } from '@/lib/authOptions'
+import { prisma } from '@/lib/prisma'
 import { rateLimit, clientIp } from '@/lib/rateLimit'
+import type { CustomerNeed } from '@/lib/crm'
 
 // Haiku 4.5 — fast and cost-appropriate for a high-traffic public support widget.
 // (Swap to claude-opus-4-8 here if you want maximum answer quality over cost.)
@@ -51,12 +55,28 @@ export async function POST(request: Request) {
     return textStream(fallbackAnswer(lastUser))
   }
 
+  // IDIC "Customize": if a signed-in customer has a stated need, tailor Jordyn's
+  // recommendations to it. Best-effort — never block the chat on this lookup.
+  let need: CustomerNeed | null = null
+  try {
+    const session = await getServerSession(authOptions)
+    if (session?.user?.id) {
+      const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { primaryNeed: true },
+      })
+      need = (user?.primaryNeed as CustomerNeed | null) ?? null
+    }
+  } catch {
+    // ignore — fall back to the generic assistant
+  }
+
   try {
     const client = new Anthropic({ apiKey })
     const stream = client.messages.stream({
       model: JORDYN_MODEL,
       max_tokens: 1024,
-      system: JORDYN_SYSTEM,
+      system: jordynSystem(need),
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
     })
 

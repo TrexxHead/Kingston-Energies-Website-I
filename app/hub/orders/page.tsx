@@ -14,7 +14,7 @@ const STATUS_META: Record<string, { label: string; bg: string; fg: string }> = {
 
 export default async function HubOrdersPage() {
   const session = await getServerSession(authOptions)
-  const orders = session
+  const orders = session?.user?.id
     ? await prisma.order.findMany({
         where: { userId: session.user.id },
         include: { items: true },

@@ -23,7 +23,7 @@ const RECOMMENDED_IDS = ['pb20', 'acpo', 'st300']
 export default async function HubPage() {
   const session = await getServerSession(authOptions)
 
-  const user = session
+  const user = session?.user?.id
     ? await prisma.user.findUnique({
         where: { id: session.user.id },
         include: { orders: { include: { items: true }, orderBy: { createdAt: 'desc' } } },

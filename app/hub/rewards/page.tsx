@@ -19,7 +19,7 @@ function tierFor(points: number): string {
 
 export default async function RewardsPage() {
   const session = await getServerSession(authOptions)
-  const user = session
+  const user = session?.user?.id
     ? await prisma.user.findUnique({
         where: { id: session.user.id },
         include: { orders: true },

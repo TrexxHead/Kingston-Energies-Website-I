@@ -15,11 +15,13 @@ const productSchema = z.object({
   badge: z.string().max(60).nullish(),
 })
 
-export async function GET() {
+export async function GET(request: Request) {
   const denied = await guardAdmin()
   if (denied) return denied
 
-  const products = await prisma.product.findMany({ orderBy: { name: 'asc' } })
+  // Default view shows active products; ?archived=1 lists archived ones.
+  const archived = new URL(request.url).searchParams.get('archived') === '1'
+  const products = await prisma.product.findMany({ where: { archived }, orderBy: { name: 'asc' } })
   return NextResponse.json({ products })
 }
 

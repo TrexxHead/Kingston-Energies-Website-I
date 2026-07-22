@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { cardStyle, h3Style } from '../ui/card'
 import { VALUE_TIERS, CUSTOMER_NEEDS, type ValueTier } from '@/lib/crm'
+import DocumentsCard from './DocumentsCard'
 
 /**
  * Service Playbook — the customer-centric guide distilled from the MGMT 3069
@@ -132,6 +133,8 @@ export default function PlaybookSection() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <DocumentsCard />
+
       <div style={cardStyle}>
         <h3 style={h3Style}>Customer-centric service playbook</h3>
         <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: 0 }}>

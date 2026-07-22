@@ -254,6 +254,18 @@ enum NpsSource {
   SUPPORT
 }
 
+// Admin policy / documentation links — e.g. Google Drive share URLs for SOPs,
+// warranty policy, staff guides. Stored as links so no Drive API is required.
+model PolicyDoc {
+  id        String   @id @default(cuid())
+  title     String
+  url       String
+  category  String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
 enum ProductCategory {
   POWERBANKS
   CHARGERS

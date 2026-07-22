@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Plus, Search, Trash2, Pencil } from 'lucide-react'
+import { Plus, Search, Trash2, Pencil, Archive, ArchiveRestore } from 'lucide-react'
 import Badge from '../ui/Badge'
 import Pill from '../ui/Pill'
 import Button from '../ui/Button'
@@ -64,11 +64,12 @@ export default function InventorySection() {
   const [poFor, setPoFor] = useState<Supplier | null>(null)
   const [poRef, setPoRef] = useState('')
   const [busy, setBusy] = useState(false)
+  const [showArchived, setShowArchived] = useState(false)
 
   const loadProducts = useCallback(async () => {
-    const res = await fetch('/api/admin/products')
+    const res = await fetch(`/api/admin/products${showArchived ? '?archived=1' : ''}`)
     if (res.ok) setProducts((await res.json()).products)
-  }, [])
+  }, [showArchived])
 
   const loadSuppliers = useCallback(async () => {
     const res = await fetch('/api/admin/suppliers')
@@ -144,8 +145,17 @@ export default function InventorySection() {
   }
 
   const deleteProduct = async (p: Product) => {
-    if (!confirm(`Delete ${p.name}?`)) return
+    if (!confirm(`Permanently delete ${p.name}? This can't be undone.`)) return
     await fetch(`/api/admin/products/${p.id}`, { method: 'DELETE' })
+    loadProducts()
+  }
+
+  const setArchived = async (p: Product, archived: boolean) => {
+    await fetch(`/api/admin/products/${p.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ archived }),
+    })
     loadProducts()
   }
 
@@ -217,6 +227,9 @@ export default function InventorySection() {
               style={{ height: 34, padding: '0 12px 0 32px', border: '1px solid var(--color-border)', borderRadius: 999, fontSize: 12.5, outline: 'none', fontFamily: 'var(--font-body)' }}
             />
           </div>
+          <Button size="sm" variant={showArchived ? 'primary' : 'outline'} onClick={() => setShowArchived((v) => !v)} iconRight={<Archive size={14} />}>
+            {showArchived ? 'Active products' : 'Archived'}
+          </Button>
           <Button size="sm" variant="primary" onClick={() => { setForm(emptyForm); setAddOpen(true) }} iconRight={<Plus size={14} />}>
             Add product
           </Button>
@@ -248,8 +261,15 @@ export default function InventorySection() {
               </span>
               <Badge tone={status.tone} dot>{status.label}</Badge>
               <span style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                <button type="button" aria-label="Edit" onClick={() => openEdit(p)} style={iconBtn}><Pencil size={13} /></button>
-                <button type="button" aria-label="Delete" onClick={() => deleteProduct(p)} style={iconBtn}><Trash2 size={13} /></button>
+                {showArchived ? (
+                  <button type="button" aria-label="Restore" title="Restore to active" onClick={() => setArchived(p, false)} style={iconBtn}><ArchiveRestore size={13} /></button>
+                ) : (
+                  <>
+                    <button type="button" aria-label="Edit" onClick={() => openEdit(p)} style={iconBtn}><Pencil size={13} /></button>
+                    <button type="button" aria-label="Archive" title="Archive (hide without deleting)" onClick={() => setArchived(p, true)} style={iconBtn}><Archive size={13} /></button>
+                  </>
+                )}
+                <button type="button" aria-label="Delete" title="Delete permanently" onClick={() => deleteProduct(p)} style={iconBtn}><Trash2 size={13} /></button>
               </span>
             </div>
           )

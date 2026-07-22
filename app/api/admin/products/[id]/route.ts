@@ -11,6 +11,7 @@ const patchSchema = z.object({
   category: z.enum(['POWERBANKS', 'CHARGERS', 'STATIONS', 'ACCESSORIES']).nullish(),
   badge: z.string().max(60).nullish(),
   spec: z.string().max(160).nullish(),
+  archived: z.boolean().optional(),
 })
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {

@@ -12,6 +12,15 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 const signupSchema = z.object({
   name: z.string().min(1).max(120),
   email: z.string().email(),
+  // Optional username (letters, numbers, dot, underscore, hyphen) usable at login.
+  username: z
+    .string()
+    .trim()
+    .min(3)
+    .max(30)
+    .regex(/^[a-zA-Z0-9._-]+$/, 'Username can only use letters, numbers, and . _ -')
+    .optional()
+    .or(z.literal('')),
   password: z.string().min(8).max(72),
 })
 
@@ -33,10 +42,18 @@ export async function POST(request: Request) {
   }
 
   const { name, email, password } = parsed.data
+  const username = parsed.data.username ? parsed.data.username.trim() : null
 
   const existing = await prisma.user.findUnique({ where: { email } })
   if (existing) {
     return NextResponse.json({ error: 'An account with this email already exists' }, { status: 409 })
+  }
+
+  if (username) {
+    const usernameTaken = await prisma.user.findUnique({ where: { username } })
+    if (usernameTaken) {
+      return NextResponse.json({ error: 'That username is already taken' }, { status: 409 })
+    }
   }
 
   const hashed = await hashPassword(password)
@@ -45,6 +62,7 @@ export async function POST(request: Request) {
     data: {
       name,
       email,
+      username,
       password: hashed,
       role: 'USER',
     },

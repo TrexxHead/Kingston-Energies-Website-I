@@ -1,7 +1,7 @@
 'use client'
 
 import { Suspense, useState } from 'react'
-import { signIn } from 'next-auth/react'
+import { signIn, getSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import AuthShell from '../_design-system/AuthShell'
@@ -50,14 +50,17 @@ function LoginForm() {
 
     const result = await signIn('credentials', { email, password, redirect: false })
 
-    setSubmitting(false)
-
     if (result?.error === 'EMAIL_NOT_VERIFIED') {
       setUnverified(true)
+      setSubmitting(false)
     } else if (result?.error) {
       setError('Invalid email or password')
+      setSubmitting(false)
     } else {
-      router.push('/hub')
+      // Route admins straight to the dashboard; everyone else to their hub.
+      const session = await getSession()
+      const role = session?.user?.role
+      router.push(role === 'ADMIN' || role === 'SUPER_ADMIN' ? '/admin/dashboard' : '/hub')
     }
   }
 

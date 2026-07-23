@@ -10,6 +10,7 @@ import CommerceShell from '@/components/shop/CommerceShell'
 import ProductImage from '@/components/shop/ProductImage'
 import { Badge, Button } from '@/components/shop/ui'
 import { fmt, type ShopProduct } from '@/lib/catalog'
+import { BENCHMARK_DEVICES, parseMah, chargesFor, formatCharges, CARE_TIPS } from '@/lib/productInfo'
 import { useCart } from '@/components/cart/CartContext'
 import { useToast } from '@/components/cart/ToastContext'
 
@@ -42,6 +43,8 @@ export default function ProductClient({ product, initialReviews = [] }: { produc
   const activeVariant = variants?.[variantIdx]
   const activePrice = activeVariant?.price ?? product.price
   const avgRating = reviews.length ? reviews.reduce((s, r) => s + r.stars, 0) / reviews.length : 0
+  const capMah = parseMah(activeVariant?.cap ?? product.cap)
+  const careTips = CARE_TIPS[product.cat]
 
   // Detail-page photos: the product's own gallery, else just its main image.
   const gallery = (product.gallery?.length ? product.gallery : product.image ? [product.image] : []) as string[]
@@ -193,7 +196,43 @@ export default function ProductClient({ product, initialReviews = [] }: { produc
         </div>
       </section>
 
-      <section style={{ maxWidth: 1240, margin: '0 auto', padding: '0 32px 72px' }}>
+      {(capMah || careTips.length > 0) && (
+        <section className="kp-2col" style={{ maxWidth: 1240, margin: '0 auto', padding: '0 32px 8px', display: 'grid', gridTemplateColumns: capMah ? '1fr 1fr' : '1fr', gap: 32 }}>
+          {capMah && (
+            <div>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 24, letterSpacing: '-.02em', margin: '0 0 6px' }}>Charges your devices</h2>
+              <p style={{ fontSize: 13.5, color: 'var(--color-text-muted)', margin: '0 0 18px' }}>
+                Estimated full charges from {activeVariant?.cap ?? product.cap} (real-world, after conversion losses).
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {BENCHMARK_DEVICES.map((d) => (
+                  <div key={d.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', border: '1px solid var(--color-border)', borderRadius: 12 }}>
+                    <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14.5 }}>{d.name}</span>
+                    <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 20, color: 'var(--ke-green-700)' }}>{formatCharges(chargesFor(capMah, d.mah))}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {careTips.length > 0 && (
+            <div>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 24, letterSpacing: '-.02em', margin: '0 0 6px' }}>Care &amp; best practices</h2>
+              <p style={{ fontSize: 13.5, color: 'var(--color-text-muted)', margin: '0 0 18px' }}>Get the longest life and best performance from your {product.name}.</p>
+              <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {careTips.map((tip, i) => (
+                  <li key={i} style={{ display: 'flex', gap: 10, fontSize: 14, lineHeight: 1.55, color: 'var(--color-text)' }}>
+                    <span style={{ color: 'var(--ke-green-500)', fontWeight: 800, flexShrink: 0 }}>✓</span>
+                    {tip}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </section>
+      )}
+
+      <section style={{ maxWidth: 1240, margin: '0 auto', padding: '40px 32px 72px' }}>
         <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 40, display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
           <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 30, letterSpacing: '-.02em', margin: 0 }}>Reviews</h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>

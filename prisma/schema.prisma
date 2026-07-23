@@ -142,6 +142,7 @@ model Order {
   source        OrderChannel @default(WEBSITE)
   contact       String?     // WhatsApp number / Instagram handle for off-site orders
   paymentMethod String?
+  paid          Boolean     @default(false) // payment received/confirmed
   total         Float       @default(0)
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
@@ -328,6 +329,14 @@ enum ProductCategory {
   CHARGERS
   STATIONS
   ACCESSORIES
+}
+
+// Generic key/value store for admin-editable site settings (e.g. the payment
+// methods config JSON under key "payments"). Avoids a migration per setting.
+model SiteSetting {
+  key       String   @id
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
 }
 
 enum OrderStatus {

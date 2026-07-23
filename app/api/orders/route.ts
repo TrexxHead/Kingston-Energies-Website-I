@@ -8,7 +8,7 @@ import { sendOrderConfirmation } from '@/lib/email'
 
 const orderSchema = z.object({
   customerName: z.string().min(1).max(120),
-  paymentMethod: z.enum(['card', 'googlepay', 'paypal', 'cod']).optional(),
+  paymentMethod: z.enum(['bank', 'lynk', 'paypal', 'cod', 'card']).optional(),
   items: z
     .array(
       z.object({

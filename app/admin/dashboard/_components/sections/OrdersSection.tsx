@@ -18,10 +18,16 @@ interface Order {
   status: OrderStatus
   source: OrderChannel
   contact: string | null
+  paymentMethod: string | null
+  paid: boolean
   total: number
   itemCount: number
   date: string
   items: { name: string; qty: number; price: number }[]
+}
+
+const PAYMENT_LABEL: Record<string, string> = {
+  bank: 'Bank transfer', lynk: 'Lynk', paypal: 'PayPal', card: 'Card', cod: 'Cash on delivery',
 }
 
 const CHANNEL: Record<OrderChannel, { label: string; tone: 'green' | 'grey' } | null> = {
@@ -59,6 +65,17 @@ export default function OrdersSection() {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),
+    })
+    load()
+  }
+
+  const setPaid = async (id: string, paid: boolean) => {
+    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, paid } : o)))
+    setDetail((d) => (d && d.id === id ? { ...d, paid } : d))
+    await fetch(`/api/admin/orders/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paid }),
     })
     load()
   }
@@ -107,9 +124,12 @@ export default function OrdersSection() {
                       {CHANNEL[card.source] && <Badge tone={CHANNEL[card.source]!.tone}>{CHANNEL[card.source]!.label}</Badge>}
                     </div>
                     <div style={{ fontSize: 11.5, color: 'var(--color-text-muted)', marginTop: 3 }}>{card.customerName}</div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--color-text-muted)' }}>{card.itemCount} items</span>
-                      <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 13 }}>{fmt(card.total)}</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {!card.paid && card.status !== 'CANCELLED' && <Badge tone="orange">Unpaid</Badge>}
+                        <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 13 }}>{fmt(card.total)}</span>
+                      </span>
                     </div>
                   </div>
                 ))}
@@ -161,6 +181,18 @@ export default function OrdersSection() {
               <span style={{ fontWeight: 600 }}>{detail.contact}</span>
             </div>
           )}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13 }}>
+            <span style={{ color: 'var(--color-text-muted)' }}>Payment</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontWeight: 600 }}>{detail.paymentMethod ? PAYMENT_LABEL[detail.paymentMethod] ?? detail.paymentMethod : '—'}</span>
+              {detail.paid ? <Badge tone="green" dot>Paid</Badge> : <Badge tone="orange" dot>Unpaid</Badge>}
+            </span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <Button size="sm" variant={detail.paid ? 'outline' : 'primary'} onClick={() => setPaid(detail.id, !detail.paid)}>
+              {detail.paid ? 'Mark as unpaid' : 'Mark as paid'}
+            </Button>
+          </div>
           <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
             {detail.items.map((it, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>

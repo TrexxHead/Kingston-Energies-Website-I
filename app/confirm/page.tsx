@@ -2,24 +2,58 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { ArrowRight, BadgeCheck, Sparkles } from 'lucide-react'
+import { Suspense, useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { ArrowRight, BadgeCheck, Sparkles, Wallet } from 'lucide-react'
 import CommerceShell from '@/components/shop/CommerceShell'
 import { Button, FeatureIcon } from '@/components/shop/ui'
 import NpsSurvey from '@/components/nps/NpsSurvey'
 
+interface PayMethod {
+  id: string
+  label: string
+  details: string[]
+  needsReference: boolean
+  gateway: boolean
+}
+
 export default function ConfirmPage() {
+  return (
+    <Suspense fallback={null}>
+      <ConfirmInner />
+    </Suspense>
+  )
+}
+
+function ConfirmInner() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [orderNo, setOrderNo] = useState('KE-1042')
+  const [payInfo, setPayInfo] = useState<PayMethod | null>(null)
+  const paidByCard = searchParams.get('paid') === '1'
 
   useEffect(() => {
+    let method = ''
     try {
+      const fromQuery = searchParams.get('order')
       const stored = sessionStorage.getItem('ke-last-order')
-      if (stored) setOrderNo(stored)
+      if (fromQuery) setOrderNo(fromQuery)
+      else if (stored) setOrderNo(stored)
+      method = sessionStorage.getItem('ke-last-method') ?? ''
     } catch {
       // ignore
     }
+    // For direct (non-card) methods, surface the "how to pay" details here.
+    if (method && !paidByCard) {
+      fetch('/api/payment-methods')
+        .then((r) => (r.ok ? r.json() : { methods: [] }))
+        .then((d: { methods: PayMethod[] }) => {
+          const m = d.methods?.find((x) => x.id === method)
+          if (m && (m.needsReference || m.details.length > 0) && !m.gateway) setPayInfo(m)
+        })
+        .catch(() => {})
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (
@@ -62,6 +96,29 @@ export default function ConfirmPage() {
           <Sparkles size={13} />
           +25&nbsp;POINTS&nbsp;EARNED
         </div>
+        {paidByCard && (
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--ke-green-50)', color: 'var(--ke-green-700)', borderRadius: 999, padding: '8px 16px', marginTop: 14, fontSize: 13, fontWeight: 600 }}>
+            <BadgeCheck size={15} /> Card payment received — thank you!
+          </div>
+        )}
+
+        {payInfo && (
+          <div style={{ background: '#fff', border: '1px solid var(--ke-sun-400)', borderRadius: 18, padding: '20px 22px', marginTop: 30, textAlign: 'left', boxShadow: 'var(--shadow-sm)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}>
+              <Wallet size={17} color="var(--ke-sun-500)" />
+              <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15 }}>Complete your payment — {payInfo.label}</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13.5, color: 'var(--color-text)' }}>
+              {payInfo.details.map((d, i) => <div key={i}>{d}</div>)}
+            </div>
+            {payInfo.needsReference && (
+              <div style={{ marginTop: 12, background: 'var(--ke-sun-50)', borderRadius: 10, padding: '10px 12px', fontSize: 13 }}>
+                Use <strong>{orderNo}</strong> as your payment reference so we can match it to your order.
+              </div>
+            )}
+          </div>
+        )}
+
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 30, flexWrap: 'wrap' }}>
           <Button onClick={() => router.push('/track')} iconRight={<ArrowRight size={17} />}>Track order</Button>
           <Button variant="outline" onClick={() => router.push('/shop')}>Keep shopping</Button>

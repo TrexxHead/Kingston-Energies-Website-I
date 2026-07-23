@@ -271,7 +271,40 @@ CRON_SECRET="<random string>"
 SUPABASE_URL="https://<project-ref>.supabase.co"
 SUPABASE_SERVICE_ROLE_KEY="<service_role secret — server only, never NEXT_PUBLIC>"
 INTEGRATION_API_KEY="<random 32+ char secret for the WhatsApp/Instagram n8n bots>"
+WIPAY_ACCOUNT_NUMBER="<your WiPay merchant account number — only for card payments>"
+WIPAY_API_KEY="<your WiPay API key — used to verify payment callbacks>"
+WIPAY_ENVIRONMENT="sandbox"
 ```
+
+### Payments
+
+The storefront supports five methods, all managed from **Admin → Finance →
+Payment methods** (toggle each on, fill in your own details):
+
+| Method | Setup | Cost |
+|--------|-------|------|
+| **Bank transfer** | Enter your bank/account/branch in the admin panel | Free |
+| **Lynk** | Enter your Lynk handle/phone | Free |
+| **PayPal** | Enter your PayPal.me link / email | Free |
+| **Cash on delivery** | On by default | Free |
+| **Card (Visa/MC)** | Needs a **WiPay** merchant account + the `WIPAY_*` env vars above | Per-transaction fee |
+
+For the four direct methods, the checkout shows the customer how to pay and asks
+them to quote their **order number** as the reference; you confirm the money and
+click **Mark as paid** on the order (Admin → Orders → open the order). Nothing
+sensitive (bank/Lynk details) lives in code — it's all in the admin panel.
+
+**Card payments (WiPay):** card only appears at checkout once `WIPAY_ACCOUNT_NUMBER`
+and `WIPAY_API_KEY` are set *and* you've switched "Card" on in the admin panel.
+1. Open a merchant account at [wipayfinancial.com](https://wipayfinancial.com) (Jamaica).
+2. From your WiPay dashboard, copy your **account number** and **API key**.
+3. Add the three `WIPAY_*` vars in Vercel; keep `WIPAY_ENVIRONMENT=sandbox` for
+   testing, switch to `live` when ready. Redeploy.
+4. WiPay hosts the card page and redirects back to `/api/payments/wipay/callback`,
+   which verifies the payment and marks the order **paid** automatically.
+   (Field names / the callback hash follow WiPay's published "Request A
+   Transaction" docs — confirm them against your merchant dashboard, and test in
+   sandbox first.)
 
 ### WhatsApp & Instagram automation (n8n)
 

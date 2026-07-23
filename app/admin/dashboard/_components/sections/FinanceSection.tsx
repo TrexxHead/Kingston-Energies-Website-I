@@ -3,10 +3,12 @@
 import ProgressBar from '../ui/ProgressBar'
 import { cardStyle, h3Style } from '../ui/card'
 import { financeStats, marginByCategory, outstandingRows } from '../mockData'
+import PaymentSettingsCard from './PaymentSettingsCard'
 
 export default function FinanceSection() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <PaymentSettingsCard />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14 }}>
         {financeStats.map((s) => (
           <div key={s.label} style={{ ...cardStyle, borderRadius: 14, padding: 16 }}>

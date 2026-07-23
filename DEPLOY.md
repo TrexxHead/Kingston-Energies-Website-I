@@ -270,7 +270,16 @@ GOOGLE_SHEETS_SPREADSHEET_ID="<from the sheet's URL>"
 CRON_SECRET="<random string>"
 SUPABASE_URL="https://<project-ref>.supabase.co"
 SUPABASE_SERVICE_ROLE_KEY="<service_role secret — server only, never NEXT_PUBLIC>"
+INTEGRATION_API_KEY="<random 32+ char secret for the WhatsApp/Instagram n8n bots>"
 ```
+
+### WhatsApp & Instagram automation (n8n)
+
+Automated Jordyn replies + in-chat ordering on WhatsApp Business and Instagram,
+with those orders showing in the admin dashboard tagged by channel. The website
+exposes `/api/integrations/*` (products, chat, orders); n8n connects Meta to it.
+Set `INTEGRATION_API_KEY` (above), then follow **`docs/WHATSAPP-INSTAGRAM.md`**
+for the full Meta + n8n setup and the API contract.
 
 ### Authentication Flow
 

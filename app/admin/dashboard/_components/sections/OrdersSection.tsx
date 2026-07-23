@@ -9,15 +9,25 @@ import { fmt } from '../mockData'
 
 type OrderStatus = 'PENDING' | 'PACKED' | 'OUT' | 'DONE' | 'CANCELLED'
 
+type OrderChannel = 'WEBSITE' | 'WHATSAPP' | 'INSTAGRAM'
+
 interface Order {
   id: string
   orderNo: string
   customerName: string
   status: OrderStatus
+  source: OrderChannel
+  contact: string | null
   total: number
   itemCount: number
   date: string
   items: { name: string; qty: number; price: number }[]
+}
+
+const CHANNEL: Record<OrderChannel, { label: string; tone: 'green' | 'grey' } | null> = {
+  WEBSITE: null,
+  WHATSAPP: { label: 'WhatsApp', tone: 'green' },
+  INSTAGRAM: { label: 'Instagram', tone: 'grey' },
 }
 
 const COLUMNS: { id: OrderStatus; label: string }[] = [
@@ -92,7 +102,10 @@ export default function OrdersSection() {
                     onClick={() => setDetail(card)}
                     style={{ background: '#fff', border: '1px solid var(--color-border)', borderRadius: 11, padding: '11px 12px', cursor: 'grab', boxShadow: 'var(--shadow-sm)' }}
                   >
-                    <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 12.5 }}>{card.orderNo}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                      <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 12.5 }}>{card.orderNo}</span>
+                      {CHANNEL[card.source] && <Badge tone={CHANNEL[card.source]!.tone}>{CHANNEL[card.source]!.label}</Badge>}
+                    </div>
                     <div style={{ fontSize: 11.5, color: 'var(--color-text-muted)', marginTop: 3 }}>{card.customerName}</div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--color-text-muted)' }}>{card.itemCount} items</span>
@@ -138,6 +151,16 @@ export default function OrdersSection() {
             <span style={{ color: 'var(--color-text-muted)' }}>Status</span>
             <span style={{ fontWeight: 600 }}>{COLUMNS.find((c) => c.id === detail.status)?.label}</span>
           </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+            <span style={{ color: 'var(--color-text-muted)' }}>Source</span>
+            <span style={{ fontWeight: 600 }}>{CHANNEL[detail.source]?.label ?? 'Website'}</span>
+          </div>
+          {detail.contact && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+              <span style={{ color: 'var(--color-text-muted)' }}>Contact</span>
+              <span style={{ fontWeight: 600 }}>{detail.contact}</span>
+            </div>
+          )}
           <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
             {detail.items.map((it, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>

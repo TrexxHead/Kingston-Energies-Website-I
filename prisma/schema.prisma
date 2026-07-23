@@ -139,6 +139,8 @@ model Order {
   userId        String?
   customerName  String
   status        OrderStatus @default(PENDING)
+  source        OrderChannel @default(WEBSITE)
+  contact       String?     // WhatsApp number / Instagram handle for off-site orders
   paymentMethod String?
   total         Float       @default(0)
   createdAt    DateTime    @default(now())
@@ -148,6 +150,14 @@ model Order {
   items OrderItem[]
 
   @@index([userId])
+}
+
+// Where an order originated — lets the dashboard tag WhatsApp/Instagram orders
+// distinctly from website checkouts.
+enum OrderChannel {
+  WEBSITE
+  WHATSAPP
+  INSTAGRAM
 }
 
 model OrderItem {

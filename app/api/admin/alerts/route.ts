@@ -23,6 +23,8 @@ interface Alert {
 }
 
 const fmt = (n: number) => 'J$' + Math.round(n).toLocaleString()
+const channelTag = (source: string) =>
+  source === 'WHATSAPP' ? ' · via WhatsApp' : source === 'INSTAGRAM' ? ' · via Instagram' : ''
 
 export async function GET() {
   const denied = await guardAdmin()
@@ -74,7 +76,7 @@ export async function GET() {
       title: pending.length === 1 ? 'New order to pack' : 'New orders to pack',
       count: pending.length,
       tab: 'orders',
-      items: pending.map((o) => `${o.orderNo} · ${o.customerName} · ${fmt(o.total)}`),
+      items: pending.map((o) => `${o.orderNo} · ${o.customerName}${channelTag(o.source)} · ${fmt(o.total)}`),
     })
   }
 

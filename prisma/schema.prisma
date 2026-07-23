@@ -167,10 +167,14 @@ model Supplier {
   name         String
   contactEmail String?
   contactPhone String?
+  website      String?
+  address      String?
+  notes        String?  @db.Text
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   purchaseOrders PurchaseOrder[]
+  files          ProcurementFile[]
 }
 
 model PurchaseOrder {
@@ -178,13 +182,45 @@ model PurchaseOrder {
   supplierId String
   reference  String
   status     POStatus @default(OPEN)
+  amount     Float?
   notes      String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  supplier Supplier          @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  files    ProcurementFile[]
 
   @@index([supplierId])
+}
+
+// A procurement attachment — an uploaded file OR an external link — hung off a
+// supplier and/or a purchase order. Covers invoices, quotes, price lists,
+// contracts and reference links ("anything relevant to procurement").
+model ProcurementFile {
+  id              String            @id @default(cuid())
+  label           String
+  kind            ProcurementKind   @default(OTHER)
+  url             String?           // external link — null when it's an uploaded file
+  storagePath     String?           // Supabase Storage key — null when it's a link
+  fileName        String?           // original filename, for display/download
+  supplierId      String?
+  purchaseOrderId String?
+  createdAt       DateTime          @default(now())
+
+  supplier      Supplier?      @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  purchaseOrder PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+
+  @@index([supplierId])
+  @@index([purchaseOrderId])
+}
+
+enum ProcurementKind {
+  INVOICE
+  QUOTE
+  PRICE_LIST
+  CONTRACT
+  LINK
+  OTHER
 }
 
 model SupportTicket {
@@ -266,11 +302,13 @@ enum NpsSource {
 // Admin policy / documentation links — e.g. Google Drive share URLs for SOPs,
 // warranty policy, staff guides. Stored as links so no Drive API is required.
 model PolicyDoc {
-  id        String   @id @default(cuid())
-  title     String
-  url       String
-  category  String?
-  createdAt DateTime @default(now())
+  id          String   @id @default(cuid())
+  title       String
+  url         String?  // external link (Drive etc.) — null when it's an uploaded file
+  storagePath String?  // Supabase Storage key — null when it's an external link
+  fileName    String?  // original filename, for display/download
+  category    String?
+  createdAt   DateTime @default(now())
 
   @@index([createdAt])
 }

@@ -9,10 +9,10 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
 
   const { id } = await params
   try {
-    const doc = await prisma.policyDoc.delete({ where: { id } })
-    await deleteAdminFile(doc.storagePath) // best-effort storage cleanup
+    const file = await prisma.procurementFile.delete({ where: { id } })
+    await deleteAdminFile(file.storagePath) // best-effort storage cleanup
     return NextResponse.json({ ok: true })
   } catch {
-    return NextResponse.json({ error: 'Document not found' }, { status: 404 })
+    return NextResponse.json({ error: 'File not found' }, { status: 404 })
   }
 }

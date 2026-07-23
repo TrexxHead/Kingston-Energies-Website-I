@@ -168,6 +168,28 @@ Once configured, the admin dashboard's Executive tab shows a "Live spreadsheet" 
 
 ---
 
+### Step 5: File Uploads (Supabase Storage — 5 min, optional)
+
+Turns on **file uploads** for admin documents/policies and procurement attachments (invoices, quotes, price lists, contracts). Until this is set up, both features still work with **links** — you can paste any share URL (Google Drive, Dropbox, etc.) instead of uploading a file. No code changes are needed to enable uploads later.
+
+1. In the **Supabase dashboard** → **Storage** → **New bucket**.
+2. Name it exactly `admin-files`. **Leave the "Public bucket" toggle OFF** — these files (invoices, contracts) must stay private.
+3. Get your API values: **Settings → API**:
+   - **Project URL** (`https://<project-ref>.supabase.co`) → `SUPABASE_URL`
+   - **`service_role` secret** (under Project API keys — *not* the `anon` key) → `SUPABASE_SERVICE_ROLE_KEY`
+4. Add both to Vercel env vars (Project → Settings → Environment Variables), then redeploy:
+
+| Variable | Value |
+|----------|-------|
+| `SUPABASE_URL` | your project URL, e.g. `https://abcd1234.supabase.co` |
+| `SUPABASE_SERVICE_ROLE_KEY` | the `service_role` secret from Settings → API |
+
+**Security note:** the `service_role` key bypasses row-level security, so it must live **only** in server env vars (never `NEXT_PUBLIC_`). The app only ever uses it inside admin-guarded API routes, and files are served through short-lived **signed URLs** (1-hour expiry) — never public links. Uploads are capped at **20 MB** per file.
+
+Once configured, the "Add" buttons in **Policies & documentation** and **Suppliers & procurement** gain an **Upload file** tab alongside **Add link**.
+
+---
+
 ## Admin Access
 
 **Email:** `admin@kingstonenergies.com`  
@@ -246,6 +268,8 @@ GOOGLE_SHEETS_CLIENT_EMAIL="<from service account JSON>"
 GOOGLE_SHEETS_PRIVATE_KEY="<from service account JSON>"
 GOOGLE_SHEETS_SPREADSHEET_ID="<from the sheet's URL>"
 CRON_SECRET="<random string>"
+SUPABASE_URL="https://<project-ref>.supabase.co"
+SUPABASE_SERVICE_ROLE_KEY="<service_role secret — server only, never NEXT_PUBLIC>"
 ```
 
 ### Authentication Flow

@@ -9,6 +9,7 @@ import Modal from '../ui/Modal'
 import TextInput from '../ui/TextInput'
 import { cardStyle, h3Style } from '../ui/card'
 import { fmt } from '../mockData'
+import ProcurementCard from './ProcurementCard'
 
 type Category = 'POWERBANKS' | 'CHARGERS' | 'STATIONS' | 'ACCESSORIES'
 
@@ -22,14 +23,6 @@ interface Product {
   stock: number
   threshold: number
   badge: string | null
-}
-
-interface Supplier {
-  id: string
-  name: string
-  contactEmail: string | null
-  openPOs: number
-  purchaseOrders: { id: string; reference: string; status: string }[]
 }
 
 const CAT_PILLS: { id: 'all' | Category; label: string }[] = [
@@ -53,16 +46,11 @@ const emptyForm = { name: '', sku: '', price: '0', stock: '0', threshold: '5', c
 
 export default function InventorySection() {
   const [products, setProducts] = useState<Product[]>([])
-  const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [cat, setCat] = useState<'all' | Category>('all')
   const [search, setSearch] = useState('')
   const [editing, setEditing] = useState<Product | null>(null)
   const [addOpen, setAddOpen] = useState(false)
   const [form, setForm] = useState(emptyForm)
-  const [supplierOpen, setSupplierOpen] = useState(false)
-  const [supplierForm, setSupplierForm] = useState({ name: '', contactEmail: '' })
-  const [poFor, setPoFor] = useState<Supplier | null>(null)
-  const [poRef, setPoRef] = useState('')
   const [busy, setBusy] = useState(false)
   const [showArchived, setShowArchived] = useState(false)
 
@@ -71,15 +59,9 @@ export default function InventorySection() {
     if (res.ok) setProducts((await res.json()).products)
   }, [showArchived])
 
-  const loadSuppliers = useCallback(async () => {
-    const res = await fetch('/api/admin/suppliers')
-    if (res.ok) setSuppliers((await res.json()).suppliers)
-  }, [])
-
   useEffect(() => {
     loadProducts()
-    loadSuppliers()
-  }, [loadProducts, loadSuppliers])
+  }, [loadProducts])
 
   const rows = products.filter((p) => {
     if (cat !== 'all' && p.category !== cat) return false
@@ -169,46 +151,6 @@ export default function InventorySection() {
     loadProducts()
   }
 
-  const createSupplier = async () => {
-    setBusy(true)
-    const res = await fetch('/api/admin/suppliers', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: supplierForm.name, contactEmail: supplierForm.contactEmail || null }),
-    })
-    setBusy(false)
-    if (res.ok) {
-      setSupplierOpen(false)
-      setSupplierForm({ name: '', contactEmail: '' })
-      loadSuppliers()
-    }
-  }
-
-  const createPO = async () => {
-    if (!poFor) return
-    setBusy(true)
-    const res = await fetch('/api/admin/purchase-orders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ supplierId: poFor.id, reference: poRef }),
-    })
-    setBusy(false)
-    if (res.ok) {
-      setPoFor(null)
-      setPoRef('')
-      loadSuppliers()
-    }
-  }
-
-  const receivePO = async (poId: string) => {
-    await fetch(`/api/admin/purchase-orders/${poId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'RECEIVED' }),
-    })
-    loadSuppliers()
-  }
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
@@ -290,41 +232,7 @@ export default function InventorySection() {
           </p>
         </div>
 
-        <div style={cardStyle}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-            <h3 style={{ ...h3Style, margin: 0 }}>Suppliers &amp; purchase orders</h3>
-            <Button size="sm" variant="outline" onClick={() => setSupplierOpen(true)} iconRight={<Plus size={13} />}>Supplier</Button>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {suppliers.map((s) => (
-              <div key={s.id}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13 }}>
-                  <span style={{ fontWeight: 600 }}>{s.name}</span>
-                  <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <span style={{ color: 'var(--color-text-muted)' }}>{s.openPOs} open PO{s.openPOs === 1 ? '' : 's'}</span>
-                    <button type="button" onClick={() => { setPoFor(s); setPoRef('') }} style={{ ...iconBtn, width: 24, height: 24 }} aria-label="New PO"><Plus size={12} /></button>
-                  </span>
-                </div>
-                {s.purchaseOrders.length > 0 && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
-                    {s.purchaseOrders.map((po) => (
-                      <span key={po.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--color-text-muted)', border: '1px solid var(--color-border)', borderRadius: 999, padding: '3px 8px' }}>
-                        {po.reference}
-                        {po.status === 'OPEN' ? (
-                          <button type="button" onClick={() => receivePO(po.id)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--ke-green-700)', fontFamily: 'var(--font-mono)', fontSize: 10 }}>
-                            Receive
-                          </button>
-                        ) : (
-                          <span style={{ color: 'var(--ke-green-700)' }}>{po.status}</span>
-                        )}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
+        <ProcurementCard />
       </div>
 
       {(editing || addOpen) && (
@@ -347,37 +255,6 @@ export default function InventorySection() {
             <TextInput label="Low at" value={form.threshold} onChange={(v) => setForm({ ...form, threshold: v })} type="number" />
           </div>
           <TextInput label="Badge (optional)" value={form.badge} onChange={(v) => setForm({ ...form, badge: v })} placeholder="e.g. New" />
-        </Modal>
-      )}
-
-      {supplierOpen && (
-        <Modal
-          title="Add supplier"
-          onClose={() => setSupplierOpen(false)}
-          footer={
-            <>
-              <Button size="sm" variant="outline" onClick={() => setSupplierOpen(false)}>Cancel</Button>
-              <Button size="sm" variant="primary" onClick={createSupplier}>{busy ? 'Saving…' : 'Add'}</Button>
-            </>
-          }
-        >
-          <TextInput label="Name" value={supplierForm.name} onChange={(v) => setSupplierForm({ ...supplierForm, name: v })} />
-          <TextInput label="Contact email (optional)" value={supplierForm.contactEmail} onChange={(v) => setSupplierForm({ ...supplierForm, contactEmail: v })} type="email" />
-        </Modal>
-      )}
-
-      {poFor && (
-        <Modal
-          title={`New PO — ${poFor.name}`}
-          onClose={() => setPoFor(null)}
-          footer={
-            <>
-              <Button size="sm" variant="outline" onClick={() => setPoFor(null)}>Cancel</Button>
-              <Button size="sm" variant="primary" onClick={createPO}>{busy ? 'Saving…' : 'Create PO'}</Button>
-            </>
-          }
-        >
-          <TextInput label="Reference" value={poRef} onChange={setPoRef} placeholder="PO-0000" />
         </Modal>
       )}
     </div>

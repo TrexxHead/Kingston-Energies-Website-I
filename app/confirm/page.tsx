@@ -129,7 +129,7 @@ function ConfirmInner() {
           </FeatureIcon>
           <div style={{ flex: 1 }}>
             <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15 }}>Register your device when it arrives</div>
-            <div style={{ fontSize: 13.5, color: 'var(--color-text-muted)', marginTop: 3 }}>Activates your 12-month warranty and earns 25 points.</div>
+            <div style={{ fontSize: 13.5, color: 'var(--color-text-muted)', marginTop: 3 }}>Keeps your proof of purchase for warranty claims and earns 25 points.</div>
           </div>
           <Button size="sm" variant="ghost" onClick={() => router.push('/hub')}>My hub</Button>
         </div>

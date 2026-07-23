@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -10,6 +10,7 @@ import CommerceShell from '@/components/shop/CommerceShell'
 import ProductImage from '@/components/shop/ProductImage'
 import { Badge, Button } from '@/components/shop/ui'
 import { fmt, type ShopProduct } from '@/lib/catalog'
+import { BULK_SUMMARY } from '@/lib/pricing'
 import { BENCHMARK_DEVICES, parseMah, chargesFor, formatCharges, CARE_TIPS } from '@/lib/productInfo'
 import { useCart } from '@/components/cart/CartContext'
 import { useToast } from '@/components/cart/ToastContext'
@@ -36,6 +37,49 @@ export default function ProductClient({ product, initialReviews = [] }: { produc
   const [revText, setRevText] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [reviewed, setReviewed] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [savingFav, setSavingFav] = useState(false)
+
+  // Reflect whether this product is already in the customer's saved list.
+  useEffect(() => {
+    if (status !== 'authenticated') {
+      setSaved(false)
+      return
+    }
+    fetch('/api/favorites')
+      .then((r) => (r.ok ? r.json() : { productIds: [] }))
+      .then((d: { productIds: string[] }) => setSaved(d.productIds?.includes(product.id) ?? false))
+      .catch(() => {})
+  }, [status, product.id])
+
+  const toggleSave = async () => {
+    if (status !== 'authenticated') {
+      pushToast('star', 'Sign in to save', 'Please sign in to save products')
+      router.push('/login')
+      return
+    }
+    setSavingFav(true)
+    const prev = saved
+    setSaved(!prev) // optimistic
+    try {
+      const res = await fetch('/api/favorites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId: product.id }),
+      })
+      if (res.ok) {
+        const { favorited } = await res.json()
+        setSaved(favorited)
+        pushToast(favorited ? 'check' : 'star', favorited ? 'Saved' : 'Removed', product.name)
+      } else {
+        setSaved(prev)
+      }
+    } catch {
+      setSaved(prev)
+    } finally {
+      setSavingFav(false)
+    }
+  }
 
   const soldOut = product.inStock === false
   const lowStock = product.stock !== null && product.stock > 0 && product.stock <= 5
@@ -54,7 +98,7 @@ export default function ProductClient({ product, initialReviews = [] }: { produc
     product.cap && { label: 'CAPACITY', value: activeVariant?.cap ?? product.cap },
     product.ports && { label: 'PORTS', value: product.ports },
     product.speed && { label: 'SPEED', value: product.speed },
-    { label: 'WARRANTY', value: product.warranty ?? '12 months' },
+    { label: 'WARRANTY', value: product.warranty ?? '14-day + manufacturer' },
   ].filter(Boolean) as { label: string; value: string }[]
 
   const handleAdd = () => {
@@ -137,8 +181,8 @@ export default function ProductClient({ product, initialReviews = [] }: { produc
           </p>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, margin: '24px 0 0', flexWrap: 'wrap' }}>
             <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 40, letterSpacing: '-.02em', color: 'var(--color-text)' }}>{fmt(activePrice)}</span>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, letterSpacing: '.12em', color: 'var(--color-text-muted)' }}>
-              OR&nbsp;3&nbsp;×&nbsp;{fmt(Math.round(activePrice / 3))}
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '.1em', color: 'var(--ke-green-700)', background: 'var(--ke-green-50)', borderRadius: 999, padding: '4px 10px' }}>
+              {BULK_SUMMARY}
             </span>
             {soldOut ? (
               <Badge tone="orange" dot>Sold out</Badge>
@@ -183,8 +227,14 @@ export default function ProductClient({ product, initialReviews = [] }: { produc
             <Button size="lg" block onClick={handleAdd} disabled={soldOut} iconRight={soldOut ? undefined : <ArrowRight size={17} />}>
               {soldOut ? 'Sold out' : `Add to cart — ${fmt(activePrice)}`}
             </Button>
-            <Button size="lg" variant="ghost" iconLeft={<Heart size={17} />}>
-              Save
+            <Button
+              size="lg"
+              variant={saved ? 'outline' : 'ghost'}
+              onClick={toggleSave}
+              disabled={savingFav}
+              iconLeft={<Heart size={17} fill={saved ? 'currentColor' : 'none'} />}
+            >
+              {saved ? 'Saved' : 'Save'}
             </Button>
           </div>
 

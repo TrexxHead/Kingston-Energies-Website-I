@@ -4,16 +4,13 @@ import { TriangleAlert } from 'lucide-react'
 import Badge from '../ui/Badge'
 import { cardStyle, h3Style } from '../ui/card'
 import SheetsSyncCard from './SheetsSyncCard'
-import AlertsCard from './AlertsCard'
-import { execStats, revenueBars, bestSellers, lowStockAlerts, customerGrowth, type SectionId } from '../mockData'
+import { execStats, revenueBars, bestSellers, lowStockAlerts, customerGrowth } from '../mockData'
 
-export default function ExecutiveSection({ onNavigate }: { onNavigate?: (tab: SectionId) => void }) {
+export default function ExecutiveSection() {
   const maxBar = Math.max(...revenueBars)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-      <AlertsCard onNavigate={onNavigate} />
-
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: 14 }}>
         {execStats.map((s) => (
           <div key={s.label} style={{ ...cardStyle, borderRadius: 14, padding: 14 }}>

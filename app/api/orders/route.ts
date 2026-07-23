@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/authOptions'
 import { rateLimit, clientIp } from '@/lib/rateLimit'
 import { sendOrderConfirmation } from '@/lib/email'
+import { bulkRateForQty } from '@/lib/pricing'
 
 const orderSchema = z.object({
   customerName: z.string().min(1).max(120),
@@ -51,7 +52,9 @@ export async function POST(request: Request) {
   const email = session?.user?.email ?? null
 
   const { customerName, paymentMethod, items } = parsed.data
-  const total = items.reduce((sum, i) => sum + i.price * i.qty, 0)
+  const units = items.reduce((sum, i) => sum + i.qty, 0)
+  const gross = items.reduce((sum, i) => sum + i.price * i.qty, 0)
+  const total = Math.round(gross * (1 - bulkRateForQty(units))) // apply bulk discount
   const orderNo = await nextOrderNo()
 
   const order = await prisma.order.create({

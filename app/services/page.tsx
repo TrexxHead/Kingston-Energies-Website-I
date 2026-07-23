@@ -50,7 +50,7 @@ const SERVICES: Service[] = [
   {
     icon: ShieldCheck,
     title: 'Repairability & warranty',
-    body: 'Every device ships with a 12-month warranty and a repair-first philosophy. Register your device in your energy hub to activate cover and earn points.',
+    body: 'Every device ships with a 14-day replacement guarantee plus the manufacturer’s warranty, and a repair-first philosophy. Register your device in your energy hub to keep your proof of purchase and earn points.',
     href: '/hub',
     cta: 'Your energy hub',
   },

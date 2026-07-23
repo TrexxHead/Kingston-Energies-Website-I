@@ -44,7 +44,7 @@ export default function AdminDashboard() {
   const renderSection = () => {
     switch (section) {
       case 'exec':
-        return <ExecutiveSection onNavigate={setSection} />
+        return <ExecutiveSection />
       case 'orders':
         return <OrdersSection />
       case 'inventory':
@@ -90,7 +90,7 @@ export default function AdminDashboard() {
     >
       <Sidebar section={section} onSelect={setSection} />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Header section={section} />
+        <Header section={section} onNavigate={setSection} />
         <div style={{ flex: 1, overflowY: 'auto' }}>
           <div key={section} className="ke-screen" style={{ padding: 28 }}>
             {renderSection()}

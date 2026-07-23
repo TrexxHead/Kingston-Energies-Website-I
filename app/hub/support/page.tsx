@@ -57,7 +57,7 @@ const FAQ_GROUPS: FaqGroup[] = [
     items: [
       {
         q: 'What warranty do products come with?',
-        a: 'Every product includes a 12-month warranty against manufacturing defects. Register your device in the My devices tab to track remaining cover.',
+        a: 'Every product includes a 14-day replacement guarantee against manufacturing defects, plus the manufacturer’s own warranty. Register your device in the My devices tab to keep your proof of purchase.',
       },
       {
         q: 'What is your return policy?',

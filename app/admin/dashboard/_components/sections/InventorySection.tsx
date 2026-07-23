@@ -1,7 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Plus, Search, Trash2, Pencil, Archive, ArchiveRestore } from 'lucide-react'
+import { Plus, Search, Trash2, Pencil, Archive, ArchiveRestore, Eye } from 'lucide-react'
+import { CATALOG } from '@/lib/catalog'
 import Badge from '../ui/Badge'
 import Pill from '../ui/Pill'
 import Button from '../ui/Button'
@@ -43,6 +44,10 @@ function statusFor(stock: number, threshold: number): { label: string; tone: 'or
 }
 
 const emptyForm = { name: '', sku: '', price: '0', stock: '0', threshold: '5', category: 'POWERBANKS', badge: '' }
+
+// Map a DB product name to its storefront catalog id, so admins can jump to the
+// public product page. Names in the seed match lib/catalog.ts exactly.
+const CATALOG_ID_BY_NAME = new Map(CATALOG.map((c) => [c.name.toLowerCase(), c.id]))
 
 export default function InventorySection() {
   const [products, setProducts] = useState<Product[]>([])
@@ -203,6 +208,18 @@ export default function InventorySection() {
               </span>
               <Badge tone={status.tone} dot>{status.label}</Badge>
               <span style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                {CATALOG_ID_BY_NAME.get(p.name.toLowerCase()) && (
+                  <a
+                    href={`/product/${CATALOG_ID_BY_NAME.get(p.name.toLowerCase())}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="View on site"
+                    title="View product page"
+                    style={{ ...iconBtn, textDecoration: 'none' }}
+                  >
+                    <Eye size={13} />
+                  </a>
+                )}
                 {showArchived ? (
                   <button type="button" aria-label="Restore" title="Restore to active" onClick={() => setArchived(p, false)} style={iconBtn}><ArchiveRestore size={13} /></button>
                 ) : (

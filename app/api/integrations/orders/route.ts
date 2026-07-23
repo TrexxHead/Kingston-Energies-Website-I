@@ -5,6 +5,7 @@ import { guardIntegration } from '@/lib/integrationAuth'
 import { getShopProducts } from '@/lib/products'
 import { fmt } from '@/lib/catalog'
 import { sendOrderConfirmation } from '@/lib/email'
+import { bulkRateForQty } from '@/lib/pricing'
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
@@ -90,7 +91,9 @@ export async function POST(request: Request) {
     )
   }
 
-  const total = resolved.reduce((sum, i) => sum + i.price * i.qty, 0)
+  const units = resolved.reduce((sum, i) => sum + i.qty, 0)
+  const gross = resolved.reduce((sum, i) => sum + i.price * i.qty, 0)
+  const total = Math.round(gross * (1 - bulkRateForQty(units))) // apply bulk discount
   const orderNo = await nextOrderNo()
   const source = channel === 'whatsapp' ? 'WHATSAPP' : 'INSTAGRAM'
 

@@ -25,7 +25,7 @@ export default function ReturnsPage() {
       <LegalSection heading="Faulty or damaged items">
         <p>
           If an item arrives faulty or damaged, contact us within 48 hours of delivery and we&apos;ll arrange a
-          replacement or full refund at no cost to you. This is in addition to your rights under the 12-month warranty.
+          replacement or full refund at no cost to you. This is in addition to the manufacturer&apos;s warranty on your device.
         </p>
       </LegalSection>
 

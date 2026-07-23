@@ -31,10 +31,10 @@ ${CATALOG.map((p) => `- ${p.name} — ${fmt(p.price)} — ${p.cat} — ${p.spec}
 
 KEY FACTS:
 - Delivery is free on orders over J$10,000, otherwise a flat J$800; Kingston-wide.
-- Every device has a 12-month warranty; register devices in the Kingston Hub to activate cover and earn points.
+- Every device has a 14-day replacement guarantee plus the manufacturer's own warranty; register devices in the Kingston Hub to keep proof of purchase and earn points. There is no blanket 12-month Kingston warranty.
 - Promo code KINGSTON10 gives 10% off.
 - Ordering: browse /shop → add to cart → /cart → /checkout → order confirmed → /track to follow delivery.
-- We accept Google Pay, Visa/Mastercard, and PayPal at checkout.
+- Payment options include bank transfer, Lynk, PayPal, cash on delivery, and card (Visa/Mastercard) — whichever the store has enabled at checkout.
 - Solar power stations are on the roadmap (early access) — point interested people to /contact to join the waitlist.
 - Follow us on Instagram @kingstonenergies (https://instagram.com/kingstonenergies).
 - Phone: 876-338-9958.
@@ -80,7 +80,7 @@ const FALLBACK_RULES: FallbackRule[] = [
   { keywords: ['cart', 'basket'], answer: 'Your cart is here: /cart — add items from the shop, then head to checkout.' },
   { keywords: ['checkout', 'pay', 'payment', 'order', 'place an order', 'buy now'], answer: 'To order: add items to your /cart, then go to /checkout. We accept Google Pay, Visa/Mastercard, and PayPal. Delivery is free over J$10,000.' },
   { keywords: ['track', 'delivery', 'where is my order', 'shipping'], answer: 'Track a delivery here: /track. For a specific order query, contact us at /contact or call 876-338-9958.' },
-  { keywords: ['warranty', 'broken', 'not working', 'fault', 'repair'], answer: 'Every device has a 12-month warranty. Register it in your Kingston Hub (/hub) to activate cover, or reach us at /contact for a fault.' },
+  { keywords: ['warranty', 'broken', 'not working', 'fault', 'repair'], answer: 'Every device has a 14-day replacement guarantee plus the manufacturer’s own warranty. Register it in your Kingston Hub (/hub) to keep your proof of purchase, or reach us at /contact for a fault.' },
   { keywords: ['promo', 'discount', 'coupon', 'code', 'voucher'], answer: 'Use code KINGSTON10 at the cart for 10% off. Delivery is also free on orders over J$10,000.' },
   { keywords: ['account', 'sign in', 'login', 'log in', 'register', 'sign up', 'hub', 'dashboard'], answer: 'Sign in at /login or create an account at /signup. Your dashboard (the Kingston Hub) is at /hub.' },
   { keywords: ['instagram', 'social', 'follow', 'facebook'], answer: 'Follow us on Instagram @kingstonenergies — https://instagram.com/kingstonenergies' },

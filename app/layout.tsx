@@ -3,6 +3,7 @@ import './globals.css'
 import './_design-system/tokens.css'
 import Providers from '@/components/Providers'
 import Camille from '@/components/camille/Camille'
+import CookieConsent from '@/components/CookieConsent'
 import { keFontVariables } from './_design-system/fonts'
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
@@ -14,7 +15,7 @@ export const metadata: Metadata = {
     template: '%s · Kingston Energies',
   },
   description:
-    'Premium portable power for everyone — power banks, fast chargers, cables and power stations, built in Kingston, Jamaica. Free delivery over J$10,000, 12-month warranty.',
+    'Premium portable power for everyone — power banks, fast chargers, cables and power stations, built in Kingston, Jamaica. Free delivery over J$10,000, 14-day replacement guarantee.',
   keywords: [
     'Kingston Energies',
     'power bank Jamaica',
@@ -54,6 +55,7 @@ export default function RootLayout({
         <Providers>
           {children}
           <Camille />
+          <CookieConsent />
         </Providers>
       </body>
     </html>

@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/authOptions'
 import { rateLimit, clientIp } from '@/lib/rateLimit'
 import { buildWiPayRequest, wipayConfigured } from '@/lib/wipay'
+import { bulkRateForQty } from '@/lib/pricing'
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
@@ -41,7 +42,9 @@ export async function POST(request: Request) {
 
   const session = await getServerSession(authOptions)
   const { customerName, email, items } = parsed.data
-  const total = items.reduce((sum, i) => sum + i.price * i.qty, 0)
+  const units = items.reduce((sum, i) => sum + i.qty, 0)
+  const gross = items.reduce((sum, i) => sum + i.price * i.qty, 0)
+  const total = Math.round(gross * (1 - bulkRateForQty(units))) // apply bulk discount
   const orderNo = await nextOrderNo()
 
   await prisma.order.create({

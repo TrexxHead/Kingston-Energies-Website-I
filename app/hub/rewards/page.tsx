@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { fmt } from '@/lib/catalog'
 import { UserPlus, Ticket, Award } from 'lucide-react'
 import { loyaltyPoints } from '@/lib/loyalty'
+import { ensureReferralCode } from '@/lib/referral'
 import Topbar from '../_components/Topbar'
 import { hubScreen, hubCard, hubH3 } from '../_components/ui'
 import CopyReferral from './_components/CopyReferral'
@@ -33,8 +34,8 @@ export default async function RewardsPage() {
   const progressPct = Math.round(((points % REWARD_STEP) / REWARD_STEP) * 100)
   const ptsToNext = REWARD_STEP - (points % REWARD_STEP)
 
-  const firstName = (user?.name?.split(' ')[0] ?? 'FRIEND').toUpperCase().replace(/[^A-Z]/g, '')
-  const referralCode = `${firstName || 'FRIEND'}10`
+  // Personal, persisted referral code (KEG-YY-NAME); generated on first view.
+  const referralCode = (session?.user?.id ? await ensureReferralCode(session.user.id) : null) ?? 'KEG-KINGSTON'
 
   return (
     <>

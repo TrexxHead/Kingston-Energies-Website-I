@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
+import { FREE_DELIVERY_THRESHOLD, DELIVERY_FEE, bulkRateForQty } from '@/lib/pricing'
 
 export interface CartItem {
   name: string
@@ -16,6 +17,8 @@ interface CartContextValue {
   subtotal: number
   delivery: number
   discount: number
+  bulkDiscount: number
+  bulkRate: number
   total: number
   promoOn: boolean
   hydrated: boolean
@@ -31,8 +34,6 @@ const CartContext = createContext<CartContextValue | null>(null)
 
 const STORAGE_KEY = 'ke-cart'
 const PROMO_KEY = 'ke-promo'
-const FREE_DELIVERY_THRESHOLD = 50
-const DELIVERY_FEE = 5
 const PROMO_CODE = 'KINGSTON10'
 const PROMO_RATE = 0.1
 
@@ -98,10 +99,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const count = items.reduce((a, c) => a + c.qty, 0)
     const subtotal = items.reduce((a, c) => a + c.price * c.qty, 0)
     const delivery = subtotal === 0 || subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE
-    const discount = promoOn ? subtotal * PROMO_RATE : 0
-    const total = Math.max(0, subtotal + delivery - discount)
+    const bulkRate = bulkRateForQty(count)
+    const bulkDiscount = Math.round(subtotal * bulkRate)
+    const discount = promoOn ? Math.round(subtotal * PROMO_RATE) : 0
+    const total = Math.max(0, subtotal + delivery - discount - bulkDiscount)
 
-    return { items, count, subtotal, delivery, discount, total, promoOn, hydrated, addItem, inc, dec, remove, clear, applyPromo }
+    return { items, count, subtotal, delivery, discount, bulkDiscount, bulkRate, total, promoOn, hydrated, addItem, inc, dec, remove, clear, applyPromo }
   }, [items, promoOn, hydrated])
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>

@@ -22,6 +22,7 @@ model User {
   segment       CustomerSegment?
   loyaltyTier   String?
   primaryNeed   CustomerNeed?
+  referralCode  String?   @unique // personal share code, e.g. KEG-24-JFEARON
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -33,6 +34,21 @@ model User {
   tickets       SupportTicket[]
   npsResponses  NpsResponse[]
   reviews       Review[]
+  favorites     Favorite[]
+}
+
+// A customer's saved / favourited products. productId is the catalog id
+// (e.g. "pb10") since the storefront reads lib/catalog.ts, not Product.
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
 }
 
 model Account {

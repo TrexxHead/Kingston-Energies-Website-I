@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
-import { LogOut } from 'lucide-react'
+import { LogOut, LayoutDashboard } from 'lucide-react'
 import { initials } from '@/lib/initials'
 import { HUB_MAIN_NAV, HUB_FOOTER_NAV } from '@/app/hub/_components/hubNav'
 
@@ -18,6 +18,9 @@ export default function AccountMenu({ size = 34 }: { size?: number }) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+
+  const role = session?.user?.role
+  const isAdmin = role === 'ADMIN' || role === 'SUPER_ADMIN'
 
   useEffect(() => setOpen(false), [pathname])
   useEffect(() => {
@@ -90,6 +93,30 @@ export default function AccountMenu({ size = 34 }: { size?: number }) {
               {session.user?.email}
             </div>
           </div>
+
+          {isAdmin && (
+            <Link
+              href="/admin/dashboard"
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '9px 10px',
+                marginBottom: 6,
+                borderRadius: 9,
+                fontSize: 13.5,
+                fontWeight: 600,
+                color: 'var(--ke-green-700, #1b6b45)',
+                background: 'var(--ke-green-50, #eef7f0)',
+                textDecoration: 'none',
+              }}
+            >
+              <LayoutDashboard size={15} />
+              Admin dashboard
+            </Link>
+          )}
 
           {[...HUB_MAIN_NAV, ...HUB_FOOTER_NAV].map((item) => (
             <Link

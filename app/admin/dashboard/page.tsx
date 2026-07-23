@@ -44,7 +44,7 @@ export default function AdminDashboard() {
   const renderSection = () => {
     switch (section) {
       case 'exec':
-        return <ExecutiveSection />
+        return <ExecutiveSection onNavigate={setSection} />
       case 'orders':
         return <OrdersSection />
       case 'inventory':

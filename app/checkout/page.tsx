@@ -47,6 +47,8 @@ function CheckoutInner() {
   const [phone, setPhone] = useState('')
   const [street, setStreet] = useState('')
   const [parish, setParish] = useState('Kingston')
+  const [billingSame, setBillingSame] = useState(true)
+  const [billing, setBilling] = useState('')
   const paymentFailed = searchParams.get('payment') === 'failed'
   const empty = items.length === 0
 
@@ -82,7 +84,8 @@ function CheckoutInner() {
     const customerName = name.trim() || session?.user?.name || 'Guest checkout'
     const payloadItems = items.map((i) => ({ name: i.name, price: i.price, qty: i.qty }))
     const shippingAddress = [street.trim(), parish].filter(Boolean).join(', ') || undefined
-    const contact = { email: email.trim() || undefined, phone: phone.trim() || undefined, shippingAddress }
+    const billingAddress = billingSame ? shippingAddress : (billing.trim() || undefined)
+    const contact = { email: email.trim() || undefined, phone: phone.trim() || undefined, shippingAddress, billingAddress }
 
     // Card → hand off to the WiPay hosted page.
     if (selected.gateway) {
@@ -154,6 +157,13 @@ function CheckoutInner() {
                   {PARISHES.map((p) => <option key={p}>{p}</option>)}
                 </select>
               </Field>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 13.5, color: 'var(--color-text)', cursor: 'pointer' }}>
+                <input type="checkbox" checked={billingSame} onChange={(e) => setBillingSame(e.target.checked)} />
+                Billing address same as shipping
+              </label>
+              {!billingSame && (
+                <Field label="Billing address"><input value={billing} onChange={(e) => setBilling(e.target.value)} placeholder="Billing street, parish" style={inputStyle} /></Field>
+              )}
               <div>
                 <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, color: 'var(--color-text)' }}>Delivery</span>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>

@@ -13,6 +13,7 @@ const orderSchema = z.object({
   email: z.string().email().max(160).optional(),
   phone: z.string().max(40).optional(),
   shippingAddress: z.string().max(400).optional(),
+  billingAddress: z.string().max(400).optional(),
   paymentMethod: z.enum(['bank', 'lynk', 'paypal', 'cod', 'card']).optional(),
   promoCode: z.string().max(40).optional(),
   items: z
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
   const session = await getServerSession(authOptions)
   const userId = session?.user?.id ?? null
 
-  const { customerName, email, phone, shippingAddress, paymentMethod, promoCode, items } = parsed.data
+  const { customerName, email, phone, shippingAddress, billingAddress, paymentMethod, promoCode, items } = parsed.data
   // Prefer the signed-in email, else the one the guest typed at checkout.
   const contactEmail = session?.user?.email ?? email ?? null
   const units = items.reduce((sum, i) => sum + i.qty, 0)
@@ -75,6 +76,7 @@ export async function POST(request: Request) {
       email: contactEmail,
       phone: phone ?? null,
       shippingAddress: shippingAddress ?? null,
+      billingAddress: billingAddress ?? null,
       status: 'PENDING',
       paymentMethod: paymentMethod ?? null,
       total,

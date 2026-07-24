@@ -17,6 +17,7 @@ type TicketStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED'
 
 interface CustomerRow {
   id: string
+  registered: boolean
   name: string
   email: string
   phone: string | null
@@ -30,6 +31,8 @@ interface CustomerRow {
 }
 
 interface CustomerDetail extends CustomerRow {
+  shippingAddress?: string | null
+  billingAddress?: string | null
   orders: { orderNo: string; status: string; total: number; date: string; items: string[] }[]
   tickets: { id: string; subject: string; status: TicketStatus }[]
 }
@@ -55,6 +58,7 @@ export default function CustomersSection() {
   const [customers, setCustomers] = useState<CustomerRow[]>([])
   const [seg, setSeg] = useState<'all' | Segment>('all')
   const [tier, setTier] = useState<'all' | ValueTier>('all')
+  const [reg, setReg] = useState<'all' | 'registered' | 'guest'>('all')
   const [search, setSearch] = useState('')
   const [selId, setSelId] = useState<string | null>(null)
   const [detail, setDetail] = useState<CustomerDetail | null>(null)
@@ -89,9 +93,12 @@ export default function CustomersSection() {
   const rows = customers.filter((c) => {
     if (seg !== 'all' && c.segment !== seg) return false
     if (tier !== 'all' && c.valueTier !== tier) return false
+    if (reg === 'registered' && !c.registered) return false
+    if (reg === 'guest' && c.registered) return false
     if (search && !`${c.name} ${c.email}`.toLowerCase().includes(search.toLowerCase())) return false
     return true
   })
+  const guestCount = customers.filter((c) => !c.registered).length
 
   const patchDetail = async (data: Record<string, string | null>) => {
     if (!detail) return
@@ -156,6 +163,8 @@ export default function CustomersSection() {
             {SEGMENT_PILLS.map((p) => (
               <Pill key={p.id} label={p.label} selected={seg === p.id} onClick={() => setSeg(p.id)} />
             ))}
+            <Pill label="Registered" selected={reg === 'registered'} onClick={() => setReg(reg === 'registered' ? 'all' : 'registered')} />
+            <Pill label={`Guests${guestCount ? ` · ${guestCount}` : ''}`} selected={reg === 'guest'} onClick={() => setReg(reg === 'guest' ? 'all' : 'guest')} />
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flexBasis: '100%' }}>
             <Pill label="All value" selected={tier === 'all'} onClick={() => setTier('all')} />
@@ -198,6 +207,7 @@ export default function CustomersSection() {
                 </div>
                 <Badge tone={VALUE_TIERS[c.valueTier].tone}>{c.valueTier}</Badge>
                 {c.segment && <Badge tone={SEGMENT_TONE[c.segment]}>{SEGMENT_LABEL[c.segment]}</Badge>}
+                <Badge tone={c.registered ? 'blue' : 'grey'}>{c.registered ? 'Registered' : 'Guest'}</Badge>
                 <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 13.5, width: 60, textAlign: 'right' }}>{fmt(Math.round(c.ltv))}</span>
               </div>
             )
@@ -217,45 +227,69 @@ export default function CustomersSection() {
                   {initials(detail.name)}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15 }}>{detail.name}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15 }}>{detail.name}</span>
+                    <Badge tone={detail.registered ? 'blue' : 'grey'} dot>{detail.registered ? 'Registered' : 'Guest'}</Badge>
+                  </div>
                   <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{detail.email}{detail.phone ? ` · ${detail.phone}` : ''} · CLV {fmt(Math.round(detail.ltv))}</div>
                 </div>
                 <Badge tone={VALUE_TIERS[detail.valueTier].tone}>{detail.valueTier} · {VALUE_TIERS[detail.valueTier].label}</Badge>
               </div>
+
+              {(detail.shippingAddress || detail.billingAddress) && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+                  <div style={{ background: 'var(--ke-gray-50, #f6f7f6)', borderRadius: 10, padding: '9px 11px' }}>
+                    <div style={overline}>SHIPPING</div>
+                    <div style={{ fontSize: 12, marginTop: 3 }}>{detail.shippingAddress ?? '—'}</div>
+                  </div>
+                  <div style={{ background: 'var(--ke-gray-50, #f6f7f6)', borderRadius: 10, padding: '9px 11px' }}>
+                    <div style={overline}>BILLING</div>
+                    <div style={{ fontSize: 12, marginTop: 3 }}>{detail.billingAddress ?? (detail.shippingAddress ? 'Same as shipping' : '—')}</div>
+                  </div>
+                </div>
+              )}
 
               <div style={{ background: 'var(--ke-gray-50, #f6f7f6)', borderRadius: 10, padding: '10px 12px', marginBottom: 14, fontSize: 12, color: 'var(--color-text-muted)' }}>
                 <span style={{ fontWeight: 600, color: 'var(--color-text)' }}>Strategy: </span>
                 {VALUE_TIERS[detail.valueTier].strategy}
               </div>
 
-              <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
-                <label style={{ flex: 1 }}>
-                  <span style={overline}>SEGMENT</span>
-                  <select value={detail.segment ?? 'NEW'} onChange={(e) => patchDetail({ segment: e.target.value })} style={detailSelect}>
-                    <option value="VIP">VIP</option>
-                    <option value="REPEAT">Repeat</option>
-                    <option value="NEW">New</option>
-                  </select>
-                </label>
-                <label style={{ flex: 1 }}>
-                  <span style={overline}>LOYALTY TIER</span>
-                  <select value={detail.loyaltyTier ?? 'Bronze'} onChange={(e) => patchDetail({ loyaltyTier: e.target.value })} style={detailSelect}>
-                    <option>Gold</option>
-                    <option>Silver</option>
-                    <option>Bronze</option>
-                  </select>
-                </label>
-              </div>
+              {detail.registered ? (
+                <>
+                  <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+                    <label style={{ flex: 1 }}>
+                      <span style={overline}>SEGMENT</span>
+                      <select value={detail.segment ?? 'NEW'} onChange={(e) => patchDetail({ segment: e.target.value })} style={detailSelect}>
+                        <option value="VIP">VIP</option>
+                        <option value="REPEAT">Repeat</option>
+                        <option value="NEW">New</option>
+                      </select>
+                    </label>
+                    <label style={{ flex: 1 }}>
+                      <span style={overline}>LOYALTY TIER</span>
+                      <select value={detail.loyaltyTier ?? 'Bronze'} onChange={(e) => patchDetail({ loyaltyTier: e.target.value })} style={detailSelect}>
+                        <option>Gold</option>
+                        <option>Silver</option>
+                        <option>Bronze</option>
+                      </select>
+                    </label>
+                  </div>
 
-              <label style={{ display: 'block', marginBottom: 14 }}>
-                <span style={overline}>PRIMARY NEED</span>
-                <select value={detail.primaryNeed ?? ''} onChange={(e) => patchDetail({ primaryNeed: e.target.value === '' ? null : e.target.value })} style={detailSelect}>
-                  <option value="">Unknown</option>
-                  {CUSTOMER_NEEDS.map((n) => (
-                    <option key={n.id} value={n.id}>{n.label}</option>
-                  ))}
-                </select>
-              </label>
+                  <label style={{ display: 'block', marginBottom: 14 }}>
+                    <span style={overline}>PRIMARY NEED</span>
+                    <select value={detail.primaryNeed ?? ''} onChange={(e) => patchDetail({ primaryNeed: e.target.value === '' ? null : e.target.value })} style={detailSelect}>
+                      <option value="">Unknown</option>
+                      {CUSTOMER_NEEDS.map((n) => (
+                        <option key={n.id} value={n.id}>{n.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                </>
+              ) : (
+                <div style={{ background: 'var(--ke-sun-50,#fff7e6)', borderRadius: 10, padding: '10px 12px', marginBottom: 14, fontSize: 12, color: 'var(--color-text-muted)' }}>
+                  Guest customer — profile fields (segment, loyalty, need) unlock automatically if they create an account with this email.
+                </div>
+              )}
 
               <div style={overline}>PURCHASE HISTORY</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
@@ -271,6 +305,7 @@ export default function CustomersSection() {
               </div>
             </div>
 
+            {detail.registered && (
             <div style={cardStyle}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                 <h3 style={{ ...h3Style, margin: 0 }}>Support tickets</h3>
@@ -289,6 +324,7 @@ export default function CustomersSection() {
                 })}
               </div>
             </div>
+            )}
           </>
         )}
       </div>

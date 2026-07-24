@@ -41,12 +41,19 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     if (!campaign.subject || !campaign.body) {
       return NextResponse.json({ error: 'Add a subject and body before sending.' }, { status: 400 })
     }
-    // Real, verified customer emails (skip seeded example.com contacts).
+    // Real, verified customer emails (skip seeded example.com contacts)…
     const recipients = await prisma.user.findMany({
       where: { emailVerified: { not: null }, NOT: { email: { contains: 'example' } } },
       select: { email: true },
     })
-    const emails = recipients.map((r) => r.email)
+    // …plus guest customers who left an email at checkout, so Marketing reaches
+    // everyone without forcing account creation.
+    const guestOrders = await prisma.order.findMany({
+      where: { userId: null, email: { not: null }, NOT: { email: { contains: 'example' } } },
+      select: { email: true },
+      distinct: ['email'],
+    })
+    const emails = Array.from(new Set([...recipients.map((r) => r.email), ...guestOrders.map((g) => g.email as string)]))
     recipientCount = await sendBulkEmail(emails, campaign.subject, campaignHtml(campaign.subject, campaign.body))
     note = recipientCount > 0 ? `Emailed ${recipientCount} customers.` : 'No emails sent (check Resend is configured and you have verified customers).'
   } else {

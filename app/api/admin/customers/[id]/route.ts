@@ -17,6 +17,47 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   if (denied) return denied
 
   const { id } = await params
+
+  // Guest customer: build the record from their orders (grouped by email).
+  if (id.startsWith('guest:')) {
+    const email = id.slice('guest:'.length)
+    const orders = await prisma.order.findMany({
+      where: { userId: null, email: { equals: email, mode: 'insensitive' } },
+      orderBy: { createdAt: 'desc' },
+      include: { items: true },
+    })
+    if (orders.length === 0) return NextResponse.json({ error: 'Customer not found' }, { status: 404 })
+    const valid = orders.filter((o) => o.status !== 'CANCELLED')
+    const ltv = valid.reduce((s, o) => s + o.total, 0)
+    const latest = orders[0]
+    return NextResponse.json({
+      customer: {
+        id,
+        registered: false,
+        name: latest.customerName || email,
+        email,
+        phone: orders.find((o) => o.phone)?.phone ?? null,
+        shippingAddress: orders.find((o) => o.shippingAddress)?.shippingAddress ?? null,
+        billingAddress: orders.find((o) => o.billingAddress)?.billingAddress ?? null,
+        segment: null,
+        loyaltyTier: null,
+        primaryNeed: null,
+        valueTier: customerValueTier({ ltv, orderCount: valid.length, monthsSinceLastOrder: monthsSince(latest.createdAt), openTickets: 0 }),
+        since: new Date(orders[orders.length - 1].createdAt).getFullYear(),
+        ltv,
+        orderCount: valid.length,
+        orders: orders.map((o) => ({
+          orderNo: o.orderNo,
+          status: o.status,
+          total: o.total,
+          date: new Date(o.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+          items: o.items.map((i) => `${i.name}${i.qty > 1 ? ` ×${i.qty}` : ''}`),
+        })),
+        tickets: [],
+      },
+    })
+  }
+
   const user = await prisma.user.findUnique({
     where: { id },
     include: {
@@ -39,9 +80,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   return NextResponse.json({
     customer: {
       id: user.id,
+      registered: true,
       name: user.name ?? user.email,
       email: user.email,
       phone: user.phone,
+      shippingAddress: user.orders.find((o) => o.shippingAddress)?.shippingAddress ?? null,
+      billingAddress: user.orders.find((o) => o.billingAddress)?.billingAddress ?? null,
       segment: user.segment,
       loyaltyTier: user.loyaltyTier,
       primaryNeed: user.primaryNeed,
@@ -66,6 +110,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (denied) return denied
 
   const { id } = await params
+  if (id.startsWith('guest:')) {
+    return NextResponse.json({ error: 'Guest customers have no editable profile until they register.' }, { status: 400 })
+  }
   const parsed = patchSchema.safeParse(await request.json())
   if (!parsed.success) return NextResponse.json({ error: 'Invalid update' }, { status: 400 })
 

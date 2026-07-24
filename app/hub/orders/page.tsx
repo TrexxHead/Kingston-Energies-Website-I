@@ -90,7 +90,7 @@ export default async function HubOrdersPage() {
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, borderTop: '1px solid var(--color-border)', marginTop: 12, paddingTop: 12 }}>
-                    <a href="/track" style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '.14em', color: 'var(--ke-green-700)' }}>
+                    <a href={`/track?no=${encodeURIComponent(o.orderNo)}`} style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '.14em', color: 'var(--ke-green-700)' }}>
                       TRACK DELIVERY →
                     </a>
                     <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 17 }}>{fmt(o.total)}</span>

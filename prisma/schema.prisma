@@ -168,6 +168,8 @@ model Order {
   invoicedAt    DateTime?   // when an invoice was issued/sent (prevents dupes)
   cancelReason  String?
   cancelledAt   DateTime?
+  stage         Int         @default(0) // 0-7 position in the 8-stage delivery pipeline
+  estimatedDelivery DateTime? // admin-set / auto ETA shown to the customer
   total         Float       @default(0)
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt

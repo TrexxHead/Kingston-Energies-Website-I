@@ -8,6 +8,7 @@ interface ButtonProps {
   block?: boolean
   onClick?: () => void
   iconRight?: ReactNode
+  disabled?: boolean
   children: ReactNode
 }
 
@@ -17,6 +18,7 @@ export default function Button({
   block = false,
   onClick,
   iconRight,
+  disabled = false,
   children,
 }: ButtonProps) {
   const isPrimary = variant === 'primary'
@@ -26,7 +28,10 @@ export default function Button({
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       style={{
+        opacity: disabled ? 0.5 : 1,
+        pointerEvents: disabled ? 'none' : undefined,
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',

@@ -6,6 +6,7 @@ import Button from '../ui/Button'
 import Modal from '../ui/Modal'
 import { cardStyle, h3Style } from '../ui/card'
 import { fmt } from '../mockData'
+import { PIPELINE } from '@/lib/pipeline'
 
 type OrderStatus = 'PENDING' | 'PACKED' | 'OUT' | 'DONE' | 'CANCELLED'
 
@@ -23,6 +24,9 @@ interface Order {
   phone: string | null
   shippingAddress: string | null
   cancelReason: string | null
+  stage: number
+  estimatedDelivery: string | null
+  events: { id: string; type: string; label: string | null; note: string | null; adminOnly: boolean; at: string }[]
   paymentMethod: string | null
   paid: boolean
   invoiced: boolean
@@ -54,6 +58,9 @@ export default function OrdersSection() {
   const [orders, setOrders] = useState<Order[]>([])
   const [dragId, setDragId] = useState<string | null>(null)
   const [detail, setDetail] = useState<Order | null>(null)
+  const [customerNote, setCustomerNote] = useState('')
+  const [internalNote, setInternalNote] = useState('')
+  const [stageBusy, setStageBusy] = useState(false)
 
   const load = useCallback(async () => {
     const res = await fetch('/api/admin/orders')
@@ -107,6 +114,26 @@ export default function OrdersSection() {
     load()
   }
 
+  const updateStage = async (id: string, body: { stage?: number; advance?: boolean; customerNote?: string; internalNote?: string }) => {
+    setStageBusy(true)
+    const res = await fetch(`/api/admin/orders/${id}/stage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    setStageBusy(false)
+    if (res.ok) {
+      setCustomerNote('')
+      setInternalNote('')
+      const fresh = await fetch('/api/admin/orders')
+      if (fresh.ok) {
+        const next: Order[] = (await fresh.json()).orders
+        setOrders(next)
+        setDetail((d) => (d ? next.find((o) => o.id === d.id) ?? null : d))
+      }
+    }
+  }
+
   const handleDrop = (target: OrderStatus) => {
     if (dragId) {
       const dragged = orders.find((o) => o.id === dragId)
@@ -143,7 +170,7 @@ export default function OrdersSection() {
                     key={card.id}
                     draggable
                     onDragStart={() => setDragId(card.id)}
-                    onClick={() => { setInvoiceMsg(''); setDetail(card) }}
+                    onClick={() => { setInvoiceMsg(''); setCustomerNote(''); setInternalNote(''); setDetail(card) }}
                     style={{ background: '#fff', border: '1px solid var(--color-border)', borderRadius: 11, padding: '11px 12px', cursor: 'grab', boxShadow: 'var(--shadow-sm)' }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
@@ -266,6 +293,81 @@ export default function OrdersSection() {
             <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700 }}>Total</span>
             <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 18 }}>{fmt(detail.total)}</span>
           </div>
+
+          {detail.status !== 'CANCELLED' && (
+            <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13.5 }}>Delivery pipeline</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-text-muted)' }}>{detail.stage + 1}/{PIPELINE.length}</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {PIPELINE.map((s, i) => {
+                  const done = i <= detail.stage
+                  const current = i === detail.stage
+                  return (
+                    <button
+                      key={s.key}
+                      type="button"
+                      disabled={stageBusy}
+                      onClick={() => updateStage(detail.id, { stage: i, customerNote: customerNote.trim() || undefined, internalNote: internalNote.trim() || undefined })}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left',
+                        padding: '6px 10px', borderRadius: 8, cursor: stageBusy ? 'default' : 'pointer',
+                        background: current ? 'var(--ke-green-50,#eef7ee)' : 'transparent',
+                        border: current ? '1px solid var(--ke-green-500)' : '1px solid transparent',
+                      }}
+                    >
+                      <span style={{ width: 14, height: 14, borderRadius: 999, flexShrink: 0, background: done ? 'var(--ke-green-500)' : '#fff', border: done ? 'none' : '2px solid var(--color-border-strong)', color: '#fff', fontSize: 9, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{done ? '✓' : ''}</span>
+                      <span style={{ fontSize: 12.5, fontWeight: current ? 700 : 500, color: done ? 'var(--color-text)' : 'var(--color-text-muted)' }}>{s.label}</span>
+                    </button>
+                  )
+                })}
+              </div>
+              <textarea
+                value={customerNote}
+                onChange={(e) => setCustomerNote(e.target.value)}
+                placeholder="Customer-facing update (optional) — shown on their tracking page & emailed"
+                rows={2}
+                maxLength={400}
+                style={{ width: '100%', resize: 'vertical', fontSize: 12.5, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--color-border)', fontFamily: 'inherit' }}
+              />
+              <textarea
+                value={internalNote}
+                onChange={(e) => setInternalNote(e.target.value)}
+                placeholder="Internal note (admin only) — never shown to the customer"
+                rows={2}
+                maxLength={400}
+                style={{ width: '100%', resize: 'vertical', fontSize: 12.5, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--color-border)', fontFamily: 'inherit', background: 'var(--ke-gray-50,#fafafa)' }}
+              />
+              <div style={{ display: 'flex', gap: 8 }}>
+                <Button size="sm" onClick={() => updateStage(detail.id, { advance: true, customerNote: customerNote.trim() || undefined, internalNote: internalNote.trim() || undefined })} disabled={stageBusy || detail.stage >= PIPELINE.length - 1}>
+                  {stageBusy ? 'Saving…' : 'Advance to next stage'}
+                </Button>
+                {(customerNote.trim() || internalNote.trim()) && (
+                  <Button size="sm" variant="outline" onClick={() => updateStage(detail.id, { customerNote: customerNote.trim() || undefined, internalNote: internalNote.trim() || undefined })} disabled={stageBusy}>
+                    Add note only
+                  </Button>
+                )}
+              </div>
+
+              {detail.events.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
+                  {detail.events.map((e) => (
+                    <div key={e.id} style={{ display: 'flex', gap: 8, fontSize: 11.5, alignItems: 'baseline' }}>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
+                        {new Date(e.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                      </span>
+                      {e.adminOnly && <Badge tone="grey">Internal</Badge>}
+                      <span style={{ color: 'var(--color-text-muted)' }}>
+                        <strong style={{ color: 'var(--color-text)', fontWeight: 600 }}>{e.label}</strong>
+                        {e.note ? ` — ${e.note}` : ''}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </Modal>
       )}
     </div>

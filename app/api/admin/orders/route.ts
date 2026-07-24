@@ -8,7 +8,7 @@ export async function GET() {
 
   const orders = await prisma.order.findMany({
     orderBy: { createdAt: 'desc' },
-    include: { items: true },
+    include: { items: true, events: { orderBy: { createdAt: 'asc' } } },
   })
 
   return NextResponse.json({
@@ -24,6 +24,16 @@ export async function GET() {
       phone: o.phone,
       shippingAddress: o.shippingAddress,
       cancelReason: o.cancelReason,
+      stage: o.stage,
+      estimatedDelivery: o.estimatedDelivery ? o.estimatedDelivery.toISOString() : null,
+      events: o.events.map((e) => ({
+        id: e.id,
+        type: e.type,
+        label: e.label,
+        note: e.note,
+        adminOnly: e.adminOnly,
+        at: e.createdAt.toISOString(),
+      })),
       paymentMethod: o.paymentMethod,
       paid: o.paid,
       invoiced: Boolean(o.invoicedAt),

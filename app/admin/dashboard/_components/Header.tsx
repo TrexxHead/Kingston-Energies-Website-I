@@ -18,8 +18,13 @@ export default function Header({ section, onNavigate }: HeaderProps) {
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '18px 28px',
-        borderBottom: '1px solid var(--color-border)',
-        background: '#fff',
+        borderBottom: '1px solid rgba(16,24,20,.06)',
+        background: 'rgba(255,255,255,.72)',
+        backdropFilter: 'saturate(180%) blur(20px)',
+        WebkitBackdropFilter: 'saturate(180%) blur(20px)',
+        position: 'sticky',
+        top: 0,
+        zIndex: 20,
       }}
     >
       <div>

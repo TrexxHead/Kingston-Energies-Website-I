@@ -41,18 +41,21 @@ export default function Button({
         border: isPrimary ? 'none' : '1.5px solid var(--color-border)',
         background: isPrimary ? 'var(--color-primary)' : 'var(--color-surface)',
         color: isPrimary ? 'var(--color-primary-contrast)' : 'var(--color-text)',
-        boxShadow: isPrimary && !isSm ? 'var(--shadow-green)' : 'none',
+        boxShadow: isPrimary ? '0 4px 14px -4px rgba(31,107,69,.5)' : 'none',
         cursor: 'pointer',
-        transition: 'background var(--dur-base) var(--ease-standard), border-color var(--dur-base) var(--ease-standard)',
+        transition: 'background .18s ease, border-color .18s ease, transform .12s ease, box-shadow .18s ease',
       }}
       onMouseEnter={(e) => {
         if (isPrimary) e.currentTarget.style.background = 'var(--color-primary-hover)'
         else e.currentTarget.style.borderColor = 'var(--color-border-strong)'
       }}
       onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'none'
         if (isPrimary) e.currentTarget.style.background = 'var(--color-primary)'
         else e.currentTarget.style.borderColor = 'var(--color-border)'
       }}
+      onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(.96)' }}
+      onMouseUp={(e) => { e.currentTarget.style.transform = 'none' }}
     >
       {children}
       {iconRight}

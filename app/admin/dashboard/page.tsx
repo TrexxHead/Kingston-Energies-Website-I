@@ -60,7 +60,7 @@ export default function AdminDashboard() {
         display: 'flex',
         height: '100vh',
         overflow: 'hidden',
-        background: 'var(--color-bg-subtle)',
+        background: '#f4f5f7',
       }}
     >
       <Sidebar section={section} onSelect={setSection} />

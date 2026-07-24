@@ -80,17 +80,19 @@ export default function Sidebar({ section, onSelect }: SidebarProps) {
                 alignItems: 'center',
                 gap: 11,
                 padding: '10px 12px',
-                borderRadius: 10,
+                borderRadius: 11,
                 cursor: 'pointer',
                 fontFamily: 'var(--font-display)',
                 fontWeight: 600,
                 fontSize: 13.5,
-                color: active ? '#fff' : 'rgba(255,255,255,.65)',
-                background: active ? 'rgba(147,201,63,.16)' : 'transparent',
-                boxShadow: active ? 'inset 3px 0 0 var(--ke-green-400)' : 'none',
+                color: active ? '#fff' : 'rgba(255,255,255,.62)',
+                background: active ? 'rgba(147,201,63,.18)' : 'transparent',
+                transition: 'background .16s ease, color .16s ease',
               }}
+              onMouseEnter={(e) => { if (!active) { e.currentTarget.style.background = 'rgba(255,255,255,.06)'; e.currentTarget.style.color = 'rgba(255,255,255,.9)' } }}
+              onMouseLeave={(e) => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,.62)' } }}
             >
-              <Icon size={18} />
+              <Icon size={18} color={active ? 'var(--ke-green-400)' : undefined} />
               {item.label}
             </div>
           )

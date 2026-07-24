@@ -19,9 +19,9 @@ export default function Modal({ title, onClose, children, footer, width = 440 }:
         position: 'fixed',
         inset: 0,
         zIndex: 90,
-        background: 'rgba(13,23,20,.55)',
-        backdropFilter: 'blur(6px)',
-        WebkitBackdropFilter: 'blur(6px)',
+        background: 'rgba(13,23,20,.45)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -33,12 +33,12 @@ export default function Modal({ title, onClose, children, footer, width = 440 }:
         onClick={(e) => e.stopPropagation()}
         style={{
           background: '#fff',
-          borderRadius: 18,
+          borderRadius: 22,
           width: '100%',
           maxWidth: width,
           maxHeight: '88vh',
           overflowY: 'auto',
-          boxShadow: 'var(--shadow-xl)',
+          boxShadow: '0 24px 60px -12px rgba(16,24,20,.35)',
           color: 'var(--color-text)',
           animation: 'keUp .25s var(--ease-out)',
         }}

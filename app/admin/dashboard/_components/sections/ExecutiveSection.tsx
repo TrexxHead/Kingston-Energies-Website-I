@@ -22,6 +22,9 @@ interface Metrics {
     avgRating: number | null
     reviewCount: number
     inventoryValue: number
+    abandonedCarts: number
+    abandonedValue: number
+    conversionRate: number | null
   }
   revenueSeries: { label: string; value: number }[]
   bestSellers: { name: string; units: number }[]
@@ -54,6 +57,8 @@ export default function ExecutiveSection() {
     { label: 'ORDERS', value: k ? String(k.orders) : '—' },
     { label: 'AVG ORDER VALUE', value: k ? fmt(k.aov) : '—' },
     { label: 'REPEAT CUSTOMERS', value: k ? `${k.repeatRate}%` : '—' },
+    { label: 'CONVERSION RATE', value: k?.conversionRate != null ? `${k.conversionRate}%` : '—', sub: 'checkout completion' },
+    { label: 'ABANDONED CARTS', value: k ? String(k.abandonedCarts) : '—', sub: k && k.abandonedValue ? `${fmt(k.abandonedValue)} value` : undefined },
     { label: 'PENDING DELIVERIES', value: k ? String(k.pendingDeliveries) : '—', sub: k && k.unpaid ? `${k.unpaid} unpaid` : undefined },
     { label: 'LOW / OUT OF STOCK', value: k ? String(k.lowStockCount) : '—' },
     { label: 'CUSTOMERS', value: k ? String(k.customers) : '—', sub: k ? `+${k.newCustomers} this month` : undefined },

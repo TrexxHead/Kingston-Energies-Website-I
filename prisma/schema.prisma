@@ -40,6 +40,24 @@ model User {
   addresses     Address[]
 }
 
+// Server-side cart snapshots — powers abandoned-cart tracking and conversion
+// rate. Keyed by an anonymous cart id (cookie) and linked to a user/email when
+// known. Marked CONVERTED when an order is placed.
+model Cart {
+  id        String   @id // client-generated cart id (also stored in a cookie)
+  userId    String?
+  email     String?
+  items     Json     // [{ name, price, qty }]
+  itemCount Int      @default(0)
+  total     Float    @default(0)
+  status    String   @default("ACTIVE") // ACTIVE | CONVERTED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, updatedAt])
+  @@index([userId])
+}
+
 // Saved delivery/billing addresses in the customer dashboard. Prefilled at
 // checkout; one may be flagged as the default.
 model Address {

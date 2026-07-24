@@ -13,7 +13,10 @@ export async function GET() {
   start14.setDate(now.getDate() - 13)
   start14.setHours(0, 0, 0, 0)
 
-  const [orders, products, userCount, newUsers, recentReviews, reviewAgg] = await Promise.all([
+  // Abandoned = active carts with items untouched for 60+ minutes.
+  const abandonThreshold = new Date(now.getTime() - 60 * 60 * 1000)
+
+  const [orders, products, userCount, newUsers, recentReviews, reviewAgg, convertedCarts, abandonedCarts, abandonedValueAgg] = await Promise.all([
     prisma.order.findMany({
       select: { total: true, status: true, paid: true, userId: true, createdAt: true, items: { select: { name: true, qty: true, price: true } } },
     }),
@@ -22,7 +25,15 @@ export async function GET() {
     prisma.user.count({ where: { role: 'USER', createdAt: { gte: startOfMonth } } }),
     prisma.review.findMany({ orderBy: { createdAt: 'desc' }, take: 5, select: { author: true, rating: true, body: true, createdAt: true } }),
     prisma.review.aggregate({ _avg: { rating: true }, _count: { _all: true } }),
+    prisma.cart.count({ where: { status: 'CONVERTED' } }),
+    prisma.cart.count({ where: { status: 'ACTIVE', itemCount: { gt: 0 }, updatedAt: { lt: abandonThreshold } } }),
+    prisma.cart.aggregate({ _sum: { total: true }, where: { status: 'ACTIVE', itemCount: { gt: 0 }, updatedAt: { lt: abandonThreshold } } }),
   ])
+
+  // Conversion rate = converted carts / (converted + abandoned).
+  const conversionDenom = convertedCarts + abandonedCarts
+  const conversionRate = conversionDenom ? Math.round((convertedCarts / conversionDenom) * 100) : null
+  const abandonedValue = Math.round(abandonedValueAgg._sum.total ?? 0)
 
   const valid = orders.filter((o) => o.status !== 'CANCELLED')
   const revenue = valid.reduce((s, o) => s + o.total, 0)
@@ -86,6 +97,9 @@ export async function GET() {
       avgRating: reviewAgg._avg.rating ? Math.round(reviewAgg._avg.rating * 10) / 10 : null,
       reviewCount: reviewAgg._count._all,
       inventoryValue: Math.round(inventoryValue),
+      abandonedCarts,
+      abandonedValue,
+      conversionRate,
     },
     revenueSeries: buckets,
     bestSellers,

@@ -102,7 +102,9 @@ function CheckoutInner() {
     const payloadItems = items.map((i) => ({ name: i.name, price: i.price, qty: i.qty }))
     const shippingAddress = [street.trim(), parish].filter(Boolean).join(', ') || undefined
     const billingAddress = billingSame ? shippingAddress : (billing.trim() || undefined)
-    const contact = { email: email.trim() || undefined, phone: phone.trim() || undefined, shippingAddress, billingAddress }
+    let cartId: string | undefined
+    try { cartId = localStorage.getItem('ke-cart-id') ?? undefined } catch { /* ignore */ }
+    const contact = { email: email.trim() || undefined, phone: phone.trim() || undefined, shippingAddress, billingAddress, cartId }
 
     // Card → hand off to the WiPay hosted page.
     if (selected.gateway) {

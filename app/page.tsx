@@ -1,6 +1,7 @@
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import Hero from '@/components/home/Hero'
+import Promos from '@/components/home/Promos'
 import Story from '@/components/home/Story'
 import ProductChapter from '@/components/home/ProductChapter'
 import Lineup from '@/components/home/Lineup'
@@ -19,6 +20,7 @@ export default function Home() {
       <Navbar />
       <main>
         <Hero />
+        <Promos />
         <Story />
         <ProductChapter />
         <Lineup />

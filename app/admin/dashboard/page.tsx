@@ -13,10 +13,7 @@ import MarketingSection from './_components/sections/MarketingSection'
 import FinanceSection from './_components/sections/FinanceSection'
 import AnalyticsSection from './_components/sections/AnalyticsSection'
 import PlaybookSection from './_components/sections/PlaybookSection'
-import {
-  initialBanners,
-  type SectionId,
-} from './_components/mockData'
+import { type SectionId } from './_components/mockData'
 import '../../_design-system/tokens.css'
 
 export default function AdminDashboard() {
@@ -29,13 +26,6 @@ export default function AdminDashboard() {
     const id = setInterval(ping, 60_000)
     return () => clearInterval(id)
   }, [])
-  const [banners, setBanners] = useState(initialBanners)
-  const [flashOn, setFlashOn] = useState(true)
-
-  const toggleBanner = (index: number) => {
-    setBanners((prev) => prev.map((b, i) => (i === index ? { ...b, active: !b.active } : b)))
-  }
-
   const renderSection = () => {
     switch (section) {
       case 'exec':
@@ -47,14 +37,7 @@ export default function AdminDashboard() {
       case 'customers':
         return <CustomersSection />
       case 'marketing2':
-        return (
-          <MarketingSection
-            banners={banners}
-            onToggleBanner={toggleBanner}
-            flashOn={flashOn}
-            onToggleFlash={() => setFlashOn((v) => !v)}
-          />
-        )
+        return <MarketingSection />
       case 'finance':
         return <FinanceSection />
       case 'analytics':

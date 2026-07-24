@@ -217,6 +217,9 @@ export interface ShopProduct extends Product {
   tags?: string[]
   specs?: SpecItem[]
   features?: string[]
+  /** Average review rating (1–5) and count, when the product has reviews. */
+  rating?: number
+  reviewCount?: number
 }
 
 export const CATEGORY_PILLS: { id: 'all' | Category; label: string }[] = [

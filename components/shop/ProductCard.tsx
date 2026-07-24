@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { Heart } from 'lucide-react'
+import { Heart, Eye, Scale, Star, X } from 'lucide-react'
 import type { ShopProduct } from '@/lib/catalog'
 import { fmt } from '@/lib/catalog'
 import { useCart } from '@/components/cart/CartContext'
@@ -11,7 +11,15 @@ import { useToast } from '@/components/cart/ToastContext'
 import ProductImage from './ProductImage'
 import { Badge, Button } from './ui'
 
-export default function ProductCard({ product, initialSaved = false }: { product: ShopProduct; initialSaved?: boolean }) {
+export default function ProductCard({
+  product,
+  initialSaved = false,
+  onCompare,
+}: {
+  product: ShopProduct
+  initialSaved?: boolean
+  onCompare?: (product: ShopProduct) => void
+}) {
   const router = useRouter()
   const { status } = useSession()
   const { addItem } = useCart()
@@ -19,6 +27,7 @@ export default function ProductCard({ product, initialSaved = false }: { product
   const soldOut = product.inStock === false
   const [saved, setSaved] = useState(initialSaved)
   const [savingFav, setSavingFav] = useState(false)
+  const [quickOpen, setQuickOpen] = useState(false)
 
   const viewDetails = () => router.push(`/product/${product.id}`)
 
@@ -116,6 +125,20 @@ export default function ProductCard({ product, initialSaved = false }: { product
             Sold out
           </span>
         )}
+        {/* Quick view — opens a lightweight preview without leaving the page */}
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); setQuickOpen(true) }}
+          style={{
+            position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)',
+            display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 999,
+            border: 'none', background: 'rgba(255,255,255,.92)', backdropFilter: 'blur(6px)',
+            fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12, color: 'var(--color-text)',
+            cursor: 'pointer', boxShadow: '0 2px 10px rgba(0,0,0,.14)', whiteSpace: 'nowrap',
+          }}
+        >
+          <Eye size={14} /> Quick view
+        </button>
       </div>
       <div style={{ padding: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
@@ -125,7 +148,8 @@ export default function ProductCard({ product, initialSaved = false }: { product
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '.16em', color: 'var(--color-text-muted)', marginTop: 8 }}>
           {product.spec}
         </div>
-        <div style={{ marginTop: 16, display: 'flex', alignItems: 'baseline', gap: 8 }}>
+        <Stars rating={product.rating} count={product.reviewCount} />
+        <div style={{ marginTop: 12, display: 'flex', alignItems: 'baseline', gap: 8 }}>
           <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, letterSpacing: '-.01em', color: 'var(--color-text)' }}>
             {fmt(product.price)}
           </span>
@@ -138,7 +162,69 @@ export default function ProductCard({ product, initialSaved = false }: { product
           <Button size="sm" variant="outline" block onClick={viewDetails}>View</Button>
           <Button size="sm" variant="primary" block disabled={soldOut} onClick={addToCart}>{soldOut ? 'Sold out' : 'Add to cart'}</Button>
         </div>
+        {onCompare && (
+          <button
+            type="button"
+            onClick={() => onCompare(product)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 12, background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12.5, color: 'var(--color-text-muted)' }}
+          >
+            <Scale size={14} /> Compare
+          </button>
+        )}
       </div>
+
+      {quickOpen && (
+        <div
+          onClick={() => setQuickOpen(false)}
+          style={{ position: 'fixed', inset: 0, zIndex: 130, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(6,12,10,.55)', backdropFilter: 'blur(4px)', padding: 20 }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ width: 'min(720px, 96vw)', maxHeight: '90vh', overflow: 'auto', background: '#fff', borderRadius: 22, boxShadow: '0 30px 80px -20px rgba(0,0,0,.5)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}
+          >
+            <div style={{ position: 'relative', minHeight: 260, background: '#eef3ee' }}>
+              <ProductImage src={product.image} alt={product.name} cat={product.cat} sizes="360px" iconSize={56} />
+            </div>
+            <div style={{ padding: 26, position: 'relative' }}>
+              <button type="button" onClick={() => setQuickOpen(false)} aria-label="Close" style={{ position: 'absolute', top: 14, right: 14, width: 30, height: 30, borderRadius: 999, border: '1px solid var(--color-border)', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)' }}>
+                <X size={15} />
+              </button>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 24, letterSpacing: '-.02em', margin: '0 0 6px', paddingRight: 32 }}>{product.name}</h3>
+              <Stars rating={product.rating} count={product.reviewCount} />
+              <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: '10px 0 0', lineHeight: 1.5 }}>
+                {product.shortDescription ?? product.spec}
+              </p>
+              <div style={{ margin: '18px 0', display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 28 }}>{fmt(product.price)}</span>
+                {product.listPrice && product.listPrice > product.price && (
+                  <span style={{ fontSize: 15, color: 'var(--color-text-muted)', textDecoration: 'line-through' }}>{fmt(product.listPrice)}</span>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <Button size="sm" variant="primary" block disabled={soldOut} onClick={() => { addToCart(); setQuickOpen(false) }}>{soldOut ? 'Sold out' : 'Add to cart'}</Button>
+                <Button size="sm" variant="outline" block onClick={viewDetails}>Full details</Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function Stars({ rating, count }: { rating?: number; count?: number }) {
+  if (!rating) return null
+  const full = Math.round(rating)
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10 }}>
+      <span style={{ display: 'inline-flex', gap: 1 }}>
+        {[1, 2, 3, 4, 5].map((n) => (
+          <Star key={n} size={13} fill={n <= full ? '#f7941e' : 'none'} color={n <= full ? '#f7941e' : 'var(--ke-gray-300,#cbd3cb)'} />
+        ))}
+      </span>
+      <span style={{ fontSize: 11.5, color: 'var(--color-text-muted)' }}>
+        {rating.toFixed(1)}{count ? ` (${count})` : ''}
+      </span>
     </div>
   )
 }

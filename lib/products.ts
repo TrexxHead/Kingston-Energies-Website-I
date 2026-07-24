@@ -99,12 +99,31 @@ export async function getShopProducts(): Promise<ShopProduct[]> {
   const byName = new Map(rows.map((r) => [r.name, r]))
   const usedNames = new Set<string>()
 
+  // Average rating + count per product (keyed by catalog id).
+  const ratings = new Map<string, { rating: number; reviewCount: number }>()
+  try {
+    const grouped = await prisma.review.groupBy({
+      by: ['productId'],
+      _avg: { rating: true },
+      _count: { _all: true },
+    })
+    for (const g of grouped) {
+      if (g._avg.rating != null) ratings.set(g.productId, { rating: g._avg.rating, reviewCount: g._count._all })
+    }
+  } catch {
+    // ratings are non-essential — skip on error
+  }
+  const withRating = (p: ShopProduct): ShopProduct => {
+    const r = ratings.get(p.id)
+    return r ? { ...p, rating: Math.round(r.rating * 10) / 10, reviewCount: r.reviewCount } : p
+  }
+
   const fromCatalog: ShopProduct[] = CATALOG.map((c) => {
     const db = byName.get(c.name)
     const base: ShopProduct = { ...c, stock: null, inStock: true }
-    if (!db) return base
+    if (!db) return withRating(base)
     usedNames.add(c.name)
-    return overlay(base, db)
+    return withRating(overlay(base, db))
   })
 
   // DB-only products (created in the CMS, no catalog entry) — show unless archived.

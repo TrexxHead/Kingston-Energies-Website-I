@@ -101,7 +101,7 @@ export default function ShopClient({ products }: { products: ShopProduct[] }) {
 
         <div className="kp-3col" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 20, marginTop: 20 }}>
           {visible.map((p) => (
-            <ProductCard key={p.id} product={p} initialSaved={savedIds.has(p.id)} />
+            <ProductCard key={p.id} product={p} initialSaved={savedIds.has(p.id)} onCompare={() => setCompareOpen(true)} />
           ))}
         </div>
       </section>

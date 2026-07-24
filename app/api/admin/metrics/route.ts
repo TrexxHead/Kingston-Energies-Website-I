@@ -16,7 +16,7 @@ export async function GET() {
   // Abandoned = active carts with items untouched for 60+ minutes.
   const abandonThreshold = new Date(now.getTime() - 60 * 60 * 1000)
 
-  const [orders, products, userCount, newUsers, recentReviews, reviewAgg, convertedCarts, abandonedCarts, abandonedValueAgg] = await Promise.all([
+  const [orders, products, userCount, newUsers, recentReviews, reviewAgg, convertedCarts, abandonedCarts, abandonedValueAgg, openTickets, campaignAgg] = await Promise.all([
     prisma.order.findMany({
       select: { total: true, status: true, paid: true, userId: true, createdAt: true, items: { select: { name: true, qty: true, price: true } } },
     }),
@@ -28,6 +28,8 @@ export async function GET() {
     prisma.cart.count({ where: { status: 'CONVERTED' } }),
     prisma.cart.count({ where: { status: 'ACTIVE', itemCount: { gt: 0 }, updatedAt: { lt: abandonThreshold } } }),
     prisma.cart.aggregate({ _sum: { total: true }, where: { status: 'ACTIVE', itemCount: { gt: 0 }, updatedAt: { lt: abandonThreshold } } }),
+    prisma.supportTicket.count({ where: { status: { not: 'RESOLVED' } } }).catch(() => 0),
+    prisma.campaign.aggregate({ _count: { _all: true }, _sum: { recipientCount: true }, where: { status: 'SENT' } }).catch(() => ({ _count: { _all: 0 }, _sum: { recipientCount: 0 } })),
   ])
 
   // Conversion rate = converted carts / (converted + abandoned).
@@ -100,6 +102,9 @@ export async function GET() {
       abandonedCarts,
       abandonedValue,
       conversionRate,
+      openTickets,
+      campaignsSent: campaignAgg._count._all,
+      campaignReach: campaignAgg._sum.recipientCount ?? 0,
     },
     revenueSeries: buckets,
     bestSellers,

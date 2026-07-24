@@ -6,6 +6,7 @@ import Badge from '../ui/Badge'
 import { cardStyle, h3Style } from '../ui/card'
 import SheetsSyncCard from './SheetsSyncCard'
 import { fmt } from '../mockData'
+import Skeleton from '@/components/Skeleton'
 
 interface Metrics {
   kpis: {
@@ -25,6 +26,9 @@ interface Metrics {
     abandonedCarts: number
     abandonedValue: number
     conversionRate: number | null
+    openTickets: number
+    campaignsSent: number
+    campaignReach: number
   }
   revenueSeries: { label: string; value: number }[]
   bestSellers: { name: string; units: number }[]
@@ -63,6 +67,8 @@ export default function ExecutiveSection() {
     { label: 'LOW / OUT OF STOCK', value: k ? String(k.lowStockCount) : '—' },
     { label: 'CUSTOMERS', value: k ? String(k.customers) : '—', sub: k ? `+${k.newCustomers} this month` : undefined },
     { label: 'AVG RATING', value: k?.avgRating != null ? `${k.avgRating}★` : '—', sub: k ? `${k.reviewCount} reviews` : undefined },
+    { label: 'OPEN SUPPORT TICKETS', value: k ? String(k.openTickets) : '—' },
+    { label: 'CAMPAIGNS SENT', value: k ? String(k.campaignsSent) : '—', sub: k && k.campaignReach ? `${k.campaignReach} reached` : undefined },
   ]
 
   const series = m?.revenueSeries ?? []
@@ -73,11 +79,15 @@ export default function ExecutiveSection() {
       <div className="kad-kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14 }}>
         {stats.map((s) => (
           <div key={s.label} style={{ ...cardStyle, borderRadius: 14, padding: 16 }}>
-            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 21, letterSpacing: '-.01em' }}>{s.value}</div>
+            {m ? (
+              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 21, letterSpacing: '-.01em' }}>{s.value}</div>
+            ) : (
+              <Skeleton width={64} height={22} />
+            )}
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '.12em', color: 'var(--color-text-muted)', marginTop: 5 }}>
               {s.label}
             </div>
-            {s.sub && <div style={{ fontSize: 10.5, color: 'var(--ke-green-600)', marginTop: 5 }}>{s.sub}</div>}
+            {m && s.sub && <div style={{ fontSize: 10.5, color: 'var(--ke-green-600)', marginTop: 5 }}>{s.sub}</div>}
           </div>
         ))}
       </div>

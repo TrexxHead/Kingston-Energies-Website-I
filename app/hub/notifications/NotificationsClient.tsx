@@ -7,6 +7,7 @@ import {
   Search, Check, Archive, ArchiveRestore, CheckCheck, type LucideIcon,
 } from 'lucide-react'
 import { NOTIFICATION_CATEGORIES, type NotificationCategory } from '@/lib/notifications'
+import Skeleton from '@/components/Skeleton'
 
 interface Note {
   id: string
@@ -123,7 +124,17 @@ export default function NotificationsClient() {
 
       {/* List */}
       {loading ? (
-        <p style={{ fontSize: 13.5, color: 'var(--color-text-muted)', padding: '20px 4px' }}>Loading…</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {[0, 1, 2].map((i) => (
+            <div key={i} style={{ display: 'flex', gap: 13, padding: 16, borderRadius: 14, background: '#fff', border: '1px solid var(--color-border)' }}>
+              <Skeleton width={36} height={36} radius={10} />
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <Skeleton width="40%" height={13} />
+                <Skeleton width="80%" height={12} />
+              </div>
+            </div>
+          ))}
+        </div>
       ) : filtered.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '48px 24px', background: '#fff', border: '1px solid var(--color-border)', borderRadius: 16 }}>
           <Bell size={26} style={{ color: 'var(--ke-green-600)', margin: '0 auto 12px' }} />

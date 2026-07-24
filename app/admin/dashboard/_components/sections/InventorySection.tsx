@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
-import { Plus, Search, Trash2, Pencil, Archive, ArchiveRestore, Eye } from 'lucide-react'
+import { Plus, Search, Trash2, Pencil, Archive, ArchiveRestore, Eye, Image as ImageIcon } from 'lucide-react'
 import { CATALOG } from '@/lib/catalog'
 import Badge from '../ui/Badge'
 import Pill from '../ui/Pill'
@@ -95,6 +95,9 @@ export default function InventorySection() {
   const [specs, setSpecs] = useState<SpecItem[]>([])
   const [busy, setBusy] = useState(false)
   const [showArchived, setShowArchived] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
+  const [dragOver, setDragOver] = useState(false)
 
   const loadProducts = useCallback(async () => {
     const res = await fetch(`/api/admin/products${showArchived ? '?archived=1' : ''}`)
@@ -205,6 +208,28 @@ export default function InventorySection() {
     setImages((prev) => [...prev, url])
     setNewImage('')
   }
+  const uploadFiles = async (files: FileList | File[]) => {
+    const list = Array.from(files).filter((f) => f.type.startsWith('image/'))
+    if (list.length === 0) return
+    setUploadError('')
+    setUploading(true)
+    try {
+      const fd = new FormData()
+      list.forEach((f) => fd.append('files', f))
+      const res = await fetch('/api/admin/products/upload', { method: 'POST', body: fd })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && Array.isArray(data.urls)) {
+        setImages((prev) => [...prev, ...data.urls])
+      } else {
+        setUploadError(data.error ?? 'Upload failed.')
+      }
+    } catch {
+      setUploadError('Upload failed — check your connection.')
+    } finally {
+      setUploading(false)
+    }
+  }
+
   const removeImage = (i: number) => setImages((prev) => prev.filter((_, idx) => idx !== i))
   const moveImage = (i: number, dir: -1 | 1) => {
     setImages((prev) => {
@@ -390,8 +415,37 @@ export default function InventorySection() {
           {/* Images */}
           <SectionLabel>Images</SectionLabel>
           <p style={{ fontSize: 11.5, color: 'var(--color-text-muted)', margin: '0 0 4px' }}>
-            Paste image URLs. The first image is the thumbnail — reorder or set any as the thumbnail.
+            Drag &amp; drop or browse to upload, or paste an image URL. The first image is the thumbnail — reorder or set any as the thumbnail.
           </p>
+          {/* Drag & drop uploader */}
+          <label
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={(e) => { e.preventDefault(); setDragOver(false); if (e.dataTransfer.files.length) uploadFiles(e.dataTransfer.files) }}
+            style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
+              padding: '18px 12px', marginBottom: 8, borderRadius: 12, cursor: 'pointer', textAlign: 'center',
+              border: `1.5px dashed ${dragOver ? 'var(--ke-green-500)' : 'var(--color-border)'}`,
+              background: dragOver ? 'var(--ke-green-50,#eef7ee)' : 'var(--ke-gray-50,#fafafa)',
+              transition: 'background .15s ease, border-color .15s ease',
+            }}
+          >
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(e) => { if (e.target.files?.length) uploadFiles(e.target.files); e.target.value = '' }}
+              style={{ display: 'none' }}
+            />
+            <ImageIcon size={20} style={{ color: 'var(--color-text-muted)' }} />
+            <span style={{ fontSize: 12.5, fontWeight: 600, fontFamily: 'var(--font-display)', color: 'var(--color-text)' }}>
+              {uploading ? 'Uploading…' : 'Drop images here or click to browse'}
+            </span>
+            <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>JPEG, PNG, WEBP, GIF or AVIF · up to 8 MB each</span>
+          </label>
+          {uploadError && (
+            <div style={{ background: 'var(--color-danger-soft)', color: 'var(--color-danger)', borderRadius: 8, padding: '7px 10px', fontSize: 11.5, marginBottom: 8 }}>{uploadError}</div>
+          )}
           {images.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 8 }}>
               {images.map((src, i) => (

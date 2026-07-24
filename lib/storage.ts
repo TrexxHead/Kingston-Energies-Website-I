@@ -17,6 +17,11 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
  */
 
 export const ADMIN_BUCKET = 'admin-files'
+// Public bucket for storefront-visible assets (product images). Unlike the
+// admin bucket, objects here are served via permanent public URLs so they can
+// be shown to shoppers. Create it in Supabase → Storage → New bucket, name
+// "product-images", and turn the PUBLIC toggle ON.
+export const PUBLIC_BUCKET = 'product-images'
 
 // Accept either the server-only var or the public one Supabase projects use.
 const SUPABASE_URL = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
@@ -76,6 +81,22 @@ export async function uploadAdminFile(
     .upload(path, body, { contentType, upsert: false })
   if (error) throw new Error(`Upload failed: ${error.message}`)
   return path
+}
+
+/**
+ * Upload bytes to the PUBLIC product-images bucket and return the permanent
+ * public URL (safe to store on a Product and render on the storefront).
+ */
+export async function uploadPublicImage(
+  path: string,
+  body: ArrayBuffer | Buffer | Uint8Array,
+  contentType: string,
+): Promise<string> {
+  const s = storage()
+  const { error } = await s.storage.from(PUBLIC_BUCKET).upload(path, body, { contentType, upsert: false })
+  if (error) throw new Error(`Upload failed: ${error.message}`)
+  const { data } = s.storage.from(PUBLIC_BUCKET).getPublicUrl(path)
+  return data.publicUrl
 }
 
 /**

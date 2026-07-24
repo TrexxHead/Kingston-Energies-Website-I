@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { X } from 'lucide-react'
 import { CATALOG, fmt, type Product } from '@/lib/catalog'
@@ -19,7 +20,24 @@ const ROWS: { label: string; render: (p: Product) => string }[] = [
 export default function CompareModal({ onClose }: { onClose: () => void }) {
   const { addItem } = useCart()
   const { pushToast } = useToast()
-  const powerbanks = CATALOG.filter((p) => p.cat === 'powerbanks')
+
+  // Overlay live prices from the DB (admin inventory) onto the catalog rows.
+  const [livePrices, setLivePrices] = useState<Record<string, number>>({})
+  useEffect(() => {
+    fetch('/api/products')
+      .then((r) => (r.ok ? r.json() : { prices: {} }))
+      .then((d: { prices: Record<string, { price: number }> }) => {
+        const map: Record<string, number> = {}
+        for (const [id, v] of Object.entries(d.prices ?? {})) map[id] = v.price
+        setLivePrices(map)
+      })
+      .catch(() => {})
+  }, [])
+
+  const powerbanks = CATALOG.filter((p) => p.cat === 'powerbanks').map((p) => ({
+    ...p,
+    price: livePrices[p.id] ?? p.price,
+  }))
 
   const labelCell: React.CSSProperties = {
     padding: '13px 16px',

@@ -4,6 +4,7 @@ import './_design-system/tokens.css'
 import Providers from '@/components/Providers'
 import Camille from '@/components/camille/Camille'
 import CookieConsent from '@/components/CookieConsent'
+import AnnouncementBar from '@/components/AnnouncementBar'
 import { keFontVariables } from './_design-system/fonts'
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
@@ -53,6 +54,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${keFontVariables} ke-root bg-light text-dark`}>
         <Providers>
+          <AnnouncementBar />
           {children}
           <Camille />
           <CookieConsent />

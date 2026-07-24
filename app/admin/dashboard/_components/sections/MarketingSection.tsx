@@ -4,6 +4,7 @@ import Badge from '../ui/Badge'
 import Button from '../ui/Button'
 import Switch from '../ui/Switch'
 import { cardStyle, h3Style } from '../ui/card'
+import AnnouncementCard from './AnnouncementCard'
 import { campaigns, type Banner, type Promo } from '../mockData'
 
 interface MarketingSectionProps {
@@ -33,6 +34,8 @@ export default function MarketingSection({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <AnnouncementCard />
+
       <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 16 }}>
         <div style={cardStyle}>
           <h3 style={h3Style}>Homepage banners</h3>

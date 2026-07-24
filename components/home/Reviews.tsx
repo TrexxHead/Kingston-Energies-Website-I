@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
-import { getProduct, fmt } from '@/lib/catalog'
+import { fmt } from '@/lib/catalog'
+import { getShopProducts } from '@/lib/products'
 import ReviewCarousel, { type ReviewCard } from './ReviewCarousel'
 
 /** Fisher–Yates shuffle (returns a new array). */
@@ -24,9 +25,14 @@ export default async function Reviews() {
     return null
   }
 
+  // Live prices from the DB (admin inventory), so the homepage figures always
+  // match the shop rather than the static catalog fallback.
+  const shopProducts = await getShopProducts()
+  const byId = new Map(shopProducts.map((p) => [p.id, p]))
+
   const reviews: ReviewCard[] = shuffle(rows)
     .map((r): ReviewCard | null => {
-      const product = getProduct(r.productId)
+      const product = byId.get(r.productId)
       if (!product) return null // only surface reviews whose product is in the catalog
       return {
         id: r.id,

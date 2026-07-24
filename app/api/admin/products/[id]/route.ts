@@ -6,6 +6,7 @@ import { guardAdmin } from '@/lib/requireAdmin'
 const patchSchema = z.object({
   name: z.string().min(1).max(160).optional(),
   price: z.number().min(0).optional(),
+  cost: z.number().min(0).nullish(),
   stock: z.number().int().min(0).optional(),
   threshold: z.number().int().min(0).optional(),
   category: z.enum(['POWERBANKS', 'CHARGERS', 'STATIONS', 'ACCESSORIES']).nullish(),

@@ -92,6 +92,7 @@ model Product {
   name        String
   description String   @db.Text
   price       Float
+  cost        Float?   // unit cost, for COGS / margin in the P&L
   icon        String?
   features    String[]
   sku         String?  @unique

@@ -9,6 +9,7 @@ import TextInput from '../ui/TextInput'
 import { fmt } from '../mockData'
 import { EXPENSE_CATEGORIES } from '@/lib/finance'
 import PaymentSettingsCard from './PaymentSettingsCard'
+import ProfitLossCard from './ProfitLossCard'
 import CountUp from '../ui/CountUp'
 
 interface Kpi { value: number; change: number | null }
@@ -130,6 +131,8 @@ export default function FinanceSection() {
           ))}
         </div>
       </div>
+
+      <ProfitLossCard />
 
       {/* Budgets vs actual + expense breakdown */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'start' }}>

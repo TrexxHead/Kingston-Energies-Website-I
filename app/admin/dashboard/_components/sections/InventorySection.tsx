@@ -21,6 +21,7 @@ interface Product {
   barcode: string | null
   category: Category | null
   price: number
+  cost: number | null
   stock: number
   threshold: number
   badge: string | null
@@ -43,7 +44,7 @@ function statusFor(stock: number, threshold: number): { label: string; tone: 'or
   return { label: 'In stock', tone: 'green' }
 }
 
-const emptyForm = { name: '', sku: '', price: '0', stock: '0', threshold: '5', category: 'POWERBANKS', badge: '' }
+const emptyForm = { name: '', sku: '', price: '0', cost: '', stock: '0', threshold: '5', category: 'POWERBANKS', badge: '' }
 
 // Map a DB product name to its storefront catalog id, so admins can jump to the
 // public product page. Names in the seed match lib/catalog.ts exactly.
@@ -80,6 +81,7 @@ export default function InventorySection() {
       name: p.name,
       sku: p.sku ?? '',
       price: String(p.price),
+      cost: p.cost != null ? String(p.cost) : '',
       stock: String(p.stock),
       threshold: String(p.threshold),
       category: p.category ?? 'POWERBANKS',
@@ -97,6 +99,7 @@ export default function InventorySection() {
       body: JSON.stringify({
         name: form.name,
         price: Number(form.price),
+        cost: form.cost ? Number(form.cost) : null,
         stock: Number(form.stock),
         threshold: Number(form.threshold),
         category: form.category as Category,
@@ -117,6 +120,7 @@ export default function InventorySection() {
         name: form.name,
         sku: form.sku || null,
         price: Number(form.price),
+        cost: form.cost ? Number(form.cost) : null,
         stock: Number(form.stock),
         threshold: Number(form.threshold),
         category: form.category as Category,
@@ -266,8 +270,9 @@ export default function InventorySection() {
           <TextInput label="Name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
           {!editing && <TextInput label="SKU" value={form.sku} onChange={(v) => setForm({ ...form, sku: v })} placeholder="KE-XX-000" />}
           <TextInput label="Category" value={form.category} onChange={(v) => setForm({ ...form, category: v })} options={CAT_OPTIONS} />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-            <TextInput label="Price (£)" value={form.price} onChange={(v) => setForm({ ...form, price: v })} type="number" />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <TextInput label="Price (J$)" value={form.price} onChange={(v) => setForm({ ...form, price: v })} type="number" />
+            <TextInput label="Unit cost (J$, optional)" value={form.cost} onChange={(v) => setForm({ ...form, cost: v })} type="number" />
             <TextInput label="Stock" value={form.stock} onChange={(v) => setForm({ ...form, stock: v })} type="number" />
             <TextInput label="Low at" value={form.threshold} onChange={(v) => setForm({ ...form, threshold: v })} type="number" />
           </div>

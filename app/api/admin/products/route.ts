@@ -6,6 +6,7 @@ import { guardAdmin } from '@/lib/requireAdmin'
 const productSchema = z.object({
   name: z.string().min(1).max(160),
   price: z.number().min(0),
+  cost: z.number().min(0).nullish(),
   stock: z.number().int().min(0),
   threshold: z.number().int().min(0),
   category: z.enum(['POWERBANKS', 'CHARGERS', 'STATIONS', 'ACCESSORIES']).nullish(),
@@ -43,6 +44,7 @@ export async function POST(request: Request) {
       name: d.name,
       description: d.spec ?? d.name,
       price: d.price,
+      cost: d.cost ?? null,
       features: [],
       stock: d.stock,
       threshold: d.threshold,

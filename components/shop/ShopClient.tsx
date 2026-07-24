@@ -6,12 +6,15 @@ import { Scale } from 'lucide-react'
 import CommerceShell from '@/components/shop/CommerceShell'
 import ProductCard from '@/components/shop/ProductCard'
 import CompareModal from '@/components/shop/CompareModal'
+import SmartSearch from '@/components/shop/SmartSearch'
 import { CATEGORY_PILLS, type Category, type ShopProduct } from '@/lib/catalog'
+import { fuzzyScore } from '@/lib/search'
 
 export default function ShopClient({ products }: { products: ShopProduct[] }) {
   const searchParams = useSearchParams()
   const initialCat = (searchParams.get('category') as Category | null) ?? 'all'
   const [cat, setCat] = useState<'all' | Category>(initialCat)
+  const [query, setQuery] = useState('')
   const [compareOpen, setCompareOpen] = useState(false)
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
 
@@ -22,7 +25,15 @@ export default function ShopClient({ products }: { products: ShopProduct[] }) {
       .catch(() => {})
   }, [])
 
-  const visible = products.filter((p) => cat === 'all' || p.cat === cat)
+  const byCat = products.filter((p) => cat === 'all' || p.cat === cat)
+  const q = query.trim()
+  const visible = q
+    ? byCat
+        .map((p) => ({ p, s: Math.max(fuzzyScore(q, p.name), fuzzyScore(q, p.spec), fuzzyScore(q, p.brand ?? ''), ...(p.tags ?? []).map((t) => fuzzyScore(q, t))) }))
+        .filter((m) => m.s > 0)
+        .sort((a, b) => b.s - a.s)
+        .map((m) => m.p)
+    : byCat
   const countLabel = String(visible.length).padStart(2, '0') + ' ITEMS'
 
   return (
@@ -73,6 +84,10 @@ export default function ShopClient({ products }: { products: ShopProduct[] }) {
               )
             })}
           </div>
+        </div>
+
+        <div style={{ marginTop: 24 }}>
+          <SmartSearch products={products} query={query} onQuery={setQuery} />
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 20 }}>

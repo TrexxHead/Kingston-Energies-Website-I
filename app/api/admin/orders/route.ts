@@ -21,6 +21,7 @@ export async function GET() {
       contact: o.contact,
       paymentMethod: o.paymentMethod,
       paid: o.paid,
+      invoiced: Boolean(o.invoicedAt),
       total: o.total,
       itemCount: o.items.reduce((sum, i) => sum + i.qty, 0),
       date: new Date(o.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),

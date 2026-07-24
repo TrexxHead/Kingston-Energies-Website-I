@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { guardAdmin } from '@/lib/requireAdmin'
+import { issueInvoiceForOrder } from '@/lib/invoice'
 
 const patchSchema = z
   .object({
@@ -19,6 +20,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (!parsed.success) return NextResponse.json({ error: 'Invalid update' }, { status: 400 })
 
   try {
+    const before = await prisma.order.findUnique({ where: { id }, select: { paid: true, invoicedAt: true } })
     const order = await prisma.order.update({
       where: { id },
       data: {
@@ -26,7 +28,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         ...(parsed.data.paid !== undefined ? { paid: parsed.data.paid } : {}),
       },
     })
-    return NextResponse.json({ order })
+
+    // Auto-issue the invoice the first time an order becomes paid.
+    let invoice: { sent: boolean; to: string | null } | undefined
+    if (parsed.data.paid === true && before && !before.paid && !before.invoicedAt) {
+      invoice = await issueInvoiceForOrder(id)
+    }
+
+    return NextResponse.json({ order, invoice })
   } catch {
     return NextResponse.json({ error: 'Order not found' }, { status: 404 })
   }

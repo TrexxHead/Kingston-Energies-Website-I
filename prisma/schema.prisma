@@ -160,6 +160,7 @@ model Order {
   contact       String?     // WhatsApp number / Instagram handle for off-site orders
   paymentMethod String?
   paid          Boolean     @default(false) // payment received/confirmed
+  invoicedAt    DateTime?   // when an invoice was issued/sent (prevents dupes)
   total         Float       @default(0)
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
@@ -354,6 +355,27 @@ model SiteSetting {
   key       String   @id
   value     String   @db.Text
   updatedAt DateTime @updatedAt
+}
+
+// A logged business expense — the manual side of the Finance section (revenue
+// comes automatically from orders).
+model Expense {
+  id          String   @id @default(cuid())
+  category    String
+  description String?
+  amount      Float
+  spentAt     DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@index([spentAt])
+}
+
+// A recurring monthly budget target per expense category.
+model Budget {
+  id            String   @id @default(cuid())
+  category      String   @unique
+  monthlyAmount Float
+  updatedAt     DateTime @updatedAt
 }
 
 enum OrderStatus {

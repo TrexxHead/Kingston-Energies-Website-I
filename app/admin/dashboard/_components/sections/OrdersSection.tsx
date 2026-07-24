@@ -20,6 +20,7 @@ interface Order {
   contact: string | null
   paymentMethod: string | null
   paid: boolean
+  invoiced: boolean
   total: number
   itemCount: number
   date: string
@@ -69,14 +70,35 @@ export default function OrdersSection() {
     load()
   }
 
+  const [invoiceMsg, setInvoiceMsg] = useState('')
+
+  const sendInvoice = async (id: string) => {
+    setInvoiceMsg('Sending…')
+    const res = await fetch(`/api/admin/orders/${id}/invoice`, { method: 'POST' })
+    if (res.ok) {
+      const { sent, to } = await res.json()
+      setInvoiceMsg(sent ? `Invoice emailed to ${to}` : to ? 'Email provider not configured — use View invoice' : 'No email on file — use View invoice to share it')
+      setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, invoiced: true } : o)))
+      setDetail((d) => (d && d.id === id ? { ...d, invoiced: true } : d))
+    } else {
+      setInvoiceMsg('Could not send invoice')
+    }
+  }
+
   const setPaid = async (id: string, paid: boolean) => {
     setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, paid } : o)))
     setDetail((d) => (d && d.id === id ? { ...d, paid } : d))
-    await fetch(`/api/admin/orders/${id}`, {
+    const res = await fetch(`/api/admin/orders/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ paid }),
     })
+    // Surface the auto-issued invoice result when marking paid.
+    if (res.ok && paid) {
+      const { invoice } = await res.json().catch(() => ({}))
+      if (invoice?.sent) setInvoiceMsg(`Paid — invoice emailed to ${invoice.to}`)
+      else if (invoice) setInvoiceMsg('Paid — invoice ready (View invoice to share)')
+    }
     load()
   }
 
@@ -116,7 +138,7 @@ export default function OrdersSection() {
                     key={card.id}
                     draggable
                     onDragStart={() => setDragId(card.id)}
-                    onClick={() => setDetail(card)}
+                    onClick={() => { setInvoiceMsg(''); setDetail(card) }}
                     style={{ background: '#fff', border: '1px solid var(--color-border)', borderRadius: 11, padding: '11px 12px', cursor: 'grab', boxShadow: 'var(--shadow-sm)' }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
@@ -188,11 +210,22 @@ export default function OrdersSection() {
               {detail.paid ? <Badge tone="green" dot>Paid</Badge> : <Badge tone="orange" dot>Unpaid</Badge>}
             </span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ display: 'flex', gap: 8 }}>
+              <a href={`/api/admin/orders/${detail.id}/invoice`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+                <Button size="sm" variant="outline">View invoice</Button>
+              </a>
+              <Button size="sm" variant="outline" onClick={() => sendInvoice(detail.id)}>
+                {detail.invoiced ? 'Resend invoice' : 'Send invoice'}
+              </Button>
+            </span>
             <Button size="sm" variant={detail.paid ? 'outline' : 'primary'} onClick={() => setPaid(detail.id, !detail.paid)}>
               {detail.paid ? 'Mark as unpaid' : 'Mark as paid'}
             </Button>
           </div>
+          {invoiceMsg && (
+            <div style={{ fontSize: 12, color: 'var(--color-text-muted)', textAlign: 'right' }}>{invoiceMsg}</div>
+          )}
           <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
             {detail.items.map((it, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>

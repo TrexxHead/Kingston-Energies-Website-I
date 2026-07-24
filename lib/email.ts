@@ -88,6 +88,21 @@ export async function sendPasswordResetEmail(input: PasswordResetEmailInput): Pr
   }
 }
 
+/** Send an invoice email. Returns whether it actually went out. */
+export async function sendInvoiceEmail(input: { to: string; orderNo: string; html: string }): Promise<boolean> {
+  if (!isEmailConfigured()) {
+    console.info(`[email] skipped invoice ${input.orderNo} (no provider configured) → ${input.to}`)
+    return false
+  }
+  try {
+    await deliver({ to: input.to, subject: `Invoice ${input.orderNo} — Kingston Energies`, html: input.html })
+    return true
+  } catch (err) {
+    console.error('[email] failed to send invoice:', err)
+    return false
+  }
+}
+
 async function deliver({ to, subject, html }: { to: string; subject: string; html: string }): Promise<void> {
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',

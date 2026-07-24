@@ -37,6 +37,25 @@ model User {
   reviews       Review[]
   favorites     Favorite[]
   notifications Notification[]
+  addresses     Address[]
+}
+
+// Saved delivery/billing addresses in the customer dashboard. Prefilled at
+// checkout; one may be flagged as the default.
+model Address {
+  id        String   @id @default(cuid())
+  userId    String
+  label     String?  // e.g. "Home", "Office"
+  name      String
+  phone     String?
+  street    String
+  parish    String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 // Per-customer notification center: order/shipping updates, restocks, discounts,

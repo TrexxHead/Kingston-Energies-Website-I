@@ -58,6 +58,23 @@ function CheckoutInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session])
 
+  // Prefill from the customer's default saved address (logged-in only).
+  useEffect(() => {
+    if (!session?.user?.id) return
+    fetch('/api/hub/addresses')
+      .then((r) => (r.ok ? r.json() : { addresses: [] }))
+      .then((d: { addresses: { name: string; phone: string | null; street: string; parish: string; isDefault: boolean }[] }) => {
+        const def = d.addresses?.find((a) => a.isDefault) ?? d.addresses?.[0]
+        if (!def) return
+        setName((v) => v || def.name)
+        setPhone((v) => v || def.phone || '')
+        setStreet((v) => v || def.street)
+        setParish((v) => (v && v !== 'Kingston' ? v : def.parish))
+      })
+      .catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.id])
+
   useEffect(() => {
     // If we came back from a failed card payment, land on the payment step.
     if (paymentFailed) setStep(1)

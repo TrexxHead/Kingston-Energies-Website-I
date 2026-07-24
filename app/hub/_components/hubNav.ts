@@ -11,6 +11,7 @@ export const HUB_MAIN_NAV: HubNavItem[] = [
   { icon: 'bell', label: 'Notifications', href: '/hub/notifications' },
   { icon: 'battery-charging', label: 'My devices', href: '/hub/devices' },
   { icon: 'heart', label: 'Saved', href: '/hub/saved' },
+  { icon: 'map-pin', label: 'Addresses', href: '/hub/addresses' },
   { icon: 'gift', label: 'Rewards', href: '/hub/rewards' },
   { icon: 'user-round', label: 'Profile', href: '/hub/profile' },
 ]

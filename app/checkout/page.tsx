@@ -36,7 +36,7 @@ function CheckoutInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { data: session } = useSession()
-  const { items, total, clear, hydrated } = useCart()
+  const { items, total, promoCode, clear, hydrated } = useCart()
   const [step, setStep] = useState(0)
   const [delivery, setDelivery] = useState(0)
   const [methods, setMethods] = useState<PayMethod[]>([])
@@ -85,7 +85,7 @@ function CheckoutInner() {
         const res = await fetch('/api/payments/wipay/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ customerName, email: email.trim() || undefined, items: payloadItems }),
+          body: JSON.stringify({ customerName, email: email.trim() || undefined, items: payloadItems, promoCode: promoCode ?? undefined }),
         })
         if (res.ok) {
           const { action, fields } = await res.json()
@@ -105,7 +105,7 @@ function CheckoutInner() {
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customerName, paymentMethod: selected.id, items: payloadItems }),
+        body: JSON.stringify({ customerName, paymentMethod: selected.id, items: payloadItems, promoCode: promoCode ?? undefined }),
       })
       if (res.ok) orderNo = (await res.json()).orderNo
     } catch {

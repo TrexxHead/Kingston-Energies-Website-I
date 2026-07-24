@@ -15,7 +15,6 @@ import AnalyticsSection from './_components/sections/AnalyticsSection'
 import PlaybookSection from './_components/sections/PlaybookSection'
 import {
   initialBanners,
-  initialPromos,
   type SectionId,
 } from './_components/mockData'
 import '../../_design-system/tokens.css'
@@ -32,22 +31,9 @@ export default function AdminDashboard() {
   }, [])
   const [banners, setBanners] = useState(initialBanners)
   const [flashOn, setFlashOn] = useState(true)
-  const [promos, setPromos] = useState(initialPromos)
-  const [newPromoCode, setNewPromoCode] = useState('')
 
   const toggleBanner = (index: number) => {
     setBanners((prev) => prev.map((b, i) => (i === index ? { ...b, active: !b.active } : b)))
-  }
-
-  const togglePromo = (index: number) => {
-    setPromos((prev) => prev.map((p, i) => (i === index ? { ...p, active: !p.active } : p)))
-  }
-
-  const createPromo = () => {
-    const code = newPromoCode.trim()
-    if (!code) return
-    setPromos((prev) => [...prev, { code, value: '10% off', active: true }])
-    setNewPromoCode('')
   }
 
   const renderSection = () => {
@@ -67,11 +53,6 @@ export default function AdminDashboard() {
             onToggleBanner={toggleBanner}
             flashOn={flashOn}
             onToggleFlash={() => setFlashOn((v) => !v)}
-            promos={promos}
-            onTogglePromo={togglePromo}
-            newPromoCode={newPromoCode}
-            onChangeNewPromoCode={setNewPromoCode}
-            onCreatePromo={createPromo}
           />
         )
       case 'finance':

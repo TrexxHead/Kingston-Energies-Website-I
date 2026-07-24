@@ -5,18 +5,14 @@ import Button from '../ui/Button'
 import Switch from '../ui/Switch'
 import { cardStyle, h3Style } from '../ui/card'
 import AnnouncementCard from './AnnouncementCard'
-import { campaigns, type Banner, type Promo } from '../mockData'
+import DiscountCodesCard from './DiscountCodesCard'
+import { campaigns, type Banner } from '../mockData'
 
 interface MarketingSectionProps {
   banners: Banner[]
   onToggleBanner: (index: number) => void
   flashOn: boolean
   onToggleFlash: () => void
-  promos: Promo[]
-  onTogglePromo: (index: number) => void
-  newPromoCode: string
-  onChangeNewPromoCode: (value: string) => void
-  onCreatePromo: () => void
 }
 
 export default function MarketingSection({
@@ -24,11 +20,6 @@ export default function MarketingSection({
   onToggleBanner,
   flashOn,
   onToggleFlash,
-  promos,
-  onTogglePromo,
-  newPromoCode,
-  onChangeNewPromoCode,
-  onCreatePromo,
 }: MarketingSectionProps) {
   const flashLabel = flashOn ? 'Live now — ends in 2 days' : 'Currently paused'
 
@@ -72,40 +63,7 @@ export default function MarketingSection({
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-        <div style={cardStyle}>
-          <h3 style={h3Style}>Discount codes</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {promos.map((p, i) => (
-              <div key={p.code} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12.5, flex: 1 }}>{p.code}</span>
-                <span style={{ fontSize: 12.5, color: 'var(--color-text-muted)' }}>{p.value}</span>
-                <Badge tone={p.active ? 'green' : 'neutral'} onClick={() => onTogglePromo(i)}>
-                  {p.active ? 'Active' : 'Paused'}
-                </Badge>
-              </div>
-            ))}
-          </div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
-            <input
-              value={newPromoCode}
-              onChange={(e) => onChangeNewPromoCode(e.target.value.toUpperCase())}
-              placeholder="NEWCODE10"
-              style={{
-                padding: '9px 12px',
-                border: '1.5px solid var(--color-border)',
-                borderRadius: 10,
-                fontFamily: 'var(--font-mono)',
-                fontSize: 12.5,
-                textTransform: 'uppercase',
-                outline: 'none',
-                flex: 1,
-              }}
-            />
-            <Button variant="outline" size="sm" onClick={onCreatePromo}>
-              Create
-            </Button>
-          </div>
-        </div>
+        <DiscountCodesCard />
 
         <div style={cardStyle}>
           <h3 style={h3Style}>Scheduled campaigns</h3>

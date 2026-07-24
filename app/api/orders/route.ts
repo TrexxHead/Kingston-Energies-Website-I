@@ -6,10 +6,12 @@ import { authOptions } from '@/lib/authOptions'
 import { rateLimit, clientIp } from '@/lib/rateLimit'
 import { sendOrderConfirmation } from '@/lib/email'
 import { bulkRateForQty } from '@/lib/pricing'
+import { validatePromo } from '@/lib/promo'
 
 const orderSchema = z.object({
   customerName: z.string().min(1).max(120),
   paymentMethod: z.enum(['bank', 'lynk', 'paypal', 'cod', 'card']).optional(),
+  promoCode: z.string().max(40).optional(),
   items: z
     .array(
       z.object({
@@ -51,10 +53,14 @@ export async function POST(request: Request) {
   const userId = session?.user?.id ?? null
   const email = session?.user?.email ?? null
 
-  const { customerName, paymentMethod, items } = parsed.data
+  const { customerName, paymentMethod, promoCode, items } = parsed.data
   const units = items.reduce((sum, i) => sum + i.qty, 0)
   const gross = items.reduce((sum, i) => sum + i.price * i.qty, 0)
-  const total = Math.round(gross * (1 - bulkRateForQty(units))) // apply bulk discount
+  const bulkDiscount = Math.round(gross * bulkRateForQty(units))
+  // Validate + apply the promo server-side (never trust a client-sent amount).
+  const promo = promoCode ? await validatePromo(promoCode, gross) : null
+  const promoDiscount = promo?.valid ? (promo.discount ?? 0) : 0
+  const total = Math.max(0, gross - bulkDiscount - promoDiscount)
   const orderNo = await nextOrderNo()
 
   const order = await prisma.order.create({

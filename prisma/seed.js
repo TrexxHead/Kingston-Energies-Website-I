@@ -202,6 +202,14 @@ async function main() {
   } else {
     console.log('NPS responses already present — skipping NPS seed')
   }
+
+  // A default working discount code (matches Jordyn's copy). Idempotent.
+  await prisma.discountCode.upsert({
+    where: { code: 'KINGSTON10' },
+    update: {},
+    create: { code: 'KINGSTON10', type: 'PERCENT', value: 10, active: true, description: 'Welcome 10% off' },
+  })
+  console.log('Ensured default discount code KINGSTON10')
 }
 
 main()

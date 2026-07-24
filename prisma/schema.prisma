@@ -378,6 +378,25 @@ model Budget {
   updatedAt     DateTime @updatedAt
 }
 
+// An admin-managed promo/discount code applied at checkout.
+model DiscountCode {
+  id          String       @id @default(cuid())
+  code        String       @unique
+  type        DiscountType @default(PERCENT)
+  value       Float        // percent (0–100) for PERCENT, J$ off for FIXED
+  minSpend    Float?       // minimum cart subtotal to qualify
+  active      Boolean      @default(true)
+  expiresAt   DateTime?
+  description String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+enum DiscountType {
+  PERCENT
+  FIXED
+}
+
 enum OrderStatus {
   PENDING
   PACKED

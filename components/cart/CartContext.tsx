@@ -21,32 +21,39 @@ interface CartContextValue {
   bulkRate: number
   total: number
   promoOn: boolean
+  promoCode: string | null
   hydrated: boolean
   addItem: (item: Omit<CartItem, 'qty'>) => void
   inc: (name: string) => void
   dec: (name: string) => void
   remove: (name: string) => void
   clear: () => void
-  applyPromo: (code: string) => boolean
+  applyPromo: (code: string) => Promise<{ valid: boolean; message: string }>
+  removePromo: () => void
+}
+
+interface AppliedPromo {
+  code: string
+  type: 'PERCENT' | 'FIXED'
+  value: number
 }
 
 const CartContext = createContext<CartContextValue | null>(null)
 
 const STORAGE_KEY = 'ke-cart'
 const PROMO_KEY = 'ke-promo'
-const PROMO_CODE = 'KINGSTON10'
-const PROMO_RATE = 0.1
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([])
-  const [promoOn, setPromoOn] = useState(false)
+  const [promo, setPromo] = useState<AppliedPromo | null>(null)
   const [hydrated, setHydrated] = useState(false)
 
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY)
       if (raw) setItems(JSON.parse(raw))
-      setPromoOn(localStorage.getItem(PROMO_KEY) === '1')
+      const p = localStorage.getItem(PROMO_KEY)
+      if (p) setPromo(JSON.parse(p))
     } catch {
       // ignore malformed storage
     }
@@ -60,8 +67,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!hydrated) return
-    localStorage.setItem(PROMO_KEY, promoOn ? '1' : '0')
-  }, [promoOn, hydrated])
+    if (promo) localStorage.setItem(PROMO_KEY, JSON.stringify(promo))
+    else localStorage.removeItem(PROMO_KEY)
+  }, [promo, hydrated])
 
   const value = useMemo<CartContextValue>(() => {
     const addItem = (item: Omit<CartItem, 'qty'>) =>
@@ -85,27 +93,44 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     const clear = () => {
       setItems([])
-      setPromoOn(false)
+      setPromo(null)
     }
 
-    const applyPromo = (code: string): boolean => {
-      if (code.trim().toUpperCase() === PROMO_CODE) {
-        setPromoOn(true)
-        return true
+    const subtotalNow = items.reduce((a, c) => a + c.price * c.qty, 0)
+
+    const applyPromo = async (code: string): Promise<{ valid: boolean; message: string }> => {
+      try {
+        const res = await fetch('/api/promo', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, subtotal: subtotalNow }),
+        })
+        const data = await res.json()
+        if (data.valid) setPromo({ code: data.code, type: data.type, value: data.value })
+        return { valid: Boolean(data.valid), message: data.message }
+      } catch {
+        return { valid: false, message: 'Could not check that code right now.' }
       }
-      return false
     }
+
+    const removePromo = () => setPromo(null)
 
     const count = items.reduce((a, c) => a + c.qty, 0)
-    const subtotal = items.reduce((a, c) => a + c.price * c.qty, 0)
+    const subtotal = subtotalNow
     const delivery = subtotal === 0 || subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE
     const bulkRate = bulkRateForQty(count)
     const bulkDiscount = Math.round(subtotal * bulkRate)
-    const discount = promoOn ? Math.round(subtotal * PROMO_RATE) : 0
+    // Recompute the promo discount against the current subtotal so it stays
+    // correct as the cart changes.
+    const discount = promo
+      ? promo.type === 'PERCENT'
+        ? Math.round(subtotal * (promo.value / 100))
+        : Math.min(Math.round(promo.value), subtotal)
+      : 0
     const total = Math.max(0, subtotal + delivery - discount - bulkDiscount)
 
-    return { items, count, subtotal, delivery, discount, bulkDiscount, bulkRate, total, promoOn, hydrated, addItem, inc, dec, remove, clear, applyPromo }
-  }, [items, promoOn, hydrated])
+    return { items, count, subtotal, delivery, discount, bulkDiscount, bulkRate, total, promoOn: Boolean(promo), promoCode: promo?.code ?? null, hydrated, addItem, inc, dec, remove, clear, applyPromo, removePromo }
+  }, [items, promo, hydrated])
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>
 }

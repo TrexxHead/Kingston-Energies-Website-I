@@ -15,7 +15,7 @@ const RECO_IDS = ['chcab', 'ch20']
 
 export default function CartPage() {
   const router = useRouter()
-  const { items, subtotal, delivery, discount, bulkDiscount, bulkRate, total, promoOn, inc, dec, remove, addItem, applyPromo } = useCart()
+  const { items, subtotal, delivery, discount, bulkDiscount, bulkRate, total, promoOn, promoCode, inc, dec, remove, addItem, applyPromo } = useCart()
   const { pushToast } = useToast()
   const [promoVal, setPromoVal] = useState('')
 
@@ -23,9 +23,14 @@ export default function CartPage() {
   const countLabel = `${items.reduce((a, c) => a + c.qty, 0)} ITEMS`
   const recos = CATALOG.filter((p) => RECO_IDS.includes(p.id) && !items.some((i) => i.name === p.name))
 
-  const handleApply = () => {
-    if (applyPromo(promoVal)) pushToast('tag', 'Promo applied', '10% off your order')
-    else pushToast('x', 'Invalid code', 'Try KINGSTON10')
+  const handleApply = async () => {
+    const res = await applyPromo(promoVal)
+    if (res.valid) {
+      setPromoVal('')
+      pushToast('tag', 'Promo applied', res.message)
+    } else {
+      pushToast('x', 'Invalid code', res.message)
+    }
   }
 
   return (
@@ -96,7 +101,7 @@ export default function CartPage() {
                 <Row label="Subtotal" value={fmt(subtotal)} />
                 <Row label="Delivery" value={delivery === 0 ? 'Free' : fmt(delivery)} valueColor="var(--ke-green-700)" />
                 {bulkDiscount > 0 && <Row label={`Bulk discount — ${Math.round(bulkRate * 100)}% off`} value={'−' + fmt(bulkDiscount)} labelColor="var(--ke-green-700)" valueColor="var(--ke-green-700)" />}
-                {promoOn && <Row label="Promo — KINGSTON10" value={'−' + fmt(discount)} labelColor="var(--ke-green-700)" valueColor="var(--ke-green-700)" />}
+                {promoOn && <Row label={`Promo — ${promoCode}`} value={'−' + fmt(discount)} labelColor="var(--ke-green-700)" valueColor="var(--ke-green-700)" />}
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--color-border)', paddingTop: 12, marginTop: 4 }}>
                   <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700 }}>Total</span>
                   <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 20 }}>{fmt(total)}</span>

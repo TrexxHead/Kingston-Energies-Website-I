@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Scale } from 'lucide-react'
 import CommerceShell from '@/components/shop/CommerceShell'
@@ -13,6 +13,14 @@ export default function ShopClient({ products }: { products: ShopProduct[] }) {
   const initialCat = (searchParams.get('category') as Category | null) ?? 'all'
   const [cat, setCat] = useState<'all' | Category>(initialCat)
   const [compareOpen, setCompareOpen] = useState(false)
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    fetch('/api/favorites')
+      .then((r) => (r.ok ? r.json() : { productIds: [] }))
+      .then((d: { productIds: string[] }) => setSavedIds(new Set(d.productIds ?? [])))
+      .catch(() => {})
+  }, [])
 
   const visible = products.filter((p) => cat === 'all' || p.cat === cat)
   const countLabel = String(visible.length).padStart(2, '0') + ' ITEMS'
@@ -93,7 +101,7 @@ export default function ShopClient({ products }: { products: ShopProduct[] }) {
 
         <div className="kp-3col" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 20, marginTop: 20 }}>
           {visible.map((p) => (
-            <ProductCard key={p.id} product={p} />
+            <ProductCard key={p.id} product={p} initialSaved={savedIds.has(p.id)} />
           ))}
         </div>
       </section>

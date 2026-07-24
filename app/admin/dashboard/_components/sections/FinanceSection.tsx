@@ -9,6 +9,7 @@ import TextInput from '../ui/TextInput'
 import { fmt } from '../mockData'
 import { EXPENSE_CATEGORIES } from '@/lib/finance'
 import PaymentSettingsCard from './PaymentSettingsCard'
+import CountUp from '../ui/CountUp'
 
 interface Kpi { value: number; change: number | null }
 interface FinanceData {
@@ -264,7 +265,7 @@ function Kpi({ label, kpi, goodWhenUp }: { label: string; kpi: Kpi; goodWhenUp: 
   const color = good === null ? 'var(--color-text-muted)' : good ? 'var(--ke-green-600)' : 'var(--color-danger)'
   return (
     <div style={{ ...cardStyle, borderRadius: 14, padding: 16 }}>
-      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, letterSpacing: '-.01em' }}>{fmt(kpi.value)}</div>
+      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, letterSpacing: '-.01em' }}><CountUp value={kpi.value} format={fmt} /></div>
       <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '.1em', color: 'var(--color-text-muted)', marginTop: 6, textTransform: 'uppercase' }}>{label}</div>
       {kpi.change !== null && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11.5, color, marginTop: 6 }}>

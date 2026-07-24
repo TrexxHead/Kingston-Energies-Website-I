@@ -34,13 +34,22 @@ export default function ProductCard({ product }: { product: ShopProduct }) {
         borderRadius: 20,
         overflow: 'hidden',
         boxShadow: 'var(--shadow-sm)',
-        transition: 'transform .28s var(--ease-standard),box-shadow .28s var(--ease-standard)',
+        transition: 'transform .3s var(--ease-standard),box-shadow .3s var(--ease-standard)',
+        transformStyle: 'preserve-3d',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'translateY(-5px)'
+        e.currentTarget.style.transition = 'box-shadow .3s var(--ease-standard)'
         e.currentTarget.style.boxShadow = 'var(--shadow-lg)'
       }}
+      onMouseMove={(e) => {
+        // 3D tilt toward the cursor.
+        const r = e.currentTarget.getBoundingClientRect()
+        const px = (e.clientX - r.left) / r.width - 0.5
+        const py = (e.clientY - r.top) / r.height - 0.5
+        e.currentTarget.style.transform = `perspective(900px) rotateX(${(-py * 6).toFixed(2)}deg) rotateY(${(px * 9).toFixed(2)}deg) translateY(-6px)`
+      }}
       onMouseLeave={(e) => {
+        e.currentTarget.style.transition = 'transform .45s var(--ease-standard),box-shadow .3s var(--ease-standard)'
         e.currentTarget.style.transform = 'none'
         e.currentTarget.style.boxShadow = 'var(--shadow-sm)'
       }}

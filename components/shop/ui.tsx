@@ -101,7 +101,7 @@ export function Button({
     borderRadius: 999,
     cursor: disabled ? 'default' : 'pointer',
     opacity: disabled ? 0.6 : 1,
-    transition: 'background var(--dur-base) var(--ease-standard),border-color var(--dur-base) var(--ease-standard)',
+    transition: 'transform .18s cubic-bezier(.16,1,.3,1), box-shadow .22s ease, background .22s ease, border-color .22s ease',
     border: 'none',
   }
   const variants: Record<string, CSSProperties> = {
@@ -111,7 +111,14 @@ export function Button({
   }
 
   return (
-    <button type="button" onClick={onClick} disabled={disabled} style={{ ...base, ...variants[variant] }}>
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      style={{ ...base, ...variants[variant] }}
+      onMouseEnter={(e) => { if (!disabled) { e.currentTarget.style.transform = 'translateY(-2px)'; if (variant === 'primary') e.currentTarget.style.boxShadow = '0 12px 26px -8px rgba(31,107,69,.55)' } }}
+      onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = variant === 'primary' && !isSm ? 'var(--shadow-green)' : 'none' }}
+    >
       {iconLeft}
       {children}
       {iconRight}

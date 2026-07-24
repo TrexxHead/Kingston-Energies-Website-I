@@ -67,7 +67,7 @@ export default function AdminDashboard() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <Header section={section} onNavigate={setSection} />
         <div style={{ flex: 1, overflowY: 'auto' }}>
-          <div key={section} className="ke-screen" style={{ padding: 28 }}>
+          <div key={section} className="ke-screen kad-section" style={{ padding: 28 }}>
             {renderSection()}
           </div>
         </div>

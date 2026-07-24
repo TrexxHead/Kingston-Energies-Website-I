@@ -23,6 +23,7 @@ model User {
   loyaltyTier   String?
   primaryNeed   CustomerNeed?
   referralCode  String?   @unique // personal share code, e.g. KEG-24-JFEARON
+  lastActiveAt  DateTime? // last time the user engaged (drives admin online status)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

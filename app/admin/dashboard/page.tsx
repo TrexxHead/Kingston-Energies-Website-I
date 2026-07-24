@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { keFontVariables } from '../../_design-system/fonts'
 import Sidebar from './_components/Sidebar'
 import Header from './_components/Header'
+import SettingsSection from './_components/sections/SettingsSection'
 import ExecutiveSection from './_components/sections/ExecutiveSection'
 import OrdersSection from './_components/sections/OrdersSection'
 import InventorySection from './_components/sections/InventorySection'
@@ -21,6 +22,14 @@ import '../../_design-system/tokens.css'
 
 export default function AdminDashboard() {
   const [section, setSection] = useState<SectionId>('exec')
+
+  // Heartbeat so the Settings tab can show which admins are currently active.
+  useEffect(() => {
+    const ping = () => { void fetch('/api/admin/heartbeat', { method: 'POST' }) }
+    ping()
+    const id = setInterval(ping, 60_000)
+    return () => clearInterval(id)
+  }, [])
   const [banners, setBanners] = useState(initialBanners)
   const [flashOn, setFlashOn] = useState(true)
   const [promos, setPromos] = useState(initialPromos)
@@ -71,6 +80,8 @@ export default function AdminDashboard() {
         return <AnalyticsSection />
       case 'playbook':
         return <PlaybookSection />
+      case 'settings':
+        return <SettingsSection onNavigate={setSection} />
       default:
         return null
     }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { FileText, Plus, ExternalLink, Trash2, FolderOpen, Upload, Download, Link2 } from 'lucide-react'
+import { FileText, Plus, ExternalLink, Trash2, FolderOpen, Folder, FolderPlus, Upload, Download, Link2, X } from 'lucide-react'
 import { cardStyle, h3Style } from '../ui/card'
 import Button from '../ui/Button'
 import TextInput from '../ui/TextInput'
@@ -28,6 +28,8 @@ type Mode = 'file' | 'link'
  */
 export default function DocumentsCard() {
   const [docs, setDocs] = useState<Doc[]>([])
+  const [folders, setFolders] = useState<string[]>([])
+  const [activeFolder, setActiveFolder] = useState<string>('all')
   const [storageEnabled, setStorageEnabled] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
   const [mode, setMode] = useState<Mode>('link')
@@ -35,6 +37,8 @@ export default function DocumentsCard() {
   const [file, setFile] = useState<File | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [newFolderOpen, setNewFolderOpen] = useState(false)
+  const [newFolder, setNewFolder] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
 
   const driveFolder = process.env.NEXT_PUBLIC_DRIVE_FOLDER_URL
@@ -44,16 +48,40 @@ export default function DocumentsCard() {
     if (res.ok) {
       const data = await res.json()
       setDocs(data.documents)
+      setFolders(data.folders ?? [])
       setStorageEnabled(Boolean(data.storageEnabled))
     }
   }, [])
+
+  const createFolder = async () => {
+    const name = newFolder.trim()
+    if (!name) return
+    await fetch('/api/admin/documents/folders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    })
+    setNewFolder('')
+    setNewFolderOpen(false)
+    setActiveFolder(name)
+    load()
+  }
+
+  const deleteFolder = async (name: string) => {
+    if (!confirm(`Remove the "${name}" folder? Documents inside stay, but lose this folder label.`)) return
+    await fetch(`/api/admin/documents/folders?name=${encodeURIComponent(name)}`, { method: 'DELETE' })
+    if (activeFolder === name) setActiveFolder('all')
+    load()
+  }
+
+  const visibleDocs = activeFolder === 'all' ? docs : docs.filter((d) => (d.category ?? '') === activeFolder)
 
   useEffect(() => {
     load()
   }, [load])
 
   const openAdd = () => {
-    setForm({ title: '', url: '', category: '' })
+    setForm({ title: '', url: '', category: activeFolder === 'all' ? '' : activeFolder })
     setFile(null)
     setError('')
     setMode(storageEnabled ? 'file' : 'link')
@@ -106,22 +134,40 @@ export default function DocumentsCard() {
               <Button size="sm" variant="outline" iconRight={<FolderOpen size={14} />}>Drive folder</Button>
             </a>
           )}
+          <Button size="sm" variant="outline" onClick={() => { setNewFolder(''); setNewFolderOpen(true) }} iconRight={<FolderPlus size={14} />}>New folder</Button>
           <Button size="sm" variant="primary" onClick={openAdd} iconRight={<Plus size={14} />}>Add</Button>
         </div>
       </div>
-      <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: '0 0 14px' }}>
+      <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: '0 0 12px' }}>
         {storageEnabled
-          ? 'Upload SOPs, warranty policy, manuals and staff guides — or paste a share link.'
+          ? 'Upload SOPs, warranty policy, manuals and staff guides — or paste a share link. Organise them into folders.'
           : 'Store links to your SOPs, warranty policy and staff guides — paste a Google Drive (or any) share URL.'}
       </p>
 
-      {docs.length === 0 ? (
+      {/* Folder filter chips */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+        <FolderChip label={`All (${docs.length})`} active={activeFolder === 'all'} onClick={() => setActiveFolder('all')} />
+        {folders.map((f) => {
+          const count = docs.filter((d) => (d.category ?? '') === f).length
+          return (
+            <FolderChip
+              key={f}
+              label={`${f} (${count})`}
+              active={activeFolder === f}
+              onClick={() => setActiveFolder(f)}
+              onDelete={() => deleteFolder(f)}
+            />
+          )
+        })}
+      </div>
+
+      {visibleDocs.length === 0 ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '18px 0', color: 'var(--color-text-muted)', fontSize: 13 }}>
-          <FileText size={16} /> No documents yet. Add your first policy or guide.
+          <FileText size={16} /> {activeFolder === 'all' ? 'No documents yet. Add your first policy or guide.' : `Nothing in "${activeFolder}" yet.`}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {docs.map((d) => (
+          {visibleDocs.map((d) => (
             <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', border: '1px solid var(--color-border)', borderRadius: 10 }}>
               {d.isFile ? <FileText size={16} style={{ color: 'var(--ke-green-600)', flexShrink: 0 }} /> : <Link2 size={16} style={{ color: 'var(--ke-green-600)', flexShrink: 0 }} />}
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -186,7 +232,16 @@ export default function DocumentsCard() {
             <TextInput label="Link (Google Drive or any URL)" value={form.url} onChange={(v) => setForm({ ...form, url: v })} placeholder="https://drive.google.com/…" />
           )}
 
-          <TextInput label="Category (optional)" value={form.category} onChange={(v) => setForm({ ...form, category: v })} placeholder="SOP, Policy, Guide…" />
+          {folders.length > 0 ? (
+            <TextInput
+              label="Folder"
+              value={form.category || '(No folder)'}
+              onChange={(v) => setForm({ ...form, category: v === '(No folder)' ? '' : v })}
+              options={['(No folder)', ...folders]}
+            />
+          ) : (
+            <TextInput label="Folder (optional)" value={form.category} onChange={(v) => setForm({ ...form, category: v })} placeholder="Type a folder name, or use New folder" />
+          )}
 
           {!storageEnabled && (
             <p style={{ fontSize: 11.5, color: 'var(--color-text-subtle)', marginTop: 10 }}>
@@ -195,7 +250,50 @@ export default function DocumentsCard() {
           )}
         </Modal>
       )}
+
+      {newFolderOpen && (
+        <Modal
+          title="New folder"
+          onClose={() => setNewFolderOpen(false)}
+          footer={
+            <>
+              <Button size="sm" variant="outline" onClick={() => setNewFolderOpen(false)}>Cancel</Button>
+              <Button size="sm" variant="primary" onClick={createFolder}>Create</Button>
+            </>
+          }
+        >
+          <TextInput label="Folder name" value={newFolder} onChange={setNewFolder} placeholder="e.g. SOPs, Warranty, Staff guides" />
+        </Modal>
+      )}
     </div>
+  )
+}
+
+function FolderChip({ label, active, onClick, onDelete }: { label: string; active: boolean; onClick: () => void; onDelete?: () => void }) {
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        padding: '5px 10px',
+        borderRadius: 999,
+        border: `1px solid ${active ? 'var(--ke-green-600)' : 'var(--color-border)'}`,
+        background: active ? 'var(--ke-green-50, #eef7f0)' : '#fff',
+        color: active ? 'var(--ke-green-700)' : 'var(--color-text-muted)',
+        fontSize: 12,
+        fontWeight: 600,
+      }}
+    >
+      <button type="button" onClick={onClick} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', font: 'inherit', padding: 0 }}>
+        <Folder size={12} /> {label}
+      </button>
+      {onDelete && (
+        <button type="button" onClick={onDelete} aria-label="Remove folder" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-subtle)', display: 'flex', padding: 0 }}>
+          <X size={12} />
+        </button>
+      )}
+    </span>
   )
 }
 

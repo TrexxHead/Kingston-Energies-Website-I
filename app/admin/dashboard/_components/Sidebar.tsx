@@ -9,6 +9,7 @@ import {
   Wallet,
   ChartScatter,
   BookOpen,
+  Settings,
   ExternalLink,
 } from 'lucide-react'
 import Link from 'next/link'
@@ -23,6 +24,7 @@ const ICONS: Record<string, typeof LayoutDashboard> = {
   wallet: Wallet,
   'chart-scatter': ChartScatter,
   'book-open': BookOpen,
+  settings: Settings,
 }
 
 interface SidebarProps {

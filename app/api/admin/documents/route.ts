@@ -45,7 +45,19 @@ export async function GET() {
     })),
   )
 
-  return NextResponse.json({ documents: out, storageEnabled: isStorageConfigured() })
+  // Folders = the admin-managed list (incl. empty folders) plus any categories
+  // already used by documents, de-duplicated and sorted.
+  let stored: string[] = []
+  try {
+    const row = await prisma.siteSetting.findUnique({ where: { key: 'docFolders' } })
+    if (row) stored = JSON.parse(row.value) as string[]
+  } catch {
+    // ignore
+  }
+  const used = out.map((d) => d.category).filter((c): c is string => Boolean(c))
+  const folders = Array.from(new Set([...stored, ...used])).sort((a, b) => a.localeCompare(b))
+
+  return NextResponse.json({ documents: out, storageEnabled: isStorageConfigured(), folders })
 }
 
 export async function POST(request: Request) {

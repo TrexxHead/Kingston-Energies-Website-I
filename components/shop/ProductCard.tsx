@@ -125,8 +125,13 @@ export default function ProductCard({ product, initialSaved = false }: { product
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '.16em', color: 'var(--color-text-muted)', marginTop: 8 }}>
           {product.spec}
         </div>
-        <div style={{ marginTop: 16, fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, letterSpacing: '-.01em', color: 'var(--color-text)' }}>
-          {fmt(product.price)}
+        <div style={{ marginTop: 16, display: 'flex', alignItems: 'baseline', gap: 8 }}>
+          <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, letterSpacing: '-.01em', color: 'var(--color-text)' }}>
+            {fmt(product.price)}
+          </span>
+          {product.listPrice && product.listPrice > product.price && (
+            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14, color: 'var(--color-text-muted)', textDecoration: 'line-through' }}>{fmt(product.listPrice)}</span>
+          )}
         </div>
         {/* Both actions on every card */}
         <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>

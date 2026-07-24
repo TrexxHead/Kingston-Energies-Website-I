@@ -111,16 +111,25 @@ model Product {
   id          String   @id @default(cuid())
   name        String
   description String   @db.Text
+  shortDescription String? @db.Text // storefront card / summary copy
   price       Float
+  salePrice   Float?   // optional sale price shown struck-through against price
   cost        Float?   // unit cost, for COGS / margin in the P&L
   icon        String?
+  images      String[] // ordered storefront gallery URLs; images[0] = thumbnail
   features    String[]
+  specs       Json?    // [{ label, value }] technical specifications
+  brand       String?
+  weight      String?
+  dimensions  String?
+  warranty    String?
+  tags        String[] // search / merchandising tags
   sku         String?  @unique
   barcode     String?
   category    ProductCategory?
   spec        String?
   stock       Int      @default(0)
-  threshold   Int      @default(5)
+  threshold   Int      @default(5) // reorder threshold
   badge       String?
   archived    Boolean  @default(false)
   createdAt   DateTime @default(now())

@@ -18,6 +18,11 @@ interface Order {
   status: OrderStatus
   source: OrderChannel
   contact: string | null
+  registered: boolean
+  email: string | null
+  phone: string | null
+  shippingAddress: string | null
+  cancelReason: string | null
   paymentMethod: string | null
   paid: boolean
   invoiced: boolean
@@ -144,6 +149,7 @@ export default function OrdersSection() {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
                       <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 12.5 }}>{card.orderNo}</span>
                       {CHANNEL[card.source] && <Badge tone={CHANNEL[card.source]!.tone}>{CHANNEL[card.source]!.label}</Badge>}
+                      <Badge tone={card.registered ? 'blue' : 'grey'}>{card.registered ? 'Registered' : 'Guest'}</Badge>
                     </div>
                     <div style={{ fontSize: 11.5, color: 'var(--color-text-muted)', marginTop: 3 }}>{card.customerName}</div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
@@ -197,10 +203,32 @@ export default function OrdersSection() {
             <span style={{ color: 'var(--color-text-muted)' }}>Source</span>
             <span style={{ fontWeight: 600 }}>{CHANNEL[detail.source]?.label ?? 'Website'}</span>
           </div>
-          {detail.contact && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+            <span style={{ color: 'var(--color-text-muted)' }}>Customer</span>
+            <Badge tone={detail.registered ? 'blue' : 'grey'} dot>{detail.registered ? 'Registered' : 'Guest'}</Badge>
+          </div>
+          {detail.email && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13 }}>
+              <span style={{ color: 'var(--color-text-muted)' }}>Email</span>
+              <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{detail.email}</span>
+            </div>
+          )}
+          {(detail.phone || detail.contact) && (
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-              <span style={{ color: 'var(--color-text-muted)' }}>Contact</span>
-              <span style={{ fontWeight: 600 }}>{detail.contact}</span>
+              <span style={{ color: 'var(--color-text-muted)' }}>Phone</span>
+              <span style={{ fontWeight: 600 }}>{detail.phone ?? detail.contact}</span>
+            </div>
+          )}
+          {detail.shippingAddress && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13 }}>
+              <span style={{ color: 'var(--color-text-muted)' }}>Ship to</span>
+              <span style={{ fontWeight: 600, textAlign: 'right' }}>{detail.shippingAddress}</span>
+            </div>
+          )}
+          {detail.status === 'CANCELLED' && detail.cancelReason && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13 }}>
+              <span style={{ color: 'var(--color-text-muted)' }}>Cancel reason</span>
+              <span style={{ fontWeight: 600, textAlign: 'right', color: 'var(--color-danger)' }}>{detail.cancelReason}</span>
             </div>
           )}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13 }}>

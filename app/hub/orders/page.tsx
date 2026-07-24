@@ -3,6 +3,7 @@ import { authOptions } from '@/lib/authOptions'
 import { prisma } from '@/lib/prisma'
 import { fmt } from '@/lib/catalog'
 import Topbar from '../_components/Topbar'
+import CancelOrderButton from './CancelOrderButton'
 
 const STATUS_META: Record<string, { label: string; bg: string; fg: string }> = {
   PENDING: { label: 'Processing', bg: 'var(--ke-sun-50)', fg: 'var(--ke-sun-500)' },
@@ -93,6 +94,10 @@ export default async function HubOrdersPage() {
                       TRACK DELIVERY →
                     </a>
                     <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 17 }}>{fmt(o.total)}</span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
+                    <CancelOrderButton orderId={o.id} status={o.status} cancelReason={o.cancelReason} />
                   </div>
                 </div>
               )

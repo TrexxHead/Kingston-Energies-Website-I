@@ -159,17 +159,40 @@ model Order {
   status        OrderStatus @default(PENDING)
   source        OrderChannel @default(WEBSITE)
   contact       String?     // WhatsApp number / Instagram handle for off-site orders
+  email         String?     // captured at checkout — used for guest invoices/receipts
+  phone         String?
+  shippingAddress String?   @db.Text
+  billingAddress  String?   @db.Text
   paymentMethod String?
   paid          Boolean     @default(false) // payment received/confirmed
   invoicedAt    DateTime?   // when an invoice was issued/sent (prevents dupes)
+  cancelReason  String?
+  cancelledAt   DateTime?
   total         Float       @default(0)
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
-  user  User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
-  items OrderItem[]
+  user   User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  items  OrderItem[]
+  events OrderEvent[]
 
   @@index([userId])
+}
+
+// Timeline events for an order (cancellations, stage changes, notes). Powers
+// the cancellation log and the delivery pipeline.
+model OrderEvent {
+  id        String   @id @default(cuid())
+  orderId   String
+  type      String   // STATUS | CANCELLED | NOTE
+  label     String?
+  note      String?  @db.Text
+  adminOnly Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
 }
 
 // Where an order originated — lets the dashboard tag WhatsApp/Instagram orders

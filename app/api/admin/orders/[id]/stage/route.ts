@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { guardAdmin } from '@/lib/requireAdmin'
 import { sendBulkEmail } from '@/lib/email'
+import { notifyUser } from '@/lib/notify'
 import { PIPELINE, clampStage, statusForStage, LAST_STAGE } from '@/lib/pipeline'
 
 const schema = z.object({
@@ -57,6 +58,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   // Notify the customer when the stage moves (best-effort).
   if (moved) {
+    // In-app notification for registered customers.
+    if (order.userId) {
+      const category = target >= 6 ? 'SHIPPING' : 'ORDER'
+      void notifyUser(order.userId, category, `${order.orderNo}: ${def.headline}`, {
+        body: customerNote?.trim() || def.blurb,
+        href: `/track?no=${encodeURIComponent(order.orderNo)}`,
+      })
+    }
     const to = order.user?.email ?? order.email
     if (to) {
       void sendBulkEmail(

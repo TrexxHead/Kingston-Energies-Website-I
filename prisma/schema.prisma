@@ -36,6 +36,26 @@ model User {
   npsResponses  NpsResponse[]
   reviews       Review[]
   favorites     Favorite[]
+  notifications Notification[]
+}
+
+// Per-customer notification center: order/shipping updates, restocks, discounts,
+// promotions, warranty reminders, events and announcements. Unread + archive
+// state let customers triage them like an inbox.
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  category  String   // ORDER | SHIPPING | NEW_PRODUCT | RESTOCK | DISCOUNT | PROMOTION | WARRANTY | EVENT | ANNOUNCEMENT
+  title     String
+  body      String?  @db.Text
+  href      String?
+  read      Boolean  @default(false)
+  archived  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, archived, read])
 }
 
 // A customer's saved / favourited products. productId is the catalog id

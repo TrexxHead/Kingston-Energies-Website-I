@@ -8,6 +8,7 @@ export interface HubNavItem {
 export const HUB_MAIN_NAV: HubNavItem[] = [
   { icon: 'layout-dashboard', label: 'Overview', href: '/hub' },
   { icon: 'package', label: 'Orders', href: '/hub/orders' },
+  { icon: 'bell', label: 'Notifications', href: '/hub/notifications' },
   { icon: 'battery-charging', label: 'My devices', href: '/hub/devices' },
   { icon: 'heart', label: 'Saved', href: '/hub/saved' },
   { icon: 'gift', label: 'Rewards', href: '/hub/rewards' },

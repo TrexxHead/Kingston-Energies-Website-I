@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/authOptions'
 import { sendBulkEmail } from '@/lib/email'
+import { notifyUser } from '@/lib/notify'
 
 const schema = z.object({ reason: z.string().max(300).optional() })
 
@@ -48,6 +49,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   await prisma.orderEvent.create({
     data: { orderId: id, type: 'CANCELLED', label: 'Cancelled by customer', note: reason ?? null },
   }).catch(() => {})
+
+  // In-app notification for the customer.
+  void notifyUser(session.user.id, 'ORDER', `Order ${order.orderNo} cancelled`, {
+    body: `Your order was cancelled${reason ? ` (${reason})` : ''}. Any payment made will be refunded.`,
+    href: '/hub/orders',
+  })
 
   // Notify the customer + admin (best-effort email).
   const customerEmail = order.user?.email ?? order.email

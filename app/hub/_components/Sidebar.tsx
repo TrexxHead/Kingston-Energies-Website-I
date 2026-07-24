@@ -13,6 +13,7 @@ import {
   LifeBuoy,
   Settings,
   Leaf,
+  Bell,
   ExternalLink,
 } from 'lucide-react'
 import { formatCo2 } from '@/lib/impact'
@@ -21,6 +22,7 @@ import { HUB_MAIN_NAV, HUB_FOOTER_NAV, type HubNavItem } from './hubNav'
 const ICONS: Record<string, typeof LayoutDashboard> = {
   'layout-dashboard': LayoutDashboard,
   package: Package,
+  bell: Bell,
   'battery-charging': BatteryCharging,
   gift: Gift,
   heart: Heart,
@@ -32,6 +34,18 @@ const ICONS: Record<string, typeof LayoutDashboard> = {
 export default function Sidebar() {
   const pathname = usePathname()
   const [co2, setCo2] = useState<string | null>(null)
+  const [unread, setUnread] = useState(0)
+
+  // Keep the notifications badge fresh (also refreshes when the route changes,
+  // so opening the center and marking things read updates the count).
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/notifications')
+      .then((r) => (r.ok ? r.json() : { unread: 0 }))
+      .then((d) => { if (!cancelled) setUnread(Number(d.unread) || 0) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [pathname])
 
   useEffect(() => {
     let cancelled = false
@@ -81,7 +95,7 @@ export default function Sidebar() {
 
       <nav style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         {HUB_MAIN_NAV.map((item) => (
-          <NavRow key={item.href} item={item} pathname={pathname} />
+          <NavRow key={item.href} item={item} pathname={pathname} badge={item.href === '/hub/notifications' ? unread : 0} />
         ))}
       </nav>
 
@@ -135,7 +149,7 @@ const rowBase = {
   textDecoration: 'none',
 } as const
 
-function NavRow({ item, pathname }: { item: HubNavItem; pathname: string }) {
+function NavRow({ item, pathname, badge = 0 }: { item: HubNavItem; pathname: string; badge?: number }) {
   const Icon = ICONS[item.icon]
   // Exact match for /hub (Overview); prefix match for the sub-routes.
   const active = item.href === '/hub' ? pathname === '/hub' : pathname.startsWith(item.href)
@@ -151,7 +165,12 @@ function NavRow({ item, pathname }: { item: HubNavItem; pathname: string }) {
       }}
     >
       <Icon size={18} />
-      {item.label}
+      <span style={{ flex: 1 }}>{item.label}</span>
+      {badge > 0 && (
+        <span style={{ minWidth: 18, height: 18, padding: '0 5px', borderRadius: 999, background: 'var(--ke-green-500,#4bab6b)', color: '#0d1714', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 10.5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {badge > 99 ? '99+' : badge}
+        </span>
+      )}
     </Link>
   )
 }

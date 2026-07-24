@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { X } from 'lucide-react'
 
 interface Announcement {
@@ -11,14 +12,22 @@ interface Announcement {
   style: 'marquee' | 'bar'
 }
 
+const BAR_HEIGHT = 34
+
 /**
- * Slim, admin-controlled announcement across the very top of every page. Two
- * looks: a static centred "bar", or a scrolling "marquee" billboard. Dismissible
- * per-message (remembered in localStorage) so it's never nagging.
+ * Slim, admin-controlled announcement pinned to the very top of every
+ * storefront page (above the fixed navbar). Sets a --ke-ann-h CSS variable so
+ * the navbar and page content shift down by its height instead of hiding behind
+ * it. Two looks: scrolling "marquee" billboard or a static "bar". Dismissible
+ * per-message. Hidden inside the admin dashboard and customer hub, which have
+ * their own chrome.
  */
 export default function AnnouncementBar() {
+  const pathname = usePathname()
   const [a, setA] = useState<Announcement | null>(null)
   const [dismissed, setDismissed] = useState(true)
+
+  const scoped = Boolean(pathname && (pathname.startsWith('/admin') || pathname.startsWith('/hub')))
 
   useEffect(() => {
     fetch('/api/announcement')
@@ -35,7 +44,15 @@ export default function AnnouncementBar() {
       .catch(() => {})
   }, [])
 
-  if (!a || dismissed) return null
+  const visible = Boolean(a && !dismissed && !scoped)
+
+  // Push the fixed navbar + page content down by the bar's height when shown.
+  useEffect(() => {
+    document.documentElement.style.setProperty('--ke-ann-h', visible ? `${BAR_HEIGHT}px` : '0px')
+    return () => document.documentElement.style.setProperty('--ke-ann-h', '0px')
+  }, [visible])
+
+  if (!a || !visible) return null
 
   const dismiss = () => {
     try {
@@ -57,14 +74,18 @@ export default function AnnouncementBar() {
       role="region"
       aria-label="Site announcement"
       style={{
-        position: 'relative',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 60,
         background: 'var(--gradient-brand, linear-gradient(90deg,#2f6b62,#04547c))',
         color: '#fff',
         fontFamily: 'var(--font-display)',
         fontWeight: 600,
         fontSize: 13,
         lineHeight: 1,
-        height: 34,
+        height: BAR_HEIGHT,
         display: 'flex',
         alignItems: 'center',
         overflow: 'hidden',

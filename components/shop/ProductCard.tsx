@@ -15,6 +15,8 @@ export default function ProductCard({ product }: { product: ShopProduct }) {
   const isPowerbank = product.cat === 'powerbanks'
   const soldOut = product.inStock === false
 
+  const viewDetails = () => router.push(`/product/${product.id}`)
+
   const handleAdd = () => {
     if (isPowerbank) {
       router.push(`/product/${product.id}`)
@@ -43,7 +45,7 @@ export default function ProductCard({ product }: { product: ShopProduct }) {
         e.currentTarget.style.boxShadow = 'var(--shadow-sm)'
       }}
     >
-      <div style={{ position: 'relative', width: '100%', height: 215, background: '#eef3ee' }}>
+      <div role="button" tabIndex={0} onClick={viewDetails} onKeyDown={(e) => { if (e.key === 'Enter') viewDetails() }} aria-label={`View ${product.name}`} style={{ position: 'relative', width: '100%', height: 215, background: '#eef3ee', cursor: 'pointer' }}>
         <ProductImage src={product.image} alt={product.name} cat={product.cat} sizes="(max-width: 900px) 100vw, 33vw" iconSize={44} />
         {soldOut && (
           <span
@@ -66,7 +68,7 @@ export default function ProductCard({ product }: { product: ShopProduct }) {
       </div>
       <div style={{ padding: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-          <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: 'var(--color-text)' }}>{product.name}</div>
+          <div role="button" tabIndex={0} onClick={viewDetails} onKeyDown={(e) => { if (e.key === 'Enter') viewDetails() }} style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: 'var(--color-text)', cursor: 'pointer' }}>{product.name}</div>
           {product.badge && <Badge tone={product.badgeTone}>{product.badge}</Badge>}
         </div>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '.16em', color: 'var(--color-text-muted)', marginTop: 8 }}>

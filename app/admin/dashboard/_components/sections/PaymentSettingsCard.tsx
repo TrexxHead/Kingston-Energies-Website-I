@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Wallet, Check } from 'lucide-react'
+import { Wallet, Check, ChevronDown, ChevronRight } from 'lucide-react'
 import { cardStyle, h3Style } from '../ui/card'
 import Button from '../ui/Button'
 import TextInput from '../ui/TextInput'
@@ -25,6 +25,7 @@ export default function PaymentSettingsCard() {
   const [wipayConfigured, setWipayConfigured] = useState(false)
   const [busy, setBusy] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [open, setOpen] = useState(false) // collapsed by default — click to expand
 
   const load = useCallback(async () => {
     const res = await fetch('/api/admin/payment-settings')
@@ -70,10 +71,22 @@ export default function PaymentSettingsCard() {
 
   return (
     <div style={cardStyle}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 6 }}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left' }}
+      >
         <Wallet size={17} color="var(--ke-green-600)" />
         <h3 style={{ ...h3Style, margin: 0 }}>Payment methods</h3>
-      </div>
+        <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--color-text-muted)', fontSize: 12.5 }}>
+          {[cfg.bank, cfg.lynk, cfg.paypal, cfg.cod, cfg.card].filter((m) => m.enabled).length} active
+          {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+        </span>
+      </button>
+
+      {open && (
+      <div style={{ marginTop: 12 }}>
       <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: '0 0 16px' }}>
         Switch on the methods you accept and fill in your details. Customers see these at checkout and pay directly,
         quoting their order number. Mark each order paid from the Orders tab when the money lands.
@@ -136,6 +149,8 @@ export default function PaymentSettingsCard() {
           </span>
         )}
       </div>
+      </div>
+      )}
     </div>
   )
 }

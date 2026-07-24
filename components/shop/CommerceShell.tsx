@@ -6,7 +6,7 @@ export default function CommerceShell({ children, dark = false }: { children: Re
   return (
     <div style={{ fontFamily: 'var(--font-body)', background: dark ? 'var(--ke-dark-bg)' : '#fbfdfb', minHeight: '100vh' }}>
       <Navbar />
-      <main style={{ paddingTop: 64, color: dark ? 'var(--ke-dark-text)' : 'var(--color-text)' }} className="ke-screen">
+      <main style={{ paddingTop: 'calc(64px + var(--ke-ann-h, 0px))', color: dark ? 'var(--ke-dark-text)' : 'var(--color-text)' }} className="ke-screen">
         {children}
       </main>
       <Footer />

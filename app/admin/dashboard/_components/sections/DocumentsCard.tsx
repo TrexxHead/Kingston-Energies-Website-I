@@ -177,12 +177,17 @@ export default function DocumentsCard() {
                 </div>
               </div>
               {d.url ? (
-                <a href={d.url} target="_blank" rel="noopener noreferrer" aria-label={`Open ${d.title}`} style={{ color: 'var(--ke-green-700)', display: 'flex' }}>
-                  {d.isFile ? <Download size={16} /> : <ExternalLink size={16} />}
+                <a
+                  href={d.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, border: '1px solid var(--ke-green-600)', color: 'var(--ke-green-700)', background: 'var(--ke-green-50, #eef7f0)', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12.5, textDecoration: 'none' }}
+                >
+                  {d.isFile ? <Download size={14} /> : <ExternalLink size={14} />} View
                 </a>
               ) : (
-                <span title="File unavailable — storage not configured" style={{ color: 'var(--color-text-subtle)', display: 'flex' }}>
-                  <Download size={16} />
+                <span title="File can't be opened — Supabase Storage isn't configured (add SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY and redeploy)" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, border: '1px solid var(--color-border)', color: 'var(--color-text-subtle)', fontSize: 12.5 }}>
+                  <Download size={14} /> Unavailable
                 </span>
               )}
               <button type="button" onClick={() => remove(d.id)} aria-label={`Remove ${d.title}`} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-subtle)', display: 'flex', padding: 0 }}>

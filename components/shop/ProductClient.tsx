@@ -10,6 +10,7 @@ import CommerceShell from '@/components/shop/CommerceShell'
 import ProductImage from '@/components/shop/ProductImage'
 import { Badge, Button } from '@/components/shop/ui'
 import { fmt, type ShopProduct } from '@/lib/catalog'
+import { recordView } from '@/lib/recentlyViewed'
 import { BULK_SUMMARY } from '@/lib/pricing'
 import { BENCHMARK_DEVICES, parseMah, chargesFor, formatCharges, CARE_TIPS } from '@/lib/productInfo'
 import { useCart } from '@/components/cart/CartContext'
@@ -39,6 +40,11 @@ export default function ProductClient({ product, initialReviews = [] }: { produc
   const [reviewed, setReviewed] = useState(false)
   const [saved, setSaved] = useState(false)
   const [savingFav, setSavingFav] = useState(false)
+
+  // Record this product in the customer's "recently viewed" list.
+  useEffect(() => {
+    recordView({ id: product.id, name: product.name, spec: product.spec, price: product.price, image: product.image, cat: product.cat })
+  }, [product.id, product.name, product.spec, product.price, product.image, product.cat])
 
   // Reflect whether this product is already in the customer's saved list.
   useEffect(() => {

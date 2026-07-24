@@ -8,6 +8,8 @@ import { loyaltyPoints } from '@/lib/loyalty'
 import { recommendProductsForNeed, customerNeedLabel, NEED_PITCH, type CustomerNeed } from '@/lib/crm'
 import { ArrowRight } from 'lucide-react'
 import Topbar from './_components/Topbar'
+import RecentlyViewed from './_components/RecentlyViewed'
+import WarrantyTracker from './_components/WarrantyTracker'
 import { hubScreen, hubCard, hubH3, hubEyebrow } from './_components/ui'
 
 const PROGRESS: Record<string, { label: string; pct: number }> = {
@@ -70,6 +72,11 @@ export default async function HubPage() {
     : RECOMMENDED_IDS.map((id) => CATALOG.find((p) => p.id === id)).filter(Boolean)
   const active = activeOrders[0] ?? orders[0] ?? null
   const activeMeta = active ? PROGRESS[active.status] ?? PROGRESS.PENDING : null
+
+  // Warranty tracker items — one per purchased line item from non-cancelled orders.
+  const warrantyItems = purchasedOrders.flatMap((o) =>
+    o.items.map((it) => ({ name: it.name, purchasedAt: new Date(o.createdAt), orderNo: o.orderNo })),
+  ).slice(0, 8)
 
   return (
     <>
@@ -198,6 +205,9 @@ export default async function HubPage() {
             )}
           </div>
         </div>
+
+        <WarrantyTracker items={warrantyItems} />
+        <RecentlyViewed />
       </div>
     </>
   )

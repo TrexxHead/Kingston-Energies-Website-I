@@ -96,7 +96,15 @@ export default async function HubOrdersPage() {
                     <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 17 }}>{fmt(o.total)}</span>
                   </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginTop: 12, flexWrap: 'wrap' }}>
+                    <a
+                      href={`/api/orders/${o.id}/invoice`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12.5, color: 'var(--ke-green-700)', textDecoration: 'none' }}
+                    >
+                      Download invoice
+                    </a>
                     <CancelOrderButton orderId={o.id} status={o.status} cancelReason={o.cancelReason} />
                   </div>
                 </div>

@@ -103,6 +103,27 @@ export async function sendInvoiceEmail(input: { to: string; orderNo: string; htm
   }
 }
 
+/**
+ * Send a campaign email to many recipients. Best-effort per recipient; returns
+ * how many were accepted. No-ops (returns 0) when no provider is configured.
+ */
+export async function sendBulkEmail(recipients: string[], subject: string, html: string): Promise<number> {
+  if (!isEmailConfigured()) {
+    console.info(`[email] skipped campaign "${subject}" (no provider) → ${recipients.length} recipients`)
+    return 0
+  }
+  let sent = 0
+  for (const to of recipients) {
+    try {
+      await deliver({ to, subject, html })
+      sent++
+    } catch (err) {
+      console.error(`[email] campaign send failed for ${to}:`, err)
+    }
+  }
+  return sent
+}
+
 async function deliver({ to, subject, html }: { to: string; subject: string; html: string }): Promise<void> {
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',

@@ -2,13 +2,12 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { Plus, Trash2, Check } from 'lucide-react'
-import Badge from '../ui/Badge'
 import Button from '../ui/Button'
 import Switch from '../ui/Switch'
 import { cardStyle, h3Style } from '../ui/card'
 import AnnouncementCard from './AnnouncementCard'
 import DiscountCodesCard from './DiscountCodesCard'
-import { campaigns } from '../mockData'
+import CampaignsCard from './CampaignsCard'
 
 interface Banner { text: string; active: boolean }
 interface FlashSale { enabled: boolean; headline: string; subtext: string; href: string }
@@ -113,19 +112,7 @@ export default function MarketingSection() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'start' }}>
         <DiscountCodesCard />
-
-        <div style={cardStyle}>
-          <h3 style={h3Style}>Scheduled campaigns</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {campaigns.map((c) => (
-              <div key={c.name} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <Badge tone={c.tone as 'blue' | 'green' | 'orange'}>{c.channel}</Badge>
-                <span style={{ flex: 1, fontSize: 12.5 }}>{c.name}</span>
-                <span style={{ fontSize: 11.5, color: 'var(--color-text-muted)' }}>{c.when}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+        <CampaignsCard />
       </div>
     </div>
   )

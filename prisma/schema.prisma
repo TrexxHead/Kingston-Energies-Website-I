@@ -398,6 +398,39 @@ enum DiscountType {
   FIXED
 }
 
+// A marketing campaign the admin can categorise, schedule and action (email
+// blasts send for real via Resend; other channels are tracked/handled via your
+// external tooling e.g. n8n/WhatsApp).
+model Campaign {
+  id             String          @id @default(cuid())
+  name           String
+  channel        CampaignChannel @default(EMAIL)
+  category       String?
+  subject        String?
+  body           String?         @db.Text
+  status         CampaignStatus  @default(DRAFT)
+  scheduledAt    DateTime?
+  sentAt         DateTime?
+  recipientCount Int?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([createdAt])
+}
+
+enum CampaignChannel {
+  EMAIL
+  SMS
+  PUSH
+  SOCIAL
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  SENT
+}
+
 enum OrderStatus {
   PENDING
   PACKED

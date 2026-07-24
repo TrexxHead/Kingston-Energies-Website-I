@@ -2,10 +2,12 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, X, Clock, TrendingUp, CornerDownLeft } from 'lucide-react'
+import { Search, X, Clock, TrendingUp, Sparkles, CornerDownLeft } from 'lucide-react'
 import type { ShopProduct } from '@/lib/catalog'
 import { fmt, CATEGORY_PILLS } from '@/lib/catalog'
 import { fuzzyScore } from '@/lib/search'
+import { recommendProducts } from '@/lib/recommend'
+import { getRecentlyViewed } from '@/lib/recentlyViewed'
 import ProductImage from './ProductImage'
 
 const RECENT_KEY = 'ke-recent-searches'
@@ -33,6 +35,7 @@ export default function SmartSearch({
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [recent, setRecent] = useState<string[]>([])
+  const [recommended, setRecommended] = useState<ShopProduct[]>([])
   const [active, setActive] = useState(-1)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -41,6 +44,9 @@ export default function SmartSearch({
       const raw = localStorage.getItem(RECENT_KEY)
       if (raw) setRecent(JSON.parse(raw))
     } catch { /* ignore */ }
+    // Personalised picks from on-device browsing history.
+    setRecommended(recommendProducts(products, getRecentlyViewed(), 4))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
@@ -195,6 +201,22 @@ export default function SmartSearch({
             </>
           ) : (
             <>
+              {recommended.length > 0 && (
+                <div style={{ marginBottom: 4 }}>
+                  <div style={{ ...sectionLabel, display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <Sparkles size={11} style={{ color: 'var(--ke-green-600)' }} /> Recommended for you
+                  </div>
+                  {recommended.map((p) => (
+                    <button key={p.id} type="button" onClick={() => goToProduct(p)} style={rowStyle}>
+                      <span style={{ position: 'relative', width: 32, height: 32, borderRadius: 7, overflow: 'hidden', background: '#eef3ee', flexShrink: 0 }}>
+                        <ProductImage src={p.image} alt={p.name} cat={p.cat} sizes="32px" iconSize={14} />
+                      </span>
+                      <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                      <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 12.5 }}>{fmt(p.price)}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
               {recent.length > 0 && (
                 <div style={{ marginBottom: 4 }}>
                   <div style={sectionLabel}>Recent</div>

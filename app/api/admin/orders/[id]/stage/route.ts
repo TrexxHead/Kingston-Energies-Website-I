@@ -74,6 +74,20 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         `<p><strong>${escapeHtml(def.headline)}</strong> — ${escapeHtml(customerNote?.trim() || def.blurb)}</p>` +
           `<p>Track your order any time at Kingston Energies.</p>`,
       )
+
+      // On delivery, invite an NPS rating — reaches guests too, via the email
+      // captured at checkout, so post-transaction NPS is automated for everyone.
+      if (target === LAST_STAGE) {
+        const site = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://kingstonenergies.com'
+        const link = `${site}/nps?order=${encodeURIComponent(order.orderNo)}`
+        void sendBulkEmail(
+          [to],
+          `How did we do with ${order.orderNo}?`,
+          `<p>Your order has been delivered — thank you for choosing Kingston Energies.</p>` +
+            `<p>Would you take ten seconds to rate your experience?</p>` +
+            `<p><a href="${link}" style="display:inline-block;background:#1f6b45;color:#fff;text-decoration:none;padding:11px 22px;border-radius:999px;font-weight:600">Rate your experience</a></p>`,
+        )
+      }
     }
   }
 

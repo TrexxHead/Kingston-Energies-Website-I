@@ -1,5 +1,26 @@
 import { fmt } from '@/lib/catalog'
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://kingstonenergies.com'
+const logoUrl = `${siteUrl}/images/logo-mark.png`
+
+/** Shared branded header for every transactional email — logo, wordmark,
+ *  slogan, and a status line specific to the email (e.g. "Order confirmed").
+ *  Deliberately a different gradient/layout from the invoice header so the
+ *  two don't read as the same document. */
+function emailHeader(status: string): string {
+  return `
+    <div style="background:linear-gradient(135deg,#04547c,#1c4a44);padding:26px 24px;border-radius:16px 16px 0 0">
+      <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse"><tr>
+        <td style="vertical-align:middle;padding-right:12px"><img src="${logoUrl}" width="38" height="38" alt="" style="display:block" /></td>
+        <td style="vertical-align:middle">
+          <div style="color:#fff;font-size:19px;font-weight:800">Kingston Energies</div>
+          <div style="color:rgba(234,242,236,.75);font-size:10.5px;margin-top:2px;letter-spacing:.02em">Powering Progress, <span style="font-style:italic">Charging Initiatives</span></div>
+        </td>
+      </tr></table>
+      <div style="color:rgba(234,242,236,.9);font-size:13px;margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.14)">${status}</div>
+    </div>`
+}
+
 /**
  * Transactional email seam.
  *
@@ -150,10 +171,7 @@ function renderOrderHtml(input: OrderEmailInput): string {
 
   return `
   <div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;color:#1c2a25">
-    <div style="background:linear-gradient(135deg,#04547c,#1c4a44);padding:28px 24px;border-radius:16px 16px 0 0">
-      <div style="color:#fff;font-size:20px;font-weight:800">Kingston Energies</div>
-      <div style="color:rgba(234,242,236,.8);font-size:13px;margin-top:4px">Order confirmed</div>
-    </div>
+    ${emailHeader('Order confirmed')}
     <div style="border:1px solid #e2e8e4;border-top:none;padding:24px;border-radius:0 0 16px 16px">
       <p>Hi ${input.customerName}, thanks for your order.</p>
       <p style="font-size:14px;color:#556059">Order number <strong style="color:#1c2a25">${input.orderNo}</strong></p>
@@ -173,10 +191,7 @@ function renderOrderHtml(input: OrderEmailInput): string {
 function renderPasswordResetHtml(input: PasswordResetEmailInput): string {
   return `
   <div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;color:#1c2a25">
-    <div style="background:linear-gradient(135deg,#04547c,#1c4a44);padding:28px 24px;border-radius:16px 16px 0 0">
-      <div style="color:#fff;font-size:20px;font-weight:800">Kingston Energies</div>
-      <div style="color:rgba(234,242,236,.8);font-size:13px;margin-top:4px">Reset your password</div>
-    </div>
+    ${emailHeader('Reset your password')}
     <div style="border:1px solid #e2e8e4;border-top:none;padding:24px;border-radius:0 0 16px 16px">
       <p>Hi ${input.name}, we got a request to reset your password.</p>
       <p style="font-size:14px;color:#556059">Click below to choose a new one. If you didn't ask for this, you can safely ignore this email — your password won't change.</p>
@@ -189,10 +204,7 @@ function renderPasswordResetHtml(input: PasswordResetEmailInput): string {
 function renderVerificationHtml(input: VerificationEmailInput): string {
   return `
   <div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;color:#1c2a25">
-    <div style="background:linear-gradient(135deg,#04547c,#1c4a44);padding:28px 24px;border-radius:16px 16px 0 0">
-      <div style="color:#fff;font-size:20px;font-weight:800">Kingston Energies</div>
-      <div style="color:rgba(234,242,236,.8);font-size:13px;margin-top:4px">Confirm your account</div>
-    </div>
+    ${emailHeader('Confirm your account')}
     <div style="border:1px solid #e2e8e4;border-top:none;padding:24px;border-radius:0 0 16px 16px">
       <p>Hi ${input.name}, welcome to Kingston Energies.</p>
       <p style="font-size:14px;color:#556059">Confirm your email address to activate your account and start tracking orders.</p>

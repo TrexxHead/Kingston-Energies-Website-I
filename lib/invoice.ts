@@ -72,16 +72,18 @@ export function buildInvoiceHtml(d: InvoiceData): string {
       margin: 28px auto;
       background: #fff;
       box-shadow: 0 1px 3px rgba(20,30,24,.08), 0 12px 32px -16px rgba(20,30,24,.25);
+      display: flex;
+      flex-direction: column;
     }
   </style></head>
   <body>
     <div class="sheet">
-      <div style="background:linear-gradient(120deg,#173d29,#0d1714);padding:30px 46px;display:flex;justify-content:space-between;align-items:center">
-        <div style="display:flex;align-items:center;gap:12px">
-          <img src="${logoUrl}" width="46" height="46" alt="" style="display:block;object-fit:contain;flex-shrink:0" />
+      <div style="background:linear-gradient(120deg,#173d29,#0d1714);padding:28px 46px;display:flex;justify-content:space-between;align-items:center">
+        <div style="display:flex;align-items:center;gap:16px">
+          <img src="${logoUrl}" width="64" height="64" alt="" style="display:block;object-fit:contain;flex-shrink:0" />
           <div>
-            <div style="color:#fff;font-size:21px;font-weight:800;letter-spacing:.01em">${BUSINESS.name}</div>
-            <div style="color:#a9c2ae;font-size:11px;margin-top:3px;letter-spacing:.06em;text-transform:uppercase">Powering Progress</div>
+            <div style="color:#fff;font-size:22px;font-weight:800;letter-spacing:.01em">${BUSINESS.name}</div>
+            <div style="color:#a9c2ae;font-size:11px;margin-top:4px;letter-spacing:.03em">Powering Progress, <span style="font-style:italic">Charging Initiatives</span></div>
           </div>
         </div>
         <div style="text-align:right;color:#c9d8cd;font-size:11.5px;line-height:1.6">
@@ -91,7 +93,7 @@ export function buildInvoiceHtml(d: InvoiceData): string {
         </div>
       </div>
 
-      <div style="padding:34px 46px 0">
+      <div style="padding:34px 46px 0;flex:1">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:26px;border-bottom:1px solid #e8ece9">
           <div>
             <div style="font-size:26px;font-weight:800;color:#0d1714;letter-spacing:-.01em">Receipt / Invoice</div>

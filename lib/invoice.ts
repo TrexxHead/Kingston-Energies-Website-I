@@ -1,5 +1,4 @@
 import { prisma } from '@/lib/prisma'
-import { fmt } from '@/lib/catalog'
 import { sendInvoiceEmail } from '@/lib/email'
 
 const BUSINESS = {
@@ -20,6 +19,12 @@ const PAYMENT_LABEL: Record<string, string> = {
 // Poppins for headings/titles/labels, Georgia for everything read as detail/body copy.
 const FONT_HEAD = "'Poppins', Arial, Helvetica, sans-serif"
 const FONT_BODY = "Georgia, 'Times New Roman', serif"
+
+/** Accounting-style J$ formatting: always two decimals, negatives in parentheses. */
+function fmtAcct(n: number): string {
+  const abs = 'J$' + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return n < 0 ? `(${abs})` : abs
+}
 
 export interface InvoiceData {
   orderNo: string
@@ -46,9 +51,9 @@ export function buildInvoiceHtml(d: InvoiceData): string {
       (i) =>
         `<tr>
           <td style="padding:11px 0;border-bottom:1px solid #e8ece9;color:#1c2a25">${escapeHtml(i.name)}</td>
-          <td style="padding:11px 0;border-bottom:1px solid #e8ece9;text-align:right;color:#5b655f">${fmt(i.price)}</td>
+          <td style="padding:11px 0;border-bottom:1px solid #e8ece9;text-align:right;color:#5b655f">${fmtAcct(i.price)}</td>
           <td style="padding:11px 0;border-bottom:1px solid #e8ece9;text-align:center;color:#5b655f">${i.qty}</td>
-          <td style="padding:11px 0;border-bottom:1px solid #e8ece9;text-align:right;color:#1c2a25;font-weight:600">${fmt(i.price * i.qty)}</td>
+          <td style="padding:11px 0;border-bottom:1px solid #e8ece9;text-align:right;color:#1c2a25;font-weight:600">${fmtAcct(i.price * i.qty)}</td>
         </tr>`,
     )
     .join('')
@@ -130,7 +135,7 @@ export function buildInvoiceHtml(d: InvoiceData): string {
             </div>
             <div style="display:flex;justify-content:space-between;padding-top:11px;margin-top:6px;border-top:1px solid #e0e6e1">
               <span style="font-family:${FONT_HEAD};font-weight:800;color:#0d1714;font-size:13px">Total</span>
-              <span style="font-family:${FONT_HEAD};font-weight:800;color:#0d1714;font-size:16px">${fmt(d.total)}</span>
+              <span style="font-family:${FONT_HEAD};font-weight:800;color:#0d1714;font-size:16px">${fmtAcct(d.total)}</span>
             </div>
           </div>
         </div>
@@ -149,12 +154,12 @@ export function buildInvoiceHtml(d: InvoiceData): string {
           <td></td>
           <td style="text-align:right;width:230px;padding-top:14px">
             <div style="display:flex;justify-content:space-between;padding:5px 0;color:#5b655f">
-              <span style="font-family:${FONT_HEAD};font-weight:600">Subtotal</span><span>${fmt(subtotal)}</span>
+              <span style="font-family:${FONT_HEAD};font-weight:600">Subtotal</span><span>${fmtAcct(subtotal)}</span>
             </div>
-            ${discount > 0.5 ? `<div style="display:flex;justify-content:space-between;padding:5px 0;color:#1b7a49"><span style="font-family:${FONT_HEAD};font-weight:600">You save</span><span>-${fmt(discount)}</span></div>` : ''}
+            ${discount > 0.5 ? `<div style="display:flex;justify-content:space-between;padding:5px 0;color:#1b7a49"><span style="font-family:${FONT_HEAD};font-weight:600">You save</span><span>${fmtAcct(-discount)}</span></div>` : ''}
             <div style="display:flex;justify-content:space-between;padding:10px 0 0;margin-top:6px;border-top:2px solid #0d1714">
               <span style="font-family:${FONT_HEAD};font-weight:800;color:#0d1714">Total</span>
-              <span style="font-family:${FONT_HEAD};font-weight:800;color:#0d1714;font-size:17px">${fmt(d.total)}</span>
+              <span style="font-family:${FONT_HEAD};font-weight:800;color:#0d1714;font-size:17px">${fmtAcct(d.total)}</span>
             </div>
           </td>
         </tr></table>

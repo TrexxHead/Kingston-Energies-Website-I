@@ -13,15 +13,26 @@ const STATUS_META: Record<string, { label: string; bg: string; fg: string }> = {
   CANCELLED: { label: 'Cancelled', bg: 'var(--ke-gray-100)', fg: 'var(--ke-gray-600)' },
 }
 
+// Load orders defensively — a transient DB/schema issue shows an empty state
+// rather than crashing the whole account area.
+async function loadOrders(userId: string) {
+  try {
+    return await prisma.order.findMany({
+      where: { userId },
+      include: { items: true },
+      orderBy: { createdAt: 'desc' },
+    })
+  } catch {
+    return []
+  }
+}
+
 export default async function HubOrdersPage() {
   const session = await getServerSession(authOptions)
-  const orders = session?.user?.id
-    ? await prisma.order.findMany({
-        where: { userId: session.user.id },
-        include: { items: true },
-        orderBy: { createdAt: 'desc' },
-      })
-    : []
+  let orders: Awaited<ReturnType<typeof loadOrders>> = []
+  if (session?.user?.id) {
+    orders = await loadOrders(session.user.id)
+  }
 
   return (
     <>

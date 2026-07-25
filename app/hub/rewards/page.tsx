@@ -19,23 +19,35 @@ function tierFor(points: number): string {
   return 'Bronze'
 }
 
+async function loadUser(id: string) {
+  try {
+    return await prisma.user.findUnique({
+      where: { id },
+      include: { orders: true, _count: { select: { reviews: true } } },
+    })
+  } catch {
+    return null
+  }
+}
+
 export default async function RewardsPage() {
   const session = await getServerSession(authOptions)
-  const user = session?.user?.id
-    ? await prisma.user.findUnique({
-        where: { id: session.user.id },
-        include: { orders: true, _count: { select: { reviews: true } } },
-      })
-    : null
+  let user: Awaited<ReturnType<typeof loadUser>> = null
+  let referralCode = 'KEG-KINGSTON'
+  if (session?.user?.id) {
+    user = await loadUser(session.user.id)
+    try {
+      referralCode = (await ensureReferralCode(session.user.id)) ?? referralCode
+    } catch {
+      // keep the fallback code
+    }
+  }
 
   const totalSpent = (user?.orders ?? []).filter((o) => o.status !== 'CANCELLED').reduce((s, o) => s + o.total, 0)
   const points = loyaltyPoints({ totalSpent, reviewCount: user?._count?.reviews ?? 0 })
   const tier = tierFor(points)
   const progressPct = Math.round(((points % REWARD_STEP) / REWARD_STEP) * 100)
   const ptsToNext = REWARD_STEP - (points % REWARD_STEP)
-
-  // Personal, persisted referral code (KEG-YY-NAME); generated on first view.
-  const referralCode = (session?.user?.id ? await ensureReferralCode(session.user.id) : null) ?? 'KEG-KINGSTON'
 
   return (
     <>

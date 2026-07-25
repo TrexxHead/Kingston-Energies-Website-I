@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { Heart, Eye, Scale, Star, X } from 'lucide-react'
+import { Heart, Scale, Star } from 'lucide-react'
 import type { ShopProduct } from '@/lib/catalog'
 import { fmt } from '@/lib/catalog'
 import { useCart } from '@/components/cart/CartContext'
@@ -27,7 +27,6 @@ export default function ProductCard({
   const soldOut = product.inStock === false
   const [saved, setSaved] = useState(initialSaved)
   const [savingFav, setSavingFav] = useState(false)
-  const [quickOpen, setQuickOpen] = useState(false)
 
   const viewDetails = () => router.push(`/product/${product.id}`)
 
@@ -125,20 +124,6 @@ export default function ProductCard({
             Sold out
           </span>
         )}
-        {/* Quick view — opens a lightweight preview without leaving the page */}
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); setQuickOpen(true) }}
-          style={{
-            position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)',
-            display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 999,
-            border: 'none', background: 'rgba(255,255,255,.92)', backdropFilter: 'blur(6px)',
-            fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12, color: 'var(--color-text)',
-            cursor: 'pointer', boxShadow: '0 2px 10px rgba(0,0,0,.14)', whiteSpace: 'nowrap',
-          }}
-        >
-          <Eye size={14} /> Quick view
-        </button>
       </div>
       <div style={{ padding: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
@@ -172,42 +157,6 @@ export default function ProductCard({
           </button>
         )}
       </div>
-
-      {quickOpen && (
-        <div
-          onClick={() => setQuickOpen(false)}
-          style={{ position: 'fixed', inset: 0, zIndex: 130, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(6,12,10,.55)', backdropFilter: 'blur(4px)', padding: 20 }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{ width: 'min(720px, 96vw)', maxHeight: '90vh', overflow: 'auto', background: '#fff', borderRadius: 22, boxShadow: '0 30px 80px -20px rgba(0,0,0,.5)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}
-          >
-            <div style={{ position: 'relative', minHeight: 260, background: '#eef3ee' }}>
-              <ProductImage src={product.image} alt={product.name} cat={product.cat} sizes="360px" iconSize={56} />
-            </div>
-            <div style={{ padding: 26, position: 'relative' }}>
-              <button type="button" onClick={() => setQuickOpen(false)} aria-label="Close" style={{ position: 'absolute', top: 14, right: 14, width: 30, height: 30, borderRadius: 999, border: '1px solid var(--color-border)', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)' }}>
-                <X size={15} />
-              </button>
-              <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 24, letterSpacing: '-.02em', margin: '0 0 6px', paddingRight: 32 }}>{product.name}</h3>
-              <Stars rating={product.rating} count={product.reviewCount} />
-              <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: '10px 0 0', lineHeight: 1.5 }}>
-                {product.shortDescription ?? product.spec}
-              </p>
-              <div style={{ margin: '18px 0', display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 28 }}>{fmt(product.price)}</span>
-                {product.listPrice && product.listPrice > product.price && (
-                  <span style={{ fontSize: 15, color: 'var(--color-text-muted)', textDecoration: 'line-through' }}>{fmt(product.listPrice)}</span>
-                )}
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <Button size="sm" variant="primary" block disabled={soldOut} onClick={() => { addToCart(); setQuickOpen(false) }}>{soldOut ? 'Sold out' : 'Add to cart'}</Button>
-                <Button size="sm" variant="outline" block onClick={viewDetails}>Full details</Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

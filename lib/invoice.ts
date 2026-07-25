@@ -124,10 +124,10 @@ export function buildInvoiceHtml(d: InvoiceData): string {
             ${d.shippingAddress && d.shippingAddress !== d.billingAddress ? addressBlock('Ship to', d.shippingAddress) : ''}
             ${addressBlock('Contact', [d.email, d.contact].filter(Boolean).join(' · ') || null)}
           </div>
-          <div style="width:230px;flex-shrink:0;background:#f5f8f5;border:1px solid #e8ece9;border-radius:12px;padding:18px 20px">
+          <div style="width:240px;flex-shrink:0;background:#f5f8f5;border:1px solid #e8ece9;border-radius:12px;padding:18px 20px">
             <div style="display:flex;justify-content:space-between;font-size:12.5px;color:#5b655f;padding:5px 0">
-              <span style="font-family:${FONT_HEAD};font-weight:600;white-space:nowrap">Payment method</span>
-              <span style="color:#1c2a25;font-weight:600;white-space:nowrap;margin-left:10px">${d.paymentMethod ? (PAYMENT_LABEL[d.paymentMethod] ?? d.paymentMethod) : '—'}</span>
+              <span style="font-family:${FONT_HEAD};font-weight:600;white-space:nowrap;flex-shrink:0">Payment</span>
+              <span style="color:#1c2a25;font-weight:600;white-space:nowrap;margin-left:10px;font-size:11.5px">${d.paymentMethod ? (PAYMENT_LABEL[d.paymentMethod] ?? d.paymentMethod) : '—'}</span>
             </div>
             <div style="display:flex;justify-content:space-between;font-size:12.5px;color:#5b655f;padding:5px 0">
               <span style="font-family:${FONT_HEAD};font-weight:600">Status</span>
@@ -152,7 +152,7 @@ export function buildInvoiceHtml(d: InvoiceData): string {
 
         <table style="width:100%;margin-top:4px;font-size:13px"><tr>
           <td></td>
-          <td style="text-align:right;width:230px;padding-top:14px">
+          <td style="text-align:right;width:240px;padding-top:14px">
             <div style="display:flex;justify-content:space-between;padding:5px 0;color:#5b655f">
               <span style="font-family:${FONT_HEAD};font-weight:600">Subtotal</span><span>${fmtAcct(subtotal)}</span>
             </div>

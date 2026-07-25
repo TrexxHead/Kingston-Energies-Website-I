@@ -49,19 +49,28 @@ export async function POST(request: Request) {
     )
   }
 
-  const parsed = orderSchema.safeParse(await request.json())
+  let body: unknown
+  try {
+    body = await request.json()
+  } catch (err) {
+    console.error('[orders] failed to parse request body:', err)
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+  }
+
+  const parsed = orderSchema.safeParse(body)
   if (!parsed.success) {
+    console.error('[orders] validation failed:', parsed.error.flatten())
     return NextResponse.json({ error: 'Invalid order' }, { status: 400 })
   }
 
-  const session = await getServerSession(authOptions)
-  const userId = session?.user?.id ?? null
-
-  const { customerName, email, phone, shippingAddress, billingAddress, cartId, paymentMethod, promoCode, items } = parsed.data
-  // Prefer the signed-in email, else the one the guest typed at checkout.
-  const contactEmail = session?.user?.email ?? email ?? null
-
   try {
+    const session = await getServerSession(authOptions)
+    const userId = session?.user?.id ?? null
+
+    const { customerName, email, phone, shippingAddress, billingAddress, cartId, paymentMethod, promoCode, items } = parsed.data
+    // Prefer the signed-in email, else the one the guest typed at checkout.
+    const contactEmail = session?.user?.email ?? email ?? null
+
     const units = items.reduce((sum, i) => sum + i.qty, 0)
     const gross = items.reduce((sum, i) => sum + i.price * i.qty, 0)
     const bulkDiscount = Math.round(gross * bulkRateForQty(units))

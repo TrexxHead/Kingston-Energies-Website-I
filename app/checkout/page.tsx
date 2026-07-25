@@ -111,7 +111,7 @@ function CheckoutInner() {
     const payloadItems = items.map((i) => ({ name: i.name, price: i.price, qty: i.qty }))
     const isPickup = deliveryMethod === 'pickup'
     const shippingAddress = isPickup
-      ? `Pickup: ${PICKUP_LOCATIONS[pickupLocation].name}`
+      ? `Pickup: ${PICKUP_LOCATIONS[pickupLocation].name}, ${PICKUP_LOCATIONS[pickupLocation].address}`
       : [street.trim(), parish].filter(Boolean).join(', ') || undefined
     const billingAddress = billingSame ? shippingAddress : (billing.trim() || undefined)
     let cartId: string | undefined
@@ -230,7 +230,7 @@ function CheckoutInner() {
                   <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, color: 'var(--color-text)' }}>Pickup location</span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>
                     {PICKUP_LOCATIONS.map((loc, i) => (
-                      <Radio key={loc.name} name="pickupLoc" label={loc.name} checked={pickupLocation === i} onChange={() => setPickupLocation(i)} />
+                      <Radio key={loc.name} name="pickupLoc" label={`${loc.name} — ${loc.address}`} checked={pickupLocation === i} onChange={() => setPickupLocation(i)} />
                     ))}
                   </div>
                 </div>
@@ -326,7 +326,7 @@ function CheckoutInner() {
                   <SummaryLine icon={<CreditCard size={15} color="var(--ke-green-600)" />} text={selected?.label ?? 'Payment'} />
                   <SummaryLine
                     icon={<MapPin size={15} color="var(--ke-green-600)" />}
-                    text={deliveryMethod === 'pickup' ? PICKUP_LOCATIONS[pickupLocation].name : [street, parish].filter(Boolean).join(', ') || 'Address on file'}
+                    text={deliveryMethod === 'pickup' ? `${PICKUP_LOCATIONS[pickupLocation].name}, ${PICKUP_LOCATIONS[pickupLocation].address}` : [street, parish].filter(Boolean).join(', ') || 'Address on file'}
                   />
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--color-border)', paddingTop: 14 }}>

@@ -10,11 +10,12 @@ const KINGSTON_ZONE = new Set(['Kingston', 'St. Andrew'])
 
 export interface PickupLocation {
   name: string
+  address: string
 }
 
 export const PICKUP_LOCATIONS: PickupLocation[] = [
-  { name: 'Webster Memorial United Church' },
-  { name: 'Summit, New Kingston' },
+  { name: 'Webster Memorial United Church', address: '53 Halfway Tree Road' },
+  { name: 'Summit, New Kingston', address: '16 Chelsea Avenue' },
 ]
 
 /** J$ delivery fee for a method + parish. Pickup is always free. */

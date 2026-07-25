@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { guardAdmin } from '@/lib/requireAdmin'
 import { sendBulkEmail } from '@/lib/email'
 import { notifyUser } from '@/lib/notify'
-import { PIPELINE, clampStage, statusForStage, LAST_STAGE } from '@/lib/pipeline'
+import { PIPELINE, clampStage, statusForStage, stageEmailsOnMove, LAST_STAGE } from '@/lib/pipeline'
 
 const schema = z.object({
   // Either set an absolute stage or advance by one.
@@ -68,12 +68,16 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
     const to = order.user?.email ?? order.email
     if (to) {
-      void sendBulkEmail(
-        [to],
-        `Order ${order.orderNo}: ${def.headline}`,
-        `<p><strong>${escapeHtml(def.headline)}</strong> — ${escapeHtml(customerNote?.trim() || def.blurb)}</p>` +
-          `<p>Track your order any time at Kingston Energies.</p>`,
-      )
+      // Only email for the milestones customers actually care about — every
+      // stage still updates the tracking page and in-app notification above.
+      if (stageEmailsOnMove(target)) {
+        void sendBulkEmail(
+          [to],
+          `Order ${order.orderNo}: ${def.headline}`,
+          `<p><strong>${escapeHtml(def.headline)}</strong> — ${escapeHtml(customerNote?.trim() || def.blurb)}</p>` +
+            `<p>Track your order any time at Kingston Energies.</p>`,
+        )
+      }
 
       // On delivery, invite an NPS rating — reaches guests too, via the email
       // captured at checkout, so post-transaction NPS is automated for everyone.

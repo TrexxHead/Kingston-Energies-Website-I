@@ -6,7 +6,7 @@ import Button from '../ui/Button'
 import Modal from '../ui/Modal'
 import { cardStyle, h3Style } from '../ui/card'
 import { fmt } from '../mockData'
-import { PIPELINE } from '@/lib/pipeline'
+import { PIPELINE, stageEmailsOnMove } from '@/lib/pipeline'
 
 type OrderStatus = 'PENDING' | 'PACKED' | 'OUT' | 'DONE' | 'CANCELLED'
 
@@ -326,7 +326,11 @@ export default function OrdersSection() {
               <textarea
                 value={customerNote}
                 onChange={(e) => setCustomerNote(e.target.value)}
-                placeholder="Customer-facing update (optional) — shown on their tracking page & emailed"
+                placeholder={
+                  stageEmailsOnMove(Math.min(detail.stage + 1, PIPELINE.length - 1))
+                    ? 'Customer-facing update (optional) — shown on their tracking page & emailed'
+                    : 'Customer-facing update (optional) — shown on their tracking page (not emailed for this stage)'
+                }
                 rows={2}
                 maxLength={400}
                 style={{ width: '100%', resize: 'vertical', fontSize: 12.5, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--color-border)', fontFamily: 'inherit' }}

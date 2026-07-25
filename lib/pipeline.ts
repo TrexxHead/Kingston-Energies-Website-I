@@ -28,6 +28,16 @@ export const PIPELINE: PipelineStage[] = [
 
 export const LAST_STAGE = PIPELINE.length - 1
 
+// Stage-change emails only go out for the milestones customers actually care
+// about — Order Received, Payment Verified, Out for Delivery, Delivered.
+// Every other stage still updates the tracking page and in-app notification,
+// just without an email.
+const EMAIL_STAGES = new Set([0, 1, 6, LAST_STAGE])
+
+export function stageEmailsOnMove(stage: number): boolean {
+  return EMAIL_STAGES.has(clampStage(stage))
+}
+
 export function clampStage(n: number): number {
   if (!Number.isFinite(n)) return 0
   return Math.max(0, Math.min(LAST_STAGE, Math.round(n)))

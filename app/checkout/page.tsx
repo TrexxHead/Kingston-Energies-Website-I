@@ -121,8 +121,12 @@ function CheckoutInner() {
           postToGateway(action, fields)
           return // browser navigates away to WiPay
         }
-      } catch {
-        // fall through to unset placing below
+        const msg = await res.json().catch(() => null)
+        console.error('[checkout] wipay/create failed', res.status, msg)
+        pushToast('x', "Couldn't start card payment", msg?.error || `Server said: ${res.status}`)
+      } catch (err) {
+        console.error('[checkout] wipay/create network error', err)
+        pushToast('x', "Couldn't start card payment", 'Please check your connection and try again.')
       }
       setPlacing(false)
       return
@@ -136,13 +140,24 @@ function CheckoutInner() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ customerName, paymentMethod: selected.id, ...contact, items: payloadItems, promoCode: promoCode ?? undefined }),
       })
-      if (res.ok) orderNo = (await res.json()).orderNo
-    } catch {
-      // network error — orderNo stays null, handled below
+      if (res.ok) {
+        orderNo = (await res.json()).orderNo
+      } else {
+        const msg = await res.json().catch(() => null)
+        console.error('[checkout] orders POST failed', res.status, msg)
+        setPlacing(false)
+        pushToast('x', "Couldn't place your order", msg?.error || `Server said: ${res.status}`)
+        return
+      }
+    } catch (err) {
+      console.error('[checkout] orders POST network error', err)
+      setPlacing(false)
+      pushToast('x', "Couldn't place your order", 'Please check your connection and try again.')
+      return
     }
     if (!orderNo) {
       setPlacing(false)
-      pushToast('x', "Couldn't place your order", 'Please check your connection and try again.')
+      pushToast('x', "Couldn't place your order", 'Something went wrong — please try again.')
       return
     }
     try {

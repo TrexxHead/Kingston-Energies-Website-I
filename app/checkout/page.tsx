@@ -12,14 +12,14 @@ import { useCart } from '@/components/cart/CartContext'
 import { useToast } from '@/components/cart/ToastContext'
 import { fmt } from '@/lib/catalog'
 import { linkifyText } from '@/lib/linkify'
+import { deliveryFee, deliveryTimeframe, PICKUP_LOCATIONS, type DeliveryMethod } from '@/lib/delivery'
 
 const HEADLINES = ['Where to?', "How you'll pay.", 'Review & place order.']
-const DELIVERY_OPTIONS: { label: string; pickup: boolean }[] = [
-  { label: 'Standard — 1–3 days (J$800 in Kingston, J$1,500 St. Catherine — refer to rate sheet for other parishes)', pickup: false },
-  { label: 'Express — next day (J$1,500 in Kingston — refer to rate sheet for other parishes)', pickup: false },
-  { label: 'Pickup — free, today', pickup: true },
+const DELIVERY_METHODS: { id: DeliveryMethod; label: string }[] = [
+  { id: 'standard', label: 'Standard' },
+  { id: 'express', label: 'Express' },
+  { id: 'pickup', label: 'Pickup' },
 ]
-const PICKUP_LOCATIONS = ['Webster Memorial United Church', 'Summit, New Kingston']
 const PARISHES = ['Kingston', 'St. Andrew', 'St. Catherine', 'Clarendon', 'Manchester', 'St. James']
 
 interface PayMethod {
@@ -43,10 +43,10 @@ function CheckoutInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { data: session } = useSession()
-  const { items, total, promoCode, clear, hydrated } = useCart()
+  const { items, total, delivery: cartDeliveryEstimate, promoCode, clear, hydrated } = useCart()
   const { pushToast } = useToast()
   const [step, setStep] = useState(0)
-  const [delivery, setDelivery] = useState(0)
+  const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('standard')
   const [methods, setMethods] = useState<PayMethod[]>([])
   const [payment, setPayment] = useState(0)
   const [placing, setPlacing] = useState(false)
@@ -109,14 +109,14 @@ function CheckoutInner() {
     setPlacing(true)
     const customerName = name.trim() || session?.user?.name || 'Guest checkout'
     const payloadItems = items.map((i) => ({ name: i.name, price: i.price, qty: i.qty }))
-    const isPickup = DELIVERY_OPTIONS[delivery].pickup
+    const isPickup = deliveryMethod === 'pickup'
     const shippingAddress = isPickup
-      ? `Pickup: ${PICKUP_LOCATIONS[pickupLocation]}`
+      ? `Pickup: ${PICKUP_LOCATIONS[pickupLocation].name}`
       : [street.trim(), parish].filter(Boolean).join(', ') || undefined
     const billingAddress = billingSame ? shippingAddress : (billing.trim() || undefined)
     let cartId: string | undefined
     try { cartId = localStorage.getItem('ke-cart-id') ?? undefined } catch { /* ignore */ }
-    const contact = { email: email.trim() || undefined, phone: phone.trim() || undefined, shippingAddress, billingAddress, cartId }
+    const contact = { email: email.trim() || undefined, phone: phone.trim() || undefined, shippingAddress, billingAddress, cartId, parish, deliveryMethod }
 
     // Card → hand off to the WiPay hosted page.
     if (selected.gateway) {
@@ -205,18 +205,32 @@ function CheckoutInner() {
               <div>
                 <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, color: 'var(--color-text)' }}>Delivery</span>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>
-                  {DELIVERY_OPTIONS.map((opt, i) => (
-                    <Radio key={i} name="delm" label={opt.label} checked={delivery === i} onChange={() => setDelivery(i)} />
-                  ))}
+                  {DELIVERY_METHODS.map((m) => {
+                    const fee = deliveryFee(m.id, parish)
+                    const time = deliveryTimeframe(m.id, parish)
+                    const priceText = fee === 0 ? 'Free' : fmt(fee)
+                    return (
+                      <Radio
+                        key={m.id}
+                        name="delm"
+                        label={`${m.label} — ${time} (${priceText})`}
+                        checked={deliveryMethod === m.id}
+                        onChange={() => setDeliveryMethod(m.id)}
+                      />
+                    )
+                  })}
                 </div>
+                <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 8 }}>
+                  Full breakdown by parish: <a href="/legal/delivery" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--ke-green-700)' }}>delivery rate sheet</a>.
+                </p>
               </div>
 
-              {DELIVERY_OPTIONS[delivery].pickup ? (
+              {deliveryMethod === 'pickup' ? (
                 <div>
                   <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, color: 'var(--color-text)' }}>Pickup location</span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>
                     {PICKUP_LOCATIONS.map((loc, i) => (
-                      <Radio key={i} name="pickupLoc" label={loc} checked={pickupLocation === i} onChange={() => setPickupLocation(i)} />
+                      <Radio key={loc.name} name="pickupLoc" label={loc.name} checked={pickupLocation === i} onChange={() => setPickupLocation(i)} />
                     ))}
                   </div>
                 </div>
@@ -292,31 +306,39 @@ function CheckoutInner() {
             </div>
           )}
 
-          {step === 2 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {items.map((ci) => (
-                <div key={ci.name} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14.5 }}>
-                  <span style={{ color: 'var(--color-text)' }}>{ci.name} × {ci.qty}</span>
-                  <span style={{ fontWeight: 600 }}>{fmt(ci.price * ci.qty)}</span>
+          {step === 2 && (() => {
+            const fee = deliveryFee(deliveryMethod, parish)
+            const displayTotal = total - cartDeliveryEstimate + fee
+            const methodLabel = DELIVERY_METHODS.find((m) => m.id === deliveryMethod)?.label ?? 'Delivery'
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {items.map((ci) => (
+                  <div key={ci.name} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14.5 }}>
+                    <span style={{ color: 'var(--color-text)' }}>{ci.name} × {ci.qty}</span>
+                    <span style={{ fontWeight: 600 }}>{fmt(ci.price * ci.qty)}</span>
+                  </div>
+                ))}
+                <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 8, fontSize: 14, color: 'var(--color-text-muted)' }}>
+                  <SummaryLine
+                    icon={<Truck size={15} color="var(--ke-green-600)" />}
+                    text={`${methodLabel} — ${deliveryTimeframe(deliveryMethod, parish)} (${fee === 0 ? 'Free' : fmt(fee)})`}
+                  />
+                  <SummaryLine icon={<CreditCard size={15} color="var(--ke-green-600)" />} text={selected?.label ?? 'Payment'} />
+                  <SummaryLine
+                    icon={<MapPin size={15} color="var(--ke-green-600)" />}
+                    text={deliveryMethod === 'pickup' ? PICKUP_LOCATIONS[pickupLocation].name : [street, parish].filter(Boolean).join(', ') || 'Address on file'}
+                  />
                 </div>
-              ))}
-              <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 8, fontSize: 14, color: 'var(--color-text-muted)' }}>
-                <SummaryLine icon={<Truck size={15} color="var(--ke-green-600)" />} text={DELIVERY_OPTIONS[delivery].label} />
-                <SummaryLine icon={<CreditCard size={15} color="var(--ke-green-600)" />} text={selected?.label ?? 'Payment'} />
-                <SummaryLine
-                  icon={<MapPin size={15} color="var(--ke-green-600)" />}
-                  text={DELIVERY_OPTIONS[delivery].pickup ? PICKUP_LOCATIONS[pickupLocation] : [street, parish].filter(Boolean).join(', ') || 'Address on file'}
-                />
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--color-border)', paddingTop: 14 }}>
+                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700 }}>Total</span>
+                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22 }}>{fmt(displayTotal)}</span>
+                </div>
+                <Button size="lg" block onClick={placeOrder} disabled={placing || !selected}>
+                  {placing ? 'Placing order…' : selected?.gateway ? 'Pay by card' : 'Place order'}
+                </Button>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--color-border)', paddingTop: 14 }}>
-                <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700 }}>Total</span>
-                <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22 }}>{fmt(total)}</span>
-              </div>
-              <Button size="lg" block onClick={placeOrder} disabled={placing || !selected}>
-                {placing ? 'Placing order…' : selected?.gateway ? 'Pay by card' : 'Place order'}
-              </Button>
-            </div>
-          )}
+            )
+          })()}
 
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 26 }}>
             <Button variant="ghost" onClick={() => (step === 0 ? router.push('/cart') : setStep((s) => s - 1))}>
@@ -326,7 +348,7 @@ function CheckoutInner() {
               <Button
                 onClick={() => setStep((s) => s + 1)}
                 iconRight={<ArrowRight size={17} />}
-                disabled={(step === 0 && !DELIVERY_OPTIONS[delivery].pickup && !street.trim()) || (step === 1 && !selected)}
+                disabled={(step === 0 && deliveryMethod !== 'pickup' && !street.trim()) || (step === 1 && !selected)}
               >
                 Continue
               </Button>

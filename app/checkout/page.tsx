@@ -9,6 +9,7 @@ import { ArrowRight, Truck, CreditCard, MapPin, Info } from 'lucide-react'
 import CommerceShell from '@/components/shop/CommerceShell'
 import { Button, Field, Radio, inputStyle } from '@/components/shop/ui'
 import { useCart } from '@/components/cart/CartContext'
+import { useToast } from '@/components/cart/ToastContext'
 import { fmt } from '@/lib/catalog'
 
 const HEADLINES = ['Where to?', "How you'll pay.", 'Review & place order.']
@@ -37,6 +38,7 @@ function CheckoutInner() {
   const searchParams = useSearchParams()
   const { data: session } = useSession()
   const { items, total, promoCode, clear, hydrated } = useCart()
+  const { pushToast } = useToast()
   const [step, setStep] = useState(0)
   const [delivery, setDelivery] = useState(0)
   const [methods, setMethods] = useState<PayMethod[]>([])
@@ -127,7 +129,7 @@ function CheckoutInner() {
     }
 
     // Direct methods → record the order, then show pay instructions on /confirm.
-    let orderNo = 'KE-' + (1024 + Math.floor(Math.random() * 900))
+    let orderNo: string | null = null
     try {
       const res = await fetch('/api/orders', {
         method: 'POST',
@@ -136,7 +138,12 @@ function CheckoutInner() {
       })
       if (res.ok) orderNo = (await res.json()).orderNo
     } catch {
-      // keep the client-generated number if the API is unreachable
+      // network error — orderNo stays null, handled below
+    }
+    if (!orderNo) {
+      setPlacing(false)
+      pushToast('x', "Couldn't place your order", 'Please check your connection and try again.')
+      return
     }
     try {
       sessionStorage.setItem('ke-last-order', orderNo)

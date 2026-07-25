@@ -60,40 +60,46 @@ export async function POST(request: Request) {
   const { customerName, email, phone, shippingAddress, billingAddress, cartId, paymentMethod, promoCode, items } = parsed.data
   // Prefer the signed-in email, else the one the guest typed at checkout.
   const contactEmail = session?.user?.email ?? email ?? null
-  const units = items.reduce((sum, i) => sum + i.qty, 0)
-  const gross = items.reduce((sum, i) => sum + i.price * i.qty, 0)
-  const bulkDiscount = Math.round(gross * bulkRateForQty(units))
-  // Validate + apply the promo server-side (never trust a client-sent amount).
-  const promo = promoCode ? await validatePromo(promoCode, gross) : null
-  const promoDiscount = promo?.valid ? (promo.discount ?? 0) : 0
-  const total = Math.max(0, gross - bulkDiscount - promoDiscount)
-  const orderNo = await nextOrderNo()
 
-  const order = await prisma.order.create({
-    data: {
-      orderNo,
-      userId,
-      customerName,
-      email: contactEmail,
-      phone: phone ?? null,
-      shippingAddress: shippingAddress ?? null,
-      billingAddress: billingAddress ?? null,
-      status: 'PENDING',
-      paymentMethod: paymentMethod ?? null,
-      total,
-      items: { create: items.map((i) => ({ name: i.name, qty: i.qty, price: i.price })) },
-    },
-  })
+  try {
+    const units = items.reduce((sum, i) => sum + i.qty, 0)
+    const gross = items.reduce((sum, i) => sum + i.price * i.qty, 0)
+    const bulkDiscount = Math.round(gross * bulkRateForQty(units))
+    // Validate + apply the promo server-side (never trust a client-sent amount).
+    const promo = promoCode ? await validatePromo(promoCode, gross) : null
+    const promoDiscount = promo?.valid ? (promo.discount ?? 0) : 0
+    const total = Math.max(0, gross - bulkDiscount - promoDiscount)
+    const orderNo = await nextOrderNo()
 
-  // Mark this cart as converted so it isn't counted as abandoned.
-  if (cartId) {
-    await prisma.cart.updateMany({ where: { id: cartId }, data: { status: 'CONVERTED' } }).catch(() => {})
+    const order = await prisma.order.create({
+      data: {
+        orderNo,
+        userId,
+        customerName,
+        email: contactEmail,
+        phone: phone ?? null,
+        shippingAddress: shippingAddress ?? null,
+        billingAddress: billingAddress ?? null,
+        status: 'PENDING',
+        paymentMethod: paymentMethod ?? null,
+        total,
+        items: { create: items.map((i) => ({ name: i.name, qty: i.qty, price: i.price })) },
+      },
+    })
+
+    // Mark this cart as converted so it isn't counted as abandoned.
+    if (cartId) {
+      await prisma.cart.updateMany({ where: { id: cartId }, data: { status: 'CONVERTED' } }).catch(() => {})
+    }
+
+    // Fire-and-forget confirmation email (works for guests too, via captured email).
+    if (contactEmail) {
+      void sendOrderConfirmation({ to: contactEmail, customerName, orderNo: order.orderNo, total, items })
+    }
+
+    return NextResponse.json({ orderNo: order.orderNo }, { status: 201 })
+  } catch (err) {
+    console.error('[orders] failed to create order:', err)
+    return NextResponse.json({ error: 'Could not place your order. Please try again.' }, { status: 500 })
   }
-
-  // Fire-and-forget confirmation email (works for guests too, via captured email).
-  if (contactEmail) {
-    void sendOrderConfirmation({ to: contactEmail, customerName, orderNo: order.orderNo, total, items })
-  }
-
-  return NextResponse.json({ orderNo: order.orderNo }, { status: 201 })
 }

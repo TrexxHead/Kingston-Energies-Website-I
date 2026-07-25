@@ -22,6 +22,22 @@ function emailHeader(status: string): string {
 }
 
 /**
+ * Wrap arbitrary email body HTML in the standard Kingston Energies branded
+ * shell (logo, wordmark, slogan, status line). Use this for every outgoing
+ * email — order updates, cancellations, campaigns, NPS invites — so nothing
+ * goes out as plain unbranded text.
+ */
+export function wrapEmailHtml(status: string, bodyHtml: string): string {
+  return `
+  <div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;color:#1c2a25">
+    ${emailHeader(status)}
+    <div style="border:1px solid #e2e8e4;border-top:none;padding:24px;border-radius:0 0 16px 16px">
+      ${bodyHtml}
+    </div>
+  </div>`
+}
+
+/**
  * Transactional email seam.
  *
  * If EMAIL_API_KEY + EMAIL_FROM are set, order confirmations are sent via the

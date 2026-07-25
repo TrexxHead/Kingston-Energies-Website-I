@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/authOptions'
-import { sendBulkEmail } from '@/lib/email'
+import { sendBulkEmail, wrapEmailHtml } from '@/lib/email'
 import { notifyUser } from '@/lib/notify'
 
 const schema = z.object({ reason: z.string().max(300).optional() })
@@ -62,12 +62,22 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     void sendBulkEmail(
       [customerEmail],
       `Order ${order.orderNo} cancelled`,
-      `<p>Your order <strong>${order.orderNo}</strong> has been cancelled${reason ? ` (${escapeHtml(reason)})` : ''}. Any payment made will be refunded. — Kingston Energies</p>`,
+      wrapEmailHtml(
+        'Order cancelled',
+        `<p>Your order <strong>${order.orderNo}</strong> has been cancelled${reason ? ` (${escapeHtml(reason)})` : ''}. Any payment made will be refunded.</p>`,
+      ),
     )
   }
   const adminEmail = process.env.ADMIN_EMAIL
   if (adminEmail) {
-    void sendBulkEmail([adminEmail], `Order ${order.orderNo} cancelled by customer`, `<p>${escapeHtml(order.customerName)} cancelled ${order.orderNo}${reason ? `: ${escapeHtml(reason)}` : ''}. Stock has been restored.</p>`)
+    void sendBulkEmail(
+      [adminEmail],
+      `Order ${order.orderNo} cancelled by customer`,
+      wrapEmailHtml(
+        'Order cancelled by customer',
+        `<p>${escapeHtml(order.customerName)} cancelled ${order.orderNo}${reason ? `: ${escapeHtml(reason)}` : ''}. Stock has been restored.</p>`,
+      ),
+    )
   }
 
   return NextResponse.json({ ok: true, message: `Order ${order.orderNo} cancelled. Stock restored and a confirmation emailed.` })

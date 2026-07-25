@@ -1,20 +1,16 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { guardAdmin } from '@/lib/requireAdmin'
-import { sendBulkEmail } from '@/lib/email'
+import { sendBulkEmail, wrapEmailHtml } from '@/lib/email'
 
 function campaignHtml(subject: string, body: string): string {
   const paras = body.split('\n').filter(Boolean).map((p) => `<p style="margin:0 0 14px;color:#1c2a25;line-height:1.6">${escapeHtml(p)}</p>`).join('')
-  return `<div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#1c2a25">
-    <div style="background:linear-gradient(135deg,#04547c,#1c4a44);padding:24px 26px;border-radius:16px 16px 0 0">
-      <div style="color:#fff;font-size:20px;font-weight:800">Kingston Energies</div>
-    </div>
-    <div style="padding:26px;border:1px solid #eee;border-top:none;border-radius:0 0 16px 16px">
-      <h1 style="font-size:20px;margin:0 0 16px">${escapeHtml(subject)}</h1>
-      ${paras}
-      <a href="${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://kingstonenergies.com'}/shop" style="display:inline-block;margin-top:8px;background:#1f6b45;color:#fff;text-decoration:none;padding:11px 22px;border-radius:999px;font-weight:600">Shop now</a>
-    </div>
-  </div>`
+  return wrapEmailHtml(
+    'Kingston Energies news',
+    `<h1 style="font-size:20px;margin:0 0 16px">${escapeHtml(subject)}</h1>` +
+      paras +
+      `<a href="${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://kingstonenergies.com'}/shop" style="display:inline-block;margin-top:8px;background:#1f6b45;color:#fff;text-decoration:none;padding:11px 22px;border-radius:999px;font-weight:600">Shop now</a>`,
+  )
 }
 
 function escapeHtml(s: string): string {

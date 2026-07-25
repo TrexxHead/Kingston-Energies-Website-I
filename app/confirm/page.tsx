@@ -8,6 +8,7 @@ import { ArrowRight, BadgeCheck, Sparkles, Wallet } from 'lucide-react'
 import CommerceShell from '@/components/shop/CommerceShell'
 import { Button, FeatureIcon } from '@/components/shop/ui'
 import NpsSurvey from '@/components/nps/NpsSurvey'
+import { linkifyText } from '@/lib/linkify'
 
 interface PayMethod {
   id: string
@@ -114,7 +115,7 @@ function ConfirmInner() {
               <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15 }}>Complete your payment — {payInfo.label}</span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13.5, color: 'var(--color-text)' }}>
-              {payInfo.details.map((d, i) => <div key={i}>{d}</div>)}
+              {payInfo.details.map((d, i) => <div key={i}>{linkifyText(d)}</div>)}
             </div>
             {payInfo.needsReference && (
               <div style={{ marginTop: 12, background: 'var(--ke-sun-50)', borderRadius: 10, padding: '10px 12px', fontSize: 13 }}>

@@ -77,10 +77,8 @@ export function buildInvoiceHtml(d: InvoiceData): string {
   <body>
     <div class="sheet">
       <div style="background:linear-gradient(120deg,#173d29,#0d1714);padding:30px 46px;display:flex;justify-content:space-between;align-items:center">
-        <div style="display:flex;align-items:center;gap:14px">
-          <div style="width:50px;height:50px;border-radius:50%;background:#fff;flex-shrink:0;display:flex;align-items:center;justify-content:center;overflow:hidden">
-            <img src="${logoUrl}" width="50" height="50" alt="" style="display:block;object-fit:contain" />
-          </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <img src="${logoUrl}" width="46" height="46" alt="" style="display:block;object-fit:contain;flex-shrink:0" />
           <div>
             <div style="color:#fff;font-size:21px;font-weight:800;letter-spacing:.01em">${BUSINESS.name}</div>
             <div style="color:#a9c2ae;font-size:11px;margin-top:3px;letter-spacing:.06em;text-transform:uppercase">Powering Progress</div>
@@ -151,31 +149,33 @@ export function buildInvoiceHtml(d: InvoiceData): string {
             </div>
           </td>
         </tr></table>
+      </div>
 
-        <div style="margin-top:48px;padding:24px 0;border-top:1px solid #e8ece9;display:flex;gap:30px">
+      <div style="margin-top:44px;background:linear-gradient(120deg,#173d29,#0d1714);padding:32px 46px 26px">
+        <div style="display:flex;gap:30px">
           <div style="flex:1">
-            <div style="color:#8a968c;text-transform:uppercase;font-size:9.5px;letter-spacing:.1em;font-weight:700">Need help?</div>
-            <div style="color:#5b655f;font-size:12px;margin-top:7px;line-height:1.7">
+            <div style="color:#8fbf9c;text-transform:uppercase;font-size:9.5px;letter-spacing:.1em;font-weight:700">Need help?</div>
+            <div style="color:#dbe6dd;font-size:12px;margin-top:7px;line-height:1.7">
               ${BUSINESS.phone}<br />${BUSINESS.email}<br />${BUSINESS.instagram}
             </div>
           </div>
           <div style="flex:1">
-            <div style="color:#8a968c;text-transform:uppercase;font-size:9.5px;letter-spacing:.1em;font-weight:700">Warranty & returns</div>
-            <div style="color:#5b655f;font-size:12px;margin-top:7px;line-height:1.7">
+            <div style="color:#8fbf9c;text-transform:uppercase;font-size:9.5px;letter-spacing:.1em;font-weight:700">Warranty and returns</div>
+            <div style="color:#dbe6dd;font-size:12px;margin-top:7px;line-height:1.7">
               Keep this invoice as your proof of purchase.<br />
               ${siteUrl.replace(/^https?:\/\//, '')}/legal/warranty<br />
               ${siteUrl.replace(/^https?:\/\//, '')}/legal/returns
             </div>
           </div>
           <div style="flex:1">
-            <div style="color:#8a968c;text-transform:uppercase;font-size:9.5px;letter-spacing:.1em;font-weight:700">Track this order</div>
-            <div style="color:#5b655f;font-size:12px;margin-top:7px;line-height:1.7">
+            <div style="color:#8fbf9c;text-transform:uppercase;font-size:9.5px;letter-spacing:.1em;font-weight:700">Track this order</div>
+            <div style="color:#dbe6dd;font-size:12px;margin-top:7px;line-height:1.7">
               ${siteUrl.replace(/^https?:\/\//, '')}/track?no=${d.orderNo}
             </div>
           </div>
         </div>
 
-        <div style="padding:22px 0 30px;border-top:1px solid #e8ece9;color:#8a968c;font-size:11.5px;text-align:center">
+        <div style="margin-top:24px;padding-top:20px;border-top:1px solid rgba(255,255,255,.12);color:#a9c2ae;font-size:11.5px;text-align:center">
           Thank you for your business — ${BUSINESS.name}
         </div>
       </div>

@@ -1,3 +1,4 @@
+import { prisma } from '@/lib/prisma'
 import { fmt } from '@/lib/catalog'
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://kingstonenergies.com'
@@ -88,6 +89,65 @@ export async function sendOrderConfirmation(input: OrderEmailInput): Promise<voi
   } catch (err) {
     // Never let email failure break the order flow.
     console.error('[email] failed to send order confirmation:', err)
+  }
+}
+
+/**
+ * Alert every admin account (plus ADMIN_EMAIL, if it's not one of them
+ * already) the moment a new order is placed, so orders that need manual
+ * follow-up — bank transfer, Lynk, PayPal, cash on delivery — get seen
+ * promptly instead of waiting for someone to check the dashboard.
+ * Best-effort: never throws, never blocks the checkout response.
+ */
+export async function sendNewOrderAlert(input: {
+  orderNo: string
+  customerName: string
+  total: number
+  paymentMethod: string | null
+  items: { name: string; qty: number; price: number }[]
+}): Promise<void> {
+  if (!isEmailConfigured()) {
+    console.info(`[email] skipped new-order alert for ${input.orderNo} (no provider configured)`)
+    return
+  }
+
+  let adminEmails: string[] = []
+  try {
+    const admins = await prisma.user.findMany({
+      where: { role: { in: ['ADMIN', 'SUPER_ADMIN'] } },
+      select: { email: true },
+    })
+    adminEmails = admins.map((a) => a.email)
+  } catch (err) {
+    console.error('[email] failed to load admin recipients:', err)
+  }
+  const envAdmin = process.env.ADMIN_EMAIL
+  const recipients = Array.from(new Set([...adminEmails, ...(envAdmin ? [envAdmin] : [])])).filter(Boolean)
+  if (recipients.length === 0) return
+
+  const site = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://kingstonenergies.com'
+  const rows = input.items
+    .map(
+      (i) =>
+        `<tr><td style="padding:5px 0;color:#1c2a25">${escapeHtml(i.name)} × ${i.qty}</td><td style="padding:5px 0;text-align:right;color:#1c2a25">${fmt(i.price * i.qty)}</td></tr>`,
+    )
+    .join('')
+
+  const html = wrapEmailHtml(
+    'New order placed',
+    `<p><strong>${escapeHtml(input.customerName)}</strong> just placed order <strong>${input.orderNo}</strong>.</p>` +
+      `<table style="width:100%;border-collapse:collapse;margin-top:10px;font-size:13.5px">${rows}
+        <tr><td style="padding:8px 0 0;border-top:1px solid #e2e8e4;font-weight:700">Total</td>
+        <td style="padding:8px 0 0;border-top:1px solid #e2e8e4;text-align:right;font-weight:700">${fmt(input.total)}</td></tr>
+      </table>` +
+      `<p style="font-size:12.5px;color:#556059;margin-top:14px">Payment method: ${escapeHtml(input.paymentMethod ?? '—')}</p>` +
+      `<a href="${site}/admin/dashboard" style="display:inline-block;margin-top:12px;background:#1f6b45;color:#fff;text-decoration:none;padding:10px 20px;border-radius:999px;font-weight:600;font-size:13px">Open admin dashboard</a>`,
+  )
+
+  try {
+    await Promise.all(recipients.map((to) => deliver({ to, subject: `New order ${input.orderNo} — ${fmt(input.total)}`, html })))
+  } catch (err) {
+    console.error('[email] failed to send new-order alert:', err)
   }
 }
 
@@ -228,4 +288,8 @@ function renderVerificationHtml(input: VerificationEmailInput): string {
       <p style="font-size:12px;color:#8a938d;margin-top:20px">This link expires in 24 hours. If you didn't create this account, you can ignore this email.</p>
     </div>
   </div>`
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string))
 }

@@ -8,6 +8,7 @@ import { buildWiPayRequest, wipayConfigured } from '@/lib/wipay'
 import { bulkRateForQty } from '@/lib/pricing'
 import { validatePromo } from '@/lib/promo'
 import { deliveryFee, deliveryLineLabel } from '@/lib/delivery'
+import { sendNewOrderAlert } from '@/lib/email'
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
@@ -85,6 +86,9 @@ export async function POST(request: Request) {
   if (cartId) {
     await prisma.cart.updateMany({ where: { id: cartId }, data: { status: 'CONVERTED' } }).catch(() => {})
   }
+
+  // Alert every admin so orders needing manual follow-up get seen promptly.
+  void sendNewOrderAlert({ orderNo, customerName, total, paymentMethod: 'card', items: recordedItems })
 
   const req = buildWiPayRequest({
     orderNo,

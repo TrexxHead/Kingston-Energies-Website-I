@@ -104,6 +104,7 @@ export default function Footer() {
             { href: '/legal/terms', label: 'Terms' },
             { href: '/legal/returns', label: 'Returns & Refunds' },
             { href: '/legal/warranty', label: 'Warranty' },
+            { href: '/legal/delivery', label: 'Delivery & Rates' },
           ].map((l) => (
             <Link key={l.href} href={l.href} style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '.14em', color: 'rgba(234,242,236,.4)' }}>
               {l.label.toUpperCase()}

@@ -7,6 +7,7 @@ import { rateLimit, clientIp } from '@/lib/rateLimit'
 import { buildWiPayRequest, wipayConfigured } from '@/lib/wipay'
 import { bulkRateForQty } from '@/lib/pricing'
 import { validatePromo } from '@/lib/promo'
+import { deliveryFee, deliveryLineLabel } from '@/lib/delivery'
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
@@ -17,6 +18,8 @@ const bodySchema = z.object({
   shippingAddress: z.string().max(400).optional(),
   billingAddress: z.string().max(400).optional(),
   cartId: z.string().max(60).optional(),
+  parish: z.string().max(60).optional(),
+  deliveryMethod: z.enum(['standard', 'express', 'pickup']).optional(),
   promoCode: z.string().max(40).optional(),
   items: z.array(z.object({ name: z.string().min(1).max(160), price: z.number().min(0), qty: z.number().int().min(1) })).min(1),
 })
@@ -47,13 +50,19 @@ export async function POST(request: Request) {
   if (!parsed.success) return NextResponse.json({ error: 'Invalid order' }, { status: 400 })
 
   const session = await getServerSession(authOptions)
-  const { customerName, email, phone, shippingAddress, billingAddress, cartId, promoCode, items } = parsed.data
+  const { customerName, email, phone, shippingAddress, billingAddress, cartId, parish, deliveryMethod, promoCode, items } = parsed.data
   const units = items.reduce((sum, i) => sum + i.qty, 0)
   const gross = items.reduce((sum, i) => sum + i.price * i.qty, 0)
   const bulkDiscount = Math.round(gross * bulkRateForQty(units))
   const promo = promoCode ? await validatePromo(promoCode, gross) : null
-  const total = Math.max(0, gross - bulkDiscount - (promo?.valid ? (promo.discount ?? 0) : 0))
+  // Delivery fee is recomputed server-side from the rate sheet — never trust a client-sent amount.
+  const fee = deliveryMethod && parish ? deliveryFee(deliveryMethod, parish) : 0
+  const total = Math.max(0, gross - bulkDiscount - (promo?.valid ? (promo.discount ?? 0) : 0)) + fee
   const orderNo = await nextOrderNo()
+  const recordedItems = [
+    ...items,
+    ...(fee > 0 && deliveryMethod && parish ? [{ name: deliveryLineLabel(deliveryMethod, parish), qty: 1, price: fee }] : []),
+  ]
 
   await prisma.order.create({
     data: {
@@ -68,7 +77,7 @@ export async function POST(request: Request) {
       paymentMethod: 'card',
       paid: false,
       total,
-      items: { create: items.map((i) => ({ name: i.name, qty: i.qty, price: i.price })) },
+      items: { create: recordedItems.map((i) => ({ name: i.name, qty: i.qty, price: i.price })) },
     },
   })
 

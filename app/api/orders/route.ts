@@ -7,6 +7,7 @@ import { rateLimit, clientIp } from '@/lib/rateLimit'
 import { sendOrderConfirmation } from '@/lib/email'
 import { bulkRateForQty } from '@/lib/pricing'
 import { validatePromo } from '@/lib/promo'
+import { deliveryFee, deliveryLineLabel } from '@/lib/delivery'
 
 const orderSchema = z.object({
   customerName: z.string().min(1).max(120),
@@ -15,6 +16,8 @@ const orderSchema = z.object({
   shippingAddress: z.string().max(400).optional(),
   billingAddress: z.string().max(400).optional(),
   cartId: z.string().max(60).optional(),
+  parish: z.string().max(60).optional(),
+  deliveryMethod: z.enum(['standard', 'express', 'pickup']).optional(),
   paymentMethod: z.enum(['bank', 'lynk', 'paypal', 'cod', 'card']).optional(),
   promoCode: z.string().max(40).optional(),
   items: z
@@ -67,7 +70,7 @@ export async function POST(request: Request) {
     const session = await getServerSession(authOptions)
     const userId = session?.user?.id ?? null
 
-    const { customerName, email, phone, shippingAddress, billingAddress, cartId, paymentMethod, promoCode, items } = parsed.data
+    const { customerName, email, phone, shippingAddress, billingAddress, cartId, parish, deliveryMethod, paymentMethod, promoCode, items } = parsed.data
     // Prefer the signed-in email, else the one the guest typed at checkout.
     const contactEmail = session?.user?.email ?? email ?? null
 
@@ -77,8 +80,14 @@ export async function POST(request: Request) {
     // Validate + apply the promo server-side (never trust a client-sent amount).
     const promo = promoCode ? await validatePromo(promoCode, gross) : null
     const promoDiscount = promo?.valid ? (promo.discount ?? 0) : 0
-    const total = Math.max(0, gross - bulkDiscount - promoDiscount)
+    // Delivery fee is recomputed server-side from the rate sheet — never trust a client-sent amount.
+    const fee = deliveryMethod && parish ? deliveryFee(deliveryMethod, parish) : 0
+    const total = Math.max(0, gross - bulkDiscount - promoDiscount) + fee
     const orderNo = await nextOrderNo()
+    const recordedItems = [
+      ...items,
+      ...(fee > 0 && deliveryMethod && parish ? [{ name: deliveryLineLabel(deliveryMethod, parish), qty: 1, price: fee }] : []),
+    ]
 
     const order = await prisma.order.create({
       data: {
@@ -92,7 +101,7 @@ export async function POST(request: Request) {
         status: 'PENDING',
         paymentMethod: paymentMethod ?? null,
         total,
-        items: { create: items.map((i) => ({ name: i.name, qty: i.qty, price: i.price })) },
+        items: { create: recordedItems.map((i) => ({ name: i.name, qty: i.qty, price: i.price })) },
       },
     })
 
@@ -103,7 +112,7 @@ export async function POST(request: Request) {
 
     // Fire-and-forget confirmation email (works for guests too, via captured email).
     if (contactEmail) {
-      void sendOrderConfirmation({ to: contactEmail, customerName, orderNo: order.orderNo, total, items })
+      void sendOrderConfirmation({ to: contactEmail, customerName, orderNo: order.orderNo, total, items: recordedItems })
     }
 
     return NextResponse.json({ orderNo: order.orderNo }, { status: 201 })

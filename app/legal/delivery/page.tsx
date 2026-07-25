@@ -130,7 +130,7 @@ export default function DeliveryRateSheetPage() {
         <ul style={{ margin: '10px 0 0', paddingLeft: 20, lineHeight: 1.8 }}>
           {PICKUP_LOCATIONS.map((loc) => (
             <li key={loc.name}>
-              <strong>{loc.name}</strong>
+              <strong>{loc.name}</strong> — {loc.address}
             </li>
           ))}
         </ul>

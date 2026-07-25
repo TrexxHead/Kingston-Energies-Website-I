@@ -37,8 +37,13 @@ function ConfirmInner() {
     try {
       const fromQuery = searchParams.get('order')
       const stored = sessionStorage.getItem('ke-last-order')
-      if (fromQuery) setOrderNo(fromQuery)
-      else if (stored) setOrderNo(stored)
+      if (fromQuery) {
+        setOrderNo(fromQuery)
+        // Card payments land here via a WiPay redirect, which never went
+        // through the checkout page's sessionStorage write — persist it now
+        // so "Track order" (and a future visit to /track) can find it.
+        sessionStorage.setItem('ke-last-order', fromQuery)
+      } else if (stored) setOrderNo(stored)
       method = sessionStorage.getItem('ke-last-method') ?? ''
     } catch {
       // ignore
@@ -120,7 +125,7 @@ function ConfirmInner() {
         )}
 
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 30, flexWrap: 'wrap' }}>
-          <Button onClick={() => router.push('/track')} iconRight={<ArrowRight size={17} />}>Track order</Button>
+          <Button onClick={() => router.push(`/track?no=${encodeURIComponent(orderNo)}`)} iconRight={<ArrowRight size={17} />}>Track order</Button>
           <Button variant="outline" onClick={() => router.push('/shop')}>Keep shopping</Button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, background: '#fff', border: '1px solid var(--color-border)', borderRadius: 18, padding: '20px 24px', marginTop: 44, textAlign: 'left', boxShadow: 'var(--shadow-sm)' }}>

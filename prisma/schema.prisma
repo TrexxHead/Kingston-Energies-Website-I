@@ -36,6 +36,63 @@ model User {
   npsResponses  NpsResponse[]
   reviews       Review[]
   favorites     Favorite[]
+  notifications Notification[]
+  addresses     Address[]
+}
+
+// Server-side cart snapshots — powers abandoned-cart tracking and conversion
+// rate. Keyed by an anonymous cart id (cookie) and linked to a user/email when
+// known. Marked CONVERTED when an order is placed.
+model Cart {
+  id        String   @id // client-generated cart id (also stored in a cookie)
+  userId    String?
+  email     String?
+  items     Json     // [{ name, price, qty }]
+  itemCount Int      @default(0)
+  total     Float    @default(0)
+  status    String   @default("ACTIVE") // ACTIVE | CONVERTED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, updatedAt])
+  @@index([userId])
+}
+
+// Saved delivery/billing addresses in the customer dashboard. Prefilled at
+// checkout; one may be flagged as the default.
+model Address {
+  id        String   @id @default(cuid())
+  userId    String
+  label     String?  // e.g. "Home", "Office"
+  name      String
+  phone     String?
+  street    String
+  parish    String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// Per-customer notification center: order/shipping updates, restocks, discounts,
+// promotions, warranty reminders, events and announcements. Unread + archive
+// state let customers triage them like an inbox.
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  category  String   // ORDER | SHIPPING | NEW_PRODUCT | RESTOCK | DISCOUNT | PROMOTION | WARRANTY | EVENT | ANNOUNCEMENT
+  title     String
+  body      String?  @db.Text
+  href      String?
+  read      Boolean  @default(false)
+  archived  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, archived, read])
 }
 
 // A customer's saved / favourited products. productId is the catalog id
@@ -91,16 +148,25 @@ model Product {
   id          String   @id @default(cuid())
   name        String
   description String   @db.Text
+  shortDescription String? @db.Text // storefront card / summary copy
   price       Float
+  salePrice   Float?   // optional sale price shown struck-through against price
   cost        Float?   // unit cost, for COGS / margin in the P&L
   icon        String?
+  images      String[] // ordered storefront gallery URLs; images[0] = thumbnail
   features    String[]
+  specs       Json?    // [{ label, value }] technical specifications
+  brand       String?
+  weight      String?
+  dimensions  String?
+  warranty    String?
+  tags        String[] // search / merchandising tags
   sku         String?  @unique
   barcode     String?
   category    ProductCategory?
   spec        String?
   stock       Int      @default(0)
-  threshold   Int      @default(5)
+  threshold   Int      @default(5) // reorder threshold
   badge       String?
   archived    Boolean  @default(false)
   createdAt   DateTime @default(now())
@@ -159,17 +225,42 @@ model Order {
   status        OrderStatus @default(PENDING)
   source        OrderChannel @default(WEBSITE)
   contact       String?     // WhatsApp number / Instagram handle for off-site orders
+  email         String?     // captured at checkout — used for guest invoices/receipts
+  phone         String?
+  shippingAddress String?   @db.Text
+  billingAddress  String?   @db.Text
   paymentMethod String?
   paid          Boolean     @default(false) // payment received/confirmed
   invoicedAt    DateTime?   // when an invoice was issued/sent (prevents dupes)
+  cancelReason  String?
+  cancelledAt   DateTime?
+  stage         Int         @default(0) // 0-7 position in the 8-stage delivery pipeline
+  estimatedDelivery DateTime? // admin-set / auto ETA shown to the customer
   total         Float       @default(0)
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
-  user  User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
-  items OrderItem[]
+  user   User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  items  OrderItem[]
+  events OrderEvent[]
 
   @@index([userId])
+}
+
+// Timeline events for an order (cancellations, stage changes, notes). Powers
+// the cancellation log and the delivery pipeline.
+model OrderEvent {
+  id        String   @id @default(cuid())
+  orderId   String
+  type      String   // STATUS | CANCELLED | NOTE
+  label     String?
+  note      String?  @db.Text
+  adminOnly Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
 }
 
 // Where an order originated — lets the dashboard tag WhatsApp/Instagram orders

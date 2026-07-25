@@ -20,7 +20,7 @@ interface Code {
   description: string | null
 }
 
-const emptyForm = { code: '', type: 'PERCENT', value: '', minSpend: '', expiresAt: '', description: '' }
+const emptyForm = { code: '', type: 'PERCENT', value: '', minSpend: '', expiresAt: '', description: '', announce: true }
 
 /**
  * Live discount-code manager. Codes created here work at checkout immediately —
@@ -60,6 +60,7 @@ export default function DiscountCodesCard() {
         minSpend: form.minSpend ? Number(form.minSpend) : undefined,
         expiresAt: form.expiresAt || undefined,
         description: form.description || undefined,
+        announce: form.announce,
       }),
     })
     setBusy(false)
@@ -144,6 +145,10 @@ export default function DiscountCodesCard() {
               <TextInput label="Expires (optional)" value={form.expiresAt} onChange={(v) => setForm({ ...form, expiresAt: v })} type="date" />
             </div>
             <TextInput label="Note (optional)" value={form.description} onChange={(v) => setForm({ ...form, description: v })} placeholder="e.g. Summer promo" />
+            <label style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 12.5, color: 'var(--color-text)', cursor: 'pointer' }}>
+              <input type="checkbox" checked={form.announce} onChange={(e) => setForm({ ...form, announce: e.target.checked })} />
+              Notify all customers in their notification centre
+            </label>
           </div>
         </Modal>
       )}

@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { guardAdmin } from '@/lib/requireAdmin'
 import { issueInvoiceForOrder } from '@/lib/invoice'
+import { stageForStatus } from '@/lib/pipeline'
 
 const patchSchema = z
   .object({
@@ -24,7 +25,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const order = await prisma.order.update({
       where: { id },
       data: {
-        ...(parsed.data.status !== undefined ? { status: parsed.data.status } : {}),
+        // Moving between kanban columns also snaps the fine-grained pipeline
+        // stage to a representative position (unless it's a cancellation).
+        ...(parsed.data.status !== undefined
+          ? { status: parsed.data.status, ...(parsed.data.status !== 'CANCELLED' ? { stage: stageForStatus(parsed.data.status) } : {}) }
+          : {}),
         ...(parsed.data.paid !== undefined ? { paid: parsed.data.paid } : {}),
       },
     })

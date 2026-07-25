@@ -3,9 +3,12 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { guardAdmin } from '@/lib/requireAdmin'
 
+const specItem = z.object({ label: z.string().max(80), value: z.string().max(200) })
+
 const productSchema = z.object({
   name: z.string().min(1).max(160),
   price: z.number().min(0),
+  salePrice: z.number().min(0).nullish(),
   cost: z.number().min(0).nullish(),
   stock: z.number().int().min(0),
   threshold: z.number().int().min(0),
@@ -14,6 +17,16 @@ const productSchema = z.object({
   barcode: z.string().max(60).nullish(),
   spec: z.string().max(160).nullish(),
   badge: z.string().max(60).nullish(),
+  description: z.string().max(4000).nullish(),
+  shortDescription: z.string().max(600).nullish(),
+  brand: z.string().max(80).nullish(),
+  weight: z.string().max(60).nullish(),
+  dimensions: z.string().max(120).nullish(),
+  warranty: z.string().max(120).nullish(),
+  images: z.array(z.string().max(600)).max(12).optional(),
+  features: z.array(z.string().max(200)).max(20).optional(),
+  tags: z.array(z.string().max(40)).max(20).optional(),
+  specs: z.array(specItem).max(40).optional(),
 })
 
 export async function GET(request: Request) {
@@ -42,10 +55,19 @@ export async function POST(request: Request) {
   const product = await prisma.product.create({
     data: {
       name: d.name,
-      description: d.spec ?? d.name,
+      description: d.description ?? d.spec ?? d.name,
+      shortDescription: d.shortDescription ?? null,
       price: d.price,
+      salePrice: d.salePrice ?? null,
       cost: d.cost ?? null,
-      features: [],
+      features: d.features ?? [],
+      images: d.images ?? [],
+      tags: d.tags ?? [],
+      specs: d.specs ?? undefined,
+      brand: d.brand ?? null,
+      weight: d.weight ?? null,
+      dimensions: d.dimensions ?? null,
+      warranty: d.warranty ?? null,
       stock: d.stock,
       threshold: d.threshold,
       category: d.category ?? null,

@@ -9,6 +9,7 @@ interface TextInputProps {
   type?: string
   placeholder?: string
   options?: string[]
+  multiline?: boolean
 }
 
 const controlStyle: CSSProperties = {
@@ -37,7 +38,7 @@ const onBlur = (e: FocusEvent<HTMLInputElement | HTMLSelectElement>) => {
   e.currentTarget.style.background = '#fbfcfb'
 }
 
-export default function TextInput({ label, value, onChange, type = 'text', placeholder, options }: TextInputProps) {
+export default function TextInput({ label, value, onChange, type = 'text', placeholder, options, multiline }: TextInputProps) {
   return (
     <label style={{ display: 'block' }}>
       {label && (
@@ -45,7 +46,17 @@ export default function TextInput({ label, value, onChange, type = 'text', place
           {label}
         </span>
       )}
-      {options ? (
+      {multiline ? (
+        <textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          rows={4}
+          onFocus={onFocus as unknown as (e: FocusEvent<HTMLTextAreaElement>) => void}
+          onBlur={onBlur as unknown as (e: FocusEvent<HTMLTextAreaElement>) => void}
+          style={{ ...controlStyle, height: 'auto', minHeight: 88, padding: '10px 13px', resize: 'vertical', lineHeight: 1.5 }}
+        />
+      ) : options ? (
         <select value={value} onChange={(e) => onChange(e.target.value)} onFocus={onFocus} onBlur={onBlur} style={{ ...controlStyle, appearance: 'none' }}>
           {options.map((o) => (
             <option key={o} value={o}>

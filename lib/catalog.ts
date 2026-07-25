@@ -198,9 +198,28 @@ export const CATALOG: Product[] = [
  * A catalog product merged with live operational data from the database
  * (price + stock). `stock: null` means the product isn't tracked in the DB yet.
  */
+export interface SpecItem {
+  label: string
+  value: string
+}
+
 export interface ShopProduct extends Product {
   stock: number | null
   inStock: boolean
+  /** Original price when a sale price is active (for strike-through display). */
+  listPrice?: number
+  /** Admin-managed CMS content overlaid from the database, when present. */
+  shortDescription?: string
+  longDescription?: string
+  brand?: string
+  weight?: string
+  dimensions?: string
+  tags?: string[]
+  specs?: SpecItem[]
+  features?: string[]
+  /** Average review rating (1–5) and count, when the product has reviews. */
+  rating?: number
+  reviewCount?: number
 }
 
 export const CATEGORY_PILLS: { id: 'all' | Category; label: string }[] = [

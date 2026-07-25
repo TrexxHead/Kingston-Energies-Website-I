@@ -3,6 +3,7 @@ import { authOptions } from '@/lib/authOptions'
 import { prisma } from '@/lib/prisma'
 import { fmt } from '@/lib/catalog'
 import Topbar from '../_components/Topbar'
+import CancelOrderButton from './CancelOrderButton'
 
 const STATUS_META: Record<string, { label: string; bg: string; fg: string }> = {
   PENDING: { label: 'Processing', bg: 'var(--ke-sun-50)', fg: 'var(--ke-sun-500)' },
@@ -12,15 +13,26 @@ const STATUS_META: Record<string, { label: string; bg: string; fg: string }> = {
   CANCELLED: { label: 'Cancelled', bg: 'var(--ke-gray-100)', fg: 'var(--ke-gray-600)' },
 }
 
+// Load orders defensively — a transient DB/schema issue shows an empty state
+// rather than crashing the whole account area.
+async function loadOrders(userId: string) {
+  try {
+    return await prisma.order.findMany({
+      where: { userId },
+      include: { items: true },
+      orderBy: { createdAt: 'desc' },
+    })
+  } catch {
+    return []
+  }
+}
+
 export default async function HubOrdersPage() {
   const session = await getServerSession(authOptions)
-  const orders = session?.user?.id
-    ? await prisma.order.findMany({
-        where: { userId: session.user.id },
-        include: { items: true },
-        orderBy: { createdAt: 'desc' },
-      })
-    : []
+  let orders: Awaited<ReturnType<typeof loadOrders>> = []
+  if (session?.user?.id) {
+    orders = await loadOrders(session.user.id)
+  }
 
   return (
     <>
@@ -89,10 +101,22 @@ export default async function HubOrdersPage() {
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, borderTop: '1px solid var(--color-border)', marginTop: 12, paddingTop: 12 }}>
-                    <a href="/track" style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '.14em', color: 'var(--ke-green-700)' }}>
+                    <a href={`/track?no=${encodeURIComponent(o.orderNo)}`} style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '.14em', color: 'var(--ke-green-700)' }}>
                       TRACK DELIVERY →
                     </a>
                     <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 17 }}>{fmt(o.total)}</span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginTop: 12, flexWrap: 'wrap' }}>
+                    <a
+                      href={`/api/orders/${o.id}/invoice`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12.5, color: 'var(--ke-green-700)', textDecoration: 'none' }}
+                    >
+                      Download invoice
+                    </a>
+                    <CancelOrderButton orderId={o.id} status={o.status} cancelReason={o.cancelReason} />
                   </div>
                 </div>
               )

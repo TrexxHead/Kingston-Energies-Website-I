@@ -112,14 +112,14 @@ export async function invoiceDataForOrder(orderId: string): Promise<{ data: Invo
     data: {
       orderNo: order.orderNo,
       customerName: order.customerName,
-      contact: order.contact,
+      contact: order.contact ?? order.phone,
       date: new Date(order.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
       items: order.items.map((i) => ({ name: i.name, qty: i.qty, price: i.price })),
       total: order.total,
       paid: order.paid,
       paymentMethod: order.paymentMethod,
     },
-    email: order.user?.email ?? null,
+    email: order.user?.email ?? order.email ?? null,
   }
 }
 

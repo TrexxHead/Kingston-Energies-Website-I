@@ -44,6 +44,11 @@ function CheckoutInner() {
   const [placing, setPlacing] = useState(false)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
+  const [street, setStreet] = useState('')
+  const [parish, setParish] = useState('Kingston')
+  const [billingSame, setBillingSame] = useState(true)
+  const [billing, setBilling] = useState('')
   const paymentFailed = searchParams.get('payment') === 'failed'
   const empty = items.length === 0
 
@@ -52,6 +57,23 @@ function CheckoutInner() {
     if (session?.user?.email && !email) setEmail(session.user.email)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session])
+
+  // Prefill from the customer's default saved address (logged-in only).
+  useEffect(() => {
+    if (!session?.user?.id) return
+    fetch('/api/hub/addresses')
+      .then((r) => (r.ok ? r.json() : { addresses: [] }))
+      .then((d: { addresses: { name: string; phone: string | null; street: string; parish: string; isDefault: boolean }[] }) => {
+        const def = d.addresses?.find((a) => a.isDefault) ?? d.addresses?.[0]
+        if (!def) return
+        setName((v) => v || def.name)
+        setPhone((v) => v || def.phone || '')
+        setStreet((v) => v || def.street)
+        setParish((v) => (v && v !== 'Kingston' ? v : def.parish))
+      })
+      .catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.id])
 
   useEffect(() => {
     // If we came back from a failed card payment, land on the payment step.
@@ -78,6 +100,11 @@ function CheckoutInner() {
     setPlacing(true)
     const customerName = name.trim() || session?.user?.name || 'Guest checkout'
     const payloadItems = items.map((i) => ({ name: i.name, price: i.price, qty: i.qty }))
+    const shippingAddress = [street.trim(), parish].filter(Boolean).join(', ') || undefined
+    const billingAddress = billingSame ? shippingAddress : (billing.trim() || undefined)
+    let cartId: string | undefined
+    try { cartId = localStorage.getItem('ke-cart-id') ?? undefined } catch { /* ignore */ }
+    const contact = { email: email.trim() || undefined, phone: phone.trim() || undefined, shippingAddress, billingAddress, cartId }
 
     // Card → hand off to the WiPay hosted page.
     if (selected.gateway) {
@@ -85,7 +112,7 @@ function CheckoutInner() {
         const res = await fetch('/api/payments/wipay/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ customerName, email: email.trim() || undefined, items: payloadItems, promoCode: promoCode ?? undefined }),
+          body: JSON.stringify({ customerName, ...contact, items: payloadItems, promoCode: promoCode ?? undefined }),
         })
         if (res.ok) {
           const { action, fields } = await res.json()
@@ -105,7 +132,7 @@ function CheckoutInner() {
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customerName, paymentMethod: selected.id, items: payloadItems, promoCode: promoCode ?? undefined }),
+        body: JSON.stringify({ customerName, paymentMethod: selected.id, ...contact, items: payloadItems, promoCode: promoCode ?? undefined }),
       })
       if (res.ok) orderNo = (await res.json()).orderNo
     } catch {
@@ -140,15 +167,22 @@ function CheckoutInner() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <Field label="Full name"><input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your full name" style={inputStyle} /></Field>
               <div className="kp-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                <Field label="Phone"><input placeholder="876…" style={inputStyle} /></Field>
+                <Field label="Phone"><input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="876…" style={inputStyle} /></Field>
                 <Field label="Email"><input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="you@example.com" style={inputStyle} /></Field>
               </div>
-              <Field label="Street address"><input placeholder="12 Hope Road" style={inputStyle} /></Field>
+              <Field label="Street address"><input value={street} onChange={(e) => setStreet(e.target.value)} placeholder="12 Hope Road" style={inputStyle} /></Field>
               <Field label="Parish">
-                <select defaultValue="Kingston" style={{ ...inputStyle, appearance: 'none' }}>
+                <select value={parish} onChange={(e) => setParish(e.target.value)} style={{ ...inputStyle, appearance: 'none' }}>
                   {PARISHES.map((p) => <option key={p}>{p}</option>)}
                 </select>
               </Field>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 13.5, color: 'var(--color-text)', cursor: 'pointer' }}>
+                <input type="checkbox" checked={billingSame} onChange={(e) => setBillingSame(e.target.checked)} />
+                Billing address same as shipping
+              </label>
+              {!billingSame && (
+                <Field label="Billing address"><input value={billing} onChange={(e) => setBilling(e.target.value)} placeholder="Billing street, parish" style={inputStyle} /></Field>
+              )}
               <div>
                 <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, color: 'var(--color-text)' }}>Delivery</span>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>

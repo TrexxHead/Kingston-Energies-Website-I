@@ -10,6 +10,7 @@ import CommerceShell from '@/components/shop/CommerceShell'
 import ProductImage from '@/components/shop/ProductImage'
 import { Badge, Button } from '@/components/shop/ui'
 import { fmt, type ShopProduct } from '@/lib/catalog'
+import { recordView } from '@/lib/recentlyViewed'
 import { BULK_SUMMARY } from '@/lib/pricing'
 import { BENCHMARK_DEVICES, parseMah, chargesFor, formatCharges, CARE_TIPS } from '@/lib/productInfo'
 import { useCart } from '@/components/cart/CartContext'
@@ -39,6 +40,11 @@ export default function ProductClient({ product, initialReviews = [] }: { produc
   const [reviewed, setReviewed] = useState(false)
   const [saved, setSaved] = useState(false)
   const [savingFav, setSavingFav] = useState(false)
+
+  // Record this product in the customer's "recently viewed" list.
+  useEffect(() => {
+    recordView({ id: product.id, name: product.name, spec: product.spec, price: product.price, image: product.image, cat: product.cat })
+  }, [product.id, product.name, product.spec, product.price, product.image, product.cat])
 
   // Reflect whether this product is already in the customer's saved list.
   useEffect(() => {
@@ -94,12 +100,20 @@ export default function ProductClient({ product, initialReviews = [] }: { produc
   const gallery = (product.gallery?.length ? product.gallery : product.image ? [product.image] : []) as string[]
 
   // Spec cells shown under the buy button — only render the ones this product has.
-  const specCells = [
+  // Admin-managed specifications (from Inventory) come first, then the curated
+  // catalog attributes, de-duplicated by label.
+  const cmsSpecCells = (product.specs ?? []).map((s) => ({ label: s.label.toUpperCase(), value: s.value }))
+  const baseSpecCells = [
+    product.brand && { label: 'BRAND', value: product.brand },
     product.cap && { label: 'CAPACITY', value: activeVariant?.cap ?? product.cap },
     product.ports && { label: 'PORTS', value: product.ports },
     product.speed && { label: 'SPEED', value: product.speed },
+    product.weight && { label: 'WEIGHT', value: product.weight },
+    product.dimensions && { label: 'DIMENSIONS', value: product.dimensions },
     { label: 'WARRANTY', value: product.warranty ?? '14-day + manufacturer' },
   ].filter(Boolean) as { label: string; value: string }[]
+  const seenSpec = new Set(cmsSpecCells.map((c) => c.label))
+  const specCells = [...cmsSpecCells, ...baseSpecCells.filter((c) => !seenSpec.has(c.label))]
 
   const handleAdd = () => {
     if (soldOut) return
@@ -177,10 +191,20 @@ export default function ProductClient({ product, initialReviews = [] }: { produc
             {product.name}.
           </h1>
           <p style={{ fontSize: 16.5, lineHeight: 1.6, color: 'var(--color-text-muted)', marginTop: 14 }}>
-            {product.spec.split('·').map((s) => s.trim().toLowerCase()).filter(Boolean).join(' · ')}{product.best ? `. Built for ${product.best.toLowerCase()}.` : '.'}
+            {product.shortDescription
+              ? product.shortDescription
+              : `${product.spec.split('·').map((s) => s.trim().toLowerCase()).filter(Boolean).join(' · ')}${product.best ? `. Built for ${product.best.toLowerCase()}.` : '.'}`}
           </p>
+          {product.longDescription && (
+            <p style={{ fontSize: 15, lineHeight: 1.65, color: 'var(--color-text)', marginTop: 14, whiteSpace: 'pre-line' }}>
+              {product.longDescription}
+            </p>
+          )}
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, margin: '24px 0 0', flexWrap: 'wrap' }}>
             <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 40, letterSpacing: '-.02em', color: 'var(--color-text)' }}>{fmt(activePrice)}</span>
+            {!activeVariant && product.listPrice && product.listPrice > activePrice && (
+              <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 20, color: 'var(--color-text-muted)', textDecoration: 'line-through' }}>{fmt(product.listPrice)}</span>
+            )}
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '.1em', color: 'var(--ke-green-700)', background: 'var(--ke-green-50)', borderRadius: 999, padding: '4px 10px' }}>
               {BULK_SUMMARY}
             </span>

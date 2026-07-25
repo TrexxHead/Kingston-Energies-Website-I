@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { guardAdmin } from '@/lib/requireAdmin'
+import { broadcastNotification } from '@/lib/notify'
 
 const createSchema = z.object({
   code: z.string().min(2).max(40),
@@ -10,6 +11,7 @@ const createSchema = z.object({
   minSpend: z.number().nonnegative().nullish(),
   expiresAt: z.string().nullish(), // ISO date
   description: z.string().max(160).nullish(),
+  announce: z.boolean().optional(), // notify all customers on creation
 })
 
 export async function GET() {
@@ -52,6 +54,14 @@ export async function POST(request: Request) {
         description: d.description ?? null,
       },
     })
+    // Optionally tell every customer about the new code.
+    if (d.announce) {
+      const off = d.type === 'PERCENT' ? `${d.value}% off` : `J$${d.value.toLocaleString()} off`
+      void broadcastNotification('DISCOUNT', `New discount: ${off}`, {
+        body: `${d.description ? d.description + ' ' : ''}Use code ${code.code} at checkout.${d.minSpend ? ` Min spend J$${d.minSpend.toLocaleString()}.` : ''}`,
+        href: '/shop',
+      })
+    }
     return NextResponse.json({ id: code.id }, { status: 201 })
   } catch {
     return NextResponse.json({ error: 'That code already exists.' }, { status: 409 })

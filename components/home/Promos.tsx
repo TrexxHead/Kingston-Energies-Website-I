@@ -5,7 +5,8 @@ import { getMarketing } from '@/lib/marketing'
 /**
  * Homepage promotions, admin-controlled from Marketing: a headline "flash sale"
  * strip and a row of short banner pills. Renders nothing when there's nothing
- * active, so it never leaves an empty gap.
+ * active, so it never leaves an empty gap. (The floating promo orbs are a
+ * separate hero overlay — see HeroPromos.)
  */
 export default async function Promos() {
   const m = await getMarketing()

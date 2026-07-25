@@ -13,6 +13,10 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 const bodySchema = z.object({
   customerName: z.string().min(1).max(120),
   email: z.string().email().optional(),
+  phone: z.string().max(40).optional(),
+  shippingAddress: z.string().max(400).optional(),
+  billingAddress: z.string().max(400).optional(),
+  cartId: z.string().max(60).optional(),
   promoCode: z.string().max(40).optional(),
   items: z.array(z.object({ name: z.string().min(1).max(160), price: z.number().min(0), qty: z.number().int().min(1) })).min(1),
 })
@@ -43,7 +47,7 @@ export async function POST(request: Request) {
   if (!parsed.success) return NextResponse.json({ error: 'Invalid order' }, { status: 400 })
 
   const session = await getServerSession(authOptions)
-  const { customerName, email, promoCode, items } = parsed.data
+  const { customerName, email, phone, shippingAddress, billingAddress, cartId, promoCode, items } = parsed.data
   const units = items.reduce((sum, i) => sum + i.qty, 0)
   const gross = items.reduce((sum, i) => sum + i.price * i.qty, 0)
   const bulkDiscount = Math.round(gross * bulkRateForQty(units))
@@ -56,6 +60,10 @@ export async function POST(request: Request) {
       orderNo,
       userId: session?.user?.id ?? null,
       customerName,
+      email: session?.user?.email ?? email ?? null,
+      phone: phone ?? null,
+      shippingAddress: shippingAddress ?? null,
+      billingAddress: billingAddress ?? null,
       status: 'PENDING',
       paymentMethod: 'card',
       paid: false,
@@ -63,6 +71,11 @@ export async function POST(request: Request) {
       items: { create: items.map((i) => ({ name: i.name, qty: i.qty, price: i.price })) },
     },
   })
+
+  // Reaching the payment step counts as a conversion for cart analytics.
+  if (cartId) {
+    await prisma.cart.updateMany({ where: { id: cartId }, data: { status: 'CONVERTED' } }).catch(() => {})
+  }
 
   const req = buildWiPayRequest({
     orderNo,

@@ -32,33 +32,34 @@ function rand(min: number, max: number) {
 }
 
 /**
- * A living band of drifting, glowing promo orbs. They float with soft physics,
- * drift away from the cursor, gently expand on hover, and open the offer when
- * clicked — then regenerate elsewhere. Respects prefers-reduced-motion.
+ * Living promo orbs that drift gently over the homepage hero and blend into it.
+ * They float with soft physics, expand on hover and open an offer when clicked —
+ * they do NOT flee the cursor, so they're easy to catch. Rendered as a
+ * pointer-events-none overlay (only the orbs themselves are interactive), so the
+ * rest of the hero stays fully clickable. Respects prefers-reduced-motion.
  */
 export default function FloatingPromos({ promos }: { promos: FloatingPromo[] }) {
   const count = Math.min(Math.max(promos.length, 3), 6)
   const containerRef = useRef<HTMLDivElement>(null)
   const orbsRef = useRef<Orb[]>([])
   const nodeRefs = useRef<Map<number, HTMLButtonElement>>(new Map())
-  const pointer = useRef<{ x: number; y: number; active: boolean }>({ x: 0.5, y: 0.5, active: false })
   const [hoverId, setHoverId] = useState<number | null>(null)
   const [open, setOpen] = useState<FloatingPromo | null>(null)
   const idSeq = useRef(0)
   const reduced = useRef(false)
 
-  // Seed the orbs once (deterministic count, random placement).
+  // Seed the orbs once, scattered randomly across the hero.
   const seeded = useMemo(() => {
     const arr: Orb[] = []
     for (let i = 0; i < count; i++) {
       arr.push({
         id: idSeq.current++,
         promo: promos[i % promos.length],
-        x: rand(0.1, 0.9),
-        y: rand(0.15, 0.85),
-        vx: rand(-0.00018, 0.00018),
-        vy: rand(-0.00014, 0.00014),
-        size: rand(58, 92),
+        x: rand(0.08, 0.92),
+        y: rand(0.12, 0.88),
+        vx: rand(-0.00012, 0.00012),
+        vy: rand(-0.0001, 0.0001),
+        size: rand(52, 84),
         hue: HUES[i % HUES.length],
         icon: i % ICONS.length,
       })
@@ -84,28 +85,20 @@ export default function FloatingPromos({ promos }: { promos: FloatingPromo[] }) 
         if (!reduced.current) {
           o.x += o.vx * dt
           o.y += o.vy * dt
-          // Gentle cursor repulsion.
-          if (pointer.current.active) {
-            const dx = o.x - pointer.current.x
-            const dy = o.y - pointer.current.y
-            const d2 = dx * dx + dy * dy
-            if (d2 < 0.045 && d2 > 0.00001) {
-              const f = (0.045 - d2) * 0.9
-              o.vx += (dx / Math.sqrt(d2)) * f * 0.0006
-              o.vy += (dy / Math.sqrt(d2)) * f * 0.0006
-            }
-          }
+          // Gentle random wander so drift feels organic (no cursor reaction).
+          o.vx += rand(-0.0000012, 0.0000012) * dt
+          o.vy += rand(-0.000001, 0.000001) * dt
           // Damping + soft speed cap.
-          o.vx *= 0.996
-          o.vy *= 0.996
-          const cap = 0.00042
+          o.vx *= 0.995
+          o.vy *= 0.995
+          const cap = 0.0002
           o.vx = Math.max(-cap, Math.min(cap, o.vx))
           o.vy = Math.max(-cap, Math.min(cap, o.vy))
-          // Bounce off the padded edges.
-          if (o.x < 0.06) { o.x = 0.06; o.vx = Math.abs(o.vx) }
-          if (o.x > 0.94) { o.x = 0.94; o.vx = -Math.abs(o.vx) }
-          if (o.y < 0.12) { o.y = 0.12; o.vy = Math.abs(o.vy) }
-          if (o.y > 0.88) { o.y = 0.88; o.vy = -Math.abs(o.vy) }
+          // Bounce softly off the padded edges.
+          if (o.x < 0.05) { o.x = 0.05; o.vx = Math.abs(o.vx) }
+          if (o.x > 0.95) { o.x = 0.95; o.vx = -Math.abs(o.vx) }
+          if (o.y < 0.08) { o.y = 0.08; o.vy = Math.abs(o.vy) }
+          if (o.y > 0.92) { o.y = 0.92; o.vy = -Math.abs(o.vy) }
         }
         const node = nodeRefs.current.get(o.id)
         if (node) {
@@ -119,45 +112,24 @@ export default function FloatingPromos({ promos }: { promos: FloatingPromo[] }) 
     return () => cancelAnimationFrame(raf)
   }, [])
 
-  const onPointerMove = (e: React.PointerEvent) => {
-    const rect = containerRef.current?.getBoundingClientRect()
-    if (!rect) return
-    pointer.current = { x: (e.clientX - rect.left) / rect.width, y: (e.clientY - rect.top) / rect.height, active: true }
-  }
-
-  // When an orb is clicked, open its promo and nudge it to a fresh spot.
+  // When an orb is clicked, open its promo and drift it to a fresh spot.
   const openPromo = (o: Orb) => {
     setOpen(o.promo)
     const orb = orbsRef.current.find((x) => x.id === o.id)
     if (orb) {
       orb.x = rand(0.12, 0.88)
-      orb.y = rand(0.15, 0.85)
-      orb.vx = rand(-0.00018, 0.00018)
-      orb.vy = rand(-0.00014, 0.00014)
+      orb.y = rand(0.12, 0.88)
     }
   }
 
   return (
-    <section style={{ padding: '18px var(--page-pad) 4px', background: '#0d1714' }}>
+    <>
+      {/* Overlay blends over the hero; only the orbs capture pointer events. */}
       <div
         ref={containerRef}
-        onPointerMove={onPointerMove}
-        onPointerLeave={() => { pointer.current.active = false }}
-        style={{
-          position: 'relative',
-          maxWidth: 1200,
-          margin: '0 auto',
-          height: 'clamp(190px, 26vw, 250px)',
-          borderRadius: 24,
-          overflow: 'hidden',
-          background: 'radial-gradient(120% 140% at 20% 10%, rgba(45,138,90,.22), transparent 55%), radial-gradient(120% 160% at 90% 90%, rgba(253,184,19,.16), transparent 55%), rgba(255,255,255,.02)',
-          border: '1px solid rgba(255,255,255,.08)',
-        }}
+        aria-hidden
+        style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 6 }}
       >
-        <span style={{ position: 'absolute', top: 16, left: 20, fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '.28em', color: 'rgba(255,255,255,.4)' }}>
-          LIVE OFFERS
-        </span>
-
         {seeded.map((o) => {
           const Icon = ICONS[o.icon]
           const hovered = hoverId === o.id
@@ -173,7 +145,7 @@ export default function FloatingPromos({ promos }: { promos: FloatingPromo[] }) 
                 position: 'absolute',
                 left: `${o.x * 100}%`,
                 top: `${o.y * 100}%`,
-                transform: `translate(-50%,-50%) scale(${hovered ? 1.12 : 1})`,
+                transform: `translate(-50%,-50%) scale(${hovered ? 1.1 : 1})`,
                 width: hovered ? 'auto' : o.size,
                 minWidth: o.size,
                 height: o.size,
@@ -182,22 +154,23 @@ export default function FloatingPromos({ promos }: { promos: FloatingPromo[] }) 
                 alignItems: 'center',
                 gap: hovered ? 12 : 0,
                 borderRadius: 999,
-                border: `1px solid hsla(${o.hue},70%,70%,.35)`,
-                background: `radial-gradient(circle at 35% 30%, hsla(${o.hue},80%,62%,.35), hsla(${o.hue},70%,40%,.14))`,
-                boxShadow: `0 0 ${hovered ? 34 : 22}px hsla(${o.hue},80%,55%,${hovered ? 0.4 : 0.22}), inset 0 0 14px hsla(${o.hue},80%,70%,.18)`,
-                backdropFilter: 'blur(3px)',
+                border: `1px solid hsla(${o.hue},70%,72%,.28)`,
+                background: `radial-gradient(circle at 35% 30%, hsla(${o.hue},80%,64%,.28), hsla(${o.hue},70%,42%,.10))`,
+                boxShadow: `0 0 ${hovered ? 30 : 20}px hsla(${o.hue},80%,55%,${hovered ? 0.32 : 0.16}), inset 0 0 14px hsla(${o.hue},80%,72%,.14)`,
+                backdropFilter: 'blur(2px)',
                 cursor: 'pointer',
                 color: '#eaf2ec',
+                pointerEvents: 'auto',
                 transition: 'transform .3s cubic-bezier(.22,1,.36,1), box-shadow .3s ease, width .3s ease, padding .3s ease',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
               }}
             >
               <span style={{ width: o.size, height: o.size, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon size={hovered ? 22 : 24} style={{ color: `hsl(${o.hue},85%,78%)` }} />
+                <Icon size={hovered ? 20 : 22} style={{ color: `hsl(${o.hue},85%,80%)` }} />
               </span>
               {hovered && (
-                <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, letterSpacing: '-.01em' }}>
+                <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 12.5, letterSpacing: '-.01em' }}>
                   {o.promo.label}
                 </span>
               )}
@@ -259,6 +232,6 @@ export default function FloatingPromos({ promos }: { promos: FloatingPromo[] }) 
           </div>
         </div>
       )}
-    </section>
+    </>
   )
 }

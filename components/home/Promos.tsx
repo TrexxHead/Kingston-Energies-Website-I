@@ -1,12 +1,12 @@
 import Link from 'next/link'
 import { ArrowRight, Zap } from 'lucide-react'
 import { getMarketing } from '@/lib/marketing'
-import FloatingPromos, { type FloatingPromo } from './FloatingPromos'
 
 /**
  * Homepage promotions, admin-controlled from Marketing: a headline "flash sale"
  * strip and a row of short banner pills. Renders nothing when there's nothing
- * active, so it never leaves an empty gap.
+ * active, so it never leaves an empty gap. (The floating promo orbs are a
+ * separate hero overlay — see HeroPromos.)
  */
 export default async function Promos() {
   const m = await getMarketing()
@@ -15,15 +15,7 @@ export default async function Promos() {
 
   if (!flash && banners.length === 0) return null
 
-  // Feed the living promo orbs from the same admin-controlled marketing.
-  const floating: FloatingPromo[] = [
-    ...(flash ? [{ label: flash.headline, detail: flash.subtext || undefined, href: flash.href || '/shop', kind: 'flash' as const }] : []),
-    ...banners.map((b) => ({ label: b.text, href: '/shop', kind: 'banner' as const })),
-  ]
-
   return (
-    <>
-    {floating.length > 0 && <FloatingPromos promos={floating} />}
     <section style={{ padding: '0 var(--page-pad)', background: '#0d1714' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
         {flash && (
@@ -76,6 +68,5 @@ export default async function Promos() {
         )}
       </div>
     </section>
-    </>
   )
 }

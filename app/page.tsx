@@ -2,6 +2,7 @@ import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import Reveal from '@/components/Reveal'
 import Hero from '@/components/home/Hero'
+import HeroPromos from '@/components/home/HeroPromos'
 import Promos from '@/components/home/Promos'
 import Story from '@/components/home/Story'
 import ProductChapter from '@/components/home/ProductChapter'
@@ -20,7 +21,10 @@ export default function Home() {
     <div style={{ fontFamily: 'var(--font-body)', color: '#eaf2ec', background: '#0d1714', minHeight: '100vh' }}>
       <Navbar />
       <main>
-        <Hero />
+        <div style={{ position: 'relative' }}>
+          <Hero />
+          <HeroPromos />
+        </div>
         <Promos />
         <Reveal><Story /></Reveal>
         <Reveal><ProductChapter /></Reveal>

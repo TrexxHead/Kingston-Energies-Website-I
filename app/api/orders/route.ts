@@ -4,7 +4,7 @@ import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/authOptions'
 import { rateLimit, clientIp } from '@/lib/rateLimit'
-import { sendOrderConfirmation } from '@/lib/email'
+import { sendOrderConfirmation, sendNewOrderAlert } from '@/lib/email'
 import { bulkRateForQty } from '@/lib/pricing'
 import { validatePromo } from '@/lib/promo'
 import { deliveryFee, deliveryLineLabel } from '@/lib/delivery'
@@ -114,6 +114,8 @@ export async function POST(request: Request) {
     if (contactEmail) {
       void sendOrderConfirmation({ to: contactEmail, customerName, orderNo: order.orderNo, total, items: recordedItems })
     }
+    // Alert every admin so orders needing manual follow-up (bank/Lynk/PayPal/COD) get seen promptly.
+    void sendNewOrderAlert({ orderNo: order.orderNo, customerName, total, paymentMethod: paymentMethod ?? null, items: recordedItems })
 
     return NextResponse.json({ orderNo: order.orderNo }, { status: 201 })
   } catch (err) {

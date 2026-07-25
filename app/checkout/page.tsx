@@ -11,9 +11,15 @@ import { Button, Field, Radio, inputStyle } from '@/components/shop/ui'
 import { useCart } from '@/components/cart/CartContext'
 import { useToast } from '@/components/cart/ToastContext'
 import { fmt } from '@/lib/catalog'
+import { linkifyText } from '@/lib/linkify'
 
 const HEADLINES = ['Where to?', "How you'll pay.", 'Review & place order.']
-const DELIVERY_LABELS = ['Standard — free, 2–3 days', 'Express — J$800, next day', 'Pickup at Kingston HQ — free, today']
+const DELIVERY_OPTIONS: { label: string; pickup: boolean }[] = [
+  { label: 'Standard — 1–3 days (J$800 in Kingston, J$1,500 St. Catherine — refer to rate sheet for other parishes)', pickup: false },
+  { label: 'Express — next day (J$1,500 in Kingston — refer to rate sheet for other parishes)', pickup: false },
+  { label: 'Pickup — free, today', pickup: true },
+]
+const PICKUP_LOCATIONS = ['Webster Memorial United Church', 'Summit, New Kingston']
 const PARISHES = ['Kingston', 'St. Andrew', 'St. Catherine', 'Clarendon', 'Manchester', 'St. James']
 
 interface PayMethod {
@@ -49,6 +55,7 @@ function CheckoutInner() {
   const [phone, setPhone] = useState('')
   const [street, setStreet] = useState('')
   const [parish, setParish] = useState('Kingston')
+  const [pickupLocation, setPickupLocation] = useState(0)
   const [billingSame, setBillingSame] = useState(true)
   const [billing, setBilling] = useState('')
   const paymentFailed = searchParams.get('payment') === 'failed'
@@ -102,7 +109,10 @@ function CheckoutInner() {
     setPlacing(true)
     const customerName = name.trim() || session?.user?.name || 'Guest checkout'
     const payloadItems = items.map((i) => ({ name: i.name, price: i.price, qty: i.qty }))
-    const shippingAddress = [street.trim(), parish].filter(Boolean).join(', ') || undefined
+    const isPickup = DELIVERY_OPTIONS[delivery].pickup
+    const shippingAddress = isPickup
+      ? `Pickup: ${PICKUP_LOCATIONS[pickupLocation]}`
+      : [street.trim(), parish].filter(Boolean).join(', ') || undefined
     const billingAddress = billingSame ? shippingAddress : (billing.trim() || undefined)
     let cartId: string | undefined
     try { cartId = localStorage.getItem('ke-cart-id') ?? undefined } catch { /* ignore */ }
@@ -192,27 +202,41 @@ function CheckoutInner() {
                 <Field label="Phone"><input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="876…" style={inputStyle} /></Field>
                 <Field label="Email"><input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="you@example.com" style={inputStyle} /></Field>
               </div>
-              <Field label="Street address"><input value={street} onChange={(e) => setStreet(e.target.value)} placeholder="12 Hope Road" style={inputStyle} /></Field>
-              <Field label="Parish">
-                <select value={parish} onChange={(e) => setParish(e.target.value)} style={{ ...inputStyle, appearance: 'none' }}>
-                  {PARISHES.map((p) => <option key={p}>{p}</option>)}
-                </select>
-              </Field>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 13.5, color: 'var(--color-text)', cursor: 'pointer' }}>
-                <input type="checkbox" checked={billingSame} onChange={(e) => setBillingSame(e.target.checked)} />
-                Billing address same as shipping
-              </label>
-              {!billingSame && (
-                <Field label="Billing address"><input value={billing} onChange={(e) => setBilling(e.target.value)} placeholder="Billing street, parish" style={inputStyle} /></Field>
-              )}
               <div>
                 <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, color: 'var(--color-text)' }}>Delivery</span>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>
-                  {DELIVERY_LABELS.map((label, i) => (
-                    <Radio key={i} name="delm" label={label} checked={delivery === i} onChange={() => setDelivery(i)} />
+                  {DELIVERY_OPTIONS.map((opt, i) => (
+                    <Radio key={i} name="delm" label={opt.label} checked={delivery === i} onChange={() => setDelivery(i)} />
                   ))}
                 </div>
               </div>
+
+              {DELIVERY_OPTIONS[delivery].pickup ? (
+                <div>
+                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, color: 'var(--color-text)' }}>Pickup location</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>
+                    {PICKUP_LOCATIONS.map((loc, i) => (
+                      <Radio key={i} name="pickupLoc" label={loc} checked={pickupLocation === i} onChange={() => setPickupLocation(i)} />
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <Field label="Delivery address"><input value={street} onChange={(e) => setStreet(e.target.value)} placeholder="12 Hope Road" style={inputStyle} /></Field>
+                  <Field label="Parish">
+                    <select value={parish} onChange={(e) => setParish(e.target.value)} style={{ ...inputStyle, appearance: 'none' }}>
+                      {PARISHES.map((p) => <option key={p}>{p}</option>)}
+                    </select>
+                  </Field>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 13.5, color: 'var(--color-text)', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={billingSame} onChange={(e) => setBillingSame(e.target.checked)} />
+                    Billing address same as shipping
+                  </label>
+                  {!billingSame && (
+                    <Field label="Billing address"><input value={billing} onChange={(e) => setBilling(e.target.value)} placeholder="Billing street, parish" style={inputStyle} /></Field>
+                  )}
+                </>
+              )}
             </div>
           )}
 
@@ -256,11 +280,11 @@ function CheckoutInner() {
                     ) : selected.needsReference ? (
                       <>
                         <div style={{ fontWeight: 600, marginBottom: 4 }}>After you place the order, pay using these details:</div>
-                        {selected.details.map((d, i) => <div key={i}>{d}</div>)}
+                        {selected.details.map((d, i) => <div key={i}>{linkifyText(d)}</div>)}
                         <div style={{ marginTop: 6, fontStyle: 'italic' }}>Quote your order number (shown next) as the payment reference.</div>
                       </>
                     ) : (
-                      selected.details.map((d, i) => <div key={i}>{d}</div>)
+                      selected.details.map((d, i) => <div key={i}>{linkifyText(d)}</div>)
                     )}
                   </div>
                 </div>
@@ -277,9 +301,12 @@ function CheckoutInner() {
                 </div>
               ))}
               <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 8, fontSize: 14, color: 'var(--color-text-muted)' }}>
-                <SummaryLine icon={<Truck size={15} color="var(--ke-green-600)" />} text={DELIVERY_LABELS[delivery]} />
+                <SummaryLine icon={<Truck size={15} color="var(--ke-green-600)" />} text={DELIVERY_OPTIONS[delivery].label} />
                 <SummaryLine icon={<CreditCard size={15} color="var(--ke-green-600)" />} text={selected?.label ?? 'Payment'} />
-                <SummaryLine icon={<MapPin size={15} color="var(--ke-green-600)" />} text="12 Hope Road, Kingston" />
+                <SummaryLine
+                  icon={<MapPin size={15} color="var(--ke-green-600)" />}
+                  text={DELIVERY_OPTIONS[delivery].pickup ? PICKUP_LOCATIONS[pickupLocation] : [street, parish].filter(Boolean).join(', ') || 'Address on file'}
+                />
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--color-border)', paddingTop: 14 }}>
                 <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700 }}>Total</span>
@@ -296,7 +323,13 @@ function CheckoutInner() {
               {step === 0 ? 'Back to cart' : 'Back'}
             </Button>
             {step < 2 && (
-              <Button onClick={() => setStep((s) => s + 1)} iconRight={<ArrowRight size={17} />} disabled={step === 1 && !selected}>Continue</Button>
+              <Button
+                onClick={() => setStep((s) => s + 1)}
+                iconRight={<ArrowRight size={17} />}
+                disabled={(step === 0 && !DELIVERY_OPTIONS[delivery].pickup && !street.trim()) || (step === 1 && !selected)}
+              >
+                Continue
+              </Button>
             )}
           </div>
         </div>

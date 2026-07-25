@@ -4,14 +4,21 @@ import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
-import { LogOut, LayoutDashboard } from 'lucide-react'
+import { LogOut, LayoutDashboard, Package, Bell, ShieldCheck } from 'lucide-react'
 import { initials } from '@/lib/initials'
-import { HUB_MAIN_NAV, HUB_FOOTER_NAV } from '@/app/hub/_components/hubNav'
+
+// Just the essentials — everything else lives one click away in the Hub's own
+// sidebar (app/hub/_components/Sidebar.tsx), so this menu doesn't duplicate it.
+const ESSENTIALS = [
+  { href: '/hub', label: 'My Hub', icon: LayoutDashboard },
+  { href: '/hub/orders', label: 'Orders', icon: Package },
+  { href: '/hub/notifications', label: 'Notifications', icon: Bell },
+]
 
 /**
  * The account avatar + dropdown menu, shared by the marketing navbar and the
- * in-hub top bar so a signed-in customer can reach every dashboard area and
- * sign out from any page (including on mobile, where the hub sidebar is hidden).
+ * in-hub top bar. Kept deliberately short — the Hub's own sidebar is the full
+ * nav; this is just a fast way in, from any page, plus sign out.
  */
 export default function AccountMenu({ size = 34 }: { size?: number }) {
   const { data: session, status } = useSession()
@@ -76,20 +83,21 @@ export default function AccountMenu({ size = 34 }: { size?: number }) {
             position: 'absolute',
             top: 'calc(100% + 10px)',
             right: 0,
-            width: 224,
-            background: '#fff',
-            borderRadius: 14,
-            border: '1px solid rgba(0,0,0,.06)',
-            boxShadow: '0 12px 32px rgba(0,0,0,.18)',
+            width: 218,
+            background: 'var(--ke-dark-bg, #0d1714)',
+            borderRadius: 16,
+            border: '1px solid rgba(255,255,255,.08)',
+            boxShadow: '0 16px 40px rgba(0,0,0,.35)',
             padding: 8,
             zIndex: 60,
+            overflow: 'hidden',
           }}
         >
-          <div style={{ padding: '8px 10px 10px', borderBottom: '1px solid var(--color-border, #eee)', marginBottom: 6 }}>
-            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13.5, color: '#1c2a25' }}>
+          <div style={{ background: 'var(--gradient-brand)', margin: -8, marginBottom: 8, padding: '14px 16px' }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13.5, color: '#0d1714', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {session.user?.name ?? 'My account'}
             </div>
-            <div style={{ fontSize: 11.5, color: '#6b746f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ fontSize: 11, color: 'rgba(13,23,20,.68)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {session.user?.email}
             </div>
           </div>
@@ -99,34 +107,17 @@ export default function AccountMenu({ size = 34 }: { size?: number }) {
               href="/admin/dashboard"
               role="menuitem"
               onClick={() => setOpen(false)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '9px 10px',
-                marginBottom: 6,
-                borderRadius: 9,
-                fontSize: 13.5,
-                fontWeight: 600,
-                color: 'var(--ke-green-700, #1b6b45)',
-                background: 'var(--ke-green-50, #eef7f0)',
-                textDecoration: 'none',
-              }}
+              style={{ ...rowStyle, color: 'var(--ke-green-400, #93c93f)', background: 'rgba(147,201,63,.12)', marginBottom: 4 }}
             >
-              <LayoutDashboard size={15} />
+              <ShieldCheck size={16} />
               Admin dashboard
             </Link>
           )}
 
-          {[...HUB_MAIN_NAV, ...HUB_FOOTER_NAV].map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              role="menuitem"
-              onClick={() => setOpen(false)}
-              style={{ display: 'block', padding: '9px 10px', borderRadius: 9, fontSize: 13.5, color: '#1c2a25', textDecoration: 'none' }}
-            >
-              {item.label}
+          {ESSENTIALS.map(({ href, label, icon: Icon }) => (
+            <Link key={href} href={href} role="menuitem" onClick={() => setOpen(false)} style={rowStyle}>
+              <Icon size={16} />
+              {label}
             </Link>
           ))}
 
@@ -140,21 +131,23 @@ export default function AccountMenu({ size = 34 }: { size?: number }) {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 8,
+              gap: 9,
               width: '100%',
-              marginTop: 6,
-              padding: '10px 10px 6px',
-              borderTop: '1px solid var(--color-border, #eee)',
+              marginTop: 4,
+              padding: '10px 10px 8px',
+              borderTop: '1px solid rgba(255,255,255,.08)',
               background: 'none',
               border: 'none',
+              borderRadius: 9,
               cursor: 'pointer',
+              fontFamily: 'var(--font-display)',
+              fontWeight: 600,
               fontSize: 13.5,
-              color: 'var(--color-danger, #c0392b)',
-              fontFamily: 'inherit',
+              color: '#e88585',
               textAlign: 'left',
             }}
           >
-            <LogOut size={15} />
+            <LogOut size={16} />
             Sign out
           </button>
         </div>
@@ -162,3 +155,16 @@ export default function AccountMenu({ size = 34 }: { size?: number }) {
     </div>
   )
 }
+
+const rowStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 9,
+  padding: '9px 10px',
+  borderRadius: 9,
+  fontFamily: 'var(--font-display)',
+  fontWeight: 600,
+  fontSize: 13.5,
+  color: 'rgba(255,255,255,.85)',
+  textDecoration: 'none',
+} as const

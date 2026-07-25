@@ -7,7 +7,11 @@ const BUSINESS = {
   email: 'kingstonenergygroup@outlook.com',
   phone: '876-338-9958',
   location: 'Kingston, Jamaica',
+  instagram: '@kingstonenergies',
 }
+
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+const logoUrl = `${siteUrl}/images/logo-mark.png`
 
 const PAYMENT_LABEL: Record<string, string> = {
   bank: 'Bank transfer', lynk: 'Lynk', paypal: 'PayPal', card: 'Card', cod: 'Cash on delivery',
@@ -72,10 +76,15 @@ export function buildInvoiceHtml(d: InvoiceData): string {
   </style></head>
   <body>
     <div class="sheet">
-      <div style="background:linear-gradient(120deg,#173d29,#0d1714);padding:34px 46px;display:flex;justify-content:space-between;align-items:flex-start">
-        <div>
-          <div style="color:#fff;font-size:21px;font-weight:800;letter-spacing:.01em">${BUSINESS.name}</div>
-          <div style="color:#a9c2ae;font-size:11px;margin-top:4px;letter-spacing:.06em;text-transform:uppercase">Powering Progress</div>
+      <div style="background:linear-gradient(120deg,#173d29,#0d1714);padding:30px 46px;display:flex;justify-content:space-between;align-items:center">
+        <div style="display:flex;align-items:center;gap:14px">
+          <div style="width:50px;height:50px;border-radius:50%;background:#fff;flex-shrink:0;display:flex;align-items:center;justify-content:center;overflow:hidden">
+            <img src="${logoUrl}" width="50" height="50" alt="" style="display:block;object-fit:contain" />
+          </div>
+          <div>
+            <div style="color:#fff;font-size:21px;font-weight:800;letter-spacing:.01em">${BUSINESS.name}</div>
+            <div style="color:#a9c2ae;font-size:11px;margin-top:3px;letter-spacing:.06em;text-transform:uppercase">Powering Progress</div>
+          </div>
         </div>
         <div style="text-align:right;color:#c9d8cd;font-size:11.5px;line-height:1.6">
           <div>${BUSINESS.location}</div>
@@ -143,8 +152,31 @@ export function buildInvoiceHtml(d: InvoiceData): string {
           </td>
         </tr></table>
 
-        <div style="margin-top:52px;padding:20px 0 30px;border-top:1px solid #e8ece9;color:#8a968c;font-size:11.5px;text-align:center">
-          Thank you for your business — ${BUSINESS.name} · ${BUSINESS.email}
+        <div style="margin-top:48px;padding:24px 0;border-top:1px solid #e8ece9;display:flex;gap:30px">
+          <div style="flex:1">
+            <div style="color:#8a968c;text-transform:uppercase;font-size:9.5px;letter-spacing:.1em;font-weight:700">Need help?</div>
+            <div style="color:#5b655f;font-size:12px;margin-top:7px;line-height:1.7">
+              ${BUSINESS.phone}<br />${BUSINESS.email}<br />${BUSINESS.instagram}
+            </div>
+          </div>
+          <div style="flex:1">
+            <div style="color:#8a968c;text-transform:uppercase;font-size:9.5px;letter-spacing:.1em;font-weight:700">Warranty & returns</div>
+            <div style="color:#5b655f;font-size:12px;margin-top:7px;line-height:1.7">
+              Keep this invoice as your proof of purchase.<br />
+              ${siteUrl.replace(/^https?:\/\//, '')}/legal/warranty<br />
+              ${siteUrl.replace(/^https?:\/\//, '')}/legal/returns
+            </div>
+          </div>
+          <div style="flex:1">
+            <div style="color:#8a968c;text-transform:uppercase;font-size:9.5px;letter-spacing:.1em;font-weight:700">Track this order</div>
+            <div style="color:#5b655f;font-size:12px;margin-top:7px;line-height:1.7">
+              ${siteUrl.replace(/^https?:\/\//, '')}/track?no=${d.orderNo}
+            </div>
+          </div>
+        </div>
+
+        <div style="padding:22px 0 30px;border-top:1px solid #e8ece9;color:#8a968c;font-size:11.5px;text-align:center">
+          Thank you for your business — ${BUSINESS.name}
         </div>
       </div>
     </div>

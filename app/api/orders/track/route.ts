@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/authOptions'
 import { PIPELINE, clampStage } from '@/lib/pipeline'
+import { rateLimit, clientIp } from '@/lib/rateLimit'
 
 /**
  * Public-ish tracking lookup by order number. Returns only low-sensitivity
@@ -10,6 +11,13 @@ import { PIPELINE, clampStage } from '@/lib/pipeline'
  * customer's name, address or payment details.
  */
 export async function GET(request: Request) {
+  // Order numbers are sequential (KE-####) — rate-limit lookups so the
+  // endpoint can't be used to enumerate every order on the site.
+  const rl = rateLimit(`track:${clientIp(request)}`, 20, 60_000)
+  if (!rl.ok) {
+    return NextResponse.json({ error: 'Too many requests. Please try again in a moment.' }, { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } })
+  }
+
   const url = new URL(request.url)
   const no = url.searchParams.get('no')?.trim().toUpperCase()
   const session = await getServerSession(authOptions)

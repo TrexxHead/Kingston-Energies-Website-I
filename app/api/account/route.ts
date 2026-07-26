@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
+import { randomBytes } from 'crypto'
 import { z } from 'zod'
 import { authOptions } from '@/lib/authOptions'
 import { prisma } from '@/lib/prisma'
+import { sendVerificationEmail } from '@/lib/email'
+
+const VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
 const updateSchema = z.object({
   name: z.string().min(1).max(120),
@@ -47,15 +52,31 @@ export async function PATCH(request: Request) {
     }
   }
 
+  const current = await prisma.user.findUnique({ where: { id: session.user.id }, select: { email: true } })
+  const emailChanged = Boolean(current && current.email.toLowerCase() !== email.toLowerCase())
+
   const updated = await prisma.user.update({
     where: { id: session.user.id },
     data: {
       name,
       email,
+      // Changing the address means it hasn't been proven yet — require
+      // re-verification rather than silently trusting an unconfirmed inbox
+      // (which would otherwise let transactional mail be redirected anywhere).
+      ...(emailChanged ? { emailVerified: null } : {}),
       ...(username !== undefined ? { username } : {}),
       ...(primaryNeed !== undefined ? { primaryNeed } : {}),
     },
   })
+
+  if (emailChanged) {
+    const token = randomBytes(32).toString('hex')
+    await prisma.verificationToken.create({
+      data: { identifier: email, token, expires: new Date(Date.now() + VERIFICATION_TTL_MS) },
+    })
+    const verifyUrl = `${siteUrl}/api/auth/verify?token=${token}&email=${encodeURIComponent(email)}`
+    void sendVerificationEmail({ to: email, name: updated.name ?? email, verifyUrl })
+  }
 
   return NextResponse.json({
     id: updated.id,
@@ -63,5 +84,6 @@ export async function PATCH(request: Request) {
     username: updated.username,
     email: updated.email,
     primaryNeed: updated.primaryNeed,
+    verificationRequired: emailChanged,
   })
 }

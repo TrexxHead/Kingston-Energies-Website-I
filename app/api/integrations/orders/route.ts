@@ -105,7 +105,10 @@ export async function POST(request: Request) {
       source,
       contact: contact ?? null,
       // 'online' stays unset until the customer pays; 'cod' is recorded up front.
-      paymentMethod: payment === 'cod' ? 'cod' : null,
+      // 'online' orders don't have a method yet — the customer picks one at
+      // checkout — but "pending" is more honest in reports than leaving it
+      // null (which reads as "unspecified"/a data-quality problem).
+      paymentMethod: payment === 'cod' ? 'cod' : 'pending',
       total,
       items: { create: resolved.map((i) => ({ name: i.name, qty: i.qty, price: i.price })) },
     },

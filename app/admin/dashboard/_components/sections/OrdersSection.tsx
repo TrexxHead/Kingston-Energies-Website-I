@@ -114,6 +114,15 @@ export default function OrdersSection() {
     load()
   }
 
+  const deleteOrder = async (id: string, orderNo: string) => {
+    if (!confirm(`Permanently delete order ${orderNo}? This removes it from all reports — prefer cancelling (drag to Cancelled) unless this is an erroneous or duplicate entry.`)) return
+    const res = await fetch(`/api/admin/orders/${id}`, { method: 'DELETE' })
+    if (res.ok) {
+      setOrders((prev) => prev.filter((o) => o.id !== id))
+      setDetail(null)
+    }
+  }
+
   const updateStage = async (id: string, body: { stage?: number; advance?: boolean; customerNote?: string; internalNote?: string }) => {
     setStageBusy(true)
     const res = await fetch(`/api/admin/orders/${id}/stage`, {
@@ -372,6 +381,12 @@ export default function OrdersSection() {
               )}
             </div>
           )}
+
+          <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 14, display: 'flex', justifyContent: 'flex-end' }}>
+            <Button size="sm" variant="outline" onClick={() => deleteOrder(detail.id, detail.orderNo)}>
+              Delete order permanently
+            </Button>
+          </div>
         </Modal>
       )}
     </div>

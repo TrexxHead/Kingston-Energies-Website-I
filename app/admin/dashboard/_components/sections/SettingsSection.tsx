@@ -1,10 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ShieldCheck, Wallet, Megaphone, FileText, Table2, ChevronRight } from 'lucide-react'
+import { ShieldCheck, Megaphone, FileText, Table2, ChevronRight } from 'lucide-react'
 import { cardStyle, h3Style } from '../ui/card'
 import Badge from '../ui/Badge'
 import { initials, type SectionId } from '../mockData'
+import PaymentSettingsCard from './PaymentSettingsCard'
 
 interface Admin {
   id: string
@@ -21,8 +22,7 @@ const STATUS: Record<Admin['status'], { label: string; color: string }> = {
   offline: { label: 'Offline', color: 'var(--ke-gray-400, #9aa39d)' },
 }
 
-const CONFIG_LINKS: { tab: SectionId; icon: typeof Wallet; label: string; desc: string }[] = [
-  { tab: 'finance', icon: Wallet, label: 'Payment methods', desc: 'Bank, Lynk, PayPal, card, cash' },
+const CONFIG_LINKS: { tab: SectionId; icon: typeof Megaphone; label: string; desc: string }[] = [
   { tab: 'marketing2', icon: Megaphone, label: 'Site announcement & promos', desc: 'Billboard bar, banners, codes' },
   { tab: 'inventory', icon: FileText, label: 'Policies & documents', desc: 'Upload and organise files' },
   { tab: 'exec', icon: Table2, label: 'Live spreadsheet sync', desc: 'Google Sheets export' },
@@ -78,6 +78,8 @@ export default function SettingsSection({ onNavigate }: { onNavigate?: (tab: Sec
           To add or remove an admin, update the user&apos;s role in the database (or re-run the admin seed with a new email).
         </p>
       </div>
+
+      <PaymentSettingsCard />
 
       {/* Site configuration quick links */}
       <div style={cardStyle}>

@@ -1,7 +1,7 @@
 'use client'
 
-import { signIn } from 'next-auth/react'
-import { useState } from 'react'
+import { signIn, signOut, getSession, useSession } from 'next-auth/react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 
@@ -9,23 +9,48 @@ export default function AdminLogin() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
   const router = useRouter()
+  const { data: session, status } = useSession()
+
+  // Already signed in as an admin (e.g. a bookmarked /admin/login) — skip the
+  // form and go straight in, since this page is the only door in.
+  useEffect(() => {
+    const role = session?.user?.role
+    if (status === 'authenticated' && (role === 'ADMIN' || role === 'SUPER_ADMIN')) {
+      router.replace('/admin/dashboard')
+    }
+  }, [status, session, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setSubmitting(true)
 
     const result = await signIn('credentials', {
       email,
       password,
-      redirect: false
+      redirect: false,
     })
 
     if (result?.error) {
       setError('Invalid email or password')
-    } else {
-      router.push('/admin/dashboard')
+      setSubmitting(false)
+      return
     }
+
+    // Signing in with valid customer credentials must not grant a peek at the
+    // dashboard — only ADMIN/SUPER_ADMIN accounts may pass this form.
+    const fresh = await getSession()
+    const role = fresh?.user?.role
+    if (role !== 'ADMIN' && role !== 'SUPER_ADMIN') {
+      await signOut({ redirect: false })
+      setError('This account does not have admin access.')
+      setSubmitting(false)
+      return
+    }
+
+    router.push('/admin/dashboard')
   }
 
   return (
@@ -64,8 +89,8 @@ export default function AdminLogin() {
               />
             </div>
 
-            <button type="submit" className="btn-primary w-full">
-              Login
+            <button type="submit" className="btn-primary w-full" disabled={submitting}>
+              {submitting ? 'Signing in…' : 'Login'}
             </button>
           </form>
 

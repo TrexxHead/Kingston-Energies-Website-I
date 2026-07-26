@@ -41,7 +41,8 @@ const CARDS = [
     desc: 'Big off-grid power. AC output, solar-ready inputs.',
     from: 'FROM J$49,999',
     href: '/shop?category=stations',
-    image: null,
+    image: '/images/anker-1.jpg',
+    objectPosition: 'center 40%',
     hoverBorder: 'rgba(253,184,19,.55)',
   },
 ]

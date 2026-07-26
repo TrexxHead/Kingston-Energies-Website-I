@@ -33,12 +33,12 @@ const CUSTOMERS = [
 
 // Orders matching the kanban mock (order no / customer / status / total) + a few historical DONE orders for VIPs.
 const ORDERS = [
-  { orderNo: 'KE-1022', key: 'renee', status: 'PENDING', total: 10498, items: [{ name: 'Charmast 10,400', qty: 1, price: 7999 }, { name: 'Braided USB-C Cable', qty: 1, price: 2499 }] },
-  { orderNo: 'KE-1023', key: 'marcus', status: 'PENDING', total: 7999, items: [{ name: 'Charmast 10,400', qty: 1, price: 7999 }] },
+  { orderNo: 'KE-1022', key: 'renee', status: 'PENDING', total: 7999, items: [{ name: 'Charmast 10,400', qty: 1, price: 5500 }, { name: 'Braided USB-C Cable', qty: 1, price: 2499 }] },
+  { orderNo: 'KE-1023', key: 'marcus', status: 'PENDING', total: 5500, items: [{ name: 'Charmast 10,400', qty: 1, price: 5500 }] },
   { orderNo: 'KE-1020', key: 'alicia', status: 'PACKED', total: 16998, items: [{ name: 'Charmast 20,000 PD', qty: 1, price: 11999 }, { name: '33W GaN Dual-Port', qty: 1, price: 4999 }] },
   { orderNo: 'KE-1019', key: 'devon', status: 'OUT', total: 4999, items: [{ name: '33W GaN Dual-Port', qty: 1, price: 4999 }] },
-  { orderNo: 'KE-1017', key: 'jowayne', status: 'DONE', total: 10998, items: [{ name: 'Charmast 10,400', qty: 1, price: 7999 }, { name: '20W USB-C Fast Charger', qty: 1, price: 2999 }] },
-  { orderNo: 'KE-1015', key: 'paula', status: 'DONE', total: 7999, items: [{ name: 'Charmast 10,400', qty: 1, price: 7999 }] },
+  { orderNo: 'KE-1017', key: 'jowayne', status: 'DONE', total: 8499, items: [{ name: 'Charmast 10,400', qty: 1, price: 5500 }, { name: '20W USB-C Fast Charger', qty: 1, price: 2999 }] },
+  { orderNo: 'KE-1015', key: 'paula', status: 'DONE', total: 5500, items: [{ name: 'Charmast 10,400', qty: 1, price: 5500 }] },
   // Historical DONE orders so VIP LTV/order counts reflect their standing.
   { orderNo: 'KE-0992', key: 'jowayne', status: 'DONE', total: 11999, items: [{ name: 'Charmast 20,000 PD', qty: 1, price: 11999 }] },
   { orderNo: 'KE-0981', key: 'jowayne', status: 'DONE', total: 19999, items: [{ name: 'OtterBox 10,000 Leather', qty: 1, price: 9999 }, { name: 'Power Station 300 deposit', qty: 1, price: 10000 }] },

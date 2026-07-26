@@ -52,6 +52,11 @@ export async function POST(request: Request) {
     if (existing) return NextResponse.json({ error: 'A product with this SKU already exists' }, { status: 409 })
   }
 
+  if (d.barcode) {
+    const clash = await prisma.product.findFirst({ where: { barcode: d.barcode }, select: { name: true } })
+    if (clash) return NextResponse.json({ error: `That barcode is already used by "${clash.name}".` }, { status: 409 })
+  }
+
   const product = await prisma.product.create({
     data: {
       name: d.name,

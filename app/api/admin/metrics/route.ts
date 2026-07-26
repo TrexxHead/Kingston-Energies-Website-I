@@ -36,7 +36,7 @@ export async function GET() {
 
   const [orders, products, userCount, newUsers, recentReviews, reviewAgg, openTickets, campaignAgg] = await Promise.all([
     prisma.order.findMany({
-      select: { total: true, status: true, paid: true, userId: true, createdAt: true, items: { select: { name: true, qty: true, price: true } } },
+      select: { total: true, status: true, paid: true, userId: true, createdAt: true, source: true, items: { select: { name: true, qty: true, price: true } } },
     }),
     prisma.product.findMany({ where: { archived: false }, select: { name: true, stock: true, threshold: true, price: true } }),
     prisma.user.count({ where: { role: 'USER' } }),
@@ -52,7 +52,12 @@ export async function GET() {
   const conversionRate = conversionDenom ? Math.round((convertedCarts / conversionDenom) * 100) : null
 
   const valid = orders.filter((o) => o.status !== 'CANCELLED')
+  // "Gross sales" is every non-cancelled order's total, whether or not it's
+  // been paid — it is NOT cash in hand. Split it so the headline number can
+  // never be read as collected revenue (that's `collected` below).
   const revenue = valid.reduce((s, o) => s + o.total, 0)
+  const collected = valid.filter((o) => o.paid).reduce((s, o) => s + o.total, 0)
+  const outstanding = revenue - collected
   const orderCount = valid.length
   const aov = orderCount ? Math.round(revenue / orderCount) : 0
 
@@ -98,9 +103,28 @@ export async function GET() {
 
   const inventoryValue = products.reduce((s, p) => s + p.price * p.stock, 0)
 
+  // Real order channel + day-of-week distribution — replaces the placeholder
+  // funnel/geography/heatmap the Analytics tab used to show.
+  const CHANNEL_LABEL: Record<string, string> = { WEBSITE: 'Website', WHATSAPP: 'WhatsApp', INSTAGRAM: 'Instagram' }
+  const byChannel = new Map<string, number>()
+  for (const o of valid) {
+    const label = CHANNEL_LABEL[o.source] ?? o.source
+    byChannel.set(label, (byChannel.get(label) ?? 0) + 1)
+  }
+  const channelBreakdown = Array.from(byChannel.entries())
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count)
+
+  const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  const dowCounts = new Array(7).fill(0)
+  for (const o of valid) dowCounts[new Date(o.createdAt).getDay()] += 1
+  const dayOfWeekBreakdown = DOW.map((label, i) => ({ label, count: dowCounts[i] }))
+
   return NextResponse.json({
     kpis: {
       revenue,
+      collected,
+      outstanding,
       monthRevenue,
       orders: orderCount,
       aov,
@@ -123,6 +147,8 @@ export async function GET() {
     revenueSeries: buckets,
     bestSellers,
     lowStock,
+    channelBreakdown,
+    dayOfWeekBreakdown,
     customerGrowth: { total: userCount, newThisMonth: newUsers },
     recentReviews: recentReviews.map((r) => ({
       author: r.author || 'Customer',

@@ -22,7 +22,12 @@ export async function GET(request: Request) {
     }),
   )
 
+  // Gross sales includes unpaid orders — it is not cash in hand. Split it so
+  // this tab never has to be cross-referenced against Cash Flow to know how
+  // much of it is real.
   const grossSales = orders.reduce((s, o) => s + o.total, 0)
+  const collected = orders.filter((o) => o.paid).reduce((s, o) => s + o.total, 0)
+  const outstanding = grossSales - collected
   const orderCount = orders.length
   const avgOrderValue = orderCount ? Math.round(grossSales / orderCount) : 0
 
@@ -57,6 +62,8 @@ export async function GET(request: Request) {
     period,
     periodLabel: periodLabel(period),
     grossSales: Math.round(grossSales),
+    collected: Math.round(collected),
+    outstanding: Math.round(outstanding),
     orderCount,
     avgOrderValue,
     topProducts,

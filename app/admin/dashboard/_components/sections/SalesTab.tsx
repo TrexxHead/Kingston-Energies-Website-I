@@ -11,6 +11,8 @@ type Period = 'month' | 'quarter' | 'year' | 'all'
 interface SalesData {
   periodLabel: string
   grossSales: number
+  collected: number
+  outstanding: number
   orderCount: number
   avgOrderValue: number
   topProducts: { name: string; qty: number; revenue: number }[]
@@ -49,11 +51,16 @@ export default function SalesTab() {
         <div style={cardStyle}><p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Loading…</p></div>
       ) : (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 14 }} className="kad-kpi-grid">
             <Stat label={`Gross sales · ${data.periodLabel}`} value={fmt(data.grossSales)} />
+            <Stat label="Cash collected" value={fmt(data.collected)} />
+            <Stat label="Outstanding (A/R)" value={fmt(data.outstanding)} />
             <Stat label="Orders" value={String(data.orderCount)} />
             <Stat label="Average order value" value={fmt(data.avgOrderValue)} />
           </div>
+          <p style={{ fontSize: 12, color: 'var(--color-text-muted)', margin: 0 }}>
+            Gross sales counts every order placed in this period, paid or not — it is not the same as cash in hand. See Cash Flow for collections over time.
+          </p>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 16, alignItems: 'start' }}>
             <div style={cardStyle}>

@@ -44,6 +44,11 @@ function dbId(name: string): string {
   return 'db-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
 }
 
+/** The stable catalog/shop id for a product, looked up by its DB name. */
+export function productIdForName(name: string): string {
+  return CATALOG.find((c) => c.name === name)?.id ?? dbId(name)
+}
+
 /** Apply admin CMS overrides on top of a base catalog entry (or a bare one). */
 function overlay(base: ShopProduct, db: DbProduct): ShopProduct {
   const onSale = db.salePrice != null && db.salePrice > 0

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 
 interface RevealProps {
@@ -10,15 +10,27 @@ interface RevealProps {
   delayMs?: number
 }
 
+/**
+ * Anything already in the viewport at mount is shown immediately rather than
+ * animated — otherwise already-visible content sits at opacity 0 for a beat
+ * until the IntersectionObserver's first callback fires, which reads as
+ * broken/unstyled content flashing in on every page load.
+ */
 export default function Reveal({ children, className, style, delayMs = 0 }: RevealProps) {
   const ref = useRef<HTMLDivElement>(null)
   const [visible, setVisible] = useState(false)
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const node = ref.current
     if (!node) return
 
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setVisible(true)
+      return
+    }
+
+    const rect = node.getBoundingClientRect()
+    if (rect.top < window.innerHeight && rect.bottom > 0) {
       setVisible(true)
       return
     }

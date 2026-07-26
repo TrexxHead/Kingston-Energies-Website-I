@@ -1,20 +1,30 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 
 /**
  * Scroll-reveal wrapper: fades + rises its children in the first time they
  * scroll into view. Server components can be passed as children. Respects
  * reduced motion via the global CSS guard (transitions collapse to instant).
+ *
+ * Anything already in the viewport at mount (above the fold) is shown
+ * immediately rather than animated — otherwise every page load has a beat
+ * where already-visible content sits at opacity 0 until the observer's first
+ * callback fires, which reads as broken/unstyled content flashing in.
  */
 export default function Reveal({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
   const ref = useRef<HTMLDivElement>(null)
   const [shown, setShown] = useState(false)
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = ref.current
     if (!el) return
     if (typeof IntersectionObserver === 'undefined') {
+      setShown(true)
+      return
+    }
+    const rect = el.getBoundingClientRect()
+    if (rect.top < window.innerHeight && rect.bottom > 0) {
       setShown(true)
       return
     }

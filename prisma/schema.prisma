@@ -378,6 +378,29 @@ model Review {
   @@index([productId])
 }
 
+// Folds a duplicate guest-checkout email into the canonical customer record
+// it was merged into, so the admin Customers list stops double-counting them
+// (aliasEmail resolves to canonicalEmail everywhere customers are aggregated).
+model CustomerAlias {
+  id             String   @id @default(cuid())
+  aliasEmail     String   @unique
+  canonicalEmail String
+  createdAt      DateTime @default(now())
+
+  @@index([canonicalEmail])
+}
+
+model RestockRequest {
+  id        String   @id @default(cuid())
+  productId String   // catalog product id (e.g. "pb10")
+  email     String
+  createdAt DateTime @default(now())
+
+  // One signup per email per product — resubmitting just no-ops.
+  @@unique([productId, email])
+  @@index([productId])
+}
+
 enum Role {
   USER
   ADMIN

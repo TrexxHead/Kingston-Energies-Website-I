@@ -21,7 +21,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (!parsed.success) return NextResponse.json({ error: 'Invalid update' }, { status: 400 })
 
   try {
-    const before = await prisma.order.findUnique({ where: { id }, select: { paid: true, invoicedAt: true } })
+    const before = await prisma.order.findUnique({ where: { id }, select: { paid: true, invoicedAt: true, status: true, items: true } })
     const order = await prisma.order.update({
       where: { id },
       data: {
@@ -34,6 +34,18 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       },
     })
 
+    // Cancelling restocks inventory, same as a customer-initiated cancel.
+    if (parsed.data.status === 'CANCELLED' && before && before.status !== 'CANCELLED') {
+      await Promise.all(
+        before.items.map((it) =>
+          prisma.product.updateMany({ where: { name: it.name }, data: { stock: { increment: it.qty } } }).catch(() => {}),
+        ),
+      )
+      await prisma.orderEvent.create({
+        data: { orderId: id, type: 'CANCELLED', label: 'Cancelled by admin', adminOnly: false },
+      }).catch(() => {})
+    }
+
     // Auto-issue the invoice the first time an order becomes paid.
     let invoice: { sent: boolean; to: string | null } | undefined
     if (parsed.data.paid === true && before && !before.paid && !before.invoicedAt) {
@@ -41,6 +53,20 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
 
     return NextResponse.json({ order, invoice })
+  } catch {
+    return NextResponse.json({ error: 'Order not found' }, { status: 404 })
+  }
+}
+
+/** Permanently remove an order — for erroneous/duplicate/test entries. Prefer the CANCELLED status for anything a customer or admin needs to keep a record of. */
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const denied = await guardAdmin()
+  if (denied) return denied
+
+  const { id } = await params
+  try {
+    await prisma.order.delete({ where: { id } })
+    return NextResponse.json({ ok: true })
   } catch {
     return NextResponse.json({ error: 'Order not found' }, { status: 404 })
   }

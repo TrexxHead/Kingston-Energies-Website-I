@@ -1,10 +1,10 @@
 import Reveal from '../../app/_design-system/Reveal'
 
 const STATS = [
-  { value: '40', suffix: '+', gradient: 'var(--gradient-brand)', color: 'var(--ke-green-600)', label: 'POWER BANKS SOLD' },
-  { value: '60', suffix: '+', gradient: 'var(--gradient-brand)', color: 'var(--ke-green-600)', label: 'CHARGERS SOLD' },
+  { value: '14', suffix: '-day', gradient: 'var(--gradient-brand)', color: 'var(--ke-green-600)', label: 'RETURN WINDOW' },
+  { value: 'J$10K', suffix: '', gradient: 'var(--gradient-brand)', color: 'var(--ke-green-600)', label: 'FREE DELIVERY OVER' },
   { value: '2', suffix: '×', gradient: 'var(--gradient-sun)', color: '#f7941e', label: 'FASTER CHARGING' },
-  { value: '12', suffix: 'mo', gradient: 'var(--gradient-brand)', color: 'var(--ke-green-600)', label: 'WARRANTY' },
+  { value: '12', suffix: 'mo', gradient: 'var(--gradient-brand)', color: 'var(--ke-green-600)', label: 'MANUFACTURER WARRANTY' },
 ]
 
 export default function Stats() {

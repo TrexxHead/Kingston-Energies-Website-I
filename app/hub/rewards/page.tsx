@@ -3,14 +3,15 @@ import { authOptions } from '@/lib/authOptions'
 import { prisma } from '@/lib/prisma'
 import { fmt } from '@/lib/catalog'
 import { UserPlus, Ticket, Award } from 'lucide-react'
-import { loyaltyPoints } from '@/lib/loyalty'
+import { loyaltyPoints, POINTS_REDEEM_STEP, POINTS_REDEEM_VALUE } from '@/lib/loyalty'
 import { ensureReferralCode } from '@/lib/referral'
 import Topbar from '../_components/Topbar'
 import { hubScreen, hubCard, hubH3 } from '../_components/ui'
 import CopyReferral from './_components/CopyReferral'
 
-const REWARD_STEP = 500 // points needed for the next J$1,000 reward
-const REWARD_VALUE = 1000 // J$ off per reward
+const REWARD_STEP = POINTS_REDEEM_STEP // points needed for the next redemption, matches checkout
+const REWARD_VALUE = POINTS_REDEEM_VALUE // J$ off per redemption step, matches checkout
+const REFERRAL_VALUE = 1000 // J$ give/get bonus for a successful referral (independent of points redemption)
 
 function tierFor(points: number): string {
   if (points >= 3000) return 'Platinum'
@@ -91,7 +92,7 @@ export default async function RewardsPage() {
             <UserPlus size={22} color="var(--ke-green-600)" />
             <h3 style={{ ...hubH3, margin: '14px 0 4px' }}>Refer a friend</h3>
             <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: '0 0 14px' }}>
-              Give {fmt(REWARD_VALUE)}, get {fmt(REWARD_VALUE)} when they order.
+              Give {fmt(REFERRAL_VALUE)}, get {fmt(REFERRAL_VALUE)} when they order.
             </p>
             <CopyReferral code={referralCode} />
           </div>

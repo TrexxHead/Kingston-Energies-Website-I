@@ -9,6 +9,7 @@ import { bulkRateForQty } from '@/lib/pricing'
 import { validatePromo } from '@/lib/promo'
 import { deliveryFee, deliveryLineLabel } from '@/lib/delivery'
 import { sendNewOrderAlert } from '@/lib/email'
+import { resolvePointsRedemption } from '@/lib/pointsRedemption'
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
@@ -22,6 +23,7 @@ const bodySchema = z.object({
   parish: z.string().max(60).optional(),
   deliveryMethod: z.enum(['standard', 'express', 'pickup']).optional(),
   promoCode: z.string().max(40).optional(),
+  pointsRedeemed: z.number().int().min(0).max(1_000_000).optional(),
   items: z.array(z.object({ name: z.string().min(1).max(160), price: z.number().min(0), qty: z.number().int().min(1) })).min(1),
 })
 
@@ -51,18 +53,23 @@ export async function POST(request: Request) {
   if (!parsed.success) return NextResponse.json({ error: 'Invalid order' }, { status: 400 })
 
   const session = await getServerSession(authOptions)
-  const { customerName, email, phone, shippingAddress, billingAddress, cartId, parish, deliveryMethod, promoCode, items } = parsed.data
+  const userId = session?.user?.id ?? null
+  const { customerName, email, phone, shippingAddress, billingAddress, cartId, parish, deliveryMethod, promoCode, pointsRedeemed, items } = parsed.data
   const units = items.reduce((sum, i) => sum + i.qty, 0)
   const gross = items.reduce((sum, i) => sum + i.price * i.qty, 0)
   const bulkDiscount = Math.round(gross * bulkRateForQty(units))
   const promo = promoCode ? await validatePromo(promoCode, gross) : null
+  // Rewards points redeemed — re-validated against the customer's real balance server-side.
+  // Only actually deducted once the WiPay callback confirms payment cleared.
+  const { pointsUsed, discount: pointsDiscount } = await resolvePointsRedemption(userId, pointsRedeemed ?? 0)
   // Delivery fee is recomputed server-side from the rate sheet — never trust a client-sent amount.
   const fee = deliveryMethod && parish ? deliveryFee(deliveryMethod, parish) : 0
-  const total = Math.max(0, gross - bulkDiscount - (promo?.valid ? (promo.discount ?? 0) : 0)) + fee
+  const total = Math.max(0, gross - bulkDiscount - (promo?.valid ? (promo.discount ?? 0) : 0) - pointsDiscount) + fee
   const orderNo = await nextOrderNo()
   const recordedItems = [
     ...items,
     ...(fee > 0 && deliveryMethod && parish ? [{ name: deliveryLineLabel(deliveryMethod, parish), qty: 1, price: fee }] : []),
+    ...(pointsUsed > 0 ? [{ name: `Rewards points redeemed (${pointsUsed} pts)`, qty: 1, price: -pointsDiscount }] : []),
   ]
 
   await prisma.order.create({

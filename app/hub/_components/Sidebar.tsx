@@ -16,6 +16,8 @@ import {
   Leaf,
   Bell,
   ExternalLink,
+  Menu,
+  X,
 } from 'lucide-react'
 import { formatCo2 } from '@/lib/impact'
 import { HUB_MAIN_NAV, HUB_FOOTER_NAV, type HubNavItem } from './hubNav'
@@ -37,6 +39,10 @@ export default function Sidebar() {
   const pathname = usePathname()
   const [co2, setCo2] = useState<string | null>(null)
   const [unread, setUnread] = useState(0)
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  // Close the drawer automatically whenever the route changes.
+  useEffect(() => setMobileOpen(false), [pathname])
 
   // Keep the notifications badge fresh (also refreshes when the route changes,
   // so opening the center and marking things read updates the count).
@@ -65,35 +71,63 @@ export default function Sidebar() {
   }, [])
 
   return (
-    <aside
-      className="kad-hide-sm"
-      style={{
-        width: 248,
-        flex: 'none',
-        background: 'var(--ke-dark-bg)',
-        color: '#fff',
-        display: 'flex',
-        flexDirection: 'column',
-        padding: '20px 14px',
-        overflowY: 'auto',
-      }}
-    >
-      {/* Wordmark */}
-      <div style={{ padding: '6px 8px 22px', display: 'flex', gap: 9, alignItems: 'center' }}>
-        <svg viewBox="0 0 200 200" width={26} height={26} style={{ flexShrink: 0 }}>
-          <rect width="200" height="200" rx="44" fill="#0d1714" />
-          <path
-            d="M100 52 l38 16 v34 c0 26 -17 42 -38 50 c-21 -8 -38 -24 -38 -50 v-34 z"
-            fill="none"
-            stroke="#93c93f"
-            strokeWidth={7}
-          />
-          <path d="M104 82 l-16 26 h12 l-4 22 l20 -30 h-13 z" fill="#f7941e" />
-        </svg>
-        <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 15, letterSpacing: '.02em' }}>
-          KINGSTON <span style={{ color: 'var(--ke-green-400)' }}>ENERGIES</span>
-        </span>
-      </div>
+    <>
+      {/* Mobile-only hamburger — the sidebar itself is off-canvas below 1000px. */}
+      <button
+        type="button"
+        className="kad-mobile-toggle"
+        onClick={() => setMobileOpen(true)}
+        aria-label="Open menu"
+        style={{
+          position: 'fixed', top: 14, left: 14, zIndex: 70,
+          width: 40, height: 40, borderRadius: 10, border: 'none',
+          background: 'var(--ke-dark-bg)', color: '#fff',
+          alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+          boxShadow: '0 4px 14px rgba(0,0,0,.3)',
+        }}
+      >
+        <Menu size={19} />
+      </button>
+      <div className={`kad-sidebar-backdrop${mobileOpen ? ' kad-sidebar-open' : ''}`} onClick={() => setMobileOpen(false)} />
+
+      <aside
+        className={`kad-sidebar${mobileOpen ? ' kad-sidebar-open' : ''}`}
+        style={{
+          width: 248,
+          flex: 'none',
+          background: 'var(--ke-dark-bg)',
+          color: '#fff',
+          display: 'flex',
+          flexDirection: 'column',
+          padding: '20px 14px',
+          overflowY: 'auto',
+        }}
+      >
+        {/* Wordmark */}
+        <div style={{ padding: '6px 8px 22px', display: 'flex', gap: 9, alignItems: 'center' }}>
+          <svg viewBox="0 0 200 200" width={26} height={26} style={{ flexShrink: 0 }}>
+            <rect width="200" height="200" rx="44" fill="#0d1714" />
+            <path
+              d="M100 52 l38 16 v34 c0 26 -17 42 -38 50 c-21 -8 -38 -24 -38 -50 v-34 z"
+              fill="none"
+              stroke="#93c93f"
+              strokeWidth={7}
+            />
+            <path d="M104 82 l-16 26 h12 l-4 22 l20 -30 h-13 z" fill="#f7941e" />
+          </svg>
+          <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 15, letterSpacing: '.02em', flex: 1 }}>
+            KINGSTON <span style={{ color: 'var(--ke-green-400)' }}>ENERGIES</span>
+          </span>
+          <button
+            type="button"
+            className="kad-mobile-toggle"
+            onClick={() => setMobileOpen(false)}
+            aria-label="Close menu"
+            style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.7)', cursor: 'pointer', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <X size={20} />
+          </button>
+        </div>
 
       <nav style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         {HUB_MAIN_NAV.map((item) => (
@@ -129,13 +163,14 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <div style={{ marginTop: 'auto', paddingTop: 12 }}>
-        <Link href="/" style={{ ...rowBase, color: 'rgba(255,255,255,.6)' }}>
-          <ExternalLink size={17} />
-          Back to site
-        </Link>
-      </div>
-    </aside>
+        <div style={{ marginTop: 'auto', paddingTop: 12 }}>
+          <Link href="/" style={{ ...rowBase, color: 'rgba(255,255,255,.6)' }}>
+            <ExternalLink size={17} />
+            Back to site
+          </Link>
+        </div>
+      </aside>
+    </>
   )
 }
 

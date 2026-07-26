@@ -23,6 +23,7 @@ model User {
   loyaltyTier   String?
   primaryNeed   CustomerNeed?
   referralCode  String?   @unique // personal share code, e.g. KEG-24-JFEARON
+  pointsRedeemed Int      @default(0) // lifetime points spent at checkout — available balance is loyaltyPoints() minus this
   lastActiveAt  DateTime? // last time the user engaged (drives admin online status)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt

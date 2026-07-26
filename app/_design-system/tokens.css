@@ -185,6 +185,26 @@
   .kad-kanban{ grid-template-columns:repeat(5,240px) !important; overflow-x:auto; }
 }
 
+/* Off-canvas drawer sidebars (admin console + customer hub) on mobile —
+   the sidebar stays reachable via a hamburger toggle instead of vanishing. */
+.kad-mobile-toggle{ display:none; }
+.kad-sidebar-backdrop{ display:none; }
+@media (max-width:1000px){
+  .kad-mobile-toggle{ display:flex !important; }
+  .kad-sidebar{
+    position:fixed; top:0; left:0; bottom:0; z-index:80;
+    transform:translateX(-105%);
+    transition:transform .26s var(--ease-standard, ease);
+    box-shadow:0 0 48px rgba(0,0,0,.45);
+  }
+  .kad-sidebar.kad-sidebar-open{ transform:translateX(0); }
+  .kad-header{ padding-left:64px !important; }
+  .kad-sidebar-backdrop.kad-sidebar-open{
+    display:block; position:fixed; inset:0; z-index:75;
+    background:rgba(0,0,0,.5);
+  }
+}
+
 @media (max-width:1100px){
   .kp-4col{ grid-template-columns:repeat(2,1fr) !important; }
 }

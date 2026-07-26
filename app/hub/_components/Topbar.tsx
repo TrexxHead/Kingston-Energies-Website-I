@@ -14,6 +14,7 @@ export default function Topbar({ title, subtitle }: TopbarProps) {
 
   return (
     <div
+      className="kad-header"
       style={{
         display: 'flex',
         alignItems: 'center',

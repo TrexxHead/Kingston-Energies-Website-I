@@ -43,7 +43,7 @@ function CheckoutInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { data: session } = useSession()
-  const { items, total, delivery: cartDeliveryEstimate, promoCode, clear, hydrated } = useCart()
+  const { items, total, delivery: cartDeliveryEstimate, promoCode, pointsApplied, clear, hydrated } = useCart()
   const { pushToast } = useToast()
   const [step, setStep] = useState(0)
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('standard')
@@ -124,7 +124,7 @@ function CheckoutInner() {
         const res = await fetch('/api/payments/wipay/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ customerName, ...contact, items: payloadItems, promoCode: promoCode ?? undefined }),
+          body: JSON.stringify({ customerName, ...contact, items: payloadItems, promoCode: promoCode ?? undefined, pointsRedeemed: pointsApplied || undefined }),
         })
         if (res.ok) {
           const { action, fields } = await res.json()
@@ -148,7 +148,7 @@ function CheckoutInner() {
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customerName, paymentMethod: selected.id, ...contact, items: payloadItems, promoCode: promoCode ?? undefined }),
+        body: JSON.stringify({ customerName, paymentMethod: selected.id, ...contact, items: payloadItems, promoCode: promoCode ?? undefined, pointsRedeemed: pointsApplied || undefined }),
       })
       if (res.ok) {
         orderNo = (await res.json()).orderNo

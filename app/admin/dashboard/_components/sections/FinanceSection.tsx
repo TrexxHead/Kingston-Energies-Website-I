@@ -10,7 +10,21 @@ import { fmt } from '../mockData'
 import { EXPENSE_CATEGORIES } from '@/lib/finance'
 import PaymentSettingsCard from './PaymentSettingsCard'
 import ProfitLossCard from './ProfitLossCard'
+import TransactionsTab from './TransactionsTab'
+import SalesTab from './SalesTab'
 import CountUp from '../ui/CountUp'
+
+type Tab = 'dashboard' | 'transactions' | 'expenses' | 'sales' | 'cashflow' | 'reports' | 'taxes'
+
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'dashboard', label: 'Dashboard' },
+  { id: 'transactions', label: 'Transactions' },
+  { id: 'expenses', label: 'Expenses' },
+  { id: 'sales', label: 'Sales' },
+  { id: 'cashflow', label: 'Cash Flow' },
+  { id: 'reports', label: 'Reports' },
+  { id: 'taxes', label: 'Taxes' },
+]
 
 interface Kpi { value: number; change: number | null }
 interface FinanceData {
@@ -24,6 +38,7 @@ interface FinanceData {
 }
 
 export default function FinanceSection() {
+  const [tab, setTab] = useState<Tab>('dashboard')
   const [data, setData] = useState<FinanceData | null>(null)
   const [expenseOpen, setExpenseOpen] = useState(false)
   const [budgetOpen, setBudgetOpen] = useState(false)
@@ -89,126 +104,157 @@ export default function FinanceSection() {
     }
   }
 
-  if (!data) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <PaymentSettingsCard />
-        <div style={cardStyle}><p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Loading finances…</p></div>
-      </div>
-    )
-  }
-
-  const maxBar = Math.max(1, ...data.series.map((s) => Math.max(s.revenue, s.expenses)))
+  const maxBar = data ? Math.max(1, ...data.series.map((s) => Math.max(s.revenue, s.expenses))) : 1
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {/* KPI row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14 }}>
-        <Kpi label={`Revenue · ${data.currentMonth}`} kpi={data.kpis.revenue} goodWhenUp />
-        <Kpi label={`Expenses · ${data.currentMonth}`} kpi={data.kpis.expenses} goodWhenUp={false} />
-        <Kpi label={`Net profit · ${data.currentMonth}`} kpi={data.kpis.profit} goodWhenUp />
-        <Kpi label="Outstanding (unpaid)" kpi={data.kpis.outstanding} goodWhenUp={false} />
+      {/* QuickBooks-style sub-navigation */}
+      <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--color-border)', overflowX: 'auto' }}>
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setTab(t.id)}
+            style={{
+              padding: '10px 16px',
+              background: 'none',
+              border: 'none',
+              borderBottom: tab === t.id ? '2px solid var(--ke-green-600)' : '2px solid transparent',
+              cursor: 'pointer',
+              fontFamily: 'var(--font-display)',
+              fontWeight: 600,
+              fontSize: 13.5,
+              color: tab === t.id ? 'var(--color-text)' : 'var(--color-text-muted)',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
 
-      {/* Trend chart */}
-      <div style={cardStyle}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-          <h3 style={{ ...h3Style, margin: 0 }}>Revenue vs expenses — last 6 months</h3>
-          <span style={{ display: 'flex', gap: 14, fontSize: 12, color: 'var(--color-text-muted)' }}>
-            <Legend color="var(--ke-green-500)" label="Revenue" />
-            <Legend color="var(--ke-sun-400)" label="Expenses" />
-          </span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 18, height: 170, paddingTop: 10 }}>
-          {data.series.map((s) => (
-            <div key={s.month} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 5, height: 130, width: '100%', justifyContent: 'center' }}>
-                <div title={`Revenue ${fmt(s.revenue)}`} style={{ width: 16, height: `${(s.revenue / maxBar) * 100}%`, minHeight: 2, background: 'var(--ke-green-500)', borderRadius: '4px 4px 0 0' }} />
-                <div title={`Expenses ${fmt(s.expenses)}`} style={{ width: 16, height: `${(s.expenses / maxBar) * 100}%`, minHeight: 2, background: 'var(--ke-sun-400)', borderRadius: '4px 4px 0 0' }} />
+      {tab === 'dashboard' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {!data ? (
+            <div style={cardStyle}><p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Loading finances…</p></div>
+          ) : (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14 }}>
+                <Kpi label={`Revenue · ${data.currentMonth}`} kpi={data.kpis.revenue} goodWhenUp />
+                <Kpi label={`Expenses · ${data.currentMonth}`} kpi={data.kpis.expenses} goodWhenUp={false} />
+                <Kpi label={`Net profit · ${data.currentMonth}`} kpi={data.kpis.profit} goodWhenUp />
+                <Kpi label="Outstanding (unpaid)" kpi={data.kpis.outstanding} goodWhenUp={false} />
               </div>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-subtle)' }}>{s.month.split(' ')[0]}</span>
-            </div>
-          ))}
-        </div>
-      </div>
 
-      <ProfitLossCard />
-
-      {/* Budgets vs actual + expense breakdown */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'start' }}>
-        <div style={cardStyle}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <h3 style={{ ...h3Style, margin: 0 }}>Budget vs actual · {data.currentMonth}</h3>
-            <Button size="sm" variant="outline" onClick={openBudgets}>Set budgets</Button>
-          </div>
-          {data.budgets.length === 0 ? (
-            <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: 0 }}>No budgets set yet. Click “Set budgets” to add monthly targets.</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {data.budgets.map((b) => {
-                const pct = b.budget > 0 ? Math.min(100, (b.actual / b.budget) * 100) : 0
-                const over = b.actual > b.budget
-                return (
-                  <div key={b.category}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 6 }}>
-                      <span>{b.category}</span>
-                      <span style={{ color: over ? 'var(--color-danger)' : 'var(--color-text-muted)' }}>{fmt(b.actual)} / {fmt(b.budget)}</span>
-                    </div>
-                    <div style={{ height: 9, borderRadius: 999, background: 'var(--ke-gray-100)', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${pct}%`, background: over ? 'var(--color-danger)' : 'var(--ke-green-500)', borderRadius: 999 }} />
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-
-        <div style={cardStyle}>
-          <h3 style={h3Style}>Expenses by category · {data.currentMonth}</h3>
-          {data.byCategory.length === 0 ? (
-            <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: 0 }}>No expenses logged this month.</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {data.byCategory.map((c) => (
-                <div key={c.category} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                  <span style={{ color: 'var(--color-text-muted)' }}>{c.category}</span>
-                  <span style={{ fontWeight: 700 }}>{fmt(c.amount)}</span>
+              <div style={cardStyle}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <h3 style={{ ...h3Style, margin: 0 }}>Revenue vs expenses — last 6 months</h3>
+                  <span style={{ display: 'flex', gap: 14, fontSize: 12, color: 'var(--color-text-muted)' }}>
+                    <Legend color="var(--ke-green-500)" label="Revenue" />
+                    <Legend color="var(--ke-sun-400)" label="Expenses" />
+                  </span>
                 </div>
-              ))}
-            </div>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 18, height: 170, paddingTop: 10 }}>
+                  {data.series.map((s) => (
+                    <div key={s.month} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 5, height: 130, width: '100%', justifyContent: 'center' }}>
+                        <div title={`Revenue ${fmt(s.revenue)}`} style={{ width: 16, height: `${(s.revenue / maxBar) * 100}%`, minHeight: 2, background: 'var(--ke-green-500)', borderRadius: '4px 4px 0 0' }} />
+                        <div title={`Expenses ${fmt(s.expenses)}`} style={{ width: 16, height: `${(s.expenses / maxBar) * 100}%`, minHeight: 2, background: 'var(--ke-sun-400)', borderRadius: '4px 4px 0 0' }} />
+                      </div>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-subtle)' }}>{s.month.split(' ')[0]}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <PaymentSettingsCard />
+            </>
           )}
         </div>
-      </div>
+      )}
 
-      {/* Expense log */}
-      <div style={cardStyle}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <h3 style={{ ...h3Style, margin: 0 }}>Expense log</h3>
-          <Button size="sm" variant="primary" onClick={() => setExpenseOpen(true)} iconRight={<Plus size={14} />}>Log expense</Button>
-        </div>
-        {data.recentExpenses.length === 0 ? (
-          <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: 0 }}>Nothing logged yet — record your first expense to start tracking profit.</p>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {data.recentExpenses.map((e) => (
-              <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: '1px solid var(--color-border)' }}>
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13.5 }}>{e.category}</span>
-                  {e.description && <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}> · {e.description}</span>}
-                  <span style={{ display: 'block', fontSize: 11, color: 'var(--color-text-subtle)' }}>{e.date}</span>
-                </span>
-                <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14 }}>{fmt(e.amount)}</span>
-                <button type="button" onClick={() => removeExpense(e.id)} aria-label="Delete expense" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-subtle)', display: 'flex' }}>
-                  <Trash2 size={15} />
-                </button>
+      {tab === 'transactions' && <TransactionsTab />}
+
+      {tab === 'expenses' && data && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'start' }}>
+            <div style={cardStyle}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <h3 style={{ ...h3Style, margin: 0 }}>Budget vs actual · {data.currentMonth}</h3>
+                <Button size="sm" variant="outline" onClick={openBudgets}>Set budgets</Button>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+              {data.budgets.length === 0 ? (
+                <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: 0 }}>No budgets set yet. Click “Set budgets” to add monthly targets.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  {data.budgets.map((b) => {
+                    const pct = b.budget > 0 ? Math.min(100, (b.actual / b.budget) * 100) : 0
+                    const over = b.actual > b.budget
+                    return (
+                      <div key={b.category}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 6 }}>
+                          <span>{b.category}</span>
+                          <span style={{ color: over ? 'var(--color-danger)' : 'var(--color-text-muted)' }}>{fmt(b.actual)} / {fmt(b.budget)}</span>
+                        </div>
+                        <div style={{ height: 9, borderRadius: 999, background: 'var(--ke-gray-100)', overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${pct}%`, background: over ? 'var(--color-danger)' : 'var(--ke-green-500)', borderRadius: 999 }} />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
 
-      <PaymentSettingsCard />
+            <div style={cardStyle}>
+              <h3 style={h3Style}>Expenses by category · {data.currentMonth}</h3>
+              {data.byCategory.length === 0 ? (
+                <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: 0 }}>No expenses logged this month.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {data.byCategory.map((c) => (
+                    <div key={c.category} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                      <span style={{ color: 'var(--color-text-muted)' }}>{c.category}</span>
+                      <span style={{ fontWeight: 700 }}>{fmt(c.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div style={cardStyle}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <h3 style={{ ...h3Style, margin: 0 }}>Expense log</h3>
+              <Button size="sm" variant="primary" onClick={() => setExpenseOpen(true)} iconRight={<Plus size={14} />}>Log expense</Button>
+            </div>
+            {data.recentExpenses.length === 0 ? (
+              <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: 0 }}>Nothing logged yet — record your first expense to start tracking profit.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {data.recentExpenses.map((e) => (
+                  <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: '1px solid var(--color-border)' }}>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13.5 }}>{e.category}</span>
+                      {e.description && <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}> · {e.description}</span>}
+                      <span style={{ display: 'block', fontSize: 11, color: 'var(--color-text-subtle)' }}>{e.date}</span>
+                    </span>
+                    <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14 }}>{fmt(e.amount)}</span>
+                    <button type="button" onClick={() => removeExpense(e.id)} aria-label="Delete expense" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-subtle)', display: 'flex' }}>
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {tab === 'sales' && <SalesTab />}
+      {tab === 'cashflow' && <ProfitLossCard view="cashflow" />}
+      {tab === 'reports' && <ProfitLossCard view="report" />}
+      {tab === 'taxes' && <ProfitLossCard view="taxes" />}
 
       {/* Log expense modal */}
       {expenseOpen && (

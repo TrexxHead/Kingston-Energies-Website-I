@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyWiPayCallback } from '@/lib/wipay'
+import { markPointsRedeemed } from '@/lib/pointsRedemption'
+
+const POINTS_LINE_RE = /^Rewards points redeemed \((\d+) pts\)$/
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
@@ -21,7 +24,14 @@ async function handle(params: URLSearchParams): Promise<NextResponse> {
 
   if (orderNo && status === 'success' && verified) {
     try {
-      await prisma.order.update({ where: { orderNo }, data: { paid: true } })
+      const order = await prisma.order.update({ where: { orderNo }, data: { paid: true }, include: { items: true } })
+      // Card payments only deduct redeemed points once payment actually
+      // clears, so an abandoned WiPay checkout never costs the customer points.
+      if (order.userId) {
+        const pointsLine = order.items.find((i) => POINTS_LINE_RE.test(i.name))
+        const match = pointsLine ? POINTS_LINE_RE.exec(pointsLine.name) : null
+        if (match) await markPointsRedeemed(order.userId, Number(match[1]))
+      }
     } catch {
       // Order not found — still send the customer somewhere sensible below.
     }

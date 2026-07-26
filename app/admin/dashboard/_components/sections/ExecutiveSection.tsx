@@ -11,6 +11,8 @@ import Skeleton from '@/components/Skeleton'
 interface Metrics {
   kpis: {
     revenue: number
+    collected: number
+    outstanding: number
     monthRevenue: number
     orders: number
     aov: number
@@ -57,7 +59,8 @@ export default function ExecutiveSection() {
 
   const k = m?.kpis
   const stats: { label: string; value: string; sub?: string }[] = [
-    { label: 'TOTAL REVENUE', value: k ? fmt(k.revenue) : '—', sub: k ? `${fmt(k.monthRevenue)} this month` : undefined },
+    { label: 'GROSS SALES', value: k ? fmt(k.revenue) : '—', sub: k ? `${fmt(k.monthRevenue)} this month` : undefined },
+    { label: 'CASH COLLECTED', value: k ? fmt(k.collected) : '—', sub: k ? `${fmt(k.outstanding)} outstanding` : undefined },
     { label: 'ORDERS', value: k ? String(k.orders) : '—' },
     { label: 'AVG ORDER VALUE', value: k ? fmt(k.aov) : '—' },
     { label: 'REPEAT CUSTOMERS', value: k ? `${k.repeatRate}%` : '—' },

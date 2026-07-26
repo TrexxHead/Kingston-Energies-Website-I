@@ -21,7 +21,7 @@ export async function GET() {
   const denied = await guardAdmin()
   if (denied) return denied
 
-  const [users, guestOrders] = await Promise.all([
+  const [users, guestOrders, aliases] = await Promise.all([
     prisma.user.findMany({
       where: { role: 'USER' },
       orderBy: { createdAt: 'asc' },
@@ -36,17 +36,60 @@ export async function GET() {
       select: { email: true, customerName: true, phone: true, total: true, createdAt: true },
       orderBy: { createdAt: 'asc' },
     }),
+    // Admin-merged duplicates — an aliased email's orders count toward whichever
+    // customer it was merged into instead of showing as a separate profile.
+    prisma.customerAlias.findMany({ select: { aliasEmail: true, canonicalEmail: true } }).catch(() => []),
   ])
+
+  const aliasMap = new Map(aliases.map((a) => [a.aliasEmail.toLowerCase(), a.canonicalEmail.toLowerCase()]))
+  const resolve = (email: string): string => aliasMap.get(email.toLowerCase()) ?? email.toLowerCase()
 
   const registeredEmails = new Set(users.map((u) => u.email.toLowerCase()))
 
+  // Group guest orders by their alias-resolved email (skip anyone who later
+  // registered with that email — their orders are counted via userId instead).
+  const guestMap = new Map<string, { name: string; phone: string | null; ltv: number; count: number; first: Date; last: Date }>()
+  for (const o of guestOrders) {
+    const email = resolve(o.email as string)
+    if (registeredEmails.has(email)) continue // folded into a registered user below
+    const g = guestMap.get(email)
+    if (g) {
+      g.ltv += o.total
+      g.count += 1
+      if (o.createdAt < g.first) g.first = o.createdAt
+      if (o.createdAt > g.last) g.last = o.createdAt
+      if (!g.phone && o.phone) g.phone = o.phone
+    } else {
+      guestMap.set(email, { name: o.customerName, phone: o.phone, ltv: o.total, count: 1, first: o.createdAt, last: o.createdAt })
+    }
+  }
+
+  // Aliased guest orders whose canonical email belongs to a registered user
+  // fold straight into that user's totals (merge across the registered/guest boundary).
+  const foldedIntoUser = new Map<string, { ltv: number; count: number; first: Date; last: Date }>()
+  for (const o of guestOrders) {
+    const email = resolve(o.email as string)
+    if (!registeredEmails.has(email)) continue
+    const f = foldedIntoUser.get(email)
+    if (f) {
+      f.ltv += o.total
+      f.count += 1
+      if (o.createdAt < f.first) f.first = o.createdAt
+      if (o.createdAt > f.last) f.last = o.createdAt
+    } else {
+      foldedIntoUser.set(email, { ltv: o.total, count: 1, first: o.createdAt, last: o.createdAt })
+    }
+  }
+
   const customers = users.map((u) => {
-    const orderCount = u.orders.length
-    const ltv = u.orders.reduce((sum, o) => sum + o.total, 0)
-    const lastOrder = u.orders.reduce<Date | null>(
+    const folded = foldedIntoUser.get(u.email.toLowerCase())
+    const orderCount = u.orders.length + (folded?.count ?? 0)
+    const ltv = u.orders.reduce((sum, o) => sum + o.total, 0) + (folded?.ltv ?? 0)
+    let lastOrder = u.orders.reduce<Date | null>(
       (latest, o) => (latest === null || o.createdAt > latest ? o.createdAt : latest),
       null
     )
+    if (folded && (!lastOrder || folded.last > lastOrder)) lastOrder = folded.last
     const openTickets = u.tickets.filter((t) => t.status !== 'RESOLVED').length
     const valueTier = customerValueTier({
       ltv,
@@ -69,23 +112,6 @@ export async function GET() {
       valueTier,
     }
   })
-
-  // Group guest orders by email (skip anyone who later registered with that email).
-  const guestMap = new Map<string, { name: string; phone: string | null; ltv: number; count: number; first: Date; last: Date }>()
-  for (const o of guestOrders) {
-    const email = (o.email as string).toLowerCase()
-    if (registeredEmails.has(email)) continue
-    const g = guestMap.get(email)
-    if (g) {
-      g.ltv += o.total
-      g.count += 1
-      if (o.createdAt < g.first) g.first = o.createdAt
-      if (o.createdAt > g.last) g.last = o.createdAt
-      if (!g.phone && o.phone) g.phone = o.phone
-    } else {
-      guestMap.set(email, { name: o.customerName, phone: o.phone, ltv: o.total, count: 1, first: o.createdAt, last: o.createdAt })
-    }
-  }
 
   const guests = [...guestMap.entries()].map(([email, g]) => ({
     id: guestId(email),

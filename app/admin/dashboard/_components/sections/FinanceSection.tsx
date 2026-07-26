@@ -8,7 +8,6 @@ import Modal from '../ui/Modal'
 import TextInput from '../ui/TextInput'
 import { fmt } from '../mockData'
 import { EXPENSE_CATEGORIES } from '@/lib/finance'
-import PaymentSettingsCard from './PaymentSettingsCard'
 import ProfitLossCard from './ProfitLossCard'
 import TransactionsTab from './TransactionsTab'
 import SalesTab from './SalesTab'
@@ -166,8 +165,6 @@ export default function FinanceSection() {
                   ))}
                 </div>
               </div>
-
-              <PaymentSettingsCard />
             </>
           )}
         </div>

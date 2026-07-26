@@ -40,6 +40,9 @@ export default function ProductClient({ product, initialReviews = [] }: { produc
   const [reviewed, setReviewed] = useState(false)
   const [saved, setSaved] = useState(false)
   const [savingFav, setSavingFav] = useState(false)
+  const [notifyEmail, setNotifyEmail] = useState('')
+  const [notifySubmitting, setNotifySubmitting] = useState(false)
+  const [notifySent, setNotifySent] = useState(false)
 
   // Record this product in the customer's "recently viewed" list.
   useEffect(() => {
@@ -120,6 +123,29 @@ export default function ProductClient({ product, initialReviews = [] }: { produc
     const name = activeVariant ? `${product.name} (${activeVariant.label})` : product.name
     addItem({ name, price: activePrice, spec: product.spec })
     pushToast('check', 'Added to cart', name)
+  }
+
+  const submitNotify = async () => {
+    const email = notifyEmail.trim()
+    if (!email) return
+    setNotifySubmitting(true)
+    try {
+      const res = await fetch('/api/restock-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId: product.id, email }),
+      })
+      if (res.ok) {
+        setNotifySent(true)
+        pushToast('check', "You're on the list", "We'll email you the moment it's back.")
+      } else {
+        pushToast('star', 'Something went wrong', 'Please try again.')
+      }
+    } catch {
+      pushToast('star', 'Something went wrong', 'Please try again.')
+    } finally {
+      setNotifySubmitting(false)
+    }
   }
 
   const submitReview = async () => {
@@ -261,6 +287,41 @@ export default function ProductClient({ product, initialReviews = [] }: { produc
               {saved ? 'Saved' : 'Save'}
             </Button>
           </div>
+
+          {soldOut && (
+            <div style={{ marginTop: 14, padding: '14px 16px', borderRadius: 14, border: '1px solid var(--color-border)', background: 'var(--ke-green-50)' }}>
+              {notifySent ? (
+                <p style={{ fontSize: 13.5, color: 'var(--ke-green-700)', margin: 0, fontWeight: 600 }}>
+                  You&apos;re on the list — we&apos;ll email you the moment it&apos;s back in stock.
+                </p>
+              ) : (
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <label style={{ fontSize: 13.5, color: 'var(--color-text)', width: '100%', fontWeight: 600 }}>
+                    Get notified when it&apos;s back
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={notifyEmail}
+                    onChange={(e) => setNotifyEmail(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') submitNotify() }}
+                    placeholder="you@example.com"
+                    style={{
+                      flex: '1 1 200px',
+                      height: 42,
+                      padding: '0 14px',
+                      borderRadius: 10,
+                      border: '1.5px solid var(--color-border)',
+                      fontSize: 14,
+                    }}
+                  />
+                  <Button size="sm" onClick={submitNotify} disabled={notifySubmitting}>
+                    {notifySubmitting ? 'Joining…' : 'Notify me'}
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', marginTop: 30, borderTop: '1px solid var(--color-border)' }}>
             {specCells.map((c, i) => (

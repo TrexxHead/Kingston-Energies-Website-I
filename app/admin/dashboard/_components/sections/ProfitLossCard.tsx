@@ -110,14 +110,33 @@ export default function ProfitLossCard({ view = 'report' }: { view?: View }) {
           <Line label={`Less GCT (${s.gctRate}%)`} value={-s.gct} muted />
           <Line label="Net revenue" value={s.netRevenue} strong divider />
           <Line label="Cost of goods sold" value={-s.cogs} muted sub={s.cogsCoverage < 100 ? `${s.cogsCoverage}% of units costed` : undefined} />
-          <Line label="Gross profit" value={s.grossProfit} strong sub={`${s.grossMargin}% margin`} divider />
+          <Line
+            label="Gross profit"
+            value={s.grossProfit}
+            strong
+            warn={s.cogsCoverage === 0}
+            sub={s.cogsCoverage === 0 ? `${s.grossMargin}% margin — not real, no product costs logged` : `${s.grossMargin}% margin`}
+            divider
+          />
           {s.opex.length > 0 && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '.1em', color: 'var(--color-text-muted)', margin: '10px 0 6px' }}>OPERATING EXPENSES</div>}
           {s.opex.map((o) => <Line key={o.category} label={o.category} value={-o.amount} muted small />)}
           <Line label="Total operating expenses" value={-s.totalOpex} muted />
-          <Line label="Net profit" value={s.netProfit} strong big sub={`${s.netMargin}% net margin`} divider />
+          <Line
+            label="Net profit"
+            value={s.netProfit}
+            strong
+            big
+            warn={s.cogsCoverage === 0 && s.totalOpex === 0}
+            sub={
+              s.cogsCoverage === 0 && s.totalOpex === 0
+                ? `${s.netMargin}% net margin — not real, no costs or expenses logged yet`
+                : `${s.netMargin}% net margin`
+            }
+            divider
+          />
           {s.cogsCoverage < 100 && (
-            <p style={{ fontSize: 11.5, color: 'var(--color-text-subtle)', marginTop: 16 }}>
-              Set each product&apos;s <strong>unit cost</strong> in Inventory for accurate COGS &amp; margins.
+            <p style={{ fontSize: 12, color: 'var(--ke-sun-600, #b45309)', marginTop: 16, fontWeight: 600 }}>
+              Set each product&apos;s <strong>unit cost</strong> in Inventory for accurate COGS &amp; margins — the figures above overstate profit until you do.
             </p>
           )}
         </div>
@@ -151,15 +170,15 @@ export default function ProfitLossCard({ view = 'report' }: { view?: View }) {
   )
 }
 
-function Line({ label, value, sub, strong, big, muted, small, divider }: { label: string; value: number; sub?: string; strong?: boolean; big?: boolean; muted?: boolean; small?: boolean; divider?: boolean }) {
+function Line({ label, value, sub, strong, big, muted, small, divider, warn }: { label: string; value: number; sub?: string; strong?: boolean; big?: boolean; muted?: boolean; small?: boolean; divider?: boolean; warn?: boolean }) {
   const neg = value < 0
   return (
     <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, padding: small ? '3px 0' : '5px 0', borderTop: divider ? '1px solid var(--color-border)' : undefined, marginTop: divider ? 6 : 0, paddingTop: divider ? 8 : undefined }}>
       <span style={{ fontSize: small ? 12 : 13, color: muted ? 'var(--color-text-muted)' : 'var(--color-text)', fontWeight: strong ? 700 : 400 }}>
         {label}
-        {sub && <span style={{ display: 'block', fontSize: 10.5, color: 'var(--color-text-subtle)' }}>{sub}</span>}
+        {sub && <span style={{ display: 'block', fontSize: 10.5, color: warn ? 'var(--ke-sun-600, #b45309)' : 'var(--color-text-subtle)', fontWeight: warn ? 700 : 400 }}>{sub}</span>}
       </span>
-      <span style={{ fontFamily: 'var(--font-display)', fontWeight: strong ? 800 : 600, fontSize: big ? 18 : small ? 12.5 : 13.5, color: neg ? 'var(--color-text-muted)' : strong ? 'var(--color-text)' : 'var(--color-text)', whiteSpace: 'nowrap' }}>
+      <span style={{ fontFamily: 'var(--font-display)', fontWeight: strong ? 800 : 600, fontSize: big ? 18 : small ? 12.5 : 13.5, color: neg ? 'var(--color-text-muted)' : warn ? 'var(--ke-sun-600, #b45309)' : strong ? 'var(--color-text)' : 'var(--color-text)', whiteSpace: 'nowrap' }}>
         {neg ? '−' : ''}{fmt(Math.abs(value))}
       </span>
     </div>

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { ArrowRight } from 'lucide-react'
 import Reveal from '../../app/_design-system/Reveal'
+import { fmt } from '@/lib/catalog'
 
 function zone(seg: number, i: number): number {
   const t = seg - i
@@ -45,7 +46,7 @@ const FACTS = [
 
 const IMAGES = ['/images/powerbank-box.jpg', '/images/powerbank-hand.jpg', '/images/charger-cable.jpg']
 
-export default function ProductChapter() {
+export default function ProductChapter({ price, inStock, productId }: { price: number; inStock: boolean; productId: string }) {
   const wrapRef = useRef<HTMLDivElement>(null)
   const [progress, setProgress] = useState(0)
 
@@ -233,7 +234,7 @@ export default function ProductChapter() {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
               <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 48, letterSpacing: '-.02em' }}>
-                J$7,999
+                {fmt(price)}
               </span>
               <span
                 style={{
@@ -243,15 +244,15 @@ export default function ProductChapter() {
                   height: 22,
                   padding: '2px 10px',
                   borderRadius: 999,
-                  background: 'var(--ke-green-50)',
-                  color: 'var(--ke-green-700)',
+                  background: inStock ? 'var(--ke-green-50)' : 'rgba(247,148,30,.14)',
+                  color: inStock ? 'var(--ke-green-700)' : '#f7941e',
                   fontFamily: 'var(--font-display)',
                   fontWeight: 600,
                   fontSize: 11,
                 }}
               >
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--ke-green-700)' }} />
-                In stock
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: inStock ? 'var(--ke-green-700)' : '#f7941e' }} />
+                {inStock ? 'In stock' : 'Sold out'}
               </span>
             </div>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, letterSpacing: '.14em', color: 'var(--color-text-muted)', marginTop: 10 }}>

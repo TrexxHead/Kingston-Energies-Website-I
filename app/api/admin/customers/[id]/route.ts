@@ -123,3 +123,33 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ error: 'Customer not found' }, { status: 404 })
   }
 }
+
+/**
+ * Remove a customer. Registered accounts are deleted outright — their orders
+ * stay (Order.userId is set null, per schema), preserving revenue history
+ * while the account itself goes away. Guest "customers" have no real row; a
+ * guest delete request instead cancels/refund-flags their non-final orders so
+ * their outstanding history doesn't keep counting toward live metrics.
+ */
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const denied = await guardAdmin()
+  if (denied) return denied
+
+  const { id } = await params
+
+  if (id.startsWith('guest:')) {
+    const email = id.slice('guest:'.length)
+    await prisma.order.updateMany({
+      where: { userId: null, email: { equals: email, mode: 'insensitive' }, status: { notIn: ['CANCELLED', 'DONE'] } },
+      data: { status: 'CANCELLED', cancelReason: 'Customer record removed by admin', cancelledAt: new Date() },
+    })
+    return NextResponse.json({ ok: true })
+  }
+
+  try {
+    await prisma.user.delete({ where: { id } })
+    return NextResponse.json({ ok: true })
+  } catch {
+    return NextResponse.json({ error: 'Customer not found' }, { status: 404 })
+  }
+}

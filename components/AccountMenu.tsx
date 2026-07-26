@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
-import { LogOut, LayoutDashboard, Package, Bell, ShieldCheck } from 'lucide-react'
+import { LogOut, LayoutDashboard, Package, Bell } from 'lucide-react'
 import { initials } from '@/lib/initials'
 
 // Just the essentials — everything else lives one click away in the Hub's own
@@ -25,9 +25,6 @@ export default function AccountMenu({ size = 34 }: { size?: number }) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
-
-  const role = session?.user?.role
-  const isAdmin = role === 'ADMIN' || role === 'SUPER_ADMIN'
 
   useEffect(() => setOpen(false), [pathname])
   useEffect(() => {
@@ -101,18 +98,6 @@ export default function AccountMenu({ size = 34 }: { size?: number }) {
               {session.user?.email}
             </div>
           </div>
-
-          {isAdmin && (
-            <Link
-              href="/admin/dashboard"
-              role="menuitem"
-              onClick={() => setOpen(false)}
-              style={{ ...rowStyle, color: 'var(--ke-green-400, #93c93f)', background: 'rgba(147,201,63,.12)', marginBottom: 4 }}
-            >
-              <ShieldCheck size={16} />
-              Admin dashboard
-            </Link>
-          )}
 
           {ESSENTIALS.map(({ href, label, icon: Icon }) => (
             <Link key={href} href={href} role="menuitem" onClick={() => setOpen(false)} style={rowStyle}>

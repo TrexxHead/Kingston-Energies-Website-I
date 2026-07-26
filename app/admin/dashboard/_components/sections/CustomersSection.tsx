@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Plus, Search } from 'lucide-react'
+import { Plus, Search, Merge, Trash2 } from 'lucide-react'
 import Badge from '../ui/Badge'
 import Pill from '../ui/Pill'
 import Button from '../ui/Button'
@@ -67,6 +67,8 @@ export default function CustomersSection() {
   const [ticketOpen, setTicketOpen] = useState(false)
   const [ticketSubject, setTicketSubject] = useState('')
   const [busy, setBusy] = useState(false)
+  const [mergeOpen, setMergeOpen] = useState(false)
+  const [mergeTargetId, setMergeTargetId] = useState('')
 
   const loadCustomers = useCallback(async () => {
     const res = await fetch('/api/admin/customers')
@@ -153,6 +155,36 @@ export default function CustomersSection() {
     if (detail) loadDetail(detail.id)
   }
 
+  const mergeDuplicate = async () => {
+    if (!detail || !mergeTargetId) return
+    setBusy(true)
+    const res = await fetch('/api/admin/customers/merge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ canonicalId: detail.id, duplicateId: mergeTargetId }),
+    })
+    setBusy(false)
+    if (res.ok) {
+      setMergeOpen(false)
+      setMergeTargetId('')
+      await loadCustomers()
+      loadDetail(detail.id)
+    }
+  }
+
+  const deleteCustomer = async () => {
+    if (!detail) return
+    if (!confirm(`Remove ${detail.name} from Customers? ${detail.registered ? 'This deletes their account (orders are kept for records).' : 'This cancels their open orders.'}`)) return
+    setBusy(true)
+    const res = await fetch(`/api/admin/customers/${detail.id}`, { method: 'DELETE' })
+    setBusy(false)
+    if (res.ok) {
+      setDetail(null)
+      setSelId(null)
+      loadCustomers()
+    }
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <CrmInsights customers={customers} />
@@ -234,6 +266,15 @@ export default function CustomersSection() {
                   <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{detail.email}{detail.phone ? ` · ${detail.phone}` : ''} · CLV {fmt(Math.round(detail.ltv))}</div>
                 </div>
                 <Badge tone={VALUE_TIERS[detail.valueTier].tone}>{detail.valueTier} · {VALUE_TIERS[detail.valueTier].label}</Badge>
+              </div>
+
+              <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+                <Button size="sm" variant="outline" onClick={() => setMergeOpen(true)} iconRight={<Merge size={13} />}>
+                  Merge duplicate in
+                </Button>
+                <Button size="sm" variant="outline" onClick={deleteCustomer} iconRight={<Trash2 size={13} />}>
+                  Remove customer
+                </Button>
               </div>
 
               {(detail.shippingAddress || detail.billingAddress) && (
@@ -347,6 +388,33 @@ export default function CustomersSection() {
             <TextInput label="Segment" value={form.segment} onChange={(v) => setForm({ ...form, segment: v })} options={['VIP', 'REPEAT', 'NEW']} />
             <TextInput label="Loyalty tier" value={form.loyaltyTier} onChange={(v) => setForm({ ...form, loyaltyTier: v })} options={['Gold', 'Silver', 'Bronze']} />
           </div>
+        </Modal>
+      )}
+
+      {mergeOpen && detail && (
+        <Modal
+          title={`Merge a duplicate into ${detail.name}`}
+          onClose={() => { setMergeOpen(false); setMergeTargetId('') }}
+          footer={
+            <>
+              <Button size="sm" variant="outline" onClick={() => { setMergeOpen(false); setMergeTargetId('') }}>Cancel</Button>
+              <Button size="sm" variant="primary" onClick={mergeDuplicate} disabled={!mergeTargetId || busy}>{busy ? 'Merging…' : 'Merge'}</Button>
+            </>
+          }
+        >
+          <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: '0 0 12px' }}>
+            {detail.name} stays. The duplicate&apos;s order history folds into this profile{detail.registered ? '' : ' (both stay guest profiles until one registers)'}.
+            {!detail.registered && ' Pick a registered account as the keeper if one of the duplicates has signed in before.'}
+          </p>
+          <label style={{ display: 'block' }}>
+            <span style={overline}>DUPLICATE TO FOLD IN</span>
+            <select value={mergeTargetId} onChange={(e) => setMergeTargetId(e.target.value)} style={detailSelect}>
+              <option value="">Choose a customer…</option>
+              {customers.filter((c) => c.id !== detail.id).map((c) => (
+                <option key={c.id} value={c.id}>{c.name} — {c.email} ({c.registered ? 'registered' : 'guest'})</option>
+              ))}
+            </select>
+          </label>
         </Modal>
       )}
 

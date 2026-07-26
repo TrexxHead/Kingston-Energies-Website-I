@@ -13,6 +13,7 @@ export default function Header({ section, onNavigate }: HeaderProps) {
 
   return (
     <div
+      className="kad-header"
       style={{
         display: 'flex',
         alignItems: 'center',

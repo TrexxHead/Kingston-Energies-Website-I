@@ -1,13 +1,14 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { FileDown, TrendingUp } from 'lucide-react'
+import { FileDown, TrendingUp, Landmark, Percent } from 'lucide-react'
 import { cardStyle, h3Style } from '../ui/card'
 import Button from '../ui/Button'
 import Pill from '../ui/Pill'
 import { fmt } from '../mockData'
 
 type Period = 'month' | 'quarter' | 'year' | 'all'
+type View = 'report' | 'cashflow' | 'taxes'
 
 interface Statement {
   period: Period
@@ -38,8 +39,18 @@ const PERIODS: { id: Period; label: string }[] = [
   { id: 'all', label: 'All time' },
 ]
 
-/** A proper Profit & Loss statement + cash-flow summary, per period. */
-export default function ProfitLossCard() {
+const TITLES: Record<View, { icon: typeof TrendingUp; label: string }> = {
+  report: { icon: TrendingUp, label: 'Profit & Loss' },
+  cashflow: { icon: Landmark, label: 'Cash Flow' },
+  taxes: { icon: Percent, label: 'Taxes (GCT)' },
+}
+
+/**
+ * Shared statement engine for the Finance sub-tabs — one fetch of the same
+ * period statement, three different slices of it (Reports / Cash Flow /
+ * Taxes), so the numbers are always consistent across tabs.
+ */
+export default function ProfitLossCard({ view = 'report' }: { view?: View }) {
   const [period, setPeriod] = useState<Period>('month')
   const [s, setS] = useState<Statement | null>(null)
   const [gctRate, setGctRate] = useState('15')
@@ -69,12 +80,14 @@ export default function ProfitLossCard() {
     load(period)
   }
 
+  const { icon: Icon, label: title } = TITLES[view]
+
   return (
     <div style={cardStyle}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-          <TrendingUp size={17} color="var(--ke-green-600)" />
-          <h3 style={{ ...h3Style, margin: 0 }}>Profit &amp; Loss{s ? ` · ${s.periodLabel}` : ''}</h3>
+          <Icon size={17} color="var(--ke-green-600)" />
+          <h3 style={{ ...h3Style, margin: 0 }}>{title}{s ? ` · ${s.periodLabel}` : ''}</h3>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <a href={`/api/admin/finance/statement?period=${period}&format=csv`} style={{ textDecoration: 'none' }}>
@@ -91,42 +104,46 @@ export default function ProfitLossCard() {
 
       {!s ? (
         <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Loading…</p>
+      ) : view === 'report' ? (
+        <div>
+          <Line label="Gross sales" value={s.grossSales} sub={`${s.orderCount} orders`} />
+          <Line label={`Less GCT (${s.gctRate}%)`} value={-s.gct} muted />
+          <Line label="Net revenue" value={s.netRevenue} strong divider />
+          <Line label="Cost of goods sold" value={-s.cogs} muted sub={s.cogsCoverage < 100 ? `${s.cogsCoverage}% of units costed` : undefined} />
+          <Line label="Gross profit" value={s.grossProfit} strong sub={`${s.grossMargin}% margin`} divider />
+          {s.opex.length > 0 && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '.1em', color: 'var(--color-text-muted)', margin: '10px 0 6px' }}>OPERATING EXPENSES</div>}
+          {s.opex.map((o) => <Line key={o.category} label={o.category} value={-o.amount} muted small />)}
+          <Line label="Total operating expenses" value={-s.totalOpex} muted />
+          <Line label="Net profit" value={s.netProfit} strong big sub={`${s.netMargin}% net margin`} divider />
+          {s.cogsCoverage < 100 && (
+            <p style={{ fontSize: 11.5, color: 'var(--color-text-subtle)', marginTop: 16 }}>
+              Set each product&apos;s <strong>unit cost</strong> in Inventory for accurate COGS &amp; margins.
+            </p>
+          )}
+        </div>
+      ) : view === 'cashflow' ? (
+        <div style={{ maxWidth: 380 }}>
+          <Line label="Cash in (paid orders)" value={s.cashIn} />
+          <Line label="Cash out (expenses)" value={-s.cashOut} muted />
+          <Line label="Net cash flow" value={s.netCash} strong big divider />
+          <Line label="Receivables (unpaid orders)" value={s.receivables} sub="awaiting payment" muted />
+        </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-          {/* P&L */}
-          <div>
-            <Line label="Gross sales" value={s.grossSales} sub={`${s.orderCount} orders`} />
-            <Line label={`Less GCT (${s.gctRate}%)`} value={-s.gct} muted />
-            <Line label="Net revenue" value={s.netRevenue} strong divider />
-            <Line label="Cost of goods sold" value={-s.cogs} muted sub={s.cogsCoverage < 100 ? `${s.cogsCoverage}% of units costed` : undefined} />
-            <Line label="Gross profit" value={s.grossProfit} strong sub={`${s.grossMargin}% margin`} divider />
-            {s.opex.length > 0 && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '.1em', color: 'var(--color-text-muted)', margin: '10px 0 6px' }}>OPERATING EXPENSES</div>}
-            {s.opex.map((o) => <Line key={o.category} label={o.category} value={-o.amount} muted small />)}
-            <Line label="Total operating expenses" value={-s.totalOpex} muted />
-            <Line label="Net profit" value={s.netProfit} strong big sub={`${s.netMargin}% net margin`} divider />
-          </div>
+        <div style={{ maxWidth: 380 }}>
+          <Line label="Gross sales" value={s.grossSales} sub={`${s.orderCount} orders`} />
+          <Line label={`GCT collected (${s.gctRate}%)`} value={s.gct} strong big divider />
+          <Line label="Net revenue (excl. GCT)" value={s.netRevenue} muted />
 
-          {/* Cash flow + GCT setting */}
-          <div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '.1em', color: 'var(--color-text-muted)', marginBottom: 6 }}>CASH FLOW</div>
-            <Line label="Cash in (paid orders)" value={s.cashIn} />
-            <Line label="Cash out (expenses)" value={-s.cashOut} muted />
-            <Line label="Net cash flow" value={s.netCash} strong divider />
-            <Line label="Receivables (unpaid)" value={s.receivables} sub="awaiting payment" muted />
-
-            <div style={{ marginTop: 20, padding: 14, borderRadius: 12, background: 'var(--ke-gray-50, #f6f7f6)' }}>
-              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12.5, marginBottom: 8 }}>GCT rate</div>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <input value={gctRate} onChange={(e) => setGctRate(e.target.value)} type="number" style={{ width: 70, height: 34, padding: '0 10px', border: '1px solid var(--color-border)', borderRadius: 8, fontSize: 13 }} />
-                <span style={{ fontSize: 12.5, color: 'var(--color-text-muted)' }}>% (prices GCT-inclusive)</span>
-                <Button size="sm" variant="outline" onClick={saveRate}>{savingRate ? '…' : 'Save'}</Button>
-              </div>
+          <div style={{ marginTop: 20, padding: 14, borderRadius: 12, background: 'var(--ke-gray-50, #f6f7f6)' }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12.5, marginBottom: 8 }}>GCT rate</div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input value={gctRate} onChange={(e) => setGctRate(e.target.value)} type="number" style={{ width: 70, height: 34, padding: '0 10px', border: '1px solid var(--color-border)', borderRadius: 8, fontSize: 13 }} />
+              <span style={{ fontSize: 12.5, color: 'var(--color-text-muted)' }}>% (prices GCT-inclusive)</span>
+              <Button size="sm" variant="outline" onClick={saveRate}>{savingRate ? '…' : 'Save'}</Button>
             </div>
-            {s.cogsCoverage < 100 && (
-              <p style={{ fontSize: 11.5, color: 'var(--color-text-subtle)', marginTop: 12 }}>
-                Set each product&apos;s <strong>unit cost</strong> in Inventory for accurate COGS &amp; margins.
-              </p>
-            )}
+            <p style={{ fontSize: 11.5, color: 'var(--color-text-subtle)', marginTop: 10 }}>
+              This is what you owe Tax Administration Jamaica for the period shown — set aside {fmt(s.gct)} from sales.
+            </p>
           </div>
         </div>
       )}

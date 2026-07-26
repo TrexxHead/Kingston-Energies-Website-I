@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { FREE_DELIVERY_THRESHOLD, DELIVERY_FEE, bulkRateForQty } from '@/lib/pricing'
+import { pointsToValue } from '@/lib/loyalty'
 
 export interface CartItem {
   name: string
@@ -22,6 +23,8 @@ interface CartContextValue {
   total: number
   promoOn: boolean
   promoCode: string | null
+  pointsApplied: number
+  pointsDiscount: number
   hydrated: boolean
   addItem: (item: Omit<CartItem, 'qty'>) => void
   inc: (name: string) => void
@@ -30,6 +33,8 @@ interface CartContextValue {
   clear: () => void
   applyPromo: (code: string) => Promise<{ valid: boolean; message: string }>
   removePromo: () => void
+  applyPoints: (points: number) => void
+  removePoints: () => void
 }
 
 interface AppliedPromo {
@@ -42,11 +47,13 @@ const CartContext = createContext<CartContextValue | null>(null)
 
 const STORAGE_KEY = 'ke-cart'
 const PROMO_KEY = 'ke-promo'
+const POINTS_KEY = 'ke-points-applied'
 const CART_ID_KEY = 'ke-cart-id'
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([])
   const [promo, setPromo] = useState<AppliedPromo | null>(null)
+  const [pointsApplied, setPointsApplied] = useState(0)
   const [hydrated, setHydrated] = useState(false)
 
   useEffect(() => {
@@ -55,6 +62,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (raw) setItems(JSON.parse(raw))
       const p = localStorage.getItem(PROMO_KEY)
       if (p) setPromo(JSON.parse(p))
+      const pts = localStorage.getItem(POINTS_KEY)
+      if (pts) setPointsApplied(Number(pts) || 0)
     } catch {
       // ignore malformed storage
     }
@@ -98,6 +107,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     else localStorage.removeItem(PROMO_KEY)
   }, [promo, hydrated])
 
+  useEffect(() => {
+    if (!hydrated) return
+    if (pointsApplied > 0) localStorage.setItem(POINTS_KEY, String(pointsApplied))
+    else localStorage.removeItem(POINTS_KEY)
+  }, [pointsApplied, hydrated])
+
   const value = useMemo<CartContextValue>(() => {
     const addItem = (item: Omit<CartItem, 'qty'>) =>
       setItems((prev) => {
@@ -121,6 +136,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const clear = () => {
       setItems([])
       setPromo(null)
+      setPointsApplied(0)
     }
 
     const subtotalNow = items.reduce((a, c) => a + c.price * c.qty, 0)
@@ -142,6 +158,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     const removePromo = () => setPromo(null)
 
+    const applyPoints = (points: number) => setPointsApplied(Math.max(0, Math.floor(points)))
+    const removePoints = () => setPointsApplied(0)
+
     const count = items.reduce((a, c) => a + c.qty, 0)
     const subtotal = subtotalNow
     const delivery = subtotal === 0 || subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE
@@ -154,10 +173,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
         ? Math.round(subtotal * (promo.value / 100))
         : Math.min(Math.round(promo.value), subtotal)
       : 0
-    const total = Math.max(0, subtotal + delivery - discount - bulkDiscount)
+    const pointsDiscount = pointsToValue(pointsApplied)
+    const total = Math.max(0, subtotal + delivery - discount - bulkDiscount - pointsDiscount)
 
-    return { items, count, subtotal, delivery, discount, bulkDiscount, bulkRate, total, promoOn: Boolean(promo), promoCode: promo?.code ?? null, hydrated, addItem, inc, dec, remove, clear, applyPromo, removePromo }
-  }, [items, promo, hydrated])
+    return {
+      items, count, subtotal, delivery, discount, bulkDiscount, bulkRate, total,
+      promoOn: Boolean(promo), promoCode: promo?.code ?? null,
+      pointsApplied, pointsDiscount,
+      hydrated, addItem, inc, dec, remove, clear, applyPromo, removePromo, applyPoints, removePoints,
+    }
+  }, [items, promo, pointsApplied, hydrated])
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>
 }

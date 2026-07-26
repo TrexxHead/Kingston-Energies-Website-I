@@ -8,6 +8,7 @@ import { sendOrderConfirmation, sendNewOrderAlert } from '@/lib/email'
 import { bulkRateForQty } from '@/lib/pricing'
 import { validatePromo } from '@/lib/promo'
 import { deliveryFee, deliveryLineLabel } from '@/lib/delivery'
+import { resolvePointsRedemption, markPointsRedeemed } from '@/lib/pointsRedemption'
 
 const orderSchema = z.object({
   customerName: z.string().min(1).max(120),
@@ -20,6 +21,7 @@ const orderSchema = z.object({
   deliveryMethod: z.enum(['standard', 'express', 'pickup']).optional(),
   paymentMethod: z.enum(['bank', 'lynk', 'paypal', 'cod', 'card']).optional(),
   promoCode: z.string().max(40).optional(),
+  pointsRedeemed: z.number().int().min(0).max(1_000_000).optional(),
   items: z
     .array(
       z.object({
@@ -70,7 +72,7 @@ export async function POST(request: Request) {
     const session = await getServerSession(authOptions)
     const userId = session?.user?.id ?? null
 
-    const { customerName, email, phone, shippingAddress, billingAddress, cartId, parish, deliveryMethod, paymentMethod, promoCode, items } = parsed.data
+    const { customerName, email, phone, shippingAddress, billingAddress, cartId, parish, deliveryMethod, paymentMethod, promoCode, pointsRedeemed, items } = parsed.data
     // Prefer the signed-in email, else the one the guest typed at checkout.
     const contactEmail = session?.user?.email ?? email ?? null
 
@@ -80,13 +82,16 @@ export async function POST(request: Request) {
     // Validate + apply the promo server-side (never trust a client-sent amount).
     const promo = promoCode ? await validatePromo(promoCode, gross) : null
     const promoDiscount = promo?.valid ? (promo.discount ?? 0) : 0
+    // Rewards points redeemed — re-validated against the customer's real balance server-side.
+    const { pointsUsed, discount: pointsDiscount } = await resolvePointsRedemption(userId, pointsRedeemed ?? 0)
     // Delivery fee is recomputed server-side from the rate sheet — never trust a client-sent amount.
     const fee = deliveryMethod && parish ? deliveryFee(deliveryMethod, parish) : 0
-    const total = Math.max(0, gross - bulkDiscount - promoDiscount) + fee
+    const total = Math.max(0, gross - bulkDiscount - promoDiscount - pointsDiscount) + fee
     const orderNo = await nextOrderNo()
     const recordedItems = [
       ...items,
       ...(fee > 0 && deliveryMethod && parish ? [{ name: deliveryLineLabel(deliveryMethod, parish), qty: 1, price: fee }] : []),
+      ...(pointsUsed > 0 ? [{ name: `Rewards points redeemed (${pointsUsed} pts)`, qty: 1, price: -pointsDiscount }] : []),
     ]
 
     const order = await prisma.order.create({
@@ -108,6 +113,10 @@ export async function POST(request: Request) {
     // Mark this cart as converted so it isn't counted as abandoned.
     if (cartId) {
       await prisma.cart.updateMany({ where: { id: cartId }, data: { status: 'CONVERTED' } }).catch(() => {})
+    }
+    // Deduct the redeemed points from the customer's balance now that the order exists.
+    if (userId && pointsUsed > 0) {
+      await markPointsRedeemed(userId, pointsUsed)
     }
 
     // Fire-and-forget confirmation email (works for guests too, via captured email).

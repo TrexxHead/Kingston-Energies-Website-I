@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import {
   LayoutDashboard,
   KanbanSquare,
@@ -11,6 +12,8 @@ import {
   BookOpen,
   Settings,
   ExternalLink,
+  Menu,
+  X,
 } from 'lucide-react'
 import Link from 'next/link'
 import { NAV_ITEMS, type SectionId } from './mockData'
@@ -33,95 +36,130 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ section, onSelect }: SidebarProps) {
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  // Close the drawer automatically once a section is picked.
+  useEffect(() => setMobileOpen(false), [section])
+
   return (
-    <aside
-      className="kad-hide-sm"
-      style={{
-        width: 238,
-        flex: 'none',
-        background: '#0d1714',
-        color: '#fff',
-        display: 'flex',
-        flexDirection: 'column',
-        padding: '20px 14px',
-      }}
-    >
-      <div style={{ padding: '6px 8px 20px', display: 'flex', gap: 9, alignItems: 'center' }}>
-        <svg viewBox="0 0 200 200" width={24} height={24} style={{ objectFit: 'contain', flexShrink: 0 }}>
-          <rect width="200" height="200" fill="#0d1714" />
-          <path
-            d="M100 52 l38 16 v34 c0 26 -17 42 -38 50 c-21 -8 -38 -24 -38 -50 v-34 z"
-            fill="none"
-            stroke="#93c93f"
-            strokeWidth={7}
-          />
-          <path d="M104 82 l-16 26 h12 l-4 22 l20 -30 h-13 z" fill="#f7941e" />
-        </svg>
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 12.5, letterSpacing: '.1em', color: '#fff' }}>
-            KINGSTON
-          </span>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '.2em', color: 'var(--ke-green-400)' }}>
-            ADMIN&nbsp;CONSOLE
-          </span>
-        </div>
-      </div>
+    <>
+      {/* Mobile-only hamburger — the sidebar itself is off-canvas below 1000px. */}
+      <button
+        type="button"
+        className="kad-mobile-toggle"
+        onClick={() => setMobileOpen(true)}
+        aria-label="Open menu"
+        style={{
+          position: 'fixed', top: 14, left: 14, zIndex: 70,
+          width: 40, height: 40, borderRadius: 10, border: 'none',
+          background: '#0d1714', color: '#fff',
+          alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+          boxShadow: '0 4px 14px rgba(0,0,0,.3)',
+        }}
+      >
+        <Menu size={19} />
+      </button>
+      <div className={`kad-sidebar-backdrop${mobileOpen ? ' kad-sidebar-open' : ''}`} onClick={() => setMobileOpen(false)} />
 
-      <nav style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-        {NAV_ITEMS.map((item) => {
-          const Icon = ICONS[item.icon]
-          const active = item.id === section
-          return (
-            <div
-              key={item.id}
-              onClick={() => onSelect(item.id)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 11,
-                padding: '10px 12px',
-                borderRadius: 11,
-                cursor: 'pointer',
-                fontFamily: 'var(--font-display)',
-                fontWeight: 600,
-                fontSize: 13.5,
-                color: active ? '#fff' : 'rgba(255,255,255,.62)',
-                background: active ? 'rgba(147,201,63,.18)' : 'transparent',
-                transition: 'background .16s ease, color .16s ease',
-              }}
-              onMouseEnter={(e) => { if (!active) { e.currentTarget.style.background = 'rgba(255,255,255,.06)'; e.currentTarget.style.color = 'rgba(255,255,255,.9)' } }}
-              onMouseLeave={(e) => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,.62)' } }}
-            >
-              <Icon size={18} color={active ? 'var(--ke-green-400)' : undefined} />
-              {item.label}
-            </div>
-          )
-        })}
-      </nav>
-
-      <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <div style={{ background: 'rgba(255,255,255,.06)', borderRadius: 12, padding: 12 }}>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,.55)' }}>Signed in as</div>
-          <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, marginTop: 2 }}>Ops Admin</div>
+      <aside
+        className={`kad-sidebar${mobileOpen ? ' kad-sidebar-open' : ''}`}
+        style={{
+          width: 238,
+          flex: 'none',
+          background: '#0d1714',
+          color: '#fff',
+          display: 'flex',
+          flexDirection: 'column',
+          padding: '20px 14px',
+          overflowY: 'auto',
+        }}
+      >
+        <div style={{ padding: '6px 8px 20px', display: 'flex', gap: 9, alignItems: 'center' }}>
+          <svg viewBox="0 0 200 200" width={24} height={24} style={{ objectFit: 'contain', flexShrink: 0 }}>
+            <rect width="200" height="200" fill="#0d1714" />
+            <path
+              d="M100 52 l38 16 v34 c0 26 -17 42 -38 50 c-21 -8 -38 -24 -38 -50 v-34 z"
+              fill="none"
+              stroke="#93c93f"
+              strokeWidth={7}
+            />
+            <path d="M104 82 l-16 26 h12 l-4 22 l20 -30 h-13 z" fill="#f7941e" />
+          </svg>
+          <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 12.5, letterSpacing: '.1em', color: '#fff' }}>
+              KINGSTON
+            </span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '.2em', color: 'var(--ke-green-400)' }}>
+              ADMIN&nbsp;CONSOLE
+            </span>
+          </div>
+          <button
+            type="button"
+            className="kad-mobile-toggle"
+            onClick={() => setMobileOpen(false)}
+            aria-label="Close menu"
+            style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.7)', cursor: 'pointer', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <X size={20} />
+          </button>
         </div>
-        <Link
-          href="/"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            padding: '9px 12px',
-            borderRadius: 10,
-            fontFamily: 'var(--font-display)',
-            fontWeight: 600,
-            fontSize: 13,
-            color: 'rgba(255,255,255,.6)',
-          }}
-        >
-          <ExternalLink size={17} />
-          Back to site
-        </Link>
-      </div>
-    </aside>
+
+        <nav style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {NAV_ITEMS.map((item) => {
+            const Icon = ICONS[item.icon]
+            const active = item.id === section
+            return (
+              <div
+                key={item.id}
+                onClick={() => onSelect(item.id)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 11,
+                  padding: '10px 12px',
+                  borderRadius: 11,
+                  cursor: 'pointer',
+                  fontFamily: 'var(--font-display)',
+                  fontWeight: 600,
+                  fontSize: 13.5,
+                  color: active ? '#fff' : 'rgba(255,255,255,.62)',
+                  background: active ? 'rgba(147,201,63,.18)' : 'transparent',
+                  transition: 'background .16s ease, color .16s ease',
+                }}
+                onMouseEnter={(e) => { if (!active) { e.currentTarget.style.background = 'rgba(255,255,255,.06)'; e.currentTarget.style.color = 'rgba(255,255,255,.9)' } }}
+                onMouseLeave={(e) => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,.62)' } }}
+              >
+                <Icon size={18} color={active ? 'var(--ke-green-400)' : undefined} />
+                {item.label}
+              </div>
+            )
+          })}
+        </nav>
+
+        <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ background: 'rgba(255,255,255,.06)', borderRadius: 12, padding: 12 }}>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,.55)' }}>Signed in as</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, marginTop: 2 }}>Ops Admin</div>
+          </div>
+          <Link
+            href="/"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '9px 12px',
+              borderRadius: 10,
+              fontFamily: 'var(--font-display)',
+              fontWeight: 600,
+              fontSize: 13,
+              color: 'rgba(255,255,255,.6)',
+            }}
+          >
+            <ExternalLink size={17} />
+            Back to site
+          </Link>
+        </div>
+      </aside>
+    </>
   )
 }

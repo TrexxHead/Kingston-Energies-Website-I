@@ -249,7 +249,7 @@ export default function OrdersSection() {
                     draggable
                     onDragStart={() => setDragId(card.id)}
                     onClick={() => { setInvoiceMsg(''); setCustomerNote(''); setInternalNote(''); setDetail(card) }}
-                    style={{ background: '#fff', border: '1px solid var(--color-border)', borderRadius: 11, padding: '11px 12px', cursor: 'grab', boxShadow: 'var(--shadow-sm)' }}
+                    style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 11, padding: '11px 12px', cursor: 'grab', boxShadow: 'var(--shadow-sm)' }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
                       <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 12.5 }}>{card.orderNo}</span>
@@ -575,7 +575,7 @@ const detailSelect = {
   borderRadius: 9,
   fontFamily: 'var(--font-body)',
   fontSize: 13,
-  background: '#fff',
+  background: 'var(--color-surface)',
   color: 'var(--color-text)',
   outline: 'none',
   appearance: 'none',

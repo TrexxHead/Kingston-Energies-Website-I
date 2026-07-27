@@ -445,6 +445,6 @@ function hrefFor(url: string): string {
 
 const plainBtn = { background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', color: 'var(--color-text-muted)' } as const
 const iconBtn = {
-  width: 26, height: 26, borderRadius: 7, border: '1px solid var(--color-border)', background: '#fff',
+  width: 26, height: 26, borderRadius: 7, border: '1px solid var(--color-border)', background: 'var(--color-surface)',
   cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', flexShrink: 0,
 } as const

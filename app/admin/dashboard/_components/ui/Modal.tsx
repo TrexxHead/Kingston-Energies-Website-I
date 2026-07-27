@@ -32,7 +32,7 @@ export default function Modal({ title, onClose, children, footer, width = 440 }:
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: '#fff',
+          background: 'var(--color-surface)',
           borderRadius: 22,
           width: '100%',
           maxWidth: width,
@@ -49,7 +49,7 @@ export default function Modal({ title, onClose, children, footer, width = 440 }:
             type="button"
             aria-label="Close"
             onClick={onClose}
-            style={{ width: 32, height: 32, borderRadius: 9, border: '1px solid var(--color-border)', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+            style={{ width: 32, height: 32, borderRadius: 9, border: '1px solid var(--color-border)', background: 'var(--color-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
           >
             <X size={15} />
           </button>

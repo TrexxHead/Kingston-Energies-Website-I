@@ -13,11 +13,15 @@ import MarketingSection from './_components/sections/MarketingSection'
 import FinanceSection from './_components/sections/FinanceSection'
 import AnalyticsSection from './_components/sections/AnalyticsSection'
 import PlaybookSection from './_components/sections/PlaybookSection'
-import { type SectionId } from './_components/mockData'
+import { NAV_ITEMS, type SectionId } from './_components/mockData'
+import CommandPalette, { navCommands } from './_components/CommandPalette'
+import { themeInitScript } from './_components/ThemeToggle'
+import { FINANCE_TABS } from './_components/sections/FinanceSection'
 import '../../_design-system/tokens.css'
 
 export default function AdminDashboard() {
   const [section, setSection] = useState<SectionId>('exec')
+  const [financeTab, setFinanceTab] = useState<string | undefined>(undefined)
 
   // Heartbeat so the Settings tab can show which admins are currently active.
   useEffect(() => {
@@ -39,7 +43,7 @@ export default function AdminDashboard() {
       case 'marketing2':
         return <MarketingSection />
       case 'finance':
-        return <FinanceSection />
+        return <FinanceSection initialTab={financeTab} />
       case 'analytics':
         return <AnalyticsSection />
       case 'playbook':
@@ -51,6 +55,13 @@ export default function AdminDashboard() {
     }
   }
 
+  const commands = navCommands(
+    (id) => { setFinanceTab(undefined); setSection(id) },
+    NAV_ITEMS.map((n) => ({ id: n.id, label: n.label })),
+    FINANCE_TABS,
+    (tab) => { setSection('finance'); setFinanceTab(tab) },
+  )
+
   return (
     <div
       className={`${keFontVariables} ke-root`}
@@ -60,9 +71,13 @@ export default function AdminDashboard() {
         display: 'flex',
         height: '100vh',
         overflow: 'hidden',
-        background: '#f4f5f7',
+        background: 'var(--color-bg-subtle)',
       }}
     >
+      {/* Sets the theme during HTML parsing so dark-mode users never see a
+          flash of the light theme. */}
+      <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      <CommandPalette commands={commands} />
       <Sidebar section={section} onSelect={setSection} />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <Header section={section} onNavigate={setSection} />

@@ -154,7 +154,7 @@ export default function SettingsSection({ onNavigate }: { onNavigate?: (tab: Sec
               key={c.label}
               type="button"
               onClick={() => onNavigate?.(c.tab)}
-              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 12px', border: '1px solid var(--color-border)', borderRadius: 12, background: '#fff', cursor: 'pointer', textAlign: 'left', width: '100%' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 12px', border: '1px solid var(--color-border)', borderRadius: 12, background: 'var(--color-surface)', cursor: 'pointer', textAlign: 'left', width: '100%' }}
             >
               <span style={{ width: 32, height: 32, borderRadius: 9, background: 'var(--ke-green-50)', color: 'var(--ke-green-700)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <c.icon size={16} />

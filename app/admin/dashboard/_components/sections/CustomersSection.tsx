@@ -243,7 +243,7 @@ export default function CustomersSection() {
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value as SortKey)}
-              style={{ height: 34, padding: '0 10px', border: '1px solid var(--color-border)', borderRadius: 999, fontSize: 12.5, fontFamily: 'var(--font-body)', background: '#fff' }}
+              style={{ height: 34, padding: '0 10px', border: '1px solid var(--color-border)', borderRadius: 999, fontSize: 12.5, fontFamily: 'var(--font-body)', background: 'var(--color-surface)' }}
             >
               {SORTS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
             </select>
@@ -539,7 +539,7 @@ const detailSelect = {
   borderRadius: 9,
   fontFamily: 'var(--font-body)',
   fontSize: 13,
-  background: '#fff',
+  background: 'var(--color-surface)',
   color: 'var(--color-text)',
   outline: 'none',
   appearance: 'none',

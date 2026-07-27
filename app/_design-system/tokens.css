@@ -124,6 +124,59 @@
   --dur-fast:140ms; --dur-base:220ms; --dur-slow:380ms;
 }
 
+/* ---------------------------------------------------------------------------
+   Dark theme.
+
+   Only the semantic aliases flip — the raw brand ramp stays fixed, so anything
+   built on --color-* tokens themes for free. Applied via [data-theme="dark"]
+   on <html>, set before first paint to avoid a flash of the light theme.
+   --------------------------------------------------------------------------- */
+:root[data-theme="dark"] {
+  --color-bg:#0b1411;
+  --color-bg-subtle:#0d1714;
+  --color-surface:#131f1b;
+  --color-surface-sunk:#0d1714;
+
+  --color-text:#eaf2ec;
+  --color-text-muted:rgba(234,242,236,.66);
+  --color-text-subtle:rgba(234,242,236,.44);
+  --color-text-inverse:#0d1714;
+
+  --color-border:rgba(255,255,255,.10);
+  --color-border-strong:rgba(255,255,255,.18);
+
+  /* Lift the primary so it keeps contrast against a dark surface. */
+  --color-primary:var(--ke-green-400);
+  --color-primary-hover:var(--ke-green-300, #a9dc6b);
+  --color-primary-contrast:#0d1714;
+  --color-primary-soft:rgba(147,201,63,.14);
+
+  --color-secondary:var(--ke-blue-400);
+  --color-secondary-soft:rgba(41,171,226,.14);
+
+  --color-success:var(--ke-green-400); --color-success-soft:rgba(147,201,63,.14);
+  --color-warning:var(--ke-sun-400);   --color-warning-soft:rgba(253,184,19,.14);
+  --color-danger:#e88585;              --color-danger-soft:rgba(232,133,133,.14);
+  --color-info:var(--ke-blue-400);     --color-info-soft:rgba(41,171,226,.14);
+
+  /* Neutral ramp inverts so grey-scale utilities stay legible. */
+  --ke-gray-50:#131f1b;  --ke-gray-100:#182621;
+  --ke-gray-200:rgba(255,255,255,.10);
+  --ke-gray-300:rgba(255,255,255,.18);
+  --ke-white:#131f1b;
+  --ke-mist:#0d1714;
+
+  --shadow-sm:0 1px 2px rgba(0,0,0,.45);
+  --shadow-md:0 4px 12px rgba(0,0,0,.5);
+  --shadow-xl:0 18px 44px rgba(0,0,0,.55);
+}
+
+/* Respect the OS preference until the user picks explicitly. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) { color-scheme: dark; }
+}
+:root[data-theme="dark"] { color-scheme: dark; }
+
 .ke-root * { box-sizing:border-box; }
 .ke-root a { color:var(--ke-green-700); text-decoration:none; }
 .ke-root a:hover { color:var(--ke-green-600); }

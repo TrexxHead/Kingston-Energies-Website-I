@@ -11,18 +11,24 @@ import { EXPENSE_CATEGORIES } from '@/lib/finance'
 import ProfitLossCard from './ProfitLossCard'
 import TransactionsTab from './TransactionsTab'
 import AccountingTab from './AccountingTab'
+import SchedulesTab from './SchedulesTab'
+import ReconcileTab from './ReconcileTab'
+import ForecastTab from './ForecastTab'
 import SalesTab from './SalesTab'
 import CountUp from '../ui/CountUp'
 
-type Tab = 'dashboard' | 'accounting' | 'transactions' | 'expenses' | 'sales' | 'cashflow' | 'reports' | 'taxes'
+type Tab = 'dashboard' | 'accounting' | 'reconcile' | 'schedules' | 'transactions' | 'expenses' | 'sales' | 'cashflow' | 'forecast' | 'reports' | 'taxes'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'dashboard', label: 'Dashboard' },
   { id: 'accounting', label: 'Accounting' },
+  { id: 'reconcile', label: 'Reconcile' },
+  { id: 'schedules', label: 'Assets & Schedules' },
   { id: 'transactions', label: 'Transactions' },
   { id: 'expenses', label: 'Expenses' },
   { id: 'sales', label: 'Sales' },
   { id: 'cashflow', label: 'Cash Flow' },
+  { id: 'forecast', label: 'Forecasting' },
   { id: 'reports', label: 'Reports' },
   { id: 'taxes', label: 'Taxes' },
 ]
@@ -173,6 +179,9 @@ export default function FinanceSection() {
       )}
 
       {tab === 'accounting' && <AccountingTab />}
+      {tab === 'reconcile' && <ReconcileTab />}
+      {tab === 'schedules' && <SchedulesTab />}
+      {tab === 'forecast' && <ForecastTab />}
       {tab === 'transactions' && <TransactionsTab />}
 
       {tab === 'expenses' && data && (

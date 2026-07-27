@@ -535,7 +535,8 @@ model LedgerAccount {
 
   parent   LedgerAccount? @relation("AccountTree", fields: [parentId], references: [id], onDelete: SetNull)
   children LedgerAccount[] @relation("AccountTree")
-  lines    JournalLine[]
+  lines           JournalLine[]
+  reconciliations Reconciliation[]
 
   @@index([type])
   @@index([parentId])
@@ -582,12 +583,128 @@ model JournalLine {
   debit     Float  @default(0)
   credit    Float  @default(0)
   memo      String?
+  // Set once this line has been ticked off against a bank statement.
+  reconciliationId String?
 
   entry   JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
   account LedgerAccount @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  reconciliation Reconciliation? @relation(fields: [reconciliationId], references: [id], onDelete: SetNull)
 
   @@index([entryId])
   @@index([accountId])
+  @@index([reconciliationId])
+}
+
+// ---------------------------------------------------------------------------
+// Bank reconciliation
+//
+// Ticking a journal line off against a statement never edits the line's amount
+// — it only records that the bank agrees. That keeps reconciliation an
+// assertion about reality rather than a way to quietly fudge the books.
+// ---------------------------------------------------------------------------
+
+enum ReconciliationStatus {
+  IN_PROGRESS
+  COMPLETED
+}
+
+model Reconciliation {
+  id               String               @id @default(cuid())
+  accountId        String
+  statementDate    DateTime
+  beginningBalance Float                @default(0)
+  endingBalance    Float
+  status           ReconciliationStatus @default(IN_PROGRESS)
+  completedAt      DateTime?
+  completedBy      String?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  account LedgerAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  lines   JournalLine[]
+
+  @@index([accountId])
+}
+
+// ---------------------------------------------------------------------------
+// Straight-line schedules: fixed assets, prepaid expenses, deferred revenue.
+//
+// All three are the same shape — move a fixed amount per period from one
+// account to another until the balance is consumed — so they share one
+// ScheduleRun table recording each posted period.
+// ---------------------------------------------------------------------------
+
+enum ScheduleKind {
+  DEPRECIATION
+  AMORTIZATION
+  REVENUE_RECOGNITION
+}
+
+model ScheduleRun {
+  id        String       @id @default(cuid())
+  kind      ScheduleKind
+  // FixedAsset.id | PrepaidExpense.id | RevenueSchedule.id
+  refId     String
+  // First day of the period this run covers, e.g. 2026-07-01.
+  periodDate DateTime
+  amount    Float
+  entryId   String?
+  createdAt DateTime     @default(now())
+
+  // One run per schedule per period — makes posting idempotent, so a monthly
+  // run can be triggered twice without double-charging depreciation.
+  @@unique([kind, refId, periodDate])
+  @@index([refId])
+}
+
+model FixedAsset {
+  id              String    @id @default(cuid())
+  name            String
+  description     String?   @db.Text
+  cost            Float
+  salvageValue    Float     @default(0)
+  usefulLifeMonths Int
+  acquiredAt      DateTime
+  // Ledger accounts this asset posts against (codes, resolved at post time).
+  assetAccountCode        String @default("1500")
+  accumDepAccountCode     String @default("1590")
+  depreciationExpenseCode String @default("6800")
+  disposedAt      DateTime?
+  disposalProceeds Float?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([acquiredAt])
+}
+
+model PrepaidExpense {
+  id            String   @id @default(cuid())
+  description   String
+  totalAmount   Float
+  startDate     DateTime
+  months        Int
+  prepaidAccountCode String @default("1300")
+  expenseAccountCode String @default("6900")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([startDate])
+}
+
+model RevenueSchedule {
+  id            String   @id @default(cuid())
+  description   String
+  customerName  String?
+  orderId       String?
+  totalAmount   Float
+  startDate     DateTime
+  months        Int
+  deferredAccountCode String @default("2400")
+  revenueAccountCode  String @default("4000")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([startDate])
 }
 
 // A logged business expense — the manual side of the Finance section (revenue

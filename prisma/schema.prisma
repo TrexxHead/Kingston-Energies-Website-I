@@ -537,6 +537,7 @@ model LedgerAccount {
   children LedgerAccount[] @relation("AccountTree")
   lines           JournalLine[]
   reconciliations Reconciliation[]
+  bankConnections BankConnection[]
 
   @@index([type])
   @@index([parentId])
@@ -590,6 +591,7 @@ model JournalLine {
   entry   JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
   account LedgerAccount @relation(fields: [accountId], references: [id], onDelete: Restrict)
   reconciliation Reconciliation? @relation(fields: [reconciliationId], references: [id], onDelete: SetNull)
+  bankLines      BankStatementLine[]
 
   @@index([entryId])
   @@index([accountId])
@@ -920,4 +922,87 @@ model Payslip {
 
   @@unique([runId, employeeId])
   @@index([employeeId])
+}
+
+// ---------------------------------------------------------------------------
+// Bank feeds.
+//
+// A bank connection is a source of statement lines for one ledger account.
+// Statement lines are the bank's version of events; journal lines are ours.
+// Matching the two is what reconciliation actually is, so lines are imported
+// as raw fact and never post to the ledger on their own — a human decides what
+// each one means before anything hits the books.
+//
+// No live bank API is contracted, so FILE_IMPORT and MANUAL are the paths that
+// work today. API exists as a declared provider so an aggregator can be dropped
+// in later without reshaping the data.
+// ---------------------------------------------------------------------------
+
+enum BankFeedProvider {
+  MANUAL // typed in by hand
+  FILE_IMPORT // CSV or OFX/QFX exported from online banking
+  API // live feed from a bank or aggregator — none configured
+}
+
+enum BankConnectionStatus {
+  ACTIVE
+  DISABLED
+}
+
+model BankConnection {
+  id           String               @id @default(cuid())
+  accountId    String
+  name         String // "NCB Business Chequing"
+  institution  String?
+  // Last four digits only — never store a full account number.
+  maskedNumber String?
+  provider     BankFeedProvider     @default(FILE_IMPORT)
+  status       BankConnectionStatus @default(ACTIVE)
+  currency     String               @default("JMD")
+  lastImportAt DateTime?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  account LedgerAccount       @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  lines   BankStatementLine[]
+
+  @@index([accountId])
+}
+
+enum BankLineStatus {
+  UNMATCHED // the bank says this happened; our books do not show it yet
+  MATCHED // tied to an existing journal line
+  POSTED // a new journal entry was created from it
+  EXCLUDED // deliberately ignored (duplicate, transfer already booked, etc.)
+}
+
+model BankStatementLine {
+  id           String @id @default(cuid())
+  connectionId String
+
+  postedAt    DateTime
+  description String   @db.Text
+  reference   String?
+  // Signed against the bank account: positive is money in, negative is money out.
+  amount      Float
+  runningBalance Float?
+
+  // Hash of the source row. Re-importing an overlapping statement is a no-op
+  // rather than a duplicate, which is the single thing that ruins a bank feed.
+  fingerprint String
+
+  status        BankLineStatus @default(UNMATCHED)
+  journalLineId String? // matched to an existing book entry
+  entryId       String? // or a new entry was posted from it
+  note          String?
+  resolvedAt    DateTime?
+  resolvedBy    String?
+  importedAt    DateTime       @default(now())
+
+  connection  BankConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  journalLine JournalLine?   @relation(fields: [journalLineId], references: [id], onDelete: SetNull)
+
+  @@unique([connectionId, fingerprint])
+  @@index([connectionId, status])
+  @@index([postedAt])
 }

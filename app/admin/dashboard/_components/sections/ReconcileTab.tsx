@@ -6,7 +6,9 @@ import { cardStyle, h3Style } from '../ui/card'
 import Badge from '../ui/Badge'
 import Button from '../ui/Button'
 import TextInput from '../ui/TextInput'
+import Pill from '../ui/Pill'
 import { fmt } from '../mockData'
+import BankFeedsTab from './BankFeedsTab'
 
 interface BankAccount { id: string; code: string; name: string; bookBalance: number }
 interface RecSummary {
@@ -47,6 +49,21 @@ interface RecDetail {
  * books. The session only closes when the difference is exactly zero.
  */
 export default function ReconcileTab() {
+  // Bank feeds sit alongside reconciliation because they are the same job in
+  // two halves: get the bank's version of events in, then agree it with ours.
+  const [view, setView] = useState<'feeds' | 'reconcile'>('feeds')
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <Pill label="Bank feeds" selected={view === 'feeds'} onClick={() => setView('feeds')} />
+        <Pill label="Reconcile" selected={view === 'reconcile'} onClick={() => setView('reconcile')} />
+      </div>
+      {view === 'feeds' ? <BankFeedsTab /> : <Reconcile />}
+    </div>
+  )
+}
+
+function Reconcile() {
   const [openId, setOpenId] = useState<string | null>(null)
   return openId ? <Session id={openId} onBack={() => setOpenId(null)} /> : <Start onOpen={setOpenId} />
 }

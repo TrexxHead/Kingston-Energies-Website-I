@@ -28,7 +28,22 @@ interface CustomerRow {
   since: number
   orderCount: number
   ltv: number
+  lastActivity: string
+  archived: boolean
 }
+
+type SortKey = 'name-asc' | 'name-desc' | 'value-desc' | 'value-asc' | 'orders-desc' | 'recent'
+
+const ARCHIVE_MONTHS_LABEL = '6 months'
+
+const SORTS: { id: SortKey; label: string }[] = [
+  { id: 'recent', label: 'Most recent activity' },
+  { id: 'name-asc', label: 'Name A–Z' },
+  { id: 'name-desc', label: 'Name Z–A' },
+  { id: 'value-desc', label: 'Value: high to low' },
+  { id: 'value-asc', label: 'Value: low to high' },
+  { id: 'orders-desc', label: 'Most orders' },
+]
 
 interface CustomerDetail extends CustomerRow {
   shippingAddress?: string | null
@@ -59,6 +74,8 @@ export default function CustomersSection() {
   const [seg, setSeg] = useState<'all' | Segment>('all')
   const [tier, setTier] = useState<'all' | ValueTier>('all')
   const [reg, setReg] = useState<'all' | 'registered' | 'guest'>('all')
+  const [view, setView] = useState<'active' | 'archived'>('active')
+  const [sort, setSort] = useState<SortKey>('recent')
   const [search, setSearch] = useState('')
   const [selId, setSelId] = useState<string | null>(null)
   const [detail, setDetail] = useState<CustomerDetail | null>(null)
@@ -92,15 +109,29 @@ export default function CustomersSection() {
     if (selId) loadDetail(selId)
   }, [selId, loadDetail])
 
-  const rows = customers.filter((c) => {
-    if (seg !== 'all' && c.segment !== seg) return false
-    if (tier !== 'all' && c.valueTier !== tier) return false
-    if (reg === 'registered' && !c.registered) return false
-    if (reg === 'guest' && c.registered) return false
-    if (search && !`${c.name} ${c.email}`.toLowerCase().includes(search.toLowerCase())) return false
-    return true
-  })
-  const guestCount = customers.filter((c) => !c.registered).length
+  const rows = customers
+    .filter((c) => {
+      if (c.archived !== (view === 'archived')) return false
+      if (seg !== 'all' && c.segment !== seg) return false
+      if (tier !== 'all' && c.valueTier !== tier) return false
+      if (reg === 'registered' && !c.registered) return false
+      if (reg === 'guest' && c.registered) return false
+      if (search && !`${c.name} ${c.email}`.toLowerCase().includes(search.toLowerCase())) return false
+      return true
+    })
+    .sort((a, b) => {
+      switch (sort) {
+        case 'name-asc': return a.name.localeCompare(b.name)
+        case 'name-desc': return b.name.localeCompare(a.name)
+        case 'value-desc': return b.ltv - a.ltv
+        case 'value-asc': return a.ltv - b.ltv
+        case 'orders-desc': return b.orderCount - a.orderCount
+        case 'recent': return new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime()
+        default: return 0
+      }
+    })
+  const guestCount = customers.filter((c) => !c.registered && !c.archived).length
+  const archivedCount = customers.filter((c) => c.archived).length
 
   const patchDetail = async (data: Record<string, string | null>) => {
     if (!detail) return
@@ -192,6 +223,10 @@ export default function CustomersSection() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <Pill label="Active" selected={view === 'active'} onClick={() => setView('active')} />
+            <Pill label={`Archived${archivedCount ? ` · ${archivedCount}` : ''}`} selected={view === 'archived'} onClick={() => setView('archived')} />
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {SEGMENT_PILLS.map((p) => (
               <Pill key={p.id} label={p.label} selected={seg === p.id} onClick={() => setSeg(p.id)} />
             ))}
@@ -204,7 +239,14 @@ export default function CustomersSection() {
               <Pill key={t} label={`${t} · ${VALUE_TIERS[t].label}`} selected={tier === t} onClick={() => setTier(t)} />
             ))}
           </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as SortKey)}
+              style={{ height: 34, padding: '0 10px', border: '1px solid var(--color-border)', borderRadius: 999, fontSize: 12.5, fontFamily: 'var(--font-body)', background: '#fff' }}
+            >
+              {SORTS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+            </select>
             <div style={{ position: 'relative' }}>
               <Search size={14} style={{ position: 'absolute', left: 11, top: 10, color: 'var(--color-text-subtle)' }} />
               <input
@@ -217,6 +259,11 @@ export default function CustomersSection() {
             <Button size="sm" variant="primary" onClick={() => setAddOpen(true)} iconRight={<Plus size={14} />}>Add</Button>
           </div>
         </div>
+        {view === 'archived' && (
+          <p style={{ fontSize: 12, color: 'var(--color-text-muted)', margin: '-6px 0 0' }}>
+            No purchase or activity in the last {ARCHIVE_MONTHS_LABEL}. They move back to Active automatically the moment they order again.
+          </p>
+        )}
 
         <div style={{ ...cardStyle, padding: 0, overflow: 'hidden' }}>
           {rows.map((c) => {

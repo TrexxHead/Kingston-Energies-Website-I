@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
-import { Plus, Search, Trash2, Pencil, Archive, ArchiveRestore, Eye, Image as ImageIcon } from 'lucide-react'
+import { Plus, Search, Trash2, Pencil, Archive, ArchiveRestore, Eye, Image as ImageIcon, PackagePlus } from 'lucide-react'
 import { CATALOG } from '@/lib/catalog'
 import Badge from '../ui/Badge'
 import Pill from '../ui/Pill'
@@ -90,6 +90,12 @@ export default function InventorySection() {
   const [search, setSearch] = useState('')
   const [editing, setEditing] = useState<Product | null>(null)
   const [addOpen, setAddOpen] = useState(false)
+  const [adjustTarget, setAdjustTarget] = useState<Product | null>(null)
+  const [adjustType, setAdjustType] = useState<'SET' | 'ADD' | 'SUBTRACT'>('ADD')
+  const [adjustAmount, setAdjustAmount] = useState('')
+  const [adjustReason, setAdjustReason] = useState('')
+  const [adjustBusy, setAdjustBusy] = useState(false)
+  const [adjustError, setAdjustError] = useState('')
   const [form, setForm] = useState(emptyForm)
   const [images, setImages] = useState<string[]>([])
   const [newImage, setNewImage] = useState('')
@@ -263,13 +269,43 @@ export default function InventorySection() {
     loadProducts()
   }
 
-  const adjustStock = async (p: Product, delta: number) => {
-    const next = Math.max(0, p.stock + delta)
-    await fetch(`/api/admin/products/${p.id}`, {
-      method: 'PATCH',
+  const openAdjust = (p: Product) => {
+    setAdjustTarget(p)
+    setAdjustType('ADD')
+    setAdjustAmount('')
+    setAdjustReason('')
+    setAdjustError('')
+  }
+
+  const previewStock = (() => {
+    if (!adjustTarget) return null
+    const amt = Number(adjustAmount) || 0
+    if (adjustType === 'SET') return amt
+    if (adjustType === 'ADD') return adjustTarget.stock + amt
+    return Math.max(0, adjustTarget.stock - amt)
+  })()
+
+  const submitAdjust = async () => {
+    if (!adjustTarget) return
+    const amount = Number(adjustAmount)
+    if (!Number.isFinite(amount) || amount < 0) {
+      setAdjustError('Enter a valid quantity.')
+      return
+    }
+    setAdjustBusy(true)
+    setAdjustError('')
+    const res = await fetch(`/api/admin/products/${adjustTarget.id}/adjust-stock`, {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ stock: next }),
+      body: JSON.stringify({ type: adjustType, amount, reason: adjustReason.trim() || undefined }),
     })
+    setAdjustBusy(false)
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      setAdjustError(data.error ?? 'Could not adjust stock.')
+      return
+    }
+    setAdjustTarget(null)
     loadProducts()
   }
 
@@ -318,11 +354,15 @@ export default function InventorySection() {
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--color-text-muted)' }}>{p.sku ?? '—'}</span>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-text-subtle)' }}>{p.barcode ?? '—'}</span>
               <span style={{ fontSize: 13 }}>{fmt(p.price)}</span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                <button type="button" aria-label="Decrease stock" onClick={() => adjustStock(p, -1)} style={stepBtn}>−</button>
-                <span style={{ fontSize: 13, minWidth: 22, textAlign: 'center' }}>{p.stock}</span>
-                <button type="button" aria-label="Increase stock" onClick={() => adjustStock(p, 1)} style={stepBtn}>+</button>
-              </span>
+              <button
+                type="button"
+                onClick={() => openAdjust(p)}
+                title="Adjust stock"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: '1px solid var(--color-border)', borderRadius: 999, padding: '4px 10px', cursor: 'pointer', width: 'fit-content' }}
+              >
+                <span style={{ fontSize: 13, fontWeight: 600 }}>{p.stock}</span>
+                <PackagePlus size={13} color="var(--color-text-subtle)" />
+              </button>
               <Badge tone={status.tone} dot>{status.label}</Badge>
               <span style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
                 {CATALOG_ID_BY_NAME.get(p.name.toLowerCase()) && (
@@ -399,7 +439,16 @@ export default function InventorySection() {
             <TextInput label="Sale price (J$, optional)" value={form.salePrice} onChange={(v) => setForm({ ...form, salePrice: v })} type="number" />
             <TextInput label="Unit cost (J$, optional)" value={form.cost} onChange={(v) => setForm({ ...form, cost: v })} type="number" />
             <TextInput label="Badge (optional)" value={form.badge} onChange={(v) => setForm({ ...form, badge: v })} placeholder="e.g. New" />
-            <TextInput label="Inventory quantity" value={form.stock} onChange={(v) => setForm({ ...form, stock: v })} type="number" />
+            {editing ? (
+              <label style={{ display: 'block' }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '.14em', color: 'var(--color-text-muted)', display: 'block', marginBottom: 6 }}>INVENTORY QUANTITY</span>
+                <div style={{ height: 36, display: 'flex', alignItems: 'center', gap: 8, padding: '0 10px', border: '1.5px solid var(--color-border)', borderRadius: 9, fontSize: 13, background: 'var(--ke-gray-50,#fafafa)', color: 'var(--color-text-muted)' }}>
+                  {form.stock} <span style={{ fontSize: 11 }}>— use &quot;Adjust stock&quot; from the list to change this</span>
+                </div>
+              </label>
+            ) : (
+              <TextInput label="Inventory quantity" value={form.stock} onChange={(v) => setForm({ ...form, stock: v })} type="number" />
+            )}
             <TextInput label="Reorder threshold" value={form.threshold} onChange={(v) => setForm({ ...form, threshold: v })} type="number" />
           </div>
           {(() => {
@@ -500,20 +549,72 @@ export default function InventorySection() {
           <TextInput label="Feature bullets (one per line)" value={form.features} onChange={(v) => setForm({ ...form, features: v })} multiline placeholder={'USB-C PD 20W\nDigital battery display'} />
         </Modal>
       )}
+
+      {adjustTarget && (
+        <Modal
+          title={`Adjust stock — ${adjustTarget.name}`}
+          onClose={() => setAdjustTarget(null)}
+          footer={
+            <>
+              <Button size="sm" variant="outline" onClick={() => setAdjustTarget(null)}>Cancel</Button>
+              <Button size="sm" variant="primary" onClick={submitAdjust} disabled={adjustBusy}>{adjustBusy ? 'Saving…' : 'Apply'}</Button>
+            </>
+          }
+        >
+          <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: '0 0 12px' }}>
+            Currently <strong>{adjustTarget.stock}</strong> in stock. This only changes the inventory count and its
+            value — it never creates a sale, so revenue, sales, and profit are untouched.
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+            {([
+              { id: 'ADD', label: 'Add stock', hint: 'Received a shipment, restocked, returned item' },
+              { id: 'SUBTRACT', label: 'Subtract stock', hint: 'Damaged, lost, expired, given away' },
+              { id: 'SET', label: 'Set exact count', hint: 'Physical stock take / correction' },
+            ] as const).map((opt) => (
+              <label
+                key={opt.id}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
+                  border: `1.5px solid ${adjustType === opt.id ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                  borderRadius: 10, cursor: 'pointer',
+                  background: adjustType === opt.id ? 'var(--color-primary-soft)' : '#fff',
+                }}
+              >
+                <input type="radio" name="adjustType" checked={adjustType === opt.id} onChange={() => setAdjustType(opt.id)} />
+                <span>
+                  <span style={{ display: 'block', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13 }}>{opt.label}</span>
+                  <span style={{ display: 'block', fontSize: 11.5, color: 'var(--color-text-muted)' }}>{opt.hint}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+
+          <TextInput
+            label={adjustType === 'SET' ? 'New stock count' : 'Quantity'}
+            value={adjustAmount}
+            onChange={setAdjustAmount}
+            type="number"
+          />
+          <TextInput
+            label="Reason (recommended)"
+            value={adjustReason}
+            onChange={setAdjustReason}
+            placeholder="e.g. Received PO #114, or 3 units damaged in transit"
+          />
+
+          {previewStock != null && adjustAmount !== '' && (
+            <p style={{ fontSize: 12.5, color: 'var(--color-text)', marginTop: 4 }}>
+              New stock will be <strong>{previewStock}</strong>.
+            </p>
+          )}
+          {adjustError && <p style={{ fontSize: 12.5, color: 'var(--color-danger)', marginTop: 8 }}>{adjustError}</p>}
+        </Modal>
+      )}
     </div>
   )
 }
 
-const stepBtn = {
-  width: 22,
-  height: 22,
-  borderRadius: 6,
-  border: '1px solid var(--color-border)',
-  background: '#fff',
-  cursor: 'pointer',
-  fontSize: 13,
-  lineHeight: 1,
-} as const
 
 const iconBtn = {
   width: 28,

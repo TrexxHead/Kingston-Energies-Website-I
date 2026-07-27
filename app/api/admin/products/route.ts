@@ -12,7 +12,7 @@ const productSchema = z.object({
   cost: z.number().min(0).nullish(),
   stock: z.number().int().min(0),
   threshold: z.number().int().min(0),
-  category: z.enum(['POWERBANKS', 'CHARGERS', 'STATIONS', 'ACCESSORIES']).nullish(),
+  category: z.enum(['POWERBANKS', 'CHARGERS', 'COMPONENTS', 'STATIONS', 'ACCESSORIES']).nullish(),
   sku: z.string().max(60).nullish(),
   barcode: z.string().max(60).nullish(),
   spec: z.string().max(160).nullish(),

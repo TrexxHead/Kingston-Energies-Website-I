@@ -17,9 +17,14 @@ function guestId(email: string): string {
   return 'guest:' + email.toLowerCase()
 }
 
+const ARCHIVE_AFTER_MONTHS = 6
+
 export async function GET() {
   const denied = await guardAdmin()
   if (denied) return denied
+
+  const archiveThreshold = new Date()
+  archiveThreshold.setMonth(archiveThreshold.getMonth() - ARCHIVE_AFTER_MONTHS)
 
   const [users, guestOrders, aliases] = await Promise.all([
     prisma.user.findMany({
@@ -97,6 +102,8 @@ export async function GET() {
       monthsSinceLastOrder: monthsSince(lastOrder),
       openTickets,
     })
+    // Activity = last order, or account creation if they've never ordered.
+    const lastActivity = lastOrder ?? u.createdAt
     return {
       id: u.id,
       registered: true,
@@ -110,6 +117,8 @@ export async function GET() {
       orderCount,
       ltv,
       valueTier,
+      lastActivity: lastActivity.toISOString(),
+      archived: lastActivity < archiveThreshold,
     }
   })
 
@@ -126,6 +135,8 @@ export async function GET() {
     orderCount: g.count,
     ltv: g.ltv,
     valueTier: customerValueTier({ ltv: g.ltv, orderCount: g.count, monthsSinceLastOrder: monthsSince(g.last), openTickets: 0 }),
+    lastActivity: g.last.toISOString(),
+    archived: g.last < archiveThreshold,
   }))
 
   return NextResponse.json({ customers: [...customers, ...guests] })

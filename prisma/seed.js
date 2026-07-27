@@ -92,10 +92,13 @@ async function main() {
     console.warn('[seed] ⚠ ADMIN_PASSWORD not set — using the built-in default. Set ADMIN_PASSWORD before seeding a public database.')
   }
   const adminPassword = await bcrypt.hash(adminPasswordPlain, 10)
+  // SUPER_ADMIN so a fresh environment always has at least one account able to
+  // add other admins from the dashboard — otherwise nobody could ever unlock
+  // that screen.
   const admin = await prisma.user.upsert({
     where: { email: adminEmail },
-    update: { password: adminPassword, role: 'ADMIN', emailVerified: new Date() }, // keep the password in sync on every seed
-    create: { email: adminEmail, name: 'Ops Admin', password: adminPassword, role: 'ADMIN', emailVerified: new Date() },
+    update: { password: adminPassword, role: 'SUPER_ADMIN', emailVerified: new Date() }, // keep the password in sync on every seed
+    create: { email: adminEmail, name: 'Ops Admin', password: adminPassword, role: 'SUPER_ADMIN', emailVerified: new Date() },
   })
   console.log(`Seeded admin user: ${admin.email}`)
 

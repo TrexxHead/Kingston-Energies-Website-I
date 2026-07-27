@@ -16,7 +16,7 @@ const patchSchema = z.object({
   cost: z.number().min(0).nullish(),
   stock: z.number().int().min(0).optional(),
   threshold: z.number().int().min(0).optional(),
-  category: z.enum(['POWERBANKS', 'CHARGERS', 'STATIONS', 'ACCESSORIES']).nullish(),
+  category: z.enum(['POWERBANKS', 'CHARGERS', 'COMPONENTS', 'STATIONS', 'ACCESSORIES']).nullish(),
   badge: z.string().max(60).nullish(),
   spec: z.string().max(160).nullish(),
   barcode: z.string().max(60).nullish(),

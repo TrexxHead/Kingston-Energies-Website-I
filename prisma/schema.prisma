@@ -175,6 +175,26 @@ model Product {
 
   subscriptions Subscription[]
   orderItems    OrderItem[]
+  stockAdjustments StockAdjustment[]
+}
+
+// Audit trail for manual stock changes — every adjustment records why, so
+// inventory value changes are traceable without ever touching an Order,
+// meaning they never affect revenue, sales, or profit reporting.
+model StockAdjustment {
+  id            String   @id @default(cuid())
+  productId     String
+  type          String   // SET | ADD | SUBTRACT
+  delta         Int      // signed change actually applied
+  previousStock Int
+  newStock      Int
+  reason        String?  @db.Text
+  adminEmail    String?
+  createdAt     DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
 }
 
 model Subscription {

@@ -17,9 +17,10 @@ import ForecastTab from './ForecastTab'
 import SalesTab from './SalesTab'
 import PayrollTab from './PayrollTab'
 import DocumentsTab from './DocumentsTab'
+import StructureTab from './StructureTab'
 import CountUp from '../ui/CountUp'
 
-type Tab = 'dashboard' | 'accounting' | 'reconcile' | 'schedules' | 'transactions' | 'expenses' | 'documents' | 'sales' | 'payroll' | 'cashflow' | 'forecast' | 'reports' | 'taxes'
+type Tab = 'dashboard' | 'accounting' | 'reconcile' | 'schedules' | 'transactions' | 'expenses' | 'documents' | 'sales' | 'payroll' | 'cashflow' | 'forecast' | 'reports' | 'taxes' | 'structure'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'dashboard', label: 'Dashboard' },
@@ -35,6 +36,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'forecast', label: 'Forecasting' },
   { id: 'reports', label: 'Reports' },
   { id: 'taxes', label: 'Taxes' },
+  { id: 'structure', label: 'Branches & FX' },
 ]
 
 interface Kpi { value: number; change: number | null }
@@ -196,6 +198,7 @@ export default function FinanceSection({ initialTab }: { initialTab?: string } =
       {tab === 'transactions' && <TransactionsTab />}
       {tab === 'payroll' && <PayrollTab />}
       {tab === 'documents' && <DocumentsTab />}
+      {tab === 'structure' && <StructureTab />}
 
       {tab === 'expenses' && data && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

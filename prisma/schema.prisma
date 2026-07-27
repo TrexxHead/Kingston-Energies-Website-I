@@ -567,13 +567,27 @@ model JournalEntry {
   reversedById String? @unique // the entry that reverses this one, if any
   createdAt DateTime      @default(now())
 
+  // Which part of the business this belongs to. Null means unassigned rather
+  // than a separate ledger — reports filter on it, they don't split on it.
+  branchId String?
+
+  // The currency the transaction actually happened in, and the rate used to
+  // express it in JMD. Line amounts are always JMD (the functional currency),
+  // so every statement stays addable; these two record what was converted and
+  // at what rate, which is the part an auditor asks about.
+  currency       String @default("JMD")
+  fxRate         Float  @default(1)
+  originalAmount Float?
+
   lines      JournalLine[]
+  branch     Branch?       @relation(fields: [branchId], references: [id], onDelete: SetNull)
   reversedBy JournalEntry? @relation("Reversal", fields: [reversedById], references: [id], onDelete: SetNull)
   reverses   JournalEntry? @relation("Reversal")
 
   @@unique([source, sourceId])
   @@index([date])
   @@index([source])
+  @@index([branchId])
 }
 
 model JournalLine {
@@ -1076,4 +1090,46 @@ model DocumentScan {
 
   @@index([status])
   @@index([createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Branches and currency.
+//
+// A branch is a reporting dimension on the one ledger, not a second set of
+// books. Splitting the ledger per location is what makes group figures stop
+// adding up, so entries carry a branch and reports filter on it.
+//
+// JMD is the functional currency: every journal line is in JMD, always. A
+// foreign-currency transaction records what it was in and the rate applied, and
+// the rate must be one someone entered — nothing here invents a rate or quietly
+// reuses a stale one.
+// ---------------------------------------------------------------------------
+
+model Branch {
+  id        String   @id @default(cuid())
+  code      String   @unique // "KGN", "MOBAY"
+  name      String
+  isDefault Boolean  @default(false)
+  archived  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  entries JournalEntry[]
+}
+
+model ExchangeRate {
+  id       String   @id @default(cuid())
+  // ISO code of the foreign currency; the quote is always against JMD.
+  currency String
+  // How many JMD one unit of `currency` buys.
+  rate     Float
+  asOf     DateTime
+  // Where the rate came from — "BOJ", "bank advice", a person's name. Recorded
+  // because "which rate did you use" is the first question anyone asks.
+  source   String?
+  enteredBy String?
+  createdAt DateTime @default(now())
+
+  @@unique([currency, asOf])
+  @@index([currency, asOf])
 }

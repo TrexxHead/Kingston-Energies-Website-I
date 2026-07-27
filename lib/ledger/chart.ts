@@ -41,6 +41,8 @@ export const ACC = {
   EDTAX_PAYABLE: '2530',
   HEART_PAYABLE: '2540',
   NET_PAY_PAYABLE: '2550',
+  FX_GAIN: '4950',
+  FX_LOSS: '6950',
   PREPAID: '1300',
   EQUIPMENT: '1500',
   ACCUM_DEPRECIATION: '1590',
@@ -79,6 +81,7 @@ export const CHART: SeedAccount[] = [
   { code: '4000', name: 'Product sales', type: 'REVENUE', subtype: 'Operating income', system: true },
   { code: '4100', name: 'Delivery income', type: 'REVENUE', subtype: 'Operating income', system: true },
   { code: '4900', name: 'Discounts given', type: 'REVENUE', subtype: 'Contra revenue', system: true },
+  { code: '4950', name: 'Foreign exchange gain', type: 'REVENUE', subtype: 'Other income', system: true },
 
   // ---- Cost of sales (5000–5999) ----
   { code: '5000', name: 'Cost of goods sold', type: 'EXPENSE', subtype: 'Cost of sales', system: true },
@@ -98,6 +101,7 @@ export const CHART: SeedAccount[] = [
   { code: '6700', name: 'Bank charges', type: 'EXPENSE', subtype: 'Operating expense' },
   { code: '6800', name: 'Depreciation', type: 'EXPENSE', subtype: 'Operating expense', system: true },
   { code: '6900', name: 'Other', type: 'EXPENSE', subtype: 'Operating expense' },
+  { code: '6950', name: 'Foreign exchange loss', type: 'EXPENSE', subtype: 'Other expense', system: true },
 ]
 
 /** Map an EXPENSE_CATEGORIES label onto its ledger account code. */

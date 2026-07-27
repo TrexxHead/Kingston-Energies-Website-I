@@ -17,6 +17,16 @@ export interface DraftEntry {
   source: JournalSource
   sourceId?: string | null
   createdBy?: string | null
+  /** Reporting dimension. Null means unassigned, not a separate ledger. */
+  branchId?: string | null
+  /**
+   * What the transaction actually happened in. Line amounts are always JMD —
+   * these fields record what was converted and at what rate, so the conversion
+   * is auditable rather than invisible.
+   */
+  currency?: string
+  fxRate?: number
+  originalAmount?: number | null
   lines: DraftLine[]
 }
 
@@ -96,6 +106,10 @@ export async function postEntry(draft: DraftEntry): Promise<{ id: string; entryN
           source: draft.source,
           sourceId: draft.sourceId ?? null,
           createdBy: draft.createdBy ?? null,
+          branchId: draft.branchId ?? null,
+          currency: draft.currency ?? 'JMD',
+          fxRate: draft.fxRate ?? 1,
+          originalAmount: draft.originalAmount ?? null,
           lines: {
             create: lines.map((l) => ({
               accountId: idByCode.get(l.code) as string,

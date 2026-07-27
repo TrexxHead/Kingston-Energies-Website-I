@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { guardAdmin } from '@/lib/requireAdmin'
 import { issueInvoiceForOrder } from '@/lib/invoice'
 import { stageForStatus } from '@/lib/pipeline'
+import { postOrderPayment } from '@/lib/ledger/post'
 
 const patchSchema = z
   .object({
@@ -46,10 +47,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       }).catch(() => {})
     }
 
-    // Auto-issue the invoice the first time an order becomes paid.
+    // First time an order is marked paid: journal the cash receipt against the
+    // receivable, and auto-issue the invoice.
     let invoice: { sent: boolean; to: string | null } | undefined
-    if (parsed.data.paid === true && before && !before.paid && !before.invoicedAt) {
-      invoice = await issueInvoiceForOrder(id)
+    if (parsed.data.paid === true && before && !before.paid) {
+      void postOrderPayment(order, new Date()).catch((err) => console.error('[ledger] payment posting failed:', err))
+      if (!before.invoicedAt) invoice = await issueInvoiceForOrder(id)
     }
 
     return NextResponse.json({ order, invoice })

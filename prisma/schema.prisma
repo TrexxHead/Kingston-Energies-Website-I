@@ -499,6 +499,97 @@ model SiteSetting {
   updatedAt DateTime @updatedAt
 }
 
+// ---------------------------------------------------------------------------
+// Double-entry general ledger.
+//
+// This is the financial system of record. Orders, payments, expenses and stock
+// adjustments all POST here as balanced journal entries; every statement
+// (Trial Balance, Balance Sheet, P&L, Cash Flow) is then DERIVED from these
+// lines rather than re-summed ad hoc from operational tables. That's what makes
+// a real Balance Sheet and an auditable trail possible.
+// ---------------------------------------------------------------------------
+
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  EXPENSE
+}
+
+model LedgerAccount {
+  id        String      @id @default(cuid())
+  code      String      @unique // e.g. "1100"
+  name      String
+  type      AccountType
+  subtype   String? // e.g. "Current asset", "Cost of sales"
+  parentId  String?
+  // Cash/bank accounts are the ones that can be reconciled against a statement.
+  isBank    Boolean     @default(false)
+  // System accounts are referenced by the posting engine by code and must not
+  // be deleted or renumbered.
+  isSystem  Boolean     @default(false)
+  archived  Boolean     @default(false)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  parent   LedgerAccount? @relation("AccountTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children LedgerAccount[] @relation("AccountTree")
+  lines    JournalLine[]
+
+  @@index([type])
+  @@index([parentId])
+}
+
+enum JournalSource {
+  ORDER // revenue recognised when an order is placed
+  PAYMENT // cash received against a receivable
+  EXPENSE // logged operating expense
+  COGS // cost of goods sold + inventory relief
+  STOCK_ADJUSTMENT // manual inventory correction
+  MANUAL // hand-written journal entry
+  OPENING // opening balances
+}
+
+model JournalEntry {
+  id        String        @id @default(cuid())
+  entryNo   String        @unique // JE-000123
+  date      DateTime
+  memo      String?       @db.Text
+  source    JournalSource @default(MANUAL)
+  // Operational row this entry was posted from (Order.id, Expense.id, …).
+  // Combined with `source` it makes posting idempotent — we never double-post.
+  sourceId  String?
+  createdBy String? // admin email
+  reversedById String? @unique // the entry that reverses this one, if any
+  createdAt DateTime      @default(now())
+
+  lines      JournalLine[]
+  reversedBy JournalEntry? @relation("Reversal", fields: [reversedById], references: [id], onDelete: SetNull)
+  reverses   JournalEntry? @relation("Reversal")
+
+  @@unique([source, sourceId])
+  @@index([date])
+  @@index([source])
+}
+
+model JournalLine {
+  id        String @id @default(cuid())
+  entryId   String
+  accountId String
+  // Stored as separate debit/credit columns (never a single signed amount) so
+  // the ledger reads the way an accountant expects and imbalances are obvious.
+  debit     Float  @default(0)
+  credit    Float  @default(0)
+  memo      String?
+
+  entry   JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  account LedgerAccount @relation(fields: [accountId], references: [id], onDelete: Restrict)
+
+  @@index([entryId])
+  @@index([accountId])
+}
+
 // A logged business expense — the manual side of the Finance section (revenue
 // comes automatically from orders).
 model Expense {

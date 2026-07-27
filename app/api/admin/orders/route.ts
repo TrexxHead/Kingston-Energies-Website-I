@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { guardAdmin } from '@/lib/requireAdmin'
 import { sendNewOrderAlert } from '@/lib/email'
+import { postOrderCogs, postOrderPayment, postOrderRevenue } from '@/lib/ledger/post'
 
 export async function GET() {
   const denied = await guardAdmin()
@@ -109,6 +110,14 @@ export async function POST(request: Request) {
       items: { create: items.map((i) => ({ name: i.name, qty: i.qty, price: i.price })) },
     },
   })
+
+  // A manual order is a real sale — it hits the ledger exactly like a website
+  // order, which is what keeps off-site revenue inside the financial statements.
+  void postOrderRevenue({ ...order, items }).catch((err) => console.error('[ledger] manual order revenue posting failed:', err))
+  void postOrderCogs({ ...order, items }).catch((err) => console.error('[ledger] manual order COGS posting failed:', err))
+  if (order.paid) {
+    void postOrderPayment(order, order.createdAt).catch((err) => console.error('[ledger] manual order payment posting failed:', err))
+  }
 
   void sendNewOrderAlert({ orderNo: order.orderNo, customerName, total, paymentMethod: paymentMethod ?? null, items })
 

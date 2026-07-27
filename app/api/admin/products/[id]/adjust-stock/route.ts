@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/authOptions'
 import { guardAdmin } from '@/lib/requireAdmin'
+import { postStockAdjustment } from '@/lib/ledger/post'
 
 const schema = z.object({
   type: z.enum(['SET', 'ADD', 'SUBTRACT']),
@@ -38,7 +39,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const session = await getServerSession(authOptions)
 
-  const [updated] = await prisma.$transaction([
+  const [updated, adjustment] = await prisma.$transaction([
     prisma.product.update({ where: { id }, data: { stock: newStock } }),
     prisma.stockAdjustment.create({
       data: {
@@ -52,6 +53,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       },
     }),
   ])
+
+  // Revalue inventory in the ledger (Inventory ↔ Shrinkage). Never touches a
+  // revenue account, so an adjustment can't move sales or profit.
+  void postStockAdjustment(adjustment).catch((err) => console.error('[ledger] stock adjustment posting failed:', err))
 
   return NextResponse.json({ product: updated })
 }

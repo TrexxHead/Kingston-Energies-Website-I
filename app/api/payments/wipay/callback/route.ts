@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { verifyWiPayCallback } from '@/lib/wipay'
 import { markPointsRedeemed } from '@/lib/pointsRedemption'
+import { postOrderPayment } from '@/lib/ledger/post'
 
 const POINTS_LINE_RE = /^Rewards points redeemed \((\d+) pts\)$/
 
@@ -25,6 +26,8 @@ async function handle(params: URLSearchParams): Promise<NextResponse> {
   if (orderNo && status === 'success' && verified) {
     try {
       const order = await prisma.order.update({ where: { orderNo }, data: { paid: true }, include: { items: true } })
+      // Journal the cash receipt against the receivable now that it cleared.
+      void postOrderPayment(order, new Date()).catch((err) => console.error('[ledger] wipay payment posting failed:', err))
       // Card payments only deduct redeemed points once payment actually
       // clears, so an abandoned WiPay checkout never costs the customer points.
       if (order.userId) {

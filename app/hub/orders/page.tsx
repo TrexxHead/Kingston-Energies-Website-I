@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/authOptions'
 import { prisma } from '@/lib/prisma'
@@ -68,7 +69,14 @@ export default async function HubOrdersPage() {
                 <div key={o.id} style={{ background: '#fff', border: '1px solid var(--color-border)', borderRadius: 16, padding: 20 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 16 }}>{o.orderNo}</span>
+                      <Link href={`/hub/orders/${o.id}`} style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 16, color: 'var(--color-text)', textDecoration: 'none' }}>
+                        {o.orderNo}
+                      </Link>
+                      {!o.paid && o.status !== 'CANCELLED' && !o.proofOfPaymentPath && (
+                        <Link href={`/hub/orders/${o.id}`} style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 10.5, color: 'var(--ke-sun-500)', textDecoration: 'none' }}>
+                          Upload proof of payment
+                        </Link>
+                      )}
                       <span
                         style={{
                           fontFamily: 'var(--font-display)',

@@ -49,6 +49,11 @@ export const CARE_TIPS: Record<Category, string[]> = {
     'Keep the connectors dry and lint-free for a reliable connection.',
     'Match the charger to the device — 20W is plenty for phones; use more for tablets.',
   ],
+  components: [
+    'Unplug and disconnect by the connector head, not the cable, to stop it from fraying.',
+    'Avoid tight bends or knots near the connectors — that\'s where cables fail first.',
+    'Keep connectors dry and free of lint for a reliable, fast connection.',
+  ],
   stations: [
     'Charge it fully before first use, and recharge every ~3 months when stored.',
     'Keep the vents clear and run it on a hard, flat surface so it stays cool.',

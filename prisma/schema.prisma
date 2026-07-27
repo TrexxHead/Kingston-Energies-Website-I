@@ -238,6 +238,8 @@ model Order {
   stage         Int         @default(0) // 0-7 position in the 8-stage delivery pipeline
   estimatedDelivery DateTime? // admin-set / auto ETA shown to the customer
   total         Float       @default(0)
+  proofOfPaymentPath String? // private storage path — customer-uploaded receipt/screenshot
+  proofOfPaymentAt   DateTime?
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
@@ -270,6 +272,9 @@ enum OrderChannel {
   WEBSITE
   WHATSAPP
   INSTAGRAM
+  FACE_TO_FACE
+  PHONE
+  OTHER
 }
 
 model OrderItem {
@@ -463,6 +468,7 @@ enum ProductCategory {
   CHARGERS
   STATIONS
   ACCESSORIES
+  COMPONENTS
 }
 
 // Generic key/value store for admin-editable site settings (e.g. the payment

@@ -12,7 +12,7 @@ import { cardStyle, h3Style } from '../ui/card'
 import { fmt } from '../mockData'
 import ProcurementCard from './ProcurementCard'
 
-type Category = 'POWERBANKS' | 'CHARGERS' | 'STATIONS' | 'ACCESSORIES'
+type Category = 'POWERBANKS' | 'CHARGERS' | 'STATIONS' | 'ACCESSORIES' | 'COMPONENTS'
 
 interface SpecItem {
   label: string
@@ -47,11 +47,12 @@ const CAT_PILLS: { id: 'all' | Category; label: string }[] = [
   { id: 'all', label: 'All' },
   { id: 'POWERBANKS', label: 'Power banks' },
   { id: 'CHARGERS', label: 'Chargers' },
+  { id: 'COMPONENTS', label: 'Cables & Adapters' },
   { id: 'STATIONS', label: 'Stations' },
   { id: 'ACCESSORIES', label: 'Accessories' },
 ]
 
-const CAT_OPTIONS = ['POWERBANKS', 'CHARGERS', 'STATIONS', 'ACCESSORIES']
+const CAT_OPTIONS = ['POWERBANKS', 'CHARGERS', 'COMPONENTS', 'STATIONS', 'ACCESSORIES']
 const GRID_COLS = '2fr 1fr 1fr 0.7fr 0.7fr 0.9fr 0.7fr'
 
 function statusFor(stock: number, threshold: number): { label: string; tone: 'orange' | 'green' } {

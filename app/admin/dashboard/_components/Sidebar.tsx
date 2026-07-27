@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
   KanbanSquare,
@@ -14,9 +16,9 @@ import {
   ExternalLink,
   Menu,
   X,
+  ChevronDown,
 } from 'lucide-react'
-import Link from 'next/link'
-import { NAV_ITEMS, type SectionId } from './mockData'
+import { NAV, resolve, type NavGroup } from './nav'
 
 const ICONS: Record<string, typeof LayoutDashboard> = {
   'layout-dashboard': LayoutDashboard,
@@ -30,16 +32,18 @@ const ICONS: Record<string, typeof LayoutDashboard> = {
   settings: Settings,
 }
 
-interface SidebarProps {
-  section: SectionId
-  onSelect: (section: SectionId) => void
-}
-
-export default function Sidebar({ section, onSelect }: SidebarProps) {
+export default function Sidebar() {
+  const pathname = usePathname()
+  const { group: activeGroup } = resolve(pathname)
   const [mobileOpen, setMobileOpen] = useState(false)
+  // Groups the user has opened by hand. The group you are inside stays open
+  // unless collapsed deliberately, so the menu can never hide the page you are
+  // currently looking at.
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({})
 
-  // Close the drawer automatically once a section is picked.
-  useEffect(() => setMobileOpen(false), [section])
+  useEffect(() => setMobileOpen(false), [pathname])
+
+  const isOpen = (g: NavGroup) => (g.id === activeGroup?.id ? expanded[g.id] !== false : Boolean(expanded[g.id]))
 
   return (
     <>
@@ -50,10 +54,19 @@ export default function Sidebar({ section, onSelect }: SidebarProps) {
         onClick={() => setMobileOpen(true)}
         aria-label="Open menu"
         style={{
-          position: 'fixed', top: 14, left: 14, zIndex: 70,
-          width: 40, height: 40, borderRadius: 10, border: 'none',
-          background: '#0d1714', color: '#fff',
-          alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+          position: 'fixed',
+          top: 14,
+          left: 14,
+          zIndex: 70,
+          width: 40,
+          height: 40,
+          borderRadius: 10,
+          border: 'none',
+          background: '#0d1714',
+          color: '#fff',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
           boxShadow: '0 4px 14px rgba(0,0,0,.3)',
         }}
       >
@@ -105,42 +118,101 @@ export default function Sidebar({ section, onSelect }: SidebarProps) {
         </div>
 
         <nav style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          {NAV_ITEMS.map((item) => {
-            const Icon = ICONS[item.icon]
-            const active = item.id === section
+          {NAV.map((g) => {
+            const Icon = ICONS[g.icon]
+            const active = g.id === activeGroup?.id
+            const open = isOpen(g)
+
             return (
-              <div
-                key={item.id}
-                onClick={() => onSelect(item.id)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 11,
-                  padding: '10px 12px',
-                  borderRadius: 11,
-                  cursor: 'pointer',
-                  fontFamily: 'var(--font-display)',
-                  fontWeight: 600,
-                  fontSize: 13.5,
-                  color: active ? '#fff' : 'rgba(255,255,255,.62)',
-                  background: active ? 'rgba(147,201,63,.18)' : 'transparent',
-                  transition: 'background .16s ease, color .16s ease',
-                }}
-                onMouseEnter={(e) => { if (!active) { e.currentTarget.style.background = 'rgba(255,255,255,.06)'; e.currentTarget.style.color = 'rgba(255,255,255,.9)' } }}
-                onMouseLeave={(e) => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,.62)' } }}
-              >
-                <Icon size={18} color={active ? 'var(--ke-green-400)' : undefined} />
-                {item.label}
+              <div key={g.id}>
+                <div style={{ display: 'flex', alignItems: 'stretch' }}>
+                  <Link
+                    href={g.href}
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 11,
+                      padding: '10px 12px',
+                      borderRadius: g.children ? '11px 0 0 11px' : 11,
+                      fontFamily: 'var(--font-display)',
+                      fontWeight: 600,
+                      fontSize: 13.5,
+                      color: active ? '#fff' : 'rgba(255,255,255,.62)',
+                      background: active ? 'rgba(147,201,63,.18)' : 'transparent',
+                      transition: 'background .16s ease, color .16s ease',
+                      minWidth: 0,
+                    }}
+                  >
+                    <Icon size={18} color={active ? 'var(--ke-green-400)' : undefined} />
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.label}</span>
+                  </Link>
+                  {g.children && (
+                    <button
+                      type="button"
+                      onClick={() => setExpanded((e) => ({ ...e, [g.id]: !open }))}
+                      aria-label={open ? `Collapse ${g.label}` : `Expand ${g.label}`}
+                      aria-expanded={open}
+                      style={{
+                        width: 32,
+                        border: 'none',
+                        cursor: 'pointer',
+                        borderRadius: '0 11px 11px 0',
+                        background: active ? 'rgba(147,201,63,.18)' : 'transparent',
+                        color: active ? '#fff' : 'rgba(255,255,255,.5)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <ChevronDown size={15} style={{ transform: open ? 'none' : 'rotate(-90deg)', transition: 'transform .16s ease' }} />
+                    </button>
+                  )}
+                </div>
+
+                {g.children && open && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 1,
+                      margin: '2px 0 6px 20px',
+                      paddingLeft: 10,
+                      borderLeft: '1px solid rgba(255,255,255,.12)',
+                    }}
+                  >
+                    {g.children.map((c) => {
+                      // Exact match only: the group's landing page and its
+                      // children share a prefix, so a prefix test would light up
+                      // Overview on every child page.
+                      const on = (pathname.replace(/\/+$/, '') || g.href) === c.href
+                      return (
+                        <Link
+                          key={c.href}
+                          href={c.href}
+                          style={{
+                            padding: '7px 10px',
+                            borderRadius: 9,
+                            fontFamily: 'var(--font-display)',
+                            fontWeight: on ? 700 : 500,
+                            fontSize: 12.5,
+                            color: on ? '#fff' : 'rgba(255,255,255,.55)',
+                            background: on ? 'rgba(147,201,63,.14)' : 'transparent',
+                            transition: 'background .16s ease, color .16s ease',
+                          }}
+                        >
+                          {c.label}
+                        </Link>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             )
           })}
         </nav>
 
-        <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div style={{ background: 'rgba(255,255,255,.06)', borderRadius: 12, padding: 12 }}>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,.55)' }}>Signed in as</div>
-            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, marginTop: 2 }}>Ops Admin</div>
-          </div>
+        <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 16 }}>
           <Link
             href="/"
             style={{

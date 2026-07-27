@@ -720,6 +720,9 @@ model Expense {
   spentAt     DateTime @default(now())
   createdAt   DateTime @default(now())
 
+  // The receipt this expense was raised from, if any.
+  document DocumentScan?
+
   @@index([spentAt])
 }
 
@@ -1005,4 +1008,72 @@ model BankStatementLine {
   @@unique([connectionId, fingerprint])
   @@index([connectionId, status])
   @@index([postedAt])
+}
+
+// ---------------------------------------------------------------------------
+// Document capture.
+//
+// A receipt is evidence. Storing it against the expense is the part that
+// matters for audit, and that works today with no OCR at all.
+//
+// Extraction is an optional convenience layered on top: if an OCR provider is
+// configured it pre-fills the fields, and if one isn't, they're typed in. Either
+// way a human confirms before an expense is raised, because an amount read
+// wrongly off a crumpled receipt is indistinguishable from a correct one once
+// it's in the books.
+// ---------------------------------------------------------------------------
+
+enum DocumentKind {
+  RECEIPT
+  BILL
+  STATEMENT
+  OTHER
+}
+
+enum ScanStatus {
+  NEEDS_REVIEW // stored, fields not yet confirmed by a person
+  CONFIRMED // a person has confirmed the fields
+  FAILED // the file could not be stored or read
+}
+
+model DocumentScan {
+  id          String       @id @default(cuid())
+  kind        DocumentKind @default(RECEIPT)
+  // Path in the PRIVATE admin bucket. Access is always via a short-lived
+  // signed URL minted inside an admin-guarded route.
+  storagePath String
+  filename    String
+  contentType String
+  sizeBytes   Int
+
+  status ScanStatus @default(NEEDS_REVIEW)
+  // Which extractor produced the draft fields, or null when they were typed in.
+  provider String?
+  // Whatever the provider returned, kept verbatim so a bad extraction can be
+  // investigated rather than guessed at.
+  raw      Json?
+  // Per-field confidence from the provider, so weak reads can be flagged
+  // instead of presented with the same certainty as strong ones.
+  confidence Json?
+
+  // Draft or confirmed fields.
+  vendor       String?
+  documentDate DateTime?
+  total        Float?
+  taxAmount    Float?
+  currency     String    @default("JMD")
+  category     String?
+  notes        String?   @db.Text
+
+  expenseId   String?   @unique
+  uploadedBy  String?
+  confirmedAt DateTime?
+  confirmedBy String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  expense Expense? @relation(fields: [expenseId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([createdAt])
 }

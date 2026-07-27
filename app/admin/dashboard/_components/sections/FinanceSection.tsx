@@ -16,9 +16,10 @@ import ReconcileTab from './ReconcileTab'
 import ForecastTab from './ForecastTab'
 import SalesTab from './SalesTab'
 import PayrollTab from './PayrollTab'
+import DocumentsTab from './DocumentsTab'
 import CountUp from '../ui/CountUp'
 
-type Tab = 'dashboard' | 'accounting' | 'reconcile' | 'schedules' | 'transactions' | 'expenses' | 'sales' | 'payroll' | 'cashflow' | 'forecast' | 'reports' | 'taxes'
+type Tab = 'dashboard' | 'accounting' | 'reconcile' | 'schedules' | 'transactions' | 'expenses' | 'documents' | 'sales' | 'payroll' | 'cashflow' | 'forecast' | 'reports' | 'taxes'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'dashboard', label: 'Dashboard' },
@@ -27,6 +28,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'schedules', label: 'Assets & Schedules' },
   { id: 'transactions', label: 'Transactions' },
   { id: 'expenses', label: 'Expenses' },
+  { id: 'documents', label: 'Receipts' },
   { id: 'sales', label: 'Sales' },
   { id: 'payroll', label: 'Payroll' },
   { id: 'cashflow', label: 'Cash Flow' },
@@ -193,6 +195,7 @@ export default function FinanceSection({ initialTab }: { initialTab?: string } =
       {tab === 'forecast' && <ForecastTab />}
       {tab === 'transactions' && <TransactionsTab />}
       {tab === 'payroll' && <PayrollTab />}
+      {tab === 'documents' && <DocumentsTab />}
 
       {tab === 'expenses' && data && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

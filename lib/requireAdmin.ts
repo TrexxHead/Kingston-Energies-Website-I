@@ -39,3 +39,15 @@ export async function guardAdmin(): Promise<NextResponse | null> {
     throw e
   }
 }
+
+/**
+ * Stricter gate for actions that can mint or change admin accounts — only
+ * SUPER_ADMIN may add a new admin, promote/demote a role, or remove one.
+ * A regular ADMIN being able to create more admins (or super admins) would
+ * be an easy privilege-escalation path.
+ */
+export async function guardSuperAdmin(): Promise<NextResponse | null> {
+  const session = await getServerSession(authOptions)
+  if (!session || session.user?.role !== 'SUPER_ADMIN') return unauthorized()
+  return null
+}

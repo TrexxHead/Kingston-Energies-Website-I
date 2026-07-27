@@ -1,7 +1,7 @@
 /** Format a price in Jamaican dollars, e.g. J$7,999. */
 export const fmt = (n: number): string => 'J$' + n.toLocaleString()
 
-export type Category = 'powerbanks' | 'chargers' | 'stations' | 'accessories'
+export type Category = 'powerbanks' | 'chargers' | 'stations' | 'accessories' | 'components'
 export type BadgeTone = 'green' | 'blue' | 'orange'
 
 /** A selectable variant (e.g. capacity) that changes the product's price. */
@@ -138,11 +138,38 @@ export const CATALOG: Product[] = [
   },
   {
     id: 'chcab',
-    cat: 'chargers',
+    cat: 'components',
     name: 'Braided USB-C Cable',
-    spec: '6FT BRAIDED · FAST CHARGE',
+    spec: '6FT BRAIDED · USB-C TO USB-C · FAST CHARGE',
     price: 2500,
     image: '/images/charger-cable.jpg',
+    warranty: KE_WARRANTY,
+  },
+  {
+    id: 'cmp-lgt',
+    cat: 'components',
+    name: 'USB-C to Lightning Cable',
+    spec: '6FT · USB-C TO LIGHTNING · FAST CHARGE',
+    price: 2200,
+    image: null,
+    warranty: KE_WARRANTY,
+  },
+  {
+    id: 'cmp-adpt-w',
+    cat: 'components',
+    name: 'USB-C Wall Adapter — White',
+    spec: 'USB-C POWER ADAPTER · WALL PLUG',
+    price: 1200,
+    image: null,
+    warranty: KE_WARRANTY,
+  },
+  {
+    id: 'cmp-adpt-b',
+    cat: 'components',
+    name: 'USB-C Wall Adapter — Black',
+    spec: 'USB-C POWER ADAPTER · WALL PLUG',
+    price: 1200,
+    image: null,
     warranty: KE_WARRANTY,
   },
   {
@@ -226,6 +253,7 @@ export const CATEGORY_PILLS: { id: 'all' | Category; label: string }[] = [
   { id: 'all', label: 'All' },
   { id: 'powerbanks', label: 'Power banks' },
   { id: 'chargers', label: 'Chargers' },
+  { id: 'components', label: 'Cables & Adapters' },
   { id: 'stations', label: 'Power & Solar' },
   { id: 'accessories', label: 'Accessories' },
 ]

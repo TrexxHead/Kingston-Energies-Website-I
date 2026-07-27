@@ -28,6 +28,7 @@ const CAT_MAP: Record<string, Category> = {
   CHARGERS: 'chargers',
   STATIONS: 'stations',
   ACCESSORIES: 'accessories',
+  COMPONENTS: 'components',
 }
 
 function toSpecItems(v: unknown): SpecItem[] | undefined {

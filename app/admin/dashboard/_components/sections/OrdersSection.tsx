@@ -1,16 +1,18 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { Plus, Trash2 } from 'lucide-react'
 import Badge from '../ui/Badge'
 import Button from '../ui/Button'
 import Modal from '../ui/Modal'
+import TextInput from '../ui/TextInput'
 import { cardStyle, h3Style } from '../ui/card'
 import { fmt } from '../mockData'
 import { PIPELINE, stageEmailsOnMove } from '@/lib/pipeline'
 
 type OrderStatus = 'PENDING' | 'PACKED' | 'OUT' | 'DONE' | 'CANCELLED'
 
-type OrderChannel = 'WEBSITE' | 'WHATSAPP' | 'INSTAGRAM'
+type OrderChannel = 'WEBSITE' | 'WHATSAPP' | 'INSTAGRAM' | 'FACE_TO_FACE' | 'PHONE' | 'OTHER'
 
 interface Order {
   id: string
@@ -30,6 +32,7 @@ interface Order {
   paymentMethod: string | null
   paid: boolean
   invoiced: boolean
+  hasProofOfPayment: boolean
   total: number
   itemCount: number
   date: string
@@ -40,11 +43,23 @@ const PAYMENT_LABEL: Record<string, string> = {
   bank: 'Bank transfer', lynk: 'Lynk', paypal: 'PayPal', card: 'Card', cod: 'Cash on delivery',
 }
 
-const CHANNEL: Record<OrderChannel, { label: string; tone: 'green' | 'grey' } | null> = {
+const CHANNEL: Record<OrderChannel, { label: string; tone: 'green' | 'grey' | 'blue' | 'orange' } | null> = {
   WEBSITE: null,
   WHATSAPP: { label: 'WhatsApp', tone: 'green' },
   INSTAGRAM: { label: 'Instagram', tone: 'grey' },
+  FACE_TO_FACE: { label: 'Face to face', tone: 'blue' },
+  PHONE: { label: 'Phone call', tone: 'orange' },
+  OTHER: { label: 'Other', tone: 'grey' },
 }
+
+const SOURCE_OPTIONS: { id: OrderChannel; label: string }[] = [
+  { id: 'WEBSITE', label: 'Website' },
+  { id: 'INSTAGRAM', label: 'Instagram' },
+  { id: 'WHATSAPP', label: 'WhatsApp' },
+  { id: 'FACE_TO_FACE', label: 'Face to face' },
+  { id: 'PHONE', label: 'Phone call' },
+  { id: 'OTHER', label: 'Other' },
+]
 
 const COLUMNS: { id: OrderStatus; label: string }[] = [
   { id: 'PENDING', label: 'Pending' },
@@ -61,6 +76,14 @@ export default function OrdersSection() {
   const [customerNote, setCustomerNote] = useState('')
   const [internalNote, setInternalNote] = useState('')
   const [stageBusy, setStageBusy] = useState(false)
+  const [newOpen, setNewOpen] = useState(false)
+  const [newBusy, setNewBusy] = useState(false)
+  const [newError, setNewError] = useState('')
+  const [newOrder, setNewOrder] = useState({
+    customerName: '', contact: '', email: '', phone: '', shippingAddress: '',
+    source: 'FACE_TO_FACE' as OrderChannel, paymentMethod: '', paid: false,
+  })
+  const [newItems, setNewItems] = useState([{ name: '', price: '', qty: '1' }])
 
   const load = useCallback(async () => {
     const res = await fetch('/api/admin/orders')
@@ -114,6 +137,47 @@ export default function OrdersSection() {
     load()
   }
 
+  const resetNewOrder = () => {
+    setNewOrder({ customerName: '', contact: '', email: '', phone: '', shippingAddress: '', source: 'FACE_TO_FACE', paymentMethod: '', paid: false })
+    setNewItems([{ name: '', price: '', qty: '1' }])
+    setNewError('')
+  }
+
+  const createOrder = async () => {
+    setNewError('')
+    const items = newItems
+      .filter((i) => i.name.trim())
+      .map((i) => ({ name: i.name.trim(), price: Number(i.price) || 0, qty: Math.max(1, Number(i.qty) || 1) }))
+    if (!newOrder.customerName.trim()) return setNewError('Enter the customer’s name.')
+    if (items.length === 0) return setNewError('Add at least one item.')
+
+    setNewBusy(true)
+    const res = await fetch('/api/admin/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        customerName: newOrder.customerName.trim(),
+        contact: newOrder.contact.trim() || undefined,
+        email: newOrder.email.trim() || undefined,
+        phone: newOrder.phone.trim() || undefined,
+        shippingAddress: newOrder.shippingAddress.trim() || undefined,
+        source: newOrder.source,
+        paymentMethod: newOrder.paymentMethod || undefined,
+        paid: newOrder.paid,
+        items,
+      }),
+    })
+    const data = await res.json().catch(() => ({}))
+    setNewBusy(false)
+    if (!res.ok) {
+      setNewError(data.error ?? 'Could not create the order.')
+      return
+    }
+    setNewOpen(false)
+    resetNewOrder()
+    load()
+  }
+
   const deleteOrder = async (id: string, orderNo: string) => {
     if (!confirm(`Permanently delete order ${orderNo}? This removes it from all reports — prefer cancelling (drag to Cancelled) unless this is an erroneous or duplicate entry.`)) return
     const res = await fetch(`/api/admin/orders/${id}`, { method: 'DELETE' })
@@ -155,9 +219,14 @@ export default function OrdersSection() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: 0 }}>
-        Drag a card to move it between stages. Click a card for details.
-      </p>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: 0 }}>
+          Drag a card to move it between stages. Click a card for details.
+        </p>
+        <Button size="sm" variant="primary" onClick={() => setNewOpen(true)} iconRight={<Plus size={14} />}>
+          New order
+        </Button>
+      </div>
 
       <div className="kad-kanban" style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 14, alignItems: 'start' }}>
         {COLUMNS.map((col) => {
@@ -275,13 +344,18 @@ export default function OrdersSection() {
             </span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{ display: 'flex', gap: 8 }}>
+            <span style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <a href={`/api/admin/orders/${detail.id}/invoice`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
                 <Button size="sm" variant="outline">View invoice</Button>
               </a>
               <Button size="sm" variant="outline" onClick={() => sendInvoice(detail.id)}>
                 {detail.invoiced ? 'Resend invoice' : 'Send invoice'}
               </Button>
+              {detail.hasProofOfPayment && (
+                <a href={`/api/admin/orders/${detail.id}/proof`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+                  <Button size="sm" variant="outline">View proof of payment</Button>
+                </a>
+              )}
             </span>
             <Button size="sm" variant={detail.paid ? 'outline' : 'primary'} onClick={() => setPaid(detail.id, !detail.paid)}>
               {detail.paid ? 'Mark as unpaid' : 'Mark as paid'}
@@ -389,6 +463,120 @@ export default function OrdersSection() {
           </div>
         </Modal>
       )}
+
+      {newOpen && (
+        <Modal
+          title="Record a manual order"
+          onClose={() => { setNewOpen(false); resetNewOrder() }}
+          footer={
+            <>
+              <Button size="sm" variant="outline" onClick={() => { setNewOpen(false); resetNewOrder() }}>Cancel</Button>
+              <Button size="sm" variant="primary" onClick={createOrder} disabled={newBusy}>{newBusy ? 'Creating…' : 'Create order'}</Button>
+            </>
+          }
+        >
+          <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: '0 0 12px' }}>
+            For sales that happened outside checkout — Instagram DM, a phone call, face to face, etc. It joins the normal
+            pipeline (status, invoicing, delivery tracking) like any other order, but never creates a customer account or earns loyalty points.
+          </p>
+          <TextInput label="Customer name" value={newOrder.customerName} onChange={(v) => setNewOrder({ ...newOrder, customerName: v })} />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <TextInput label="Phone (optional)" value={newOrder.phone} onChange={(v) => setNewOrder({ ...newOrder, phone: v })} />
+            <TextInput label="Email (optional)" value={newOrder.email} onChange={(v) => setNewOrder({ ...newOrder, email: v })} type="email" />
+          </div>
+          <TextInput label="IG handle / contact (optional)" value={newOrder.contact} onChange={(v) => setNewOrder({ ...newOrder, contact: v })} />
+          <TextInput label="Delivery address (optional)" value={newOrder.shippingAddress} onChange={(v) => setNewOrder({ ...newOrder, shippingAddress: v })} />
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 4 }}>
+            <label style={{ display: 'block' }}>
+              <span style={overline}>ORIGIN</span>
+              <select value={newOrder.source} onChange={(e) => setNewOrder({ ...newOrder, source: e.target.value as OrderChannel })} style={detailSelect}>
+                {SOURCE_OPTIONS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+              </select>
+            </label>
+            <label style={{ display: 'block' }}>
+              <span style={overline}>PAYMENT METHOD</span>
+              <select value={newOrder.paymentMethod} onChange={(e) => setNewOrder({ ...newOrder, paymentMethod: e.target.value })} style={detailSelect}>
+                <option value="">Not specified</option>
+                {Object.entries(PAYMENT_LABEL).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+              </select>
+            </label>
+          </div>
+
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '10px 0 4px', fontSize: 13 }}>
+            <input type="checkbox" checked={newOrder.paid} onChange={(e) => setNewOrder({ ...newOrder, paid: e.target.checked })} />
+            Already paid
+          </label>
+
+          <div style={{ marginTop: 12 }}>
+            <span style={overline}>ITEMS</span>
+            {newItems.map((item, i) => (
+              <div key={i} style={{ display: 'flex', gap: 6, marginTop: 6, alignItems: 'center' }}>
+                <input
+                  value={item.name}
+                  onChange={(e) => setNewItems((prev) => prev.map((p, pi) => (pi === i ? { ...p, name: e.target.value } : p)))}
+                  placeholder="Item name"
+                  style={{ flex: 1, height: 34, padding: '0 10px', border: '1px solid var(--color-border)', borderRadius: 8, fontSize: 12.5 }}
+                />
+                <input
+                  value={item.price}
+                  onChange={(e) => setNewItems((prev) => prev.map((p, pi) => (pi === i ? { ...p, price: e.target.value } : p)))}
+                  placeholder="Price"
+                  type="number"
+                  style={{ width: 90, height: 34, padding: '0 10px', border: '1px solid var(--color-border)', borderRadius: 8, fontSize: 12.5 }}
+                />
+                <input
+                  value={item.qty}
+                  onChange={(e) => setNewItems((prev) => prev.map((p, pi) => (pi === i ? { ...p, qty: e.target.value } : p)))}
+                  placeholder="Qty"
+                  type="number"
+                  style={{ width: 56, height: 34, padding: '0 10px', border: '1px solid var(--color-border)', borderRadius: 8, fontSize: 12.5 }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setNewItems((prev) => prev.filter((_, pi) => pi !== i))}
+                  disabled={newItems.length === 1}
+                  style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: newItems.length === 1 ? 'default' : 'pointer', padding: 4 }}
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => setNewItems((prev) => [...prev, { name: '', price: '', qty: '1' }])}
+              style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--ke-green-700)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', padding: 0 }}
+            >
+              <Plus size={13} /> Add item
+            </button>
+          </div>
+
+          {newError && <p style={{ fontSize: 12.5, color: 'var(--color-danger)', marginTop: 10 }}>{newError}</p>}
+        </Modal>
+      )}
     </div>
   )
 }
+
+const overline = {
+  fontFamily: 'var(--font-mono)',
+  fontSize: 10,
+  letterSpacing: '.14em',
+  color: 'var(--color-text-muted)',
+  display: 'block',
+  marginBottom: 6,
+} as const
+
+const detailSelect = {
+  width: '100%',
+  height: 36,
+  padding: '0 10px',
+  border: '1.5px solid var(--color-border)',
+  borderRadius: 9,
+  fontFamily: 'var(--font-body)',
+  fontSize: 13,
+  background: '#fff',
+  color: 'var(--color-text)',
+  outline: 'none',
+  appearance: 'none',
+} as const

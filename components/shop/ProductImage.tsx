@@ -1,10 +1,11 @@
 import Image from 'next/image'
-import { BatteryCharging, Plug, BatteryFull, Package } from 'lucide-react'
+import { BatteryCharging, Plug, BatteryFull, Package, Cable } from 'lucide-react'
 import type { Category } from '@/lib/catalog'
 
 const STYLES: Record<Category, { grad: string; Icon: typeof BatteryCharging }> = {
   powerbanks: { grad: 'linear-gradient(135deg,#aed968 0%,#29abe2 100%)', Icon: BatteryCharging },
   chargers: { grad: 'linear-gradient(135deg,#29abe2 0%,#04547c 100%)', Icon: Plug },
+  components: { grad: 'linear-gradient(135deg,#7c8fa3 0%,#2f3d4d 100%)', Icon: Cable },
   stations: { grad: 'linear-gradient(135deg,#2f6b62 0%,#0b2634 100%)', Icon: BatteryFull },
   accessories: { grad: 'linear-gradient(140deg,#fdb813 0%,#f7941e 100%)', Icon: Package },
 }

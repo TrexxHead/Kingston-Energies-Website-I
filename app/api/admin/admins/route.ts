@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
+import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { guardAdmin } from '@/lib/requireAdmin'
+import { guardAdmin, guardSuperAdmin } from '@/lib/requireAdmin'
+import { hashPassword } from '@/lib/password'
 
 /** Engagement status thresholds. */
 const ACTIVE_MS = 5 * 60 * 1000 // seen in last 5 min → active
@@ -37,4 +39,38 @@ export async function GET() {
         : 'never',
     })),
   })
+}
+
+const createSchema = z.object({
+  name: z.string().min(1).max(120),
+  email: z.string().email(),
+  password: z.string().min(8).max(72),
+  role: z.enum(['ADMIN', 'SUPER_ADMIN']).default('ADMIN'),
+})
+
+/** Create a new admin account directly — only a SUPER_ADMIN may do this. */
+export async function POST(request: Request) {
+  const denied = await guardSuperAdmin()
+  if (denied) return denied
+
+  const parsed = createSchema.safeParse(await request.json().catch(() => null))
+  if (!parsed.success) return NextResponse.json({ error: 'Invalid admin details' }, { status: 400 })
+  const { name, email, password, role } = parsed.data
+
+  const existing = await prisma.user.findUnique({ where: { email } })
+  if (existing) return NextResponse.json({ error: 'A user with this email already exists' }, { status: 409 })
+
+  const user = await prisma.user.create({
+    data: {
+      name,
+      email,
+      password: await hashPassword(password),
+      role,
+      // Admin-created accounts skip the email-verification loop — they need
+      // to be able to log in immediately.
+      emailVerified: new Date(),
+    },
+  })
+
+  return NextResponse.json({ id: user.id, email: user.email, role: user.role }, { status: 201 })
 }

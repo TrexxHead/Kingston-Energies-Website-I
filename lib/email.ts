@@ -99,6 +99,22 @@ export async function sendOrderConfirmation(input: OrderEmailInput): Promise<voi
  * promptly instead of waiting for someone to check the dashboard.
  * Best-effort: never throws, never blocks the checkout response.
  */
+/** Every admin account's email, plus ADMIN_EMAIL if it's not one of them already. */
+async function adminRecipients(): Promise<string[]> {
+  let adminEmails: string[] = []
+  try {
+    const admins = await prisma.user.findMany({
+      where: { role: { in: ['ADMIN', 'SUPER_ADMIN'] } },
+      select: { email: true },
+    })
+    adminEmails = admins.map((a) => a.email)
+  } catch (err) {
+    console.error('[email] failed to load admin recipients:', err)
+  }
+  const envAdmin = process.env.ADMIN_EMAIL
+  return Array.from(new Set([...adminEmails, ...(envAdmin ? [envAdmin] : [])])).filter(Boolean)
+}
+
 export async function sendNewOrderAlert(input: {
   orderNo: string
   customerName: string
@@ -111,18 +127,7 @@ export async function sendNewOrderAlert(input: {
     return
   }
 
-  let adminEmails: string[] = []
-  try {
-    const admins = await prisma.user.findMany({
-      where: { role: { in: ['ADMIN', 'SUPER_ADMIN'] } },
-      select: { email: true },
-    })
-    adminEmails = admins.map((a) => a.email)
-  } catch (err) {
-    console.error('[email] failed to load admin recipients:', err)
-  }
-  const envAdmin = process.env.ADMIN_EMAIL
-  const recipients = Array.from(new Set([...adminEmails, ...(envAdmin ? [envAdmin] : [])])).filter(Boolean)
+  const recipients = await adminRecipients()
   if (recipients.length === 0) return
 
   const site = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://kingstonenergies.com'
@@ -148,6 +153,41 @@ export async function sendNewOrderAlert(input: {
     await Promise.all(recipients.map((to) => deliver({ to, subject: `New order ${input.orderNo} — ${fmt(input.total)}`, html })))
   } catch (err) {
     console.error('[email] failed to send new-order alert:', err)
+  }
+}
+
+/**
+ * Alert every admin the moment a customer uploads proof of payment for their
+ * order, so it can be checked and the order marked paid without the customer
+ * having to follow up. Subject carries the customer's name and order number
+ * per spec; the file itself lives in private storage and is opened from the
+ * admin dashboard (mints a fresh signed URL), not attached to the email.
+ */
+export async function sendProofOfPaymentAlert(input: { orderNo: string; customerName: string }): Promise<void> {
+  if (!isEmailConfigured()) {
+    console.info(`[email] skipped proof-of-payment alert for ${input.orderNo} (no provider configured)`)
+    return
+  }
+
+  const recipients = await adminRecipients()
+  if (recipients.length === 0) return
+
+  const site = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://kingstonenergies.com'
+  const html = wrapEmailHtml(
+    'Proof of payment uploaded',
+    `<p><strong>${escapeHtml(input.customerName)}</strong> uploaded proof of payment for order <strong>${input.orderNo}</strong>.</p>` +
+      `<p style="font-size:13px;color:#556059">Open the order in the dashboard to review it and mark the order as paid.</p>` +
+      `<a href="${site}/admin/dashboard" style="display:inline-block;margin-top:12px;background:#1f6b45;color:#fff;text-decoration:none;padding:10px 20px;border-radius:999px;font-weight:600;font-size:13px">Open admin dashboard</a>`,
+  )
+
+  try {
+    await Promise.all(
+      recipients.map((to) =>
+        deliver({ to, subject: `${input.customerName} — Proof of Payment — Order ${input.orderNo}`, html }),
+      ),
+    )
+  } catch (err) {
+    console.error('[email] failed to send proof-of-payment alert:', err)
   }
 }
 

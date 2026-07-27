@@ -10,13 +10,15 @@ import { fmt } from '../mockData'
 import { EXPENSE_CATEGORIES } from '@/lib/finance'
 import ProfitLossCard from './ProfitLossCard'
 import TransactionsTab from './TransactionsTab'
+import AccountingTab from './AccountingTab'
 import SalesTab from './SalesTab'
 import CountUp from '../ui/CountUp'
 
-type Tab = 'dashboard' | 'transactions' | 'expenses' | 'sales' | 'cashflow' | 'reports' | 'taxes'
+type Tab = 'dashboard' | 'accounting' | 'transactions' | 'expenses' | 'sales' | 'cashflow' | 'reports' | 'taxes'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'dashboard', label: 'Dashboard' },
+  { id: 'accounting', label: 'Accounting' },
   { id: 'transactions', label: 'Transactions' },
   { id: 'expenses', label: 'Expenses' },
   { id: 'sales', label: 'Sales' },
@@ -170,6 +172,7 @@ export default function FinanceSection() {
         </div>
       )}
 
+      {tab === 'accounting' && <AccountingTab />}
       {tab === 'transactions' && <TransactionsTab />}
 
       {tab === 'expenses' && data && (

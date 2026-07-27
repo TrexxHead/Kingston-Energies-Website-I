@@ -9,6 +9,7 @@ import { bulkRateForQty } from '@/lib/pricing'
 import { validatePromo } from '@/lib/promo'
 import { deliveryFee, deliveryLineLabel } from '@/lib/delivery'
 import { resolvePointsRedemption, markPointsRedeemed } from '@/lib/pointsRedemption'
+import { postOrderCogs, postOrderRevenue } from '@/lib/ledger/post'
 
 const orderSchema = z.object({
   customerName: z.string().min(1).max(120),
@@ -109,6 +110,12 @@ export async function POST(request: Request) {
         items: { create: recordedItems.map((i) => ({ name: i.name, qty: i.qty, price: i.price })) },
       },
     })
+
+    // Recognise the revenue + cost of sales in the general ledger. Best-effort:
+    // the order must never fail because of a posting problem, and the backfill
+    // reconciles anything that slipped through.
+    void postOrderRevenue({ ...order, items: recordedItems }).catch((err) => console.error('[ledger] order revenue posting failed:', err))
+    void postOrderCogs({ ...order, items: recordedItems }).catch((err) => console.error('[ledger] order COGS posting failed:', err))
 
     // Mark this cart as converted so it isn't counted as abandoned.
     if (cartId) {

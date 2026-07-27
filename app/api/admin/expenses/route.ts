@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { guardAdmin } from '@/lib/requireAdmin'
+import { postExpense } from '@/lib/ledger/post'
 
 const schema = z.object({
   category: z.string().min(1).max(60),
@@ -26,5 +27,8 @@ export async function POST(request: Request) {
       spentAt: spentAt ? new Date(spentAt) : new Date(),
     },
   })
+  // Journal it to the ledger. Best-effort: a posting failure must never lose
+  // the expense record itself — the backfill will pick it up later.
+  void postExpense(expense).catch((err) => console.error('[ledger] expense posting failed:', err))
   return NextResponse.json({ id: expense.id }, { status: 201 })
 }

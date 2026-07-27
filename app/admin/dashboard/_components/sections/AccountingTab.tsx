@@ -9,6 +9,7 @@ import Modal from '../ui/Modal'
 import Pill from '../ui/Pill'
 import TextInput from '../ui/TextInput'
 import { fmt } from '../mockData'
+import OpeningBalancesCard from './OpeningBalancesCard'
 
 type View = 'accounts' | 'journal' | 'trial' | 'balance'
 type AccountType = 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE'
@@ -119,6 +120,8 @@ export default function AccountingTab() {
           {syncing ? 'Syncing…' : 'Sync ledger'}
         </Button>
       </div>
+
+      <OpeningBalancesCard onDone={loadStatus} />
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         {VIEWS.map((v) => (

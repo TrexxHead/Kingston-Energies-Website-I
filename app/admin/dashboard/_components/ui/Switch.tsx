@@ -31,7 +31,7 @@ export default function Switch({ checked, onChange }: SwitchProps) {
           width: 18,
           height: 18,
           borderRadius: '50%',
-          background: '#fff',
+          background: 'var(--color-surface)',
           transition: 'transform var(--dur-base) var(--ease-standard)',
         }}
       />

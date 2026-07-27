@@ -118,7 +118,7 @@ export default function NotificationsBell({ onNavigate }: { onNavigate?: (tab: S
       {open && (
         <div
           role="menu"
-          style={{ position: 'absolute', top: 'calc(100% + 10px)', right: 0, width: 360, maxWidth: '92vw', maxHeight: '70vh', overflowY: 'auto', background: '#fff', borderRadius: 16, border: '1px solid var(--color-border)', boxShadow: '0 16px 44px rgba(0,0,0,.18)', zIndex: 70, padding: 10 }}
+          style={{ position: 'absolute', top: 'calc(100% + 10px)', right: 0, width: 360, maxWidth: '92vw', maxHeight: '70vh', overflowY: 'auto', background: 'var(--color-surface)', borderRadius: 16, border: '1px solid var(--color-border)', boxShadow: '0 16px 44px rgba(0,0,0,.18)', zIndex: 70, padding: 10 }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px 10px' }}>
             <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14 }}>Needs attention</span>
@@ -145,7 +145,7 @@ export default function NotificationsBell({ onNavigate }: { onNavigate?: (tab: S
                     <button
                       type="button"
                       onClick={() => setExpanded(isOpen ? null : a.key)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 11px', background: '#fff', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 11px', background: 'var(--color-surface)', border: 'none', cursor: 'pointer', textAlign: 'left' }}
                     >
                       <span style={{ width: 28, height: 28, borderRadius: 8, background: t.bg, color: t.fg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <Icon size={15} color={t.fg} />

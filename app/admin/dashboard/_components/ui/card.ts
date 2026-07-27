@@ -2,7 +2,7 @@ import type { CSSProperties } from 'react'
 
 // iOS-inspired card: generous radius, hairline border, soft layered shadow.
 export const cardStyle: CSSProperties = {
-  background: '#fff',
+  background: 'var(--color-surface)',
   border: '1px solid rgba(16,24,20,.06)',
   borderRadius: 18,
   padding: 22,

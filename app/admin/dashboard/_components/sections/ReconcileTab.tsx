@@ -114,7 +114,7 @@ function Start({ onOpen }: { onOpen: (id: string) => void }) {
                 <select
                   value={form.accountId}
                   onChange={(e) => setForm({ ...form, accountId: e.target.value })}
-                  style={{ width: '100%', height: 36, padding: '0 10px', border: '1.5px solid var(--color-border)', borderRadius: 9, fontSize: 13, background: '#fff', fontFamily: 'var(--font-body)' }}
+                  style={{ width: '100%', height: 36, padding: '0 10px', border: '1.5px solid var(--color-border)', borderRadius: 9, fontSize: 13, background: 'var(--color-surface)', fontFamily: 'var(--font-body)' }}
                 >
                   {data.accounts.map((a) => (
                     <option key={a.id} value={a.id}>{a.code} · {a.name} — book {fmt(a.bookBalance)}</option>

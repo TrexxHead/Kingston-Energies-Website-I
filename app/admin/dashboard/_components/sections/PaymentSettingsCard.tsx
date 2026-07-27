@@ -169,7 +169,7 @@ function MethodBlock({ title, enabled, onToggle, children }: { title: string; en
             background: enabled ? 'var(--ke-green-600)' : 'var(--color-border-strong, #cbd2ce)', transition: 'background .15s',
           }}
         >
-          <span style={{ position: 'absolute', top: 2, left: enabled ? 20 : 2, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left .15s' }} />
+          <span style={{ position: 'absolute', top: 2, left: enabled ? 20 : 2, width: 18, height: 18, borderRadius: '50%', background: 'var(--color-surface)', transition: 'left .15s' }} />
         </button>
         <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14 }}>{title}</span>
       </label>

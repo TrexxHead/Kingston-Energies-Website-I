@@ -167,6 +167,6 @@ export default function CampaignsCard() {
 }
 
 const iconBtn = {
-  width: 28, height: 28, borderRadius: 8, border: '1px solid var(--color-border)', background: '#fff',
+  width: 28, height: 28, borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-surface)',
   cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', flexShrink: 0,
 } as const

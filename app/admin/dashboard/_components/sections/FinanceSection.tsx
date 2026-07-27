@@ -44,8 +44,15 @@ interface FinanceData {
   currentMonth: string
 }
 
-export default function FinanceSection() {
-  const [tab, setTab] = useState<Tab>('dashboard')
+export const FINANCE_TABS = TABS
+
+export default function FinanceSection({ initialTab }: { initialTab?: string } = {}) {
+  const [tab, setTab] = useState<Tab>((initialTab as Tab) || 'dashboard')
+
+  // Follow deep-links from the command palette after the section is mounted.
+  useEffect(() => {
+    if (initialTab) setTab(initialTab as Tab)
+  }, [initialTab])
   const [data, setData] = useState<FinanceData | null>(null)
   const [expenseOpen, setExpenseOpen] = useState(false)
   const [budgetOpen, setBudgetOpen] = useState(false)

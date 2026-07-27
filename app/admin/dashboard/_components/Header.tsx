@@ -1,6 +1,7 @@
 'use client'
 
 import NotificationsBell from './NotificationsBell'
+import ThemeToggle from './ThemeToggle'
 import { TITLES, type SectionId } from './mockData'
 
 interface HeaderProps {
@@ -33,6 +34,13 @@ export default function Header({ section, onNavigate }: HeaderProps) {
         <p style={{ margin: '2px 0 0', fontSize: 12.5, color: 'var(--color-text-muted)' }}>{subtitle}</p>
       </div>
 
+      <span
+        title="Press Cmd/Ctrl + K"
+        style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '.06em', color: 'var(--color-text-subtle)', border: '1px solid var(--color-border)', borderRadius: 6, padding: '4px 7px', whiteSpace: 'nowrap' }}
+      >
+        ⌘K
+      </span>
+      <ThemeToggle />
       <NotificationsBell onNavigate={onNavigate} />
     </div>
   )

@@ -26,11 +26,16 @@ export const ACC = {
   GCT_PAYABLE: '2200',
   OPENING_BALANCE_EQUITY: '3000',
   RETAINED_EARNINGS: '3200',
+  DEFERRED_REVENUE: '2400',
   SALES: '4000',
   DELIVERY_INCOME: '4100',
   DISCOUNTS: '4900',
   COGS: '5000',
   INVENTORY_SHRINKAGE: '5100',
+  DEPRECIATION: '6800',
+  PREPAID: '1300',
+  EQUIPMENT: '1500',
+  ACCUM_DEPRECIATION: '1590',
 } as const
 
 export const CHART: SeedAccount[] = [
@@ -47,6 +52,7 @@ export const CHART: SeedAccount[] = [
   { code: '2010', name: 'Accounts payable', type: 'LIABILITY', subtype: 'Current liability', system: true },
   { code: '2200', name: 'GCT payable', type: 'LIABILITY', subtype: 'Current liability', system: true },
   { code: '2300', name: 'Customer deposits', type: 'LIABILITY', subtype: 'Current liability' },
+  { code: '2400', name: 'Deferred revenue', type: 'LIABILITY', subtype: 'Current liability', system: true },
 
   // ---- Equity (3000–3999) ----
   { code: '3000', name: 'Opening balance equity', type: 'EQUITY', subtype: 'Equity', system: true },
@@ -74,6 +80,7 @@ export const CHART: SeedAccount[] = [
   { code: '6500', name: 'Shipping & Delivery', type: 'EXPENSE', subtype: 'Operating expense' },
   { code: '6600', name: 'Software & Fees', type: 'EXPENSE', subtype: 'Operating expense' },
   { code: '6700', name: 'Bank charges', type: 'EXPENSE', subtype: 'Operating expense' },
+  { code: '6800', name: 'Depreciation', type: 'EXPENSE', subtype: 'Operating expense', system: true },
   { code: '6900', name: 'Other', type: 'EXPENSE', subtype: 'Operating expense' },
 ]
 

@@ -548,6 +548,7 @@ enum JournalSource {
   EXPENSE // logged operating expense
   COGS // cost of goods sold + inventory relief
   STOCK_ADJUSTMENT // manual inventory correction
+  PAYROLL // approved payroll run — wages, withholdings, employer contributions
   MANUAL // hand-written journal entry
   OPENING // opening balances
 }
@@ -813,4 +814,110 @@ enum LeadStatus {
   QUALIFIED
   CONVERTED
   LOST
+}
+
+// ---------------------------------------------------------------------------
+// Payroll
+//
+// Infrastructure only: this calculates pay, produces payslips and posts the
+// resulting journal entries. It deliberately does NOT move money — payments are
+// made directly by the business, and marking a run as paid is an assertion that
+// that happened, not an instruction to a payment rail.
+// ---------------------------------------------------------------------------
+
+enum PayFrequency {
+  MONTHLY
+  FORTNIGHTLY
+  WEEKLY
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  ON_LEAVE
+  TERMINATED
+}
+
+model Employee {
+  id            String         @id @default(cuid())
+  employeeNo    String         @unique
+  firstName     String
+  lastName      String
+  email         String?
+  phone         String?
+  // Jamaican statutory identifiers.
+  trn           String? // Taxpayer Registration Number
+  nisNumber     String?
+  jobTitle      String?
+  department    String?
+  // Gross pay for one period at the stated frequency.
+  grossPerPeriod Float
+  frequency     PayFrequency   @default(MONTHLY)
+  status        EmployeeStatus @default(ACTIVE)
+  startedAt     DateTime
+  endedAt       DateTime?
+  bankAccount   String? // reference only — nothing is paid from here
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  payslips Payslip[]
+
+  @@index([status])
+}
+
+enum PayrollRunStatus {
+  DRAFT
+  APPROVED
+  PAID
+}
+
+model PayrollRun {
+  id          String           @id @default(cuid())
+  runNo       String           @unique
+  periodStart DateTime
+  periodEnd   DateTime
+  payDate     DateTime
+  status      PayrollRunStatus @default(DRAFT)
+  // Rates in force when this run was calculated, frozen as JSON so a historic
+  // payslip always reproduces exactly, even after rates are changed.
+  rateSnapshot Json
+  approvedAt  DateTime?
+  approvedBy  String?
+  paidAt      DateTime?
+  entryId     String? // journal entry posted on approval
+  notes       String?          @db.Text
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  payslips Payslip[]
+
+  @@index([periodStart])
+}
+
+model Payslip {
+  id         String @id @default(cuid())
+  runId      String
+  employeeId String
+
+  gross      Float
+  // Employee-side deductions.
+  paye       Float @default(0)
+  nisEmployee Float @default(0)
+  nhtEmployee Float @default(0)
+  edTaxEmployee Float @default(0)
+  otherDeductions Float @default(0)
+  net        Float
+
+  // Employer-side contributions — a cost to the business, not deducted from pay.
+  nisEmployer   Float @default(0)
+  nhtEmployer   Float @default(0)
+  edTaxEmployer Float @default(0)
+  heartEmployer Float @default(0)
+
+  createdAt DateTime @default(now())
+
+  run      PayrollRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  employee Employee   @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+
+  @@unique([runId, employeeId])
+  @@index([employeeId])
 }

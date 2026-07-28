@@ -1,0 +1,319 @@
+{
+  "name": "Jordyn – WhatsApp (Kingston Energies)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Before you activate this workflow\n\n1. **Verify Token** node — replace `REPLACE_WITH_YOUR_META_VERIFY_TOKEN` with a random string you make up. You'll paste the SAME string into Meta's webhook config.\n2. **Ask Jordyn** node — replace `REPLACE_WITH_INTEGRATION_API_KEY` with the key from Kingston Energies' Vercel env vars (`INTEGRATION_API_KEY`).\n3. **Send WhatsApp Reply** node — replace `REPLACE_WITH_META_PERMANENT_ACCESS_TOKEN` with the permanent access token from your Meta System User (Business Settings → System Users).\n4. Activate the workflow, copy the **Meta Verify** node's Production URL, and paste it as the Callback URL in Meta → WhatsApp → Configuration → Webhook (subscribe to the `messages` field).\n\nSee docs/WHATSAPP-INSTAGRAM.md for the full walkthrough.",
+        "height": 380,
+        "width": 460
+      },
+      "id": "sticky1",
+      "name": "Setup Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-680, -420]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "jordyn-whatsapp",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhookGet",
+      "name": "Meta Verify (GET)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-680, -80],
+      "webhookId": "jordyn-whatsapp-verify"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.query.hub_verify_token === 'REPLACE_WITH_YOUR_META_VERIFY_TOKEN' }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "ifTokenMatches",
+      "name": "Token Matches?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [-440, -80]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{$json.query.hub_challenge}}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "respondConfirm",
+      "name": "Confirm Verification",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [-200, -160]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Forbidden",
+        "options": {
+          "responseCode": 403
+        }
+      },
+      "id": "respondReject",
+      "name": "Reject Verification",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [-200, 0]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "jordyn-whatsapp",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhookPost",
+      "name": "Meta Message (POST)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-680, 240],
+      "webhookId": "jordyn-whatsapp-message"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ !!$json.body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0] }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "ifHasMessage",
+      "name": "Has Message?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [-440, 240]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "EVENT_RECEIVED",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "respondAckOther",
+      "name": "Ack Other Event",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [-200, 380]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "message",
+              "value": "={{$json.body.entry[0].changes[0].value.messages[0].text.body}}"
+            },
+            {
+              "name": "from",
+              "value": "={{$json.body.entry[0].changes[0].value.messages[0].from}}"
+            },
+            {
+              "name": "channel",
+              "value": "whatsapp"
+            },
+            {
+              "name": "phoneNumberId",
+              "value": "={{$json.body.entry[0].changes[0].value.metadata.phone_number_id}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "setExtract",
+      "name": "Extract Message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [-200, 160]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://kingstonenergies.com/api/integrations/chat",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer REPLACE_WITH_INTEGRATION_API_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { message: $json.message, channel: \"whatsapp\", from: $json.from } }}",
+        "options": {}
+      },
+      "id": "httpAskJordyn",
+      "name": "Ask Jordyn",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [40, 160]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{$('Extract Message').item.json.phoneNumberId}}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer REPLACE_WITH_META_PERMANENT_ACCESS_TOKEN"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { messaging_product: \"whatsapp\", to: $('Extract Message').item.json.from, type: \"text\", text: { body: $json.reply } } }}",
+        "options": {}
+      },
+      "id": "httpSendReply",
+      "name": "Send WhatsApp Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [280, 160]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "EVENT_RECEIVED",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "respondAckMessage",
+      "name": "Ack Message",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [520, 160]
+    }
+  ],
+  "connections": {
+    "Meta Verify (GET)": {
+      "main": [
+        [
+          {
+            "node": "Token Matches?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Token Matches?": {
+      "main": [
+        [
+          {
+            "node": "Confirm Verification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reject Verification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Meta Message (POST)": {
+      "main": [
+        [
+          {
+            "node": "Has Message?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Message?": {
+      "main": [
+        [
+          {
+            "node": "Extract Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ack Other Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Message": {
+      "main": [
+        [
+          {
+            "node": "Ask Jordyn",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ask Jordyn": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp Reply": {
+      "main": [
+        [
+          {
+            "node": "Ack Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

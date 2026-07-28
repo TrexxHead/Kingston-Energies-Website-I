@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { ArrowRight, Zap, Sparkles, Gift, Leaf, Sun } from 'lucide-react'
 
@@ -21,6 +21,9 @@ interface Orb {
   size: number
   hue: number
   icon: number
+  /** Eased toward 1 or 1.1 on hover, driven in the animation loop rather than
+   *  a CSS transition — the two would otherwise fight over `transform`. */
+  scale: number
 }
 
 const ICONS = [Sparkles, Zap, Gift, Leaf, Sun]
@@ -44,9 +47,14 @@ export default function FloatingPromos({ promos }: { promos: FloatingPromo[] }) 
   const orbsRef = useRef<Orb[]>([])
   const nodeRefs = useRef<Map<number, HTMLButtonElement>>(new Map())
   const [hoverId, setHoverId] = useState<number | null>(null)
+  const hoverIdRef = useRef<number | null>(null)
   const [open, setOpen] = useState<FloatingPromo | null>(null)
   const idSeq = useRef(0)
   const reduced = useRef(false)
+  // Cached container size, refreshed on resize rather than read every animation
+  // frame — reading it per-frame would mean asking the browser to lay the page
+  // out again right before painting.
+  const sizeRef = useRef({ w: 0, h: 0 })
 
   // Seed the orbs once, scattered randomly across the hero.
   const seeded = useMemo(() => {
@@ -60,6 +68,7 @@ export default function FloatingPromos({ promos }: { promos: FloatingPromo[] }) 
         vx: rand(-0.00012, 0.00012),
         vy: rand(-0.0001, 0.0001),
         size: rand(52, 84),
+        scale: 1,
         hue: HUES[i % HUES.length],
         icon: i % ICONS.length,
       })
@@ -68,11 +77,28 @@ export default function FloatingPromos({ promos }: { promos: FloatingPromo[] }) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [count])
 
-  useEffect(() => {
+  // Layout effects (not useEffect) for all three setup steps below: they run
+  // synchronously before the browser's next paint, so the first frame is
+  // already positioned correctly instead of flashing at (0,0) for a tick.
+  useLayoutEffect(() => {
     orbsRef.current = seeded.map((o) => ({ ...o }))
   }, [seeded])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    const measure = () => {
+      const rect = container.getBoundingClientRect()
+      sizeRef.current = { w: rect.width, h: rect.height }
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(container)
+    return () => ro.disconnect()
+  }, [])
+
+  useLayoutEffect(() => {
     reduced.current = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     let raf = 0
     let last = performance.now()
@@ -81,6 +107,7 @@ export default function FloatingPromos({ promos }: { promos: FloatingPromo[] }) 
       const dt = Math.min(now - last, 48)
       last = now
       const orbs = orbsRef.current
+      const { w, h } = sizeRef.current
       for (const o of orbs) {
         if (!reduced.current) {
           o.x += o.vx * dt
@@ -100,10 +127,18 @@ export default function FloatingPromos({ promos }: { promos: FloatingPromo[] }) 
           if (o.y < 0.08) { o.y = 0.08; o.vy = Math.abs(o.vy) }
           if (o.y > 0.92) { o.y = 0.92; o.vy = -Math.abs(o.vy) }
         }
+        // Ease the hover pop by hand instead of a CSS transition — a
+        // transition on `transform` would fight these per-frame writes and
+        // turn the drift into a laggy chase instead of smooth motion.
+        const targetScale = hoverIdRef.current === o.id ? 1.1 : 1
+        o.scale += (targetScale - o.scale) * Math.min(1, dt / 140)
+
         const node = nodeRefs.current.get(o.id)
         if (node) {
-          node.style.left = `${o.x * 100}%`
-          node.style.top = `${o.y * 100}%`
+          // Position via transform instead of left/top: the compositor can
+          // place a translated layer without asking the browser to lay out
+          // the page again on every one of these ~60 writes a second.
+          node.style.transform = `translate3d(${(o.x * w).toFixed(1)}px, ${(o.y * h).toFixed(1)}px, 0) translate(-50%,-50%) scale(${o.scale.toFixed(3)})`
         }
       }
       raf = requestAnimationFrame(step)
@@ -137,15 +172,17 @@ export default function FloatingPromos({ promos }: { promos: FloatingPromo[] }) 
             <button
               key={o.id}
               ref={(el) => { if (el) nodeRefs.current.set(o.id, el); else nodeRefs.current.delete(o.id) }}
-              onMouseEnter={() => setHoverId(o.id)}
-              onMouseLeave={() => setHoverId((h) => (h === o.id ? null : h))}
+              onMouseEnter={() => { hoverIdRef.current = o.id; setHoverId(o.id) }}
+              onMouseLeave={() => { hoverIdRef.current = null; setHoverId((h) => (h === o.id ? null : h)) }}
               onClick={() => openPromo(o)}
               aria-label={o.promo.label}
               style={{
                 position: 'absolute',
-                left: `${o.x * 100}%`,
-                top: `${o.y * 100}%`,
-                transform: `translate(-50%,-50%) scale(${hovered ? 1.1 : 1})`,
+                // No initial left/top: the animation frame effect owns
+                // position and scale together via transform, so writing them
+                // here too would just be overwritten on the first tick.
+                left: 0,
+                top: 0,
                 width: hovered ? 'auto' : o.size,
                 minWidth: o.size,
                 height: o.size,
@@ -161,7 +198,10 @@ export default function FloatingPromos({ promos }: { promos: FloatingPromo[] }) 
                 cursor: 'pointer',
                 color: '#eaf2ec',
                 pointerEvents: 'auto',
-                transition: 'transform .3s cubic-bezier(.22,1,.36,1), box-shadow .3s ease, width .3s ease, padding .3s ease',
+                // No `transform` here — the animation loop drives position and
+                // the hover scale together every frame, with its own easing.
+                // A CSS transition on the same property would fight it.
+                transition: 'box-shadow .3s ease, width .3s ease, padding .3s ease',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
               }}

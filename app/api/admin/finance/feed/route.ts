@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { prisma } from '@/lib/prisma'
+import { prisma, isMissingSchemaError } from '@/lib/prisma'
 import { guardAdmin, requireAdmin } from '@/lib/requireAdmin'
 import { businessFeed, type FeedCategory, type FeedPriority } from '@/lib/businessFeed'
+import { migrationPendingResponse } from '@/lib/apiErrors'
 
 /**
  * The feed, with each person's decisions applied over it.
@@ -20,7 +21,14 @@ export async function GET(request: Request) {
   const priority = url.searchParams.get('priority')
   const view = url.searchParams.get('view') ?? 'open'
 
-  const [items, states] = await Promise.all([businessFeed(120), prisma.feedState.findMany()])
+  let items: Awaited<ReturnType<typeof businessFeed>>
+  let states: Awaited<ReturnType<typeof prisma.feedState.findMany>>
+  try {
+    ;[items, states] = await Promise.all([businessFeed(120), prisma.feedState.findMany()])
+  } catch (err) {
+    if (isMissingSchemaError(err)) return migrationPendingResponse()
+    throw err
+  }
   const stateBy = new Map(states.map((s) => [s.itemId, s]))
   const now = Date.now()
 

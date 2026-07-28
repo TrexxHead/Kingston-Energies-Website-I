@@ -3,11 +3,15 @@ import { ArrowRight, BatteryCharging, Plug, Package, ShieldCheck, Building2, Sun
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import Reveal from '@/app/_design-system/Reveal'
+import JsonLd from '@/components/JsonLd'
+import { buildBreadcrumbs } from '@/lib/structuredData'
 
 export const metadata = {
   title: 'Services — Kingston Energies',
   description: 'Portable power, fast charging, repairability, business orders and solar early-access.',
 }
+
+const breadcrumbs = buildBreadcrumbs([{ name: 'Home', path: '/' }, { name: 'Services' }])
 
 const overline = {
   fontFamily: 'var(--font-mono)',
@@ -74,6 +78,7 @@ const SERVICES: Service[] = [
 export default function Services() {
   return (
     <div style={{ fontFamily: 'var(--font-body)', color: 'var(--ke-dark-text)', background: 'var(--ke-dark-bg)', minHeight: '100vh' }}>
+      <JsonLd data={breadcrumbs} />
       <Navbar />
       <main style={{ paddingTop: 64 }}>
         {/* Hero */}

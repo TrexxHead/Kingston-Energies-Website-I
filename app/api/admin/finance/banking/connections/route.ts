@@ -1,15 +1,25 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { prisma } from '@/lib/prisma'
+import { prisma, isMissingSchemaError } from '@/lib/prisma'
 import { guardAdmin } from '@/lib/requireAdmin'
 import { ensureChartOfAccounts } from '@/lib/ledger/post'
 import { liveFeedStatus } from '@/lib/banking/providers'
+import { migrationPendingResponse } from '@/lib/apiErrors'
 
 /** Bank connections, the accounts they can feed, and the live-feed situation. */
 export async function GET() {
   const denied = await guardAdmin()
   if (denied) return denied
 
+  try {
+    return await getConnections()
+  } catch (err) {
+    if (isMissingSchemaError(err)) return migrationPendingResponse()
+    throw err
+  }
+}
+
+async function getConnections() {
   await ensureChartOfAccounts()
 
   const [connections, accounts] = await Promise.all([

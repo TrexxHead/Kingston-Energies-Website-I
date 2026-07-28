@@ -8,6 +8,10 @@ import { Truck } from 'lucide-react'
 import CommerceShell from '@/components/shop/CommerceShell'
 import { Button, FeatureIcon } from '@/components/shop/ui'
 import { useToast } from '@/components/cart/ToastContext'
+import JsonLd from '@/components/JsonLd'
+import { buildBreadcrumbs } from '@/lib/structuredData'
+
+const breadcrumbs = buildBreadcrumbs([{ name: 'Home', path: '/' }, { name: 'Track your order' }])
 
 interface StageDto {
   key: string
@@ -240,8 +244,11 @@ function TrackInner() {
 
 export default function TrackPage() {
   return (
-    <Suspense fallback={null}>
-      <TrackInner />
-    </Suspense>
+    <>
+      <JsonLd data={breadcrumbs} />
+      <Suspense fallback={null}>
+        <TrackInner />
+      </Suspense>
+    </>
   )
 }

@@ -4,11 +4,15 @@ import { ArrowRight, Recycle, Wrench, HeartHandshake, Sparkles } from 'lucide-re
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import Reveal from '@/app/_design-system/Reveal'
+import JsonLd from '@/components/JsonLd'
+import { buildBreadcrumbs } from '@/lib/structuredData'
 
 export const metadata = {
   title: 'About — Kingston Energies',
   description: 'Born in Kingston, built for everywhere. The story behind Kingston Energies.',
 }
+
+const breadcrumbs = buildBreadcrumbs([{ name: 'Home', path: '/' }, { name: 'About' }])
 
 const overline = {
   fontFamily: 'var(--font-mono)',
@@ -40,6 +44,7 @@ const STATS = [
 export default function About() {
   return (
     <div style={{ fontFamily: 'var(--font-body)', color: 'var(--ke-dark-text)', background: 'var(--ke-dark-bg)', minHeight: '100vh' }}>
+      <JsonLd data={breadcrumbs} />
       <Navbar />
       <main style={{ paddingTop: 64 }}>
         {/* Hero */}

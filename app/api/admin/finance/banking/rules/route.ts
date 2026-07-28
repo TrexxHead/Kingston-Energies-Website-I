@@ -1,13 +1,24 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { prisma } from '@/lib/prisma'
+import { prisma, isMissingSchemaError } from '@/lib/prisma'
 import { guardAdmin, requireAdmin } from '@/lib/requireAdmin'
 import { ensureChartOfAccounts, postEntry } from '@/lib/ledger/post'
 import { firstMatch, ruleMatches } from '@/lib/banking/rules'
+import { migrationPendingResponse } from '@/lib/apiErrors'
 
 export async function GET() {
   const denied = await guardAdmin()
   if (denied) return denied
+
+  try {
+    return await getRules()
+  } catch (err) {
+    if (isMissingSchemaError(err)) return migrationPendingResponse()
+    throw err
+  }
+}
+
+async function getRules() {
   await ensureChartOfAccounts()
 
   const [rules, accounts, pending] = await Promise.all([

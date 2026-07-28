@@ -1,13 +1,23 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { prisma } from '@/lib/prisma'
+import { prisma, isMissingSchemaError } from '@/lib/prisma'
 import { guardAdmin } from '@/lib/requireAdmin'
+import { migrationPendingResponse } from '@/lib/apiErrors'
 
 /** Branches, each with how much of the ledger is actually attributed to it. */
 export async function GET() {
   const denied = await guardAdmin()
   if (denied) return denied
 
+  try {
+    return await getBranches()
+  } catch (err) {
+    if (isMissingSchemaError(err)) return migrationPendingResponse()
+    throw err
+  }
+}
+
+async function getBranches() {
   const [branches, unassigned] = await Promise.all([
     prisma.branch.findMany({ orderBy: [{ archived: 'asc' }, { code: 'asc' }], include: { _count: { select: { entries: true } } } }),
     prisma.journalEntry.count({ where: { branchId: null } }),

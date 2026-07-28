@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { prisma, isMissingSchemaError } from '@/lib/prisma'
 import { guardAdmin, requireAdmin } from '@/lib/requireAdmin'
+import { migrationPendingResponse } from '@/lib/apiErrors'
 import { buildPath, isStorageConfigured, uploadAdminFile } from '@/lib/storage'
 import { compressImageToLimit, isCompressibleImage, MAX_UPLOAD_BYTES } from '@/lib/imageCompress'
 import { ocrStatus, tryExtract, LOW_CONFIDENCE, type Extraction } from '@/lib/ocr'
@@ -14,12 +15,18 @@ export async function GET(request: Request) {
 
   const status = new URL(request.url).searchParams.get('status')
 
-  const documents = await prisma.documentScan.findMany({
-    where: status && status !== 'ALL' ? { status: status as 'NEEDS_REVIEW' } : {},
-    orderBy: { createdAt: 'desc' },
-    take: 100,
-    include: { expense: { select: { id: true, category: true, amount: true } } },
-  })
+  let documents
+  try {
+    documents = await prisma.documentScan.findMany({
+      where: status && status !== 'ALL' ? { status: status as 'NEEDS_REVIEW' } : {},
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+      include: { expense: { select: { id: true, category: true, amount: true } } },
+    })
+  } catch (err) {
+    if (isMissingSchemaError(err)) return migrationPendingResponse()
+    throw err
+  }
 
   return NextResponse.json({
     ocr: ocrStatus(),

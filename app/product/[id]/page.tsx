@@ -4,6 +4,8 @@ import ProductClient, { type ProductReview } from '@/components/shop/ProductClie
 import { getShopProduct } from '@/lib/products'
 import { prisma } from '@/lib/prisma'
 import { fmt } from '@/lib/catalog'
+import JsonLd from '@/components/JsonLd'
+import { buildBreadcrumbs, productSchema } from '@/lib/structuredData'
 
 export const dynamic = 'force-dynamic'
 
@@ -40,5 +42,17 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
     reviews = []
   }
 
-  return <ProductClient product={product} initialReviews={reviews} />
+  const breadcrumbs = buildBreadcrumbs([
+    { name: 'Home', path: '/' },
+    { name: 'Shop', path: '/shop' },
+    { name: product.name },
+  ])
+
+  return (
+    <>
+      <JsonLd data={breadcrumbs} />
+      <JsonLd data={productSchema(product, `/product/${id}`)} />
+      <ProductClient product={product} initialReviews={reviews} />
+    </>
+  )
 }

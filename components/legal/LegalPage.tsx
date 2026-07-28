@@ -1,9 +1,20 @@
 import type { ReactNode } from 'react'
 import CommerceShell from '@/components/shop/CommerceShell'
+import JsonLd from '@/components/JsonLd'
+import { buildBreadcrumbs } from '@/lib/structuredData'
 
+/**
+ * Every legal page shares this wrapper, so the breadcrumb goes here once
+ * rather than five times. There's no `/legal` index route to link an
+ * intermediate "Legal" crumb to, so the trail goes straight from Home to the
+ * page itself — a breadcrumb entry needs a real URL behind it, and inventing
+ * one for a page that doesn't exist would just be a dead link in the SERP.
+ */
 export function LegalPage({ title, updated, children }: { title: string; updated: string; children: ReactNode }) {
+  const breadcrumbs = buildBreadcrumbs([{ name: 'Home', path: '/' }, { name: title }])
   return (
     <CommerceShell>
+      <JsonLd data={breadcrumbs} />
       <article style={{ maxWidth: 760, margin: '0 auto', padding: '64px 32px 96px' }}>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, letterSpacing: '.3em', color: 'var(--ke-green-600)' }}>
           LEGAL

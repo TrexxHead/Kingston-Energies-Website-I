@@ -1,14 +1,24 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { prisma } from '@/lib/prisma'
+import { prisma, isMissingSchemaError } from '@/lib/prisma'
 import { guardAdmin } from '@/lib/requireAdmin'
 import { calculatePayslip, getPayrollRates, type PayFrequency } from '@/lib/payroll'
+import { migrationPendingResponse } from '@/lib/apiErrors'
 
 /** Employee register, each with a live preview of their current payslip. */
 export async function GET() {
   const denied = await guardAdmin()
   if (denied) return denied
 
+  try {
+    return await getEmployees()
+  } catch (err) {
+    if (isMissingSchemaError(err)) return migrationPendingResponse()
+    throw err
+  }
+}
+
+async function getEmployees() {
   const [employees, rates] = await Promise.all([
     prisma.employee.findMany({ orderBy: [{ status: 'asc' }, { lastName: 'asc' }] }),
     getPayrollRates(),
@@ -61,6 +71,15 @@ export async function POST(request: Request) {
   const startedAt = new Date(d.startedAt)
   if (Number.isNaN(startedAt.getTime())) return NextResponse.json({ error: 'Invalid start date' }, { status: 400 })
 
+  try {
+    return await createEmployee(d, startedAt)
+  } catch (err) {
+    if (isMissingSchemaError(err)) return migrationPendingResponse()
+    throw err
+  }
+}
+
+async function createEmployee(d: z.infer<typeof schema>, startedAt: Date) {
   // Sequential employee number, KE-EMP-001.
   const count = await prisma.employee.count()
   const employeeNo = `KE-EMP-${String(count + 1).padStart(3, '0')}`

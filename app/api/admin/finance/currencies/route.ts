@@ -1,14 +1,24 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { prisma } from '@/lib/prisma'
+import { prisma, isMissingSchemaError } from '@/lib/prisma'
 import { guardAdmin, requireAdmin } from '@/lib/requireAdmin'
 import { FUNCTIONAL_CURRENCY, MAX_RATE_AGE_DAYS, SUPPORTED_CURRENCIES, rateFor } from '@/lib/fx'
+import { migrationPendingResponse } from '@/lib/apiErrors'
 
 /** Current rates, their age, and the recent history behind them. */
 export async function GET() {
   const denied = await guardAdmin()
   if (denied) return denied
 
+  try {
+    return await getCurrencies()
+  } catch (err) {
+    if (isMissingSchemaError(err)) return migrationPendingResponse()
+    throw err
+  }
+}
+
+async function getCurrencies() {
   const now = new Date()
   const current = await Promise.all(
     SUPPORTED_CURRENCIES.filter((c) => c !== FUNCTIONAL_CURRENCY).map(async (currency) => {

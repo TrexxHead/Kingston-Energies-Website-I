@@ -5,6 +5,8 @@ import Providers from '@/components/Providers'
 import Camille from '@/components/camille/DeferredCamille'
 import CookieConsent from '@/components/CookieConsent'
 import AnnouncementBar from '@/components/AnnouncementBar'
+import JsonLd from '@/components/JsonLd'
+import { siteGraph } from '@/lib/structuredData'
 import { keFontVariables } from './_design-system/fonts'
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
@@ -53,6 +55,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${keFontVariables} ke-root bg-light text-dark`}>
+        {/* Organization + WebSite — on every page, so Google always has a
+            stable answer for who runs the site, independent of which page
+            it crawled first. */}
+        <JsonLd data={siteGraph()} />
         <Providers>
           <AnnouncementBar />
           {children}

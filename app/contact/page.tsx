@@ -6,6 +6,10 @@ import { ArrowRight, Check } from 'lucide-react'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import { Button, Field, Checkbox, inputStyle } from '@/components/shop/ui'
+import JsonLd from '@/components/JsonLd'
+import { buildBreadcrumbs } from '@/lib/structuredData'
+
+const breadcrumbs = buildBreadcrumbs([{ name: 'Home', path: '/' }, { name: 'Contact' }])
 
 const SHOPPING_FOR = ['Myself', 'My business', 'A bulk order', 'Solar (early access)']
 const INTERESTS = ['Power banks', 'Chargers & cables', 'Accessories', 'Solar — join the waitlist']
@@ -59,6 +63,7 @@ export default function ContactPage() {
 
   return (
     <div style={{ fontFamily: 'var(--font-body)', background: 'var(--ke-dark-bg)', minHeight: '100vh' }}>
+      <JsonLd data={breadcrumbs} />
       <Navbar />
       <main style={{ paddingTop: 64 }} className="ke-screen">
         <section style={{ maxWidth: 640, margin: '0 auto', padding: '64px 32px 100px' }}>

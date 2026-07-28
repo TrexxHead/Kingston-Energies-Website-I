@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { guardAdmin } from '@/lib/requireAdmin'
+import { isMissingSchemaError } from '@/lib/prisma'
+import { migrationPendingResponse } from '@/lib/apiErrors'
 import { ensureChartOfAccounts } from '@/lib/ledger/post'
 import { financialHealth, monthlySeries, profitBridge, cashPosition } from '@/lib/ledger/health'
 import { accountBalances } from '@/lib/ledger/reports'
@@ -16,6 +18,15 @@ export async function GET(request: Request) {
   const denied = await guardAdmin()
   if (denied) return denied
 
+  try {
+    return await getHealth(request)
+  } catch (err) {
+    if (isMissingSchemaError(err)) return migrationPendingResponse()
+    throw err
+  }
+}
+
+async function getHealth(request: Request) {
   await ensureChartOfAccounts()
 
   const months = Math.min(24, Math.max(3, Number(new URL(request.url).searchParams.get('months')) || 6))

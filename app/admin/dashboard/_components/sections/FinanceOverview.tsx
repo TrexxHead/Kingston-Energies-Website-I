@@ -11,6 +11,7 @@ import DonutChart from '../charts/DonutChart'
 import WaterfallChart from '../charts/WaterfallChart'
 import { foldSeries, money, CHROME } from '../charts/palette'
 import QuickActions from './QuickActions'
+import FeedPreview from './FeedPreview'
 
 interface Kpi {
   value: number
@@ -128,6 +129,8 @@ export default function FinanceOverview() {
       </div>
 
       <QuickActions />
+
+      <FeedPreview />
 
       <section aria-label="Key figures" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 12 }}>
         <StatTile label={`Revenue · ${data.period}`} value={money(k.revenue.value)} change={k.revenue.change} trend={revenueTrend} colorIndex={0} href={`${F}/sales`} />

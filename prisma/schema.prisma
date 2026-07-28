@@ -1133,3 +1133,29 @@ model ExchangeRate {
   @@unique([currency, asOf])
   @@index([currency, asOf])
 }
+
+// ---------------------------------------------------------------------------
+// Business feed state.
+//
+// The feed itself is derived from real records, so there is nothing to store
+// about what happened. What IS worth storing is what a person decided about it:
+// pinned, snoozed, assigned, resolved. That is keyed by the item's stable id
+// (e.g. "unpaid:<orderId>"), so the decision survives the feed being rebuilt.
+// ---------------------------------------------------------------------------
+
+model FeedState {
+  id           String    @id @default(cuid())
+  itemId       String    @unique
+  pinned       Boolean   @default(false)
+  archived     Boolean   @default(false)
+  // Hidden until this time, then it comes back — snoozing is deferral, not
+  // dismissal, which is the difference between a feed and an inbox you ignore.
+  snoozedUntil DateTime?
+  resolvedAt   DateTime?
+  resolvedBy   String?
+  assignedTo   String?
+  note         String?   @db.Text
+  updatedAt    DateTime  @updatedAt
+
+  @@index([archived, pinned])
+}

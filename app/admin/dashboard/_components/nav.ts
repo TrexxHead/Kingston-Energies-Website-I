@@ -76,6 +76,12 @@ export const NAV: NavGroup[] = [
     children: [
       { href: `${BASE}/finance`, label: 'Overview', description: 'Revenue, expenses and profit at a glance' },
       {
+        href: `${BASE}/finance/feed`,
+        label: 'Business feed',
+        description: 'Everything that happened, and what still needs a decision',
+        keywords: 'activity timeline alerts attention unpaid overdue tasks',
+      },
+      {
         href: `${BASE}/finance/accounting`,
         label: 'Accounting',
         description: 'Chart of accounts, journal entries and the trial balance',

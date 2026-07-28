@@ -6,6 +6,7 @@ import { ArrowRight, Check } from 'lucide-react'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import { Button, Field, Checkbox, inputStyle } from '@/components/shop/ui'
+import { analytics } from '@/lib/analytics'
 import JsonLd from '@/components/JsonLd'
 import { buildBreadcrumbs } from '@/lib/structuredData'
 
@@ -46,15 +47,19 @@ export default function ContactPage() {
       .filter(Boolean)
       .join('\n')
 
+    let ok = true
     try {
-      await fetch('/api/contact', {
+      const res = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, phone, message }),
       })
+      ok = res.ok
     } catch {
+      ok = false
       // still show success state — lead capture is best-effort in the demo
     }
+    analytics.trackFormSubmission('contact_form', ok)
     setSubmitting(false)
     setDone(true)
   }

@@ -6,6 +6,7 @@ import { X } from 'lucide-react'
 import { CATALOG, fmt, type Product } from '@/lib/catalog'
 import { useCart } from '@/components/cart/CartContext'
 import { useToast } from '@/components/cart/ToastContext'
+import { analytics } from '@/lib/analytics'
 import { Button } from './ui'
 
 const ROWS: { label: string; render: (p: Product) => string }[] = [
@@ -143,6 +144,7 @@ export default function CompareModal({ onClose }: { onClose: () => void }) {
                       block
                       onClick={() => {
                         addItem({ name: p.name, price: p.price, spec: p.spec })
+                        analytics.trackAddToCart(p.id, p.name, 1, p.price)
                         pushToast('check', 'Added to cart', p.name)
                       }}
                     >

@@ -47,6 +47,7 @@ export async function GET(request: Request) {
     lastStage: PIPELINE.length - 1,
     estimatedDelivery: order.estimatedDelivery ? order.estimatedDelivery.toISOString() : null,
     placedAt: order.createdAt.toISOString(),
+    total: order.total,
     items: order.items,
     stages: PIPELINE.map((s, i) => {
       // Attach the timestamp of the matching STAGE event, if any.

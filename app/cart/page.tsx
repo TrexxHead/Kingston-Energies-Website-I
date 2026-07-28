@@ -9,6 +9,7 @@ import CommerceShell from '@/components/shop/CommerceShell'
 import { Button, FeatureIcon, inputStyle } from '@/components/shop/ui'
 import { useCart } from '@/components/cart/CartContext'
 import { useToast } from '@/components/cart/ToastContext'
+import { analytics } from '@/lib/analytics'
 import { CATALOG, fmt } from '@/lib/catalog'
 
 interface PointsBalance {
@@ -116,7 +117,7 @@ export default function CartPage() {
                           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '.16em', color: 'var(--ke-green-700)', marginTop: 3 }}>COMPLETES YOUR KIT</div>
                         </div>
                         <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 15 }}>{fmt(rc.price)}</span>
-                        <Button size="sm" variant="outline" onClick={() => { addItem({ name: rc.name, price: rc.price, spec: rc.spec }); pushToast('check', 'Added to cart', rc.name) }}>Add</Button>
+                        <Button size="sm" variant="outline" onClick={() => { addItem({ name: rc.name, price: rc.price, spec: rc.spec }); analytics.trackAddToCart(rc.id, rc.name, 1, rc.price); pushToast('check', 'Added to cart', rc.name) }}>Add</Button>
                       </div>
                     ))}
                   </div>

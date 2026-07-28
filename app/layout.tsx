@@ -6,6 +6,8 @@ import Camille from '@/components/camille/DeferredCamille'
 import CookieConsent from '@/components/CookieConsent'
 import AnnouncementBar from '@/components/AnnouncementBar'
 import JsonLd from '@/components/JsonLd'
+import GoogleAnalytics from '@/components/GoogleAnalytics'
+import { WebVitals } from '@/components/WebVitals'
 import { siteGraph } from '@/lib/structuredData'
 import { keFontVariables } from './_design-system/fonts'
 
@@ -64,6 +66,8 @@ export default function RootLayout({
           {children}
           <Camille />
           <CookieConsent />
+          <GoogleAnalytics />
+          <WebVitals />
         </Providers>
       </body>
     </html>

@@ -9,6 +9,7 @@ import CommerceShell from '@/components/shop/CommerceShell'
 import { Button, FeatureIcon } from '@/components/shop/ui'
 import NpsSurvey from '@/components/nps/NpsSurvey'
 import { linkifyText } from '@/lib/linkify'
+import { analytics } from '@/lib/analytics'
 
 interface PayMethod {
   id: string
@@ -58,6 +59,28 @@ function ConfirmInner() {
           if (m && (m.needsReference || m.details.length > 0) && !m.gateway) setPayInfo(m)
         })
         .catch(() => {})
+    }
+
+    // Report the purchase once per order — a refresh of this page must not
+    // double-count revenue in GA4.
+    const orderForPurchase = searchParams.get('order') || (() => {
+      try { return sessionStorage.getItem('ke-last-order') } catch { return null }
+    })()
+    if (orderForPurchase) {
+      const reportedKey = `ke-ga-purchase-${orderForPurchase}`
+      let alreadyReported = false
+      try { alreadyReported = sessionStorage.getItem(reportedKey) === '1' } catch { /* ignore */ }
+      if (!alreadyReported) {
+        fetch(`/api/orders/track?no=${encodeURIComponent(orderForPurchase)}`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((d: { total?: number; items?: { qty: number }[] } | null) => {
+            if (!d || typeof d.total !== 'number') return
+            const itemCount = (d.items ?? []).reduce((n, i) => n + i.qty, 0)
+            analytics.trackPurchase(orderForPurchase, d.total, itemCount)
+            try { sessionStorage.setItem(reportedKey, '1') } catch { /* ignore */ }
+          })
+          .catch(() => {})
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

@@ -8,6 +8,7 @@ import type { ShopProduct } from '@/lib/catalog'
 import { fmt } from '@/lib/catalog'
 import { useCart } from '@/components/cart/CartContext'
 import { useToast } from '@/components/cart/ToastContext'
+import { analytics } from '@/lib/analytics'
 import ProductImage from './ProductImage'
 import { Badge, Button } from './ui'
 
@@ -33,6 +34,7 @@ export default function ProductCard({
   const addToCart = () => {
     if (soldOut) return
     addItem({ name: product.name, price: product.price, spec: product.spec })
+    analytics.trackAddToCart(product.id, product.name, 1, product.price)
     pushToast('check', 'Added to cart', product.name)
   }
 

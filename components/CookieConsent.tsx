@@ -3,13 +3,18 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Cookie } from 'lucide-react'
+import { CONSENT_KEY as KEY, dispatchConsentChange } from '@/lib/consent'
 
 /**
  * Compact, non-blocking cookie notice tucked into the bottom-left corner. Slides
  * up + fades in on load, dismisses smoothly. Frosted glass to match the site.
  * Records the choice for a year in localStorage + a `ke-cookie-consent` cookie.
+ *
+ * This is also the one place a visitor can grant or withdraw analytics
+ * consent — see lib/consent.ts. "Essential only" has to mean analytics never
+ * loads, not that it loads quietly anyway, so this dispatches the change
+ * live rather than requiring a reload to take effect.
  */
-const KEY = 'ke-cookie-consent'
 
 export default function CookieConsent() {
   const [visible, setVisible] = useState(false)
@@ -35,6 +40,7 @@ export default function CookieConsent() {
       // ignore
     }
     document.cookie = `${KEY}=${choice}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`
+    dispatchConsentChange(choice === 'accepted' ? 'granted' : 'denied')
     setShown(false) // animate out
     setTimeout(() => setVisible(false), 340)
   }

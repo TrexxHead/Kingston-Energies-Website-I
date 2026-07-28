@@ -4,11 +4,11 @@
 // the services we actually call.
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' https: data: blob:",
   "font-src 'self' data:",
-  "connect-src 'self' https://*.supabase.co https://api.anthropic.com",
+  "connect-src 'self' https://*.supabase.co https://api.anthropic.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com",
   "frame-src 'self' https://jm.wipayfinancial.com https://accounts.google.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",

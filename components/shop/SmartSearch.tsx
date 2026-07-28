@@ -8,6 +8,7 @@ import { fmt, CATEGORY_PILLS } from '@/lib/catalog'
 import { fuzzyScore } from '@/lib/search'
 import { recommendProducts } from '@/lib/recommend'
 import { getRecentlyViewed } from '@/lib/recentlyViewed'
+import { analytics } from '@/lib/analytics'
 import ProductImage from './ProductImage'
 
 const RECENT_KEY = 'ke-recent-searches'
@@ -108,6 +109,7 @@ export default function SmartSearch({
     onQuery(term)
     saveRecent(term)
     setOpen(false)
+    analytics.trackSearch(term)
   }
 
   const onKeyDown = (e: React.KeyboardEvent) => {

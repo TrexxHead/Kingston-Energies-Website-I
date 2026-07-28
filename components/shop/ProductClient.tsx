@@ -15,6 +15,7 @@ import { BULK_SUMMARY } from '@/lib/pricing'
 import { BENCHMARK_DEVICES, parseMah, chargesFor, formatCharges, CARE_TIPS } from '@/lib/productInfo'
 import { useCart } from '@/components/cart/CartContext'
 import { useToast } from '@/components/cart/ToastContext'
+import { analytics } from '@/lib/analytics'
 
 export interface ProductReview {
   stars: number
@@ -48,6 +49,10 @@ export default function ProductClient({ product, initialReviews = [] }: { produc
   useEffect(() => {
     recordView({ id: product.id, name: product.name, spec: product.spec, price: product.price, image: product.image, cat: product.cat })
   }, [product.id, product.name, product.spec, product.price, product.image, product.cat])
+
+  useEffect(() => {
+    analytics.trackProductView(product.id, product.name, product.price)
+  }, [product.id, product.name, product.price])
 
   // Reflect whether this product is already in the customer's saved list.
   useEffect(() => {
@@ -122,6 +127,7 @@ export default function ProductClient({ product, initialReviews = [] }: { produc
     if (soldOut) return
     const name = activeVariant ? `${product.name} (${activeVariant.label})` : product.name
     addItem({ name, price: activePrice, spec: product.spec })
+    analytics.trackAddToCart(product.id, name, 1, activePrice)
     pushToast('check', 'Added to cart', name)
   }
 

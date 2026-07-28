@@ -1,6 +1,9 @@
+'use client'
+
 import Link from 'next/link'
 import Image from 'next/image'
 import { Mail } from 'lucide-react'
+import { analytics } from '@/lib/analytics'
 
 function InstagramGlyph({ size = 14 }: { size?: number }) {
   return (
@@ -72,6 +75,7 @@ export default function Footer() {
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Kingston Energies on Instagram"
+            onClick={() => analytics.trackSocialInteraction('instagram', 'click', 'footer')}
             style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'rgba(234,242,236,.55)' }}
           >
             <InstagramGlyph size={14} />

@@ -1,5 +1,5 @@
-import ProfitLossCard from '../../_components/sections/ProfitLossCard'
+import ReportsHub from '../../_components/sections/ReportsHub'
 
 export default function Page() {
-  return <ProfitLossCard view="report" />
+  return <ReportsHub />
 }

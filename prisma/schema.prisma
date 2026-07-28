@@ -538,6 +538,7 @@ model LedgerAccount {
   lines           JournalLine[]
   reconciliations Reconciliation[]
   bankConnections BankConnection[]
+  bankRules       BankRule[]
 
   @@index([type])
   @@index([parentId])
@@ -1158,4 +1159,43 @@ model FeedState {
   updatedAt    DateTime  @updatedAt
 
   @@index([archived, pinned])
+}
+
+// ---------------------------------------------------------------------------
+// Bank rules.
+//
+// A rule says "a statement line whose description contains X is category Y".
+// It saves the same decision being made forty times a month.
+//
+// By default a rule SUGGESTS rather than posts. Auto-posting is opt-in per
+// rule, because a rule that quietly books a transaction to the wrong account is
+// a lot harder to notice than one that offers a suggestion you can decline.
+// ---------------------------------------------------------------------------
+
+model BankRule {
+  id        String  @id @default(cuid())
+  name      String
+  // Matched case-insensitively against the statement line description.
+  contains  String
+  // IN (money in), OUT (money out), or ANY. Stops a rule for "TRANSFER"
+  // catching both directions of the same word.
+  direction String  @default("ANY")
+  accountId String
+  // Lower numbers win. Two rules can match one line; the order must be a
+  // decision, not whichever the database happened to return first.
+  priority  Int     @default(100)
+  enabled   Boolean @default(true)
+  autoPost  Boolean @default(false)
+
+  // How often this rule has actually fired, so a rule that never matches is
+  // visible as dead weight rather than assumed to be working.
+  matchCount Int      @default(0)
+  lastMatchAt DateTime?
+  createdBy  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  account LedgerAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([enabled, priority])
 }

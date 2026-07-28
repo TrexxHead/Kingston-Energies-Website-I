@@ -90,8 +90,8 @@ export const NAV: NavGroup[] = [
       {
         href: `${BASE}/finance/banking`,
         label: 'Banking',
-        description: 'Import statements, match them to the books, then reconcile',
-        keywords: 'bank feed statement import csv ofx reconcile match',
+        description: 'Import statements, set rules, match them to the books, then reconcile',
+        keywords: 'bank feed statement import csv ofx reconcile match rules auto categorise',
       },
       {
         href: `${BASE}/finance/transactions`,

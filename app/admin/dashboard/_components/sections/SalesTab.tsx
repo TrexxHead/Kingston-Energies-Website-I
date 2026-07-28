@@ -1,9 +1,11 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { ShoppingBag } from 'lucide-react'
-import { cardStyle, h3Style } from '../ui/card'
+import { cardStyle } from '../ui/card'
 import Pill from '../ui/Pill'
+import BarChart from '../charts/BarChart'
+import DonutChart from '../charts/DonutChart'
+import { foldSeries } from '../charts/palette'
 import { fmt } from '../mockData'
 
 type Period = 'month' | 'quarter' | 'year' | 'all'
@@ -62,50 +64,30 @@ export default function SalesTab() {
             Gross sales counts every order placed in this period, paid or not — it is not the same as cash in hand. See Cash Flow for collections over time.
           </p>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 16, alignItems: 'start' }}>
-            <div style={cardStyle}>
-              <h3 style={h3Style}>Top products by revenue</h3>
-              {data.topProducts.length === 0 ? (
-                <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: 0 }}>No sales in this period yet.</p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  {data.topProducts.map((p, i) => {
-                    const max = data.topProducts[0].revenue || 1
-                    return (
-                      <div key={p.name} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: i > 0 ? '1px solid var(--color-border)' : undefined }}>
-                        <ShoppingBag size={15} color="var(--color-text-subtle)" style={{ flexShrink: 0 }} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 5 }}>
-                            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 8 }}>{p.name}</span>
-                            <span style={{ fontWeight: 700, whiteSpace: 'nowrap' }}>{fmt(p.revenue)}</span>
-                          </div>
-                          <div style={{ height: 6, borderRadius: 999, background: 'var(--ke-gray-100)', overflow: 'hidden' }}>
-                            <div style={{ height: '100%', width: `${(p.revenue / max) * 100}%`, background: 'var(--ke-green-500)', borderRadius: 999 }} />
-                          </div>
-                          <div style={{ fontSize: 11, color: 'var(--color-text-subtle)', marginTop: 3 }}>{p.qty} units</div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(340px,1fr))', gap: 16, alignItems: 'start' }}>
+            <BarChart
+              title="Top products by revenue"
+              subtitle={`What sold in ${data.periodLabel.toLowerCase()}.`}
+              categories={data.topProducts.map((p) => p.name)}
+              series={[{ label: 'Revenue', values: data.topProducts.map((p) => p.revenue) }]}
+              horizontal
+              height={Math.max(160, data.topProducts.length * 34 + 50)}
+              footnote={
+                data.topProducts.length > 0
+                  ? `${data.topProducts.reduce((s, p) => s + p.qty, 0)} units across ${data.topProducts.length} product${data.topProducts.length === 1 ? '' : 's'}.`
+                  : undefined
+              }
+            />
 
-            <div style={cardStyle}>
-              <h3 style={h3Style}>Sales by payment method</h3>
-              {data.byPaymentMethod.length === 0 ? (
-                <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: 0 }}>No sales in this period yet.</p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {data.byPaymentMethod.map((m) => (
-                    <div key={m.method} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                      <span style={{ color: 'var(--color-text-muted)', textTransform: 'capitalize' }}>{m.method}</span>
-                      <span style={{ fontWeight: 700 }}>{fmt(m.amount)}</span>
-                    </div>
-                  ))}
-                </div>
+            <DonutChart
+              title="Sales by payment method"
+              subtitle="How customers actually paid."
+              slices={foldSeries(
+                data.byPaymentMethod.map((m) => ({ label: m.method.charAt(0).toUpperCase() + m.method.slice(1), value: m.amount })),
+                6,
               )}
-            </div>
+              centreLabel="Gross sales"
+            />
           </div>
         </>
       )}

@@ -33,6 +33,16 @@ export const ACC = {
   COGS: '5000',
   INVENTORY_SHRINKAGE: '5100',
   DEPRECIATION: '6800',
+  SALARIES: '6200',
+  EMPLOYER_CONTRIBUTIONS: '6210',
+  PAYE_PAYABLE: '2500',
+  NIS_PAYABLE: '2510',
+  NHT_PAYABLE: '2520',
+  EDTAX_PAYABLE: '2530',
+  HEART_PAYABLE: '2540',
+  NET_PAY_PAYABLE: '2550',
+  FX_GAIN: '4950',
+  FX_LOSS: '6950',
   PREPAID: '1300',
   EQUIPMENT: '1500',
   ACCUM_DEPRECIATION: '1590',
@@ -53,6 +63,13 @@ export const CHART: SeedAccount[] = [
   { code: '2200', name: 'GCT payable', type: 'LIABILITY', subtype: 'Current liability', system: true },
   { code: '2300', name: 'Customer deposits', type: 'LIABILITY', subtype: 'Current liability' },
   { code: '2400', name: 'Deferred revenue', type: 'LIABILITY', subtype: 'Current liability', system: true },
+  // Payroll liabilities — amounts withheld or accrued but not yet remitted.
+  { code: '2500', name: 'PAYE payable', type: 'LIABILITY', subtype: 'Payroll liability', system: true },
+  { code: '2510', name: 'NIS payable', type: 'LIABILITY', subtype: 'Payroll liability', system: true },
+  { code: '2520', name: 'NHT payable', type: 'LIABILITY', subtype: 'Payroll liability', system: true },
+  { code: '2530', name: 'Education tax payable', type: 'LIABILITY', subtype: 'Payroll liability', system: true },
+  { code: '2540', name: 'HEART payable', type: 'LIABILITY', subtype: 'Payroll liability', system: true },
+  { code: '2550', name: 'Net pay payable', type: 'LIABILITY', subtype: 'Payroll liability', system: true },
 
   // ---- Equity (3000–3999) ----
   { code: '3000', name: 'Opening balance equity', type: 'EQUITY', subtype: 'Equity', system: true },
@@ -64,6 +81,7 @@ export const CHART: SeedAccount[] = [
   { code: '4000', name: 'Product sales', type: 'REVENUE', subtype: 'Operating income', system: true },
   { code: '4100', name: 'Delivery income', type: 'REVENUE', subtype: 'Operating income', system: true },
   { code: '4900', name: 'Discounts given', type: 'REVENUE', subtype: 'Contra revenue', system: true },
+  { code: '4950', name: 'Foreign exchange gain', type: 'REVENUE', subtype: 'Other income', system: true },
 
   // ---- Cost of sales (5000–5999) ----
   { code: '5000', name: 'Cost of goods sold', type: 'EXPENSE', subtype: 'Cost of sales', system: true },
@@ -75,6 +93,7 @@ export const CHART: SeedAccount[] = [
   { code: '6000', name: 'Inventory / Purchases', type: 'EXPENSE', subtype: 'Operating expense' },
   { code: '6100', name: 'Marketing', type: 'EXPENSE', subtype: 'Operating expense' },
   { code: '6200', name: 'Salaries', type: 'EXPENSE', subtype: 'Operating expense' },
+  { code: '6210', name: 'Employer statutory contributions', type: 'EXPENSE', subtype: 'Operating expense', system: true },
   { code: '6300', name: 'Rent', type: 'EXPENSE', subtype: 'Operating expense' },
   { code: '6400', name: 'Utilities', type: 'EXPENSE', subtype: 'Operating expense' },
   { code: '6500', name: 'Shipping & Delivery', type: 'EXPENSE', subtype: 'Operating expense' },
@@ -82,6 +101,7 @@ export const CHART: SeedAccount[] = [
   { code: '6700', name: 'Bank charges', type: 'EXPENSE', subtype: 'Operating expense' },
   { code: '6800', name: 'Depreciation', type: 'EXPENSE', subtype: 'Operating expense', system: true },
   { code: '6900', name: 'Other', type: 'EXPENSE', subtype: 'Operating expense' },
+  { code: '6950', name: 'Foreign exchange loss', type: 'EXPENSE', subtype: 'Other expense', system: true },
 ]
 
 /** Map an EXPENSE_CATEGORIES label onto its ledger account code. */

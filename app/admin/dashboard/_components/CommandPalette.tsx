@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Search, CornerDownLeft } from 'lucide-react'
-import type { SectionId } from './mockData'
 
 export interface Command {
   id: string
@@ -191,26 +190,21 @@ const kbd = {
   color: 'var(--color-text-subtle)',
 } as const
 
-/** Build the standard navigation commands for the dashboard. */
+/**
+ * Every page in the console, as a command.
+ *
+ * Built from the nav tree rather than a parallel list, so a page cannot exist
+ * in the sidebar and be missing from search.
+ */
 export function navCommands(
-  go: (section: SectionId) => void,
-  sections: { id: SectionId; label: string }[],
-  financeTabs: { id: string; label: string }[],
-  goFinanceTab: (tab: string) => void,
+  pages: { href: string; label: string; description: string; group: string; keywords?: string }[],
+  go: (href: string) => void,
 ): Command[] {
-  return [
-    ...sections.map((s) => ({
-      id: `nav-${s.id}`,
-      label: s.label,
-      group: 'Go to',
-      run: () => go(s.id),
-    })),
-    ...financeTabs.map((t) => ({
-      id: `fin-${t.id}`,
-      label: `Finance → ${t.label}`,
-      group: 'Finance',
-      keywords: 'accounting ledger money',
-      run: () => goFinanceTab(t.id),
-    })),
-  ]
+  return pages.map((p) => ({
+    id: `nav-${p.href}`,
+    label: p.group === 'Go to' ? p.label : `${p.group} → ${p.label}`,
+    group: p.group,
+    keywords: [p.description, p.keywords].filter(Boolean).join(' '),
+    run: () => go(p.href),
+  }))
 }

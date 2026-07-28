@@ -537,6 +537,8 @@ model LedgerAccount {
   children LedgerAccount[] @relation("AccountTree")
   lines           JournalLine[]
   reconciliations Reconciliation[]
+  bankConnections BankConnection[]
+  bankRules       BankRule[]
 
   @@index([type])
   @@index([parentId])
@@ -548,6 +550,7 @@ enum JournalSource {
   EXPENSE // logged operating expense
   COGS // cost of goods sold + inventory relief
   STOCK_ADJUSTMENT // manual inventory correction
+  PAYROLL // approved payroll run — wages, withholdings, employer contributions
   MANUAL // hand-written journal entry
   OPENING // opening balances
 }
@@ -565,13 +568,27 @@ model JournalEntry {
   reversedById String? @unique // the entry that reverses this one, if any
   createdAt DateTime      @default(now())
 
+  // Which part of the business this belongs to. Null means unassigned rather
+  // than a separate ledger — reports filter on it, they don't split on it.
+  branchId String?
+
+  // The currency the transaction actually happened in, and the rate used to
+  // express it in JMD. Line amounts are always JMD (the functional currency),
+  // so every statement stays addable; these two record what was converted and
+  // at what rate, which is the part an auditor asks about.
+  currency       String @default("JMD")
+  fxRate         Float  @default(1)
+  originalAmount Float?
+
   lines      JournalLine[]
+  branch     Branch?       @relation(fields: [branchId], references: [id], onDelete: SetNull)
   reversedBy JournalEntry? @relation("Reversal", fields: [reversedById], references: [id], onDelete: SetNull)
   reverses   JournalEntry? @relation("Reversal")
 
   @@unique([source, sourceId])
   @@index([date])
   @@index([source])
+  @@index([branchId])
 }
 
 model JournalLine {
@@ -589,6 +606,7 @@ model JournalLine {
   entry   JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
   account LedgerAccount @relation(fields: [accountId], references: [id], onDelete: Restrict)
   reconciliation Reconciliation? @relation(fields: [reconciliationId], references: [id], onDelete: SetNull)
+  bankLines      BankStatementLine[]
 
   @@index([entryId])
   @@index([accountId])
@@ -717,6 +735,9 @@ model Expense {
   spentAt     DateTime @default(now())
   createdAt   DateTime @default(now())
 
+  // The receipt this expense was raised from, if any.
+  document DocumentScan?
+
   @@index([spentAt])
 }
 
@@ -813,4 +834,368 @@ enum LeadStatus {
   QUALIFIED
   CONVERTED
   LOST
+}
+
+// ---------------------------------------------------------------------------
+// Payroll
+//
+// Infrastructure only: this calculates pay, produces payslips and posts the
+// resulting journal entries. It deliberately does NOT move money — payments are
+// made directly by the business, and marking a run as paid is an assertion that
+// that happened, not an instruction to a payment rail.
+// ---------------------------------------------------------------------------
+
+enum PayFrequency {
+  MONTHLY
+  FORTNIGHTLY
+  WEEKLY
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  ON_LEAVE
+  TERMINATED
+}
+
+model Employee {
+  id            String         @id @default(cuid())
+  employeeNo    String         @unique
+  firstName     String
+  lastName      String
+  email         String?
+  phone         String?
+  // Jamaican statutory identifiers.
+  trn           String? // Taxpayer Registration Number
+  nisNumber     String?
+  jobTitle      String?
+  department    String?
+  // Gross pay for one period at the stated frequency.
+  grossPerPeriod Float
+  frequency     PayFrequency   @default(MONTHLY)
+  status        EmployeeStatus @default(ACTIVE)
+  startedAt     DateTime
+  endedAt       DateTime?
+  bankAccount   String? // reference only — nothing is paid from here
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  payslips Payslip[]
+
+  @@index([status])
+}
+
+enum PayrollRunStatus {
+  DRAFT
+  APPROVED
+  PAID
+}
+
+model PayrollRun {
+  id          String           @id @default(cuid())
+  runNo       String           @unique
+  periodStart DateTime
+  periodEnd   DateTime
+  payDate     DateTime
+  status      PayrollRunStatus @default(DRAFT)
+  // Rates in force when this run was calculated, frozen as JSON so a historic
+  // payslip always reproduces exactly, even after rates are changed.
+  rateSnapshot Json
+  approvedAt  DateTime?
+  approvedBy  String?
+  paidAt      DateTime?
+  entryId     String? // journal entry posted on approval
+  notes       String?          @db.Text
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  payslips Payslip[]
+
+  @@index([periodStart])
+}
+
+model Payslip {
+  id         String @id @default(cuid())
+  runId      String
+  employeeId String
+
+  gross      Float
+  // Employee-side deductions.
+  paye       Float @default(0)
+  nisEmployee Float @default(0)
+  nhtEmployee Float @default(0)
+  edTaxEmployee Float @default(0)
+  otherDeductions Float @default(0)
+  net        Float
+
+  // Employer-side contributions — a cost to the business, not deducted from pay.
+  nisEmployer   Float @default(0)
+  nhtEmployer   Float @default(0)
+  edTaxEmployer Float @default(0)
+  heartEmployer Float @default(0)
+
+  createdAt DateTime @default(now())
+
+  run      PayrollRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  employee Employee   @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+
+  @@unique([runId, employeeId])
+  @@index([employeeId])
+}
+
+// ---------------------------------------------------------------------------
+// Bank feeds.
+//
+// A bank connection is a source of statement lines for one ledger account.
+// Statement lines are the bank's version of events; journal lines are ours.
+// Matching the two is what reconciliation actually is, so lines are imported
+// as raw fact and never post to the ledger on their own — a human decides what
+// each one means before anything hits the books.
+//
+// No live bank API is contracted, so FILE_IMPORT and MANUAL are the paths that
+// work today. API exists as a declared provider so an aggregator can be dropped
+// in later without reshaping the data.
+// ---------------------------------------------------------------------------
+
+enum BankFeedProvider {
+  MANUAL // typed in by hand
+  FILE_IMPORT // CSV or OFX/QFX exported from online banking
+  API // live feed from a bank or aggregator — none configured
+}
+
+enum BankConnectionStatus {
+  ACTIVE
+  DISABLED
+}
+
+model BankConnection {
+  id           String               @id @default(cuid())
+  accountId    String
+  name         String // "NCB Business Chequing"
+  institution  String?
+  // Last four digits only — never store a full account number.
+  maskedNumber String?
+  provider     BankFeedProvider     @default(FILE_IMPORT)
+  status       BankConnectionStatus @default(ACTIVE)
+  currency     String               @default("JMD")
+  lastImportAt DateTime?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  account LedgerAccount       @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  lines   BankStatementLine[]
+
+  @@index([accountId])
+}
+
+enum BankLineStatus {
+  UNMATCHED // the bank says this happened; our books do not show it yet
+  MATCHED // tied to an existing journal line
+  POSTED // a new journal entry was created from it
+  EXCLUDED // deliberately ignored (duplicate, transfer already booked, etc.)
+}
+
+model BankStatementLine {
+  id           String @id @default(cuid())
+  connectionId String
+
+  postedAt    DateTime
+  description String   @db.Text
+  reference   String?
+  // Signed against the bank account: positive is money in, negative is money out.
+  amount      Float
+  runningBalance Float?
+
+  // Hash of the source row. Re-importing an overlapping statement is a no-op
+  // rather than a duplicate, which is the single thing that ruins a bank feed.
+  fingerprint String
+
+  status        BankLineStatus @default(UNMATCHED)
+  journalLineId String? // matched to an existing book entry
+  entryId       String? // or a new entry was posted from it
+  note          String?
+  resolvedAt    DateTime?
+  resolvedBy    String?
+  importedAt    DateTime       @default(now())
+
+  connection  BankConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  journalLine JournalLine?   @relation(fields: [journalLineId], references: [id], onDelete: SetNull)
+
+  @@unique([connectionId, fingerprint])
+  @@index([connectionId, status])
+  @@index([postedAt])
+}
+
+// ---------------------------------------------------------------------------
+// Document capture.
+//
+// A receipt is evidence. Storing it against the expense is the part that
+// matters for audit, and that works today with no OCR at all.
+//
+// Extraction is an optional convenience layered on top: if an OCR provider is
+// configured it pre-fills the fields, and if one isn't, they're typed in. Either
+// way a human confirms before an expense is raised, because an amount read
+// wrongly off a crumpled receipt is indistinguishable from a correct one once
+// it's in the books.
+// ---------------------------------------------------------------------------
+
+enum DocumentKind {
+  RECEIPT
+  BILL
+  STATEMENT
+  OTHER
+}
+
+enum ScanStatus {
+  NEEDS_REVIEW // stored, fields not yet confirmed by a person
+  CONFIRMED // a person has confirmed the fields
+  FAILED // the file could not be stored or read
+}
+
+model DocumentScan {
+  id          String       @id @default(cuid())
+  kind        DocumentKind @default(RECEIPT)
+  // Path in the PRIVATE admin bucket. Access is always via a short-lived
+  // signed URL minted inside an admin-guarded route.
+  storagePath String
+  filename    String
+  contentType String
+  sizeBytes   Int
+
+  status ScanStatus @default(NEEDS_REVIEW)
+  // Which extractor produced the draft fields, or null when they were typed in.
+  provider String?
+  // Whatever the provider returned, kept verbatim so a bad extraction can be
+  // investigated rather than guessed at.
+  raw      Json?
+  // Per-field confidence from the provider, so weak reads can be flagged
+  // instead of presented with the same certainty as strong ones.
+  confidence Json?
+
+  // Draft or confirmed fields.
+  vendor       String?
+  documentDate DateTime?
+  total        Float?
+  taxAmount    Float?
+  currency     String    @default("JMD")
+  category     String?
+  notes        String?   @db.Text
+
+  expenseId   String?   @unique
+  uploadedBy  String?
+  confirmedAt DateTime?
+  confirmedBy String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  expense Expense? @relation(fields: [expenseId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Branches and currency.
+//
+// A branch is a reporting dimension on the one ledger, not a second set of
+// books. Splitting the ledger per location is what makes group figures stop
+// adding up, so entries carry a branch and reports filter on it.
+//
+// JMD is the functional currency: every journal line is in JMD, always. A
+// foreign-currency transaction records what it was in and the rate applied, and
+// the rate must be one someone entered — nothing here invents a rate or quietly
+// reuses a stale one.
+// ---------------------------------------------------------------------------
+
+model Branch {
+  id        String   @id @default(cuid())
+  code      String   @unique // "KGN", "MOBAY"
+  name      String
+  isDefault Boolean  @default(false)
+  archived  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  entries JournalEntry[]
+}
+
+model ExchangeRate {
+  id       String   @id @default(cuid())
+  // ISO code of the foreign currency; the quote is always against JMD.
+  currency String
+  // How many JMD one unit of `currency` buys.
+  rate     Float
+  asOf     DateTime
+  // Where the rate came from — "BOJ", "bank advice", a person's name. Recorded
+  // because "which rate did you use" is the first question anyone asks.
+  source   String?
+  enteredBy String?
+  createdAt DateTime @default(now())
+
+  @@unique([currency, asOf])
+  @@index([currency, asOf])
+}
+
+// ---------------------------------------------------------------------------
+// Business feed state.
+//
+// The feed itself is derived from real records, so there is nothing to store
+// about what happened. What IS worth storing is what a person decided about it:
+// pinned, snoozed, assigned, resolved. That is keyed by the item's stable id
+// (e.g. "unpaid:<orderId>"), so the decision survives the feed being rebuilt.
+// ---------------------------------------------------------------------------
+
+model FeedState {
+  id           String    @id @default(cuid())
+  itemId       String    @unique
+  pinned       Boolean   @default(false)
+  archived     Boolean   @default(false)
+  // Hidden until this time, then it comes back — snoozing is deferral, not
+  // dismissal, which is the difference between a feed and an inbox you ignore.
+  snoozedUntil DateTime?
+  resolvedAt   DateTime?
+  resolvedBy   String?
+  assignedTo   String?
+  note         String?   @db.Text
+  updatedAt    DateTime  @updatedAt
+
+  @@index([archived, pinned])
+}
+
+// ---------------------------------------------------------------------------
+// Bank rules.
+//
+// A rule says "a statement line whose description contains X is category Y".
+// It saves the same decision being made forty times a month.
+//
+// By default a rule SUGGESTS rather than posts. Auto-posting is opt-in per
+// rule, because a rule that quietly books a transaction to the wrong account is
+// a lot harder to notice than one that offers a suggestion you can decline.
+// ---------------------------------------------------------------------------
+
+model BankRule {
+  id        String  @id @default(cuid())
+  name      String
+  // Matched case-insensitively against the statement line description.
+  contains  String
+  // IN (money in), OUT (money out), or ANY. Stops a rule for "TRANSFER"
+  // catching both directions of the same word.
+  direction String  @default("ANY")
+  accountId String
+  // Lower numbers win. Two rules can match one line; the order must be a
+  // decision, not whichever the database happened to return first.
+  priority  Int     @default(100)
+  enabled   Boolean @default(true)
+  autoPost  Boolean @default(false)
+
+  // How often this rule has actually fired, so a rule that never matches is
+  // visible as dead weight rather than assumed to be working.
+  matchCount Int      @default(0)
+  lastMatchAt DateTime?
+  createdBy  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  account LedgerAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([enabled, priority])
 }

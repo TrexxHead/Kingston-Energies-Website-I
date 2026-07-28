@@ -17,6 +17,16 @@ export interface DraftEntry {
   source: JournalSource
   sourceId?: string | null
   createdBy?: string | null
+  /** Reporting dimension. Null means unassigned, not a separate ledger. */
+  branchId?: string | null
+  /**
+   * What the transaction actually happened in. Line amounts are always JMD —
+   * these fields record what was converted and at what rate, so the conversion
+   * is auditable rather than invisible.
+   */
+  currency?: string
+  fxRate?: number
+  originalAmount?: number | null
   lines: DraftLine[]
 }
 
@@ -96,6 +106,10 @@ export async function postEntry(draft: DraftEntry): Promise<{ id: string; entryN
           source: draft.source,
           sourceId: draft.sourceId ?? null,
           createdBy: draft.createdBy ?? null,
+          branchId: draft.branchId ?? null,
+          currency: draft.currency ?? 'JMD',
+          fxRate: draft.fxRate ?? 1,
+          originalAmount: draft.originalAmount ?? null,
           lines: {
             create: lines.map((l) => ({
               accountId: idByCode.get(l.code) as string,
@@ -309,4 +323,98 @@ export async function reverseEntry(entryId: string, createdBy?: string | null): 
   if (reversal) {
     await prisma.journalEntry.update({ where: { id: entryId }, data: { reversedById: reversal.id } })
   }
+}
+
+/**
+ * An approved payroll run.
+ *
+ *   Dr Salaries                          (gross)
+ *   Dr Employer statutory contributions  (NIS + NHT + Ed Tax + HEART, employer side)
+ *     Cr PAYE payable                    (withheld)
+ *     Cr NIS payable                     (employee + employer)
+ *     Cr NHT payable                     (employee + employer)
+ *     Cr Education tax payable           (employee + employer)
+ *     Cr HEART payable                   (employer only)
+ *     Cr Accounts payable                (other deductions withheld for third parties)
+ *     Cr Net pay payable                 (what the staff are actually owed)
+ *
+ * Nothing here moves cash. Approval recognises the cost and the obligations;
+ * paying the staff and remitting to TAJ are separate events, so the ledger
+ * shows what is owed even before it leaves the bank.
+ */
+export async function postPayrollRun(run: {
+  id: string
+  runNo: string
+  payDate: Date
+  payslips: {
+    gross: number
+    paye: number
+    nisEmployee: number
+    nhtEmployee: number
+    edTaxEmployee: number
+    otherDeductions: number
+    net: number
+    nisEmployer: number
+    nhtEmployer: number
+    edTaxEmployer: number
+    heartEmployer: number
+  }[]
+}, createdBy?: string | null): Promise<{ id: string; entryNo: string } | null> {
+  const sum = (pick: (p: (typeof run.payslips)[number]) => number) => round2(run.payslips.reduce((t, p) => t + pick(p), 0))
+
+  const gross = sum((p) => p.gross)
+  const paye = sum((p) => p.paye)
+  const nisEmployee = sum((p) => p.nisEmployee)
+  const nhtEmployee = sum((p) => p.nhtEmployee)
+  const edTaxEmployee = sum((p) => p.edTaxEmployee)
+  const other = sum((p) => p.otherDeductions)
+  const net = sum((p) => p.net)
+  const nisEmployer = sum((p) => p.nisEmployer)
+  const nhtEmployer = sum((p) => p.nhtEmployer)
+  const edTaxEmployer = sum((p) => p.edTaxEmployer)
+  const heartEmployer = sum((p) => p.heartEmployer)
+  const employerContributions = round2(nisEmployer + nhtEmployer + edTaxEmployer + heartEmployer)
+
+  return postEntry({
+    date: run.payDate,
+    source: 'PAYROLL',
+    sourceId: run.id,
+    createdBy,
+    memo: `Payroll ${run.runNo} — ${run.payslips.length} employee${run.payslips.length === 1 ? '' : 's'}`,
+    lines: [
+      { code: ACC.SALARIES, debit: gross, memo: 'Gross wages' },
+      { code: ACC.EMPLOYER_CONTRIBUTIONS, debit: employerContributions, memo: 'Employer statutory contributions' },
+      { code: ACC.PAYE_PAYABLE, credit: paye },
+      { code: ACC.NIS_PAYABLE, credit: round2(nisEmployee + nisEmployer) },
+      { code: ACC.NHT_PAYABLE, credit: round2(nhtEmployee + nhtEmployer) },
+      { code: ACC.EDTAX_PAYABLE, credit: round2(edTaxEmployee + edTaxEmployer) },
+      { code: ACC.HEART_PAYABLE, credit: heartEmployer },
+      { code: ACC.PAYABLES, credit: other, memo: 'Other deductions withheld' },
+      { code: ACC.NET_PAY_PAYABLE, credit: net, memo: 'Net pay owed to staff' },
+    ],
+  })
+}
+
+/**
+ * Staff actually paid.
+ *
+ *   Dr Net pay payable
+ *     Cr Bank
+ *
+ * Payments are made outside this system, so this records the settlement rather
+ * than initiating it. Statutory remittances to TAJ are logged separately as
+ * expenses against the relevant payable.
+ */
+export async function postPayrollPayment(run: { id: string; runNo: string; net: number }, paidAt: Date, createdBy?: string | null) {
+  return postEntry({
+    date: paidAt,
+    source: 'PAYMENT',
+    sourceId: `payroll:${run.id}`,
+    createdBy,
+    memo: `Net pay disbursed — payroll ${run.runNo}`,
+    lines: [
+      { code: ACC.NET_PAY_PAYABLE, debit: run.net },
+      { code: ACC.BANK, credit: run.net },
+    ],
+  })
 }

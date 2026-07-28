@@ -21,11 +21,18 @@ const round2 = (n: number) => Math.round(n * 100) / 100
  * This is the single primitive every statement below is built from — which is
  * what guarantees the Trial Balance, Balance Sheet and P&L can never disagree.
  */
-export async function accountBalances(opts: { from?: Date | null; to?: Date | null } = {}): Promise<AccountBalance[]> {
-  const where =
-    opts.from || opts.to
-      ? { entry: { date: { ...(opts.from ? { gte: opts.from } : {}), ...(opts.to ? { lte: opts.to } : {}) } } }
-      : {}
+export async function accountBalances(
+  opts: { from?: Date | null; to?: Date | null; branchId?: string | null } = {},
+): Promise<AccountBalance[]> {
+  const entryWhere = {
+    ...(opts.from || opts.to
+      ? { date: { ...(opts.from ? { gte: opts.from } : {}), ...(opts.to ? { lte: opts.to } : {}) } }
+      : {}),
+    // Branch is a filter on the one ledger, never a split of it — omitting it
+    // gives the whole business, which is what group reporting needs.
+    ...(opts.branchId ? { branchId: opts.branchId } : {}),
+  }
+  const where = Object.keys(entryWhere).length ? { entry: entryWhere } : {}
 
   const [accounts, grouped] = await Promise.all([
     prisma.ledgerAccount.findMany({ orderBy: { code: 'asc' } }),

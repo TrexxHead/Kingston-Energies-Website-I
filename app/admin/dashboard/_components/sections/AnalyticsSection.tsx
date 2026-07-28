@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { cardStyle, h3Style } from '../ui/card'
+import BarChart from '../charts/BarChart'
 import { fmt } from '../mockData'
 import NpsCard from './NpsCard'
 
@@ -35,71 +36,39 @@ export default function AnalyticsSection() {
 
   const k = m?.kpis
   const channels = m?.channelBreakdown ?? []
-  const maxChannel = Math.max(1, ...channels.map((c) => c.count))
   const days = m?.dayOfWeekBreakdown ?? []
-  const maxDay = Math.max(1, ...days.map((d) => d.count))
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <NpsCard />
-      <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 16 }}>
-        <div style={cardStyle}>
-          <h3 style={h3Style}>Orders by channel</h3>
-          {channels.length === 0 ? (
-            <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: 0 }}>{m ? 'No orders yet.' : 'Loading…'}</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {channels.map((c) => (
-                <div key={c.label}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 4 }}>
-                    <span>{c.label}</span>
-                    <span>{c.count}</span>
-                  </div>
-                  <div style={{ height: 20, borderRadius: 8, background: 'var(--ke-gray-100)', overflow: 'hidden' }}>
-                    <div
-                      style={{
-                        height: '100%',
-                        width: `${(c.count / maxChannel) * 100}%`,
-                        background: 'linear-gradient(90deg,var(--ke-green-400),var(--ke-blue-400))',
-                        borderRadius: 8,
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-          <div style={{ marginTop: 14, paddingTop: 10, borderTop: '1px solid var(--color-border)', fontSize: 12.5, color: 'var(--color-text-muted)' }}>
-            Abandoned carts: <strong>{k ? k.abandonedCarts : '—'}</strong> · potential recovery{' '}
-            <strong style={{ color: 'var(--ke-green-700)' }}>{k ? fmt(k.abandonedValue) : '—'}</strong>
-            <span style={{ display: 'block', fontSize: 11, marginTop: 2, color: 'var(--color-text-subtle)' }}>
-              Same figure as the Executive Dashboard — carts idle 60+ minutes with items in them.
-            </span>
-          </div>
-        </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(340px,1fr))', gap: 16 }}>
+        <BarChart
+          title="Orders by channel"
+          subtitle="Where orders actually came from."
+          categories={channels.map((c) => c.label)}
+          series={[{ label: 'Orders', values: channels.map((c) => c.count) }]}
+          horizontal
+          height={Math.max(150, channels.length * 34 + 40)}
+          format={(n) => `${n} order${n === 1 ? '' : 's'}`}
+          footnote={
+            <>
+              Abandoned carts: <strong>{k ? k.abandonedCarts : '—'}</strong> · potential recovery{' '}
+              <strong style={{ color: 'var(--ke-green-700)' }}>{k ? fmt(k.abandonedValue) : '—'}</strong>
+              <span style={{ display: 'block', fontSize: 11, marginTop: 2, color: 'var(--color-text-subtle)' }}>
+                Same figure as the Executive Dashboard — carts idle 60+ minutes with items in them.
+              </span>
+            </>
+          }
+        />
 
-        <div style={cardStyle}>
-          <h3 style={h3Style}>Orders by day of week</h3>
-          {days.length === 0 ? (
-            <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: 0 }}>{m ? 'No orders yet.' : 'Loading…'}</p>
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 120 }}>
-              {days.map((d) => (
-                <div key={d.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }} title={`${d.count} orders`}>
-                  <div
-                    style={{
-                      width: '100%',
-                      height: Math.max(2, (d.count / maxDay) * 90),
-                      borderRadius: '4px 4px 2px 2px',
-                      background: 'var(--gradient-brand)',
-                    }}
-                  />
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-text-subtle)' }}>{d.label}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <BarChart
+          title="Orders by day of week"
+          subtitle="When customers actually buy."
+          categories={days.map((d) => d.label)}
+          series={[{ label: 'Orders', values: days.map((d) => d.count) }]}
+          height={200}
+          format={(n) => `${n} order${n === 1 ? '' : 's'}`}
+        />
       </div>
 
       <div style={cardStyle}>

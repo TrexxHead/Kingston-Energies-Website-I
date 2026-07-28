@@ -132,6 +132,24 @@
    on <html>, set before first paint to avoid a flash of the light theme.
    --------------------------------------------------------------------------- */
 :root[data-theme="dark"] {
+  /* Data-viz slots re-stepped for the dark surface — selected for that band,
+     not an automatic lightening of the light values. */
+  --viz-surface:#131f1b;
+  --viz-grid:rgba(255,255,255,.09);
+  --viz-axis:rgba(255,255,255,.16);
+
+  --viz-1:#3987e5;
+  --viz-2:#d95926;
+  --viz-3:#199e70;
+  --viz-4:#c98500;
+  --viz-5:#d55181;
+  --viz-6:#008300;
+  --viz-7:#9085e9;
+  --viz-8:#e66767;
+
+  --viz-seq-1:#0d366b; --viz-seq-2:#184f95; --viz-seq-3:#256abf;
+  --viz-seq-4:#3987e5; --viz-seq-5:#6da7ec; --viz-seq-6:#9ec5f4;
+
   --color-bg:#0b1411;
   --color-bg-subtle:#0d1714;
   --color-surface:#131f1b;
@@ -287,4 +305,41 @@
 }
 @media (max-width:400px){
   .hub-stat-grid{ grid-template-columns:1fr !important; }
+}
+
+/* ---------------------------------------------------------------------------
+   Data visualisation palette.
+
+   These eight hues are an ORDERED set, not a swatch box. The order is the
+   colour-blind-safety mechanism: adjacent pairs were validated for CVD
+   separation against this app's own surfaces, so series must be assigned
+   slot 1, 2, 3… in sequence and never cycled or re-ordered per chart. A ninth
+   series folds into "Other" rather than inventing a colour.
+
+   Colour follows the entity, never its rank — filtering a chart must not
+   repaint the series that survive.
+   --------------------------------------------------------------------------- */
+:root {
+  --viz-surface:#ffffff;
+  --viz-grid:#e2e8e4;
+  --viz-axis:#c3cdc7;
+
+  --viz-1:#2a78d6;  /* blue */
+  --viz-2:#eb6834;  /* orange */
+  --viz-3:#1baf7a;  /* aqua */
+  --viz-4:#eda100;  /* yellow */
+  --viz-5:#e87ba4;  /* magenta */
+  --viz-6:#008300;  /* green */
+  --viz-7:#4a3aa7;  /* violet */
+  --viz-8:#e34948;  /* red */
+
+  /* Sequential ramp (magnitude), one hue light to dark. */
+  --viz-seq-1:#cde2fb; --viz-seq-2:#9ec5f4; --viz-seq-3:#5598e7;
+  --viz-seq-4:#2a78d6; --viz-seq-5:#256abf; --viz-seq-6:#184f95;
+
+  /* Status is reserved — never reused as "series 9", always with icon + label. */
+  --viz-good:#0ca30c;
+  --viz-warning:#fab219;
+  --viz-serious:#ec835a;
+  --viz-critical:#d03b3b;
 }

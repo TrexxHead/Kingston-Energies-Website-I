@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/authOptions'
 import { guardAdmin } from '@/lib/requireAdmin'
 import { postStockAdjustment } from '@/lib/ledger/post'
+import { generateSerials } from '@/lib/serials'
 
 const schema = z.object({
   type: z.enum(['SET', 'ADD', 'SUBTRACT']),
@@ -39,9 +40,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const session = await getServerSession(authOptions)
 
-  const [updated, adjustment] = await prisma.$transaction([
-    prisma.product.update({ where: { id }, data: { stock: newStock } }),
-    prisma.stockAdjustment.create({
+  const [updated, adjustment] = await prisma.$transaction(async (tx) => {
+    const updatedProduct = await tx.product.update({ where: { id }, data: { stock: newStock } })
+    const stockAdjustment = await tx.stockAdjustment.create({
       data: {
         productId: id,
         type,
@@ -51,8 +52,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         reason: reason?.trim() || null,
         adminEmail: session?.user?.email ?? null,
       },
-    }),
-  ])
+    })
+    // A positive delta means new physical units arrived — give each one a serial.
+    if (newStock > previousStock) {
+      await generateSerials(tx, id, newStock - previousStock)
+    }
+    return [updatedProduct, stockAdjustment] as const
+  })
 
   // Revalue inventory in the ledger (Inventory ↔ Shrinkage). Never touches a
   // revenue account, so an adjustment can't move sales or profit.

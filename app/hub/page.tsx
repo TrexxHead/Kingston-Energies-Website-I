@@ -2,7 +2,8 @@ import Link from 'next/link'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/authOptions'
 import { prisma } from '@/lib/prisma'
-import { fmt, CATALOG } from '@/lib/catalog'
+import { fmt } from '@/lib/catalog'
+import { getShopProducts } from '@/lib/products'
 import { co2SavedKg, formatCo2 } from '@/lib/impact'
 import { loyaltyPoints } from '@/lib/loyalty'
 import { recommendProductsForNeed, customerNeedLabel, NEED_PITCH, type CustomerNeed } from '@/lib/crm'
@@ -29,7 +30,7 @@ async function loadHubUser(id: string) {
       where: { id },
       include: {
         orders: { include: { items: true }, orderBy: { createdAt: 'desc' } },
-        _count: { select: { reviews: true } },
+        _count: { select: { reviews: true, registeredUnits: true } },
       },
     })
   } catch {
@@ -40,7 +41,10 @@ async function loadHubUser(id: string) {
 export default async function HubPage() {
   const session = await getServerSession(authOptions)
 
-  const user = session?.user?.id ? await loadHubUser(session.user.id) : null
+  const [user, liveProducts] = await Promise.all([
+    session?.user?.id ? loadHubUser(session.user.id) : Promise.resolve(null),
+    getShopProducts(),
+  ])
 
   const orders = user?.orders ?? []
   const purchasedOrders = orders.filter((o) => o.status !== 'CANCELLED')
@@ -48,7 +52,7 @@ export default async function HubPage() {
   const activeOrders = orders.filter((o) => o.status !== 'DONE' && o.status !== 'CANCELLED')
   const completed = orders.filter((o) => o.status === 'DONE').length
   const totalSpent = purchasedOrders.reduce((sum, o) => sum + o.total, 0)
-  const points = loyaltyPoints({ totalSpent, reviewCount: user?._count?.reviews ?? 0 })
+  const points = loyaltyPoints({ totalSpent, reviewCount: user?._count?.reviews ?? 0, deviceRegistrations: user?._count?.registeredUnits ?? 0 })
   const firstName = user?.name?.split(' ')[0] ?? 'there'
   const customerSince = user
     ? new Date(user.createdAt).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })
@@ -74,8 +78,8 @@ export default async function HubPage() {
   // to it; otherwise fall back to the curated default set.
   const need = (user?.primaryNeed as CustomerNeed | null) ?? null
   const recommended = need
-    ? recommendProductsForNeed(CATALOG, need, 3)
-    : RECOMMENDED_IDS.map((id) => CATALOG.find((p) => p.id === id)).filter(Boolean)
+    ? recommendProductsForNeed(liveProducts, need, 3)
+    : RECOMMENDED_IDS.map((id) => liveProducts.find((p) => p.id === id)).filter(Boolean)
   const active = activeOrders[0] ?? orders[0] ?? null
   const activeMeta = active ? PROGRESS[active.status] ?? PROGRESS.PENDING : null
 

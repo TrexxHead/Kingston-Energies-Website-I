@@ -5,6 +5,7 @@ import { guardAdmin } from '@/lib/requireAdmin'
 import { issueInvoiceForOrder } from '@/lib/invoice'
 import { stageForStatus } from '@/lib/pipeline'
 import { postOrderPayment } from '@/lib/ledger/post'
+import { releaseOrderItems } from '@/lib/orderFulfillment'
 
 const patchSchema = z
   .object({
@@ -37,11 +38,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     // Cancelling restocks inventory, same as a customer-initiated cancel.
     if (parsed.data.status === 'CANCELLED' && before && before.status !== 'CANCELLED') {
-      await Promise.all(
-        before.items.map((it) =>
-          prisma.product.updateMany({ where: { name: it.name }, data: { stock: { increment: it.qty } } }).catch(() => {}),
-        ),
-      )
+      await prisma.$transaction(async (tx) => {
+        await Promise.all(
+          before.items.map((it) =>
+            tx.product.updateMany({ where: { name: it.name }, data: { stock: { increment: it.qty } } }).catch(() => {}),
+          ),
+        )
+        await releaseOrderItems(tx, before.items.map((it) => ({ orderItemId: it.id })))
+      })
       await prisma.orderEvent.create({
         data: { orderId: id, type: 'CANCELLED', label: 'Cancelled by admin', adminOnly: false },
       }).catch(() => {})

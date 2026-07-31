@@ -36,13 +36,25 @@ export default function CartPage() {
 
   const empty = items.length === 0
   const countLabel = `${items.reduce((a, c) => a + c.qty, 0)} ITEMS`
-  const recos = CATALOG.filter((p) => RECO_IDS.includes(p.id) && !items.some((i) => i.name === p.name))
+  const [livePrices, setLivePrices] = useState<Record<string, number>>({})
+  const recos = CATALOG.filter((p) => RECO_IDS.includes(p.id) && !items.some((i) => i.name === p.name)).map((p) => ({
+    ...p,
+    price: livePrices[p.id] ?? p.price,
+  }))
 
   useEffect(() => {
     fetch('/api/rewards/balance')
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => setBalance(d))
       .catch(() => setBalance(null))
+    fetch('/api/products')
+      .then((r) => (r.ok ? r.json() : { prices: {} }))
+      .then((d: { prices: Record<string, { price: number }> }) => {
+        const map: Record<string, number> = {}
+        for (const [id, v] of Object.entries(d.prices ?? {})) map[id] = v.price
+        setLivePrices(map)
+      })
+      .catch(() => {})
   }, [])
 
   const handleApply = async () => {

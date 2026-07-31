@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { guardAdmin } from '@/lib/requireAdmin'
 import { productIdForName } from '@/lib/products'
 import { sendBulkEmail, wrapEmailHtml } from '@/lib/email'
+import { generateSerials } from '@/lib/serials'
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
@@ -54,11 +55,17 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 
   try {
-    // If stock is moving up from 0, capture the "before" so we know whether
-    // to clear the back-in-stock waitlist after the update.
+    // If stock is changing, capture the "before" so we know whether to clear
+    // the back-in-stock waitlist and/or issue serials for any new units.
     const before = data.stock !== undefined ? await prisma.product.findUnique({ where: { id }, select: { stock: true, name: true } }) : null
 
-    const product = await prisma.product.update({ where: { id }, data })
+    const product = await prisma.$transaction(async (tx) => {
+      const updated = await tx.product.update({ where: { id }, data })
+      if (before && updated.stock > before.stock) {
+        await generateSerials(tx, id, updated.stock - before.stock)
+      }
+      return updated
+    })
 
     if (before && before.stock === 0 && product.stock > 0) {
       void notifyRestockWaitlist(before.name, product.stock)

@@ -14,12 +14,12 @@ export async function resolvePointsRedemption(userId: string | null, requestedPo
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    include: { orders: true, _count: { select: { reviews: true } } },
+    include: { orders: true, _count: { select: { reviews: true, registeredUnits: true } } },
   })
   if (!user) return { pointsUsed: 0, discount: 0 }
 
   const totalSpent = user.orders.filter((o) => o.status !== 'CANCELLED').reduce((s, o) => s + o.total, 0)
-  const earned = loyaltyPoints({ totalSpent, reviewCount: user._count.reviews })
+  const earned = loyaltyPoints({ totalSpent, reviewCount: user._count.reviews, deviceRegistrations: user._count.registeredUnits })
   const available = Math.max(0, earned - user.pointsRedeemed)
 
   const requestedSteps = Math.floor(requestedPoints / POINTS_REDEEM_STEP)

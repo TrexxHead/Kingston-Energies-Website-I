@@ -39,6 +39,7 @@ model User {
   favorites     Favorite[]
   notifications Notification[]
   addresses     Address[]
+  registeredUnits ProductUnit[]
 }
 
 // Server-side cart snapshots — powers abandoned-cart tracking and conversion
@@ -176,6 +177,39 @@ model Product {
   subscriptions Subscription[]
   orderItems    OrderItem[]
   stockAdjustments StockAdjustment[]
+  units         ProductUnit[]
+}
+
+// One row per physical unit of inventory, carrying its own serial number —
+// generated whenever stock is added, claimed (SOLD) when an order is placed,
+// and REGISTERED once the customer enters it under "My devices". Lets a
+// customer's invoice reference the exact unit(s) they received, and lets the
+// devices page look up a real purchase date per serial instead of guessing.
+model ProductUnit {
+  id                 String    @id @default(cuid())
+  productId          String
+  serial             String    @unique
+  status             String    @default("IN_STOCK") // IN_STOCK | SOLD | REGISTERED
+  orderItemId        String?
+  registeredByUserId String?
+  registeredAt       DateTime?
+  createdAt          DateTime  @default(now())
+
+  product      Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderItem    OrderItem? @relation(fields: [orderItemId], references: [id], onDelete: SetNull)
+  registeredBy User?      @relation(fields: [registeredByUserId], references: [id], onDelete: SetNull)
+
+  @@index([productId])
+  @@index([orderItemId])
+  @@index([status])
+}
+
+// Single global row driving sequential serial numbers (KE-{year}-{seq}), so
+// concurrent stock additions never collide. Incremented atomically inside the
+// same transaction that creates the new ProductUnit rows.
+model SerialCounter {
+  id    String @id @default("global")
+  value Int    @default(0)
 }
 
 // Audit trail for manual stock changes — every adjustment records why, so
@@ -307,6 +341,7 @@ model OrderItem {
 
   order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  units   ProductUnit[]
 }
 
 model Supplier {

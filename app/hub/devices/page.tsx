@@ -2,70 +2,77 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { TrendingUp } from 'lucide-react'
 import Topbar from '../_components/Topbar'
 import { hubScreen, hubCard, hubH3 } from '../_components/ui'
 
 interface Device {
   id: string
   name: string
+  spec: string | null
   serial: string
-  purchased: string
-  warrantyLeft: number // months
-  batteryHealth: number | null
-  compatible: string
-  upgradeNote?: string
+  purchasedAt: string
+  orderNo: string | null
+  hasBattery: boolean
+  batteryHealthPct: number | null
+  monthsOwned: number
+  returnWindowDaysLeft: number
+  manufacturerWarranty: string | null
 }
 
-// Example registered devices (illustrative — device registry is presentational for now).
-const INITIAL_DEVICES: Device[] = [
-  {
-    id: 'd1',
-    name: 'Charmast 10,400',
-    serial: 'KE-2026-00412',
-    purchased: 'Mar 12, 2026',
-    warrantyLeft: 8,
-    batteryHealth: 94,
-    compatible: 'USB-C cables, car chargers',
-  },
-  {
-    id: 'd2',
-    name: '20W USB-C Fast Charger',
-    serial: 'KE-2025-00187',
-    purchased: 'Oct 3, 2025',
-    warrantyLeft: 3,
-    batteryHealth: null,
-    compatible: 'USB-C power banks, cables',
-    upgradeNote: 'Pairs well with a 20,000mAh power bank — upgrade available',
-  },
-]
+function fmtDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+function monthsOwnedLabel(iso: string): string {
+  const months = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / (1000 * 60 * 60 * 24 * 30.44)))
+  if (months < 1) return 'less than a month'
+  return `${months} month${months === 1 ? '' : 's'}`
+}
 
 export default function DevicesPage() {
-  const [devices, setDevices] = useState<Device[]>(INITIAL_DEVICES)
+  const [devices, setDevices] = useState<Device[]>([])
+  const [loading, setLoading] = useState(true)
   const [serial, setSerial] = useState('')
-  const [justAdded, setJustAdded] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
 
-  const register = (e: React.FormEvent) => {
+  const load = () => {
+    fetch('/api/hub/devices')
+      .then((r) => (r.ok ? r.json() : { devices: [] }))
+      .then((d: { devices: Device[] }) => setDevices(d.devices ?? []))
+      .catch(() => setDevices([]))
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(load, [])
+
+  const register = async (e: React.FormEvent) => {
     e.preventDefault()
-    const sn = serial.trim().toUpperCase()
-    if (!sn) return
-    setDevices((prev) => [
-      {
-        id: `d${Date.now()}`,
-        name: 'Registered device',
-        serial: sn,
-        purchased: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
-        warrantyLeft: 12,
-        batteryHealth: 100,
-        compatible: 'USB-C cables, chargers',
-      },
-      ...prev,
-    ])
-    setSerial('')
-    setJustAdded(true)
-    setTimeout(() => setJustAdded(false), 4000)
+    const sn = serial.trim()
+    if (!sn || submitting) return
+    setSubmitting(true)
+    setMessage(null)
+    try {
+      const res = await fetch('/api/hub/devices/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ serial: sn }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setMessage({ kind: 'error', text: data.error ?? 'Could not register that device.' })
+      } else {
+        setMessage({ kind: 'ok', text: `✓ Device registered — ${data.pointsAwarded} loyalty points added.` })
+        setSerial('')
+        load()
+      }
+    } catch {
+      setMessage({ kind: 'error', text: 'Something went wrong. Please try again.' })
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -75,6 +82,9 @@ export default function DevicesPage() {
         {/* Register */}
         <div style={{ ...hubCard, marginBottom: 16 }}>
           <h3 style={hubH3}>Register a new device</h3>
+          <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: '0 0 14px' }}>
+            The serial number is on your invoice — it&apos;s unique to the exact unit you received.
+          </p>
           <form onSubmit={register} style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             <input
               value={serial}
@@ -90,10 +100,12 @@ export default function DevicesPage() {
                 fontFamily: 'var(--font-mono)',
                 fontSize: 13.5,
                 outline: 'none',
+                textTransform: 'uppercase',
               }}
             />
             <button
               type="submit"
+              disabled={submitting}
               style={{
                 height: 48,
                 padding: '0 24px',
@@ -104,105 +116,111 @@ export default function DevicesPage() {
                 fontFamily: 'var(--font-display)',
                 fontWeight: 600,
                 fontSize: 14,
-                cursor: 'pointer',
+                cursor: submitting ? 'default' : 'pointer',
+                opacity: submitting ? 0.7 : 1,
               }}
             >
-              Register — +25 pts
+              {submitting ? 'Registering…' : 'Register — +25 pts'}
             </button>
           </form>
-          {justAdded && (
-            <p style={{ margin: '12px 0 0', fontSize: 13, color: 'var(--ke-green-700)', fontWeight: 600 }}>
-              ✓ Device registered — 25 loyalty points added.
+          {message && (
+            <p style={{ margin: '12px 0 0', fontSize: 13, fontWeight: 600, color: message.kind === 'ok' ? 'var(--ke-green-700)' : 'var(--ke-sun-500, #b45309)' }}>
+              {message.text}
             </p>
           )}
         </div>
 
         {/* Device cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }} className="hub-two-col">
-          {devices.map((d) => (
-            <div key={d.id} style={hubCard}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-                <h3 style={{ ...hubH3, margin: 0 }}>{d.name}</h3>
-                <span
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 5,
-                    flexShrink: 0,
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: 10,
-                    letterSpacing: '.06em',
-                    padding: '3px 9px',
-                    borderRadius: 999,
-                    background: d.warrantyLeft <= 3 ? 'var(--ke-sun-50)' : 'var(--ke-green-50)',
-                    color: d.warrantyLeft <= 3 ? 'var(--ke-sun-500)' : 'var(--ke-green-700)',
-                  }}
-                >
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />
-                  {d.warrantyLeft} MO WARRANTY LEFT
-                </span>
-              </div>
-
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '.04em', color: 'var(--color-text-muted)', margin: '6px 0 16px' }}>
-                SN {d.serial} · PURCHASED {d.purchased}
-              </div>
-
-              {d.batteryHealth !== null && (
-                <>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 6 }}>
-                    <span>Battery health</span>
-                    <span style={{ fontWeight: 700 }}>{d.batteryHealth}%</span>
-                  </div>
-                  <div style={{ height: 8, borderRadius: 999, background: 'var(--color-border)', overflow: 'hidden', marginBottom: 16 }}>
-                    <div style={{ width: `${d.batteryHealth}%`, height: '100%', background: 'var(--gradient-brand)' }} />
-                  </div>
-                </>
-              )}
-
-              <div style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: d.upgradeNote ? 12 : 16 }}>
-                Compatible: {d.compatible}
-              </div>
-
-              {d.upgradeNote && (
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    padding: '10px 12px',
-                    borderRadius: 10,
-                    background: 'var(--ke-blue-50)',
-                    color: 'var(--ke-blue-600)',
-                    fontSize: 12.5,
-                    marginBottom: 16,
-                  }}
-                >
-                  <TrendingUp size={15} style={{ flexShrink: 0 }} />
-                  {d.upgradeNote}
+        {loading ? (
+          <div style={{ ...hubCard, textAlign: 'center', padding: '32px 20px', color: 'var(--color-text-muted)', fontSize: 13.5 }}>Loading your devices…</div>
+        ) : devices.length === 0 ? (
+          <div style={{ ...hubCard, textAlign: 'center', padding: '32px 20px' }}>
+            <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, margin: '0 0 6px' }}>No devices registered yet</p>
+            <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: 0 }}>
+              Enter the serial number from your invoice above to track its warranty{devices.length === 0 ? ' and battery health' : ''}.
+            </p>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }} className="hub-two-col">
+            {devices.map((d) => (
+              <div key={d.id} style={hubCard}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                  <h3 style={{ ...hubH3, margin: 0 }}>{d.name}</h3>
+                  {d.returnWindowDaysLeft > 0 && (
+                    <span
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 5,
+                        flexShrink: 0,
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: 10,
+                        letterSpacing: '.06em',
+                        padding: '3px 9px',
+                        borderRadius: 999,
+                        background: 'var(--ke-green-50)',
+                        color: 'var(--ke-green-700)',
+                      }}
+                    >
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />
+                      RETURN WINDOW: {d.returnWindowDaysLeft}D LEFT
+                    </span>
+                  )}
                 </div>
-              )}
 
-              <Link
-                href="/shop?category=accessories"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  height: 42,
-                  borderRadius: 999,
-                  border: '1.5px solid var(--ke-green-500)',
-                  color: 'var(--ke-green-700)',
-                  fontFamily: 'var(--font-display)',
-                  fontWeight: 600,
-                  fontSize: 13.5,
-                  textDecoration: 'none',
-                }}
-              >
-                Shop accessories
-              </Link>
-            </div>
-          ))}
-        </div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '.04em', color: 'var(--color-text-muted)', margin: '6px 0 4px' }}>
+                  SN {d.serial} · PURCHASED {fmtDate(d.purchasedAt)}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--color-text-muted)', margin: '0 0 16px' }}>
+                  {d.manufacturerWarranty ?? 'Manufacturer’s warranty applies — terms vary by brand.'}
+                </div>
+
+                {d.hasBattery && d.batteryHealthPct !== null ? (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 6 }}>
+                      <span>Battery health (estimated)</span>
+                      <span style={{ fontWeight: 700 }}>{d.batteryHealthPct}%</span>
+                    </div>
+                    <div style={{ height: 8, borderRadius: 999, background: 'var(--color-border)', overflow: 'hidden', marginBottom: 6 }}>
+                      <div style={{ width: `${d.batteryHealthPct}%`, height: '100%', background: 'var(--gradient-brand)' }} />
+                    </div>
+                    <div style={{ fontSize: 11.5, color: 'var(--color-text-muted)', marginBottom: 16 }}>
+                      Modeled from typical Li-ion fade over {monthsOwnedLabel(d.purchasedAt)} of ownership — not a live sensor reading.
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 16 }}>
+                    Owned for {monthsOwnedLabel(d.purchasedAt)}
+                    {d.orderNo ? ` · Order ${d.orderNo}` : ''}
+                  </div>
+                )}
+
+                {d.spec && (
+                  <div style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 16 }}>{d.spec}</div>
+                )}
+
+                <Link
+                  href="/shop?category=accessories"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    height: 42,
+                    borderRadius: 999,
+                    border: '1.5px solid var(--ke-green-500)',
+                    color: 'var(--ke-green-700)',
+                    fontFamily: 'var(--font-display)',
+                    fontWeight: 600,
+                    fontSize: 13.5,
+                    textDecoration: 'none',
+                  }}
+                >
+                  Shop accessories
+                </Link>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </>
   )

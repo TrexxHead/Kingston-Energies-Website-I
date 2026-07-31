@@ -34,7 +34,7 @@ export interface InvoiceData {
   shippingAddress: string | null
   billingAddress: string | null
   date: string
-  items: { name: string; qty: number; price: number }[]
+  items: { name: string; qty: number; price: number; serials?: string[] }[]
   total: number
   paid: boolean
   paymentMethod: string | null
@@ -50,13 +50,18 @@ export function buildInvoiceHtml(d: InvoiceData): string {
     .map(
       (i) =>
         `<tr>
-          <td style="padding:11px 0;border-bottom:1px solid #e8ece9;color:#1c2a25">${escapeHtml(i.name)}</td>
+          <td style="padding:11px 0;border-bottom:1px solid #e8ece9;color:#1c2a25">${escapeHtml(i.name)}${
+            i.serials && i.serials.length
+              ? `<div style="font-family:${FONT_HEAD};font-size:9.5px;letter-spacing:.05em;color:#8a968c;margin-top:3px">SERIAL${i.serials.length > 1 ? 'S' : ''}: ${i.serials.map(escapeHtml).join(', ')}</div>`
+              : ''
+          }</td>
           <td style="padding:11px 0;border-bottom:1px solid #e8ece9;text-align:right;color:#5b655f">${fmtAcct(i.price)}</td>
           <td style="padding:11px 0;border-bottom:1px solid #e8ece9;text-align:center;color:#5b655f">${i.qty}</td>
           <td style="padding:11px 0;border-bottom:1px solid #e8ece9;text-align:right;color:#1c2a25;font-weight:600">${fmtAcct(i.price * i.qty)}</td>
         </tr>`,
     )
     .join('')
+  const hasSerials = d.items.some((i) => i.serials && i.serials.length)
 
   const addressBlock = (label: string, value: string | null) =>
     value
@@ -187,6 +192,17 @@ export function buildInvoiceHtml(d: InvoiceData): string {
               ${siteUrl.replace(/^https?:\/\//, '')}/track?no=${d.orderNo}
             </div>
           </div>
+          ${
+            hasSerials
+              ? `<div style="flex:1">
+            <div style="font-family:${FONT_HEAD};color:#8fbf9c;text-transform:uppercase;font-size:9.5px;letter-spacing:.1em;font-weight:700">Register your device</div>
+            <div style="color:#dbe6dd;font-size:12px;margin-top:7px;line-height:1.7">
+              Enter the serial above under My devices to track battery health and warranty.<br />
+              ${siteUrl.replace(/^https?:\/\//, '')}/hub/devices
+            </div>
+          </div>`
+              : ''
+          }
         </div>
 
         <div style="margin-top:24px;padding-top:20px;border-top:1px solid rgba(255,255,255,.12);color:#a9c2ae;font-size:11.5px;text-align:center">
@@ -205,7 +221,7 @@ function escapeHtml(s: string): string {
 export async function invoiceDataForOrder(orderId: string): Promise<{ data: InvoiceData; email: string | null } | null> {
   const order = await prisma.order.findUnique({
     where: { id: orderId },
-    include: { items: true, user: { select: { email: true } } },
+    include: { items: { include: { units: { select: { serial: true } } } }, user: { select: { email: true } } },
   })
   if (!order) return null
   const email = order.user?.email ?? order.email ?? null
@@ -218,7 +234,12 @@ export async function invoiceDataForOrder(orderId: string): Promise<{ data: Invo
       shippingAddress: order.shippingAddress,
       billingAddress: order.billingAddress,
       date: new Date(order.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
-      items: order.items.map((i) => ({ name: i.name, qty: i.qty, price: i.price })),
+      items: order.items.map((i) => ({
+        name: i.name,
+        qty: i.qty,
+        price: i.price,
+        serials: i.units.map((u) => u.serial),
+      })),
       total: order.total,
       paid: order.paid,
       paymentMethod: order.paymentMethod,

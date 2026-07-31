@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/authOptions'
 import { sendBulkEmail, wrapEmailHtml } from '@/lib/email'
 import { notifyUser } from '@/lib/notify'
+import { releaseOrderItems } from '@/lib/orderFulfillment'
 
 const schema = z.object({ reason: z.string().max(300).optional() })
 
@@ -32,12 +33,16 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const blockedMsg = BLOCKED[order.status]
   if (blockedMsg) return NextResponse.json({ error: blockedMsg }, { status: 409 })
 
-  // Restock each item (match the storefront/DB product by name).
-  await Promise.all(
-    order.items.map((it) =>
-      prisma.product.updateMany({ where: { name: it.name }, data: { stock: { increment: it.qty } } }).catch(() => {}),
-    ),
-  )
+  // Restock each item (match the storefront/DB product by name) and free up
+  // any serials that were claimed for this order.
+  await prisma.$transaction(async (tx) => {
+    await Promise.all(
+      order.items.map((it) =>
+        tx.product.updateMany({ where: { name: it.name }, data: { stock: { increment: it.qty } } }).catch(() => {}),
+      ),
+    )
+    await releaseOrderItems(tx, order.items.map((it) => ({ orderItemId: it.id })))
+  })
 
   const now = new Date()
   await prisma.order.update({

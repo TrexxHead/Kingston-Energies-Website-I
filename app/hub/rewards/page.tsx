@@ -24,7 +24,7 @@ async function loadUser(id: string) {
   try {
     return await prisma.user.findUnique({
       where: { id },
-      include: { orders: true, _count: { select: { reviews: true } } },
+      include: { orders: true, _count: { select: { reviews: true, registeredUnits: true } } },
     })
   } catch {
     return null
@@ -45,7 +45,7 @@ export default async function RewardsPage() {
   }
 
   const totalSpent = (user?.orders ?? []).filter((o) => o.status !== 'CANCELLED').reduce((s, o) => s + o.total, 0)
-  const points = loyaltyPoints({ totalSpent, reviewCount: user?._count?.reviews ?? 0 })
+  const points = loyaltyPoints({ totalSpent, reviewCount: user?._count?.reviews ?? 0, deviceRegistrations: user?._count?.registeredUnits ?? 0 })
   const tier = tierFor(points)
   const progressPct = Math.round(((points % REWARD_STEP) / REWARD_STEP) * 100)
   const ptsToNext = REWARD_STEP - (points % REWARD_STEP)

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { guardAdmin } from '@/lib/requireAdmin'
+import { generateSerials } from '@/lib/serials'
 
 const specItem = z.object({ label: z.string().max(80), value: z.string().max(200) })
 
@@ -57,30 +58,34 @@ export async function POST(request: Request) {
     if (clash) return NextResponse.json({ error: `That barcode is already used by "${clash.name}".` }, { status: 409 })
   }
 
-  const product = await prisma.product.create({
-    data: {
-      name: d.name,
-      description: d.description ?? d.spec ?? d.name,
-      shortDescription: d.shortDescription ?? null,
-      price: d.price,
-      salePrice: d.salePrice ?? null,
-      cost: d.cost ?? null,
-      features: d.features ?? [],
-      images: d.images ?? [],
-      tags: d.tags ?? [],
-      specs: d.specs ?? undefined,
-      brand: d.brand ?? null,
-      weight: d.weight ?? null,
-      dimensions: d.dimensions ?? null,
-      warranty: d.warranty ?? null,
-      stock: d.stock,
-      threshold: d.threshold,
-      category: d.category ?? null,
-      sku: d.sku ?? null,
-      barcode: d.barcode ?? null,
-      spec: d.spec ?? null,
-      badge: d.badge ?? null,
-    },
+  const product = await prisma.$transaction(async (tx) => {
+    const created = await tx.product.create({
+      data: {
+        name: d.name,
+        description: d.description ?? d.spec ?? d.name,
+        shortDescription: d.shortDescription ?? null,
+        price: d.price,
+        salePrice: d.salePrice ?? null,
+        cost: d.cost ?? null,
+        features: d.features ?? [],
+        images: d.images ?? [],
+        tags: d.tags ?? [],
+        specs: d.specs ?? undefined,
+        brand: d.brand ?? null,
+        weight: d.weight ?? null,
+        dimensions: d.dimensions ?? null,
+        warranty: d.warranty ?? null,
+        stock: d.stock,
+        threshold: d.threshold,
+        category: d.category ?? null,
+        sku: d.sku ?? null,
+        barcode: d.barcode ?? null,
+        spec: d.spec ?? null,
+        badge: d.badge ?? null,
+      },
+    })
+    if (d.stock > 0) await generateSerials(tx, created.id, d.stock)
+    return created
   })
 
   return NextResponse.json({ product }, { status: 201 })

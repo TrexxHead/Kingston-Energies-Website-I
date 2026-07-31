@@ -4,6 +4,7 @@ import { verifyWiPayCallback } from '@/lib/wipay'
 import { markPointsRedeemed } from '@/lib/pointsRedemption'
 import { postOrderPayment } from '@/lib/ledger/post'
 import { trackToken } from '@/lib/trackToken'
+import { fulfillOrderItems } from '@/lib/orderFulfillment'
 
 const POINTS_LINE_RE = /^Rewards points redeemed \((\d+) pts\)$/
 
@@ -36,7 +37,13 @@ async function handle(params: URLSearchParams): Promise<NextResponse> {
         return NextResponse.redirect(`${siteUrl}/checkout?payment=failed`, 303)
       }
 
-      const order = await prisma.order.update({ where: { orderNo }, data: { paid: true }, include: { items: true } })
+      const order = await prisma.$transaction(async (tx) => {
+        const updated = await tx.order.update({ where: { orderNo }, data: { paid: true }, include: { items: true } })
+        // Stock/serials are only claimed once the card payment actually clears —
+        // an abandoned or failed WiPay attempt never touches inventory.
+        await fulfillOrderItems(tx, updated.items.map((oi) => ({ orderItemId: oi.id, name: oi.name, qty: oi.qty })))
+        return updated
+      })
       // Journal the cash receipt against the receivable now that it cleared.
       void postOrderPayment(order, new Date()).catch((err) => console.error('[ledger] wipay payment posting failed:', err))
       // Card payments only deduct redeemed points once payment actually

@@ -9,9 +9,18 @@ import { hubCard, hubH3 } from './ui'
 
 export default function RecentlyViewed() {
   const [items, setItems] = useState<RecentItem[]>([])
+  const [livePrices, setLivePrices] = useState<Record<string, number>>({})
 
   useEffect(() => {
     setItems(getRecentlyViewed())
+    fetch('/api/products')
+      .then((r) => (r.ok ? r.json() : { prices: {} }))
+      .then((d: { prices: Record<string, { price: number }> }) => {
+        const map: Record<string, number> = {}
+        for (const [id, v] of Object.entries(d.prices ?? {})) map[id] = v.price
+        setLivePrices(map)
+      })
+      .catch(() => {})
   }, [])
 
   if (items.length === 0) return null
@@ -27,7 +36,7 @@ export default function RecentlyViewed() {
             </div>
             <div style={{ padding: '10px 12px' }}>
               <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
-              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 13.5, marginTop: 2 }}>{fmt(p.price)}</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 13.5, marginTop: 2 }}>{fmt(livePrices[p.id] ?? p.price)}</div>
             </div>
           </Link>
         ))}

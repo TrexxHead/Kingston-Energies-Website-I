@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { guardAdmin } from '@/lib/requireAdmin'
 import { sendNewOrderAlert } from '@/lib/email'
 import { postOrderCogs, postOrderPayment, postOrderRevenue } from '@/lib/ledger/post'
+import { fulfillOrderItems } from '@/lib/orderFulfillment'
 
 export async function GET() {
   const denied = await guardAdmin()
@@ -94,21 +95,26 @@ export async function POST(request: Request) {
   const total = items.reduce((sum, i) => sum + i.price * i.qty, 0)
   const orderNo = await nextOrderNo()
 
-  const order = await prisma.order.create({
-    data: {
-      orderNo,
-      customerName,
-      status: 'PENDING',
-      source,
-      contact: contact ?? null,
-      email: email ?? null,
-      phone: phone ?? null,
-      shippingAddress: shippingAddress ?? null,
-      paymentMethod: paymentMethod ?? null,
-      paid: paid ?? false,
-      total,
-      items: { create: items.map((i) => ({ name: i.name, qty: i.qty, price: i.price })) },
-    },
+  const order = await prisma.$transaction(async (tx) => {
+    const created = await tx.order.create({
+      data: {
+        orderNo,
+        customerName,
+        status: 'PENDING',
+        source,
+        contact: contact ?? null,
+        email: email ?? null,
+        phone: phone ?? null,
+        shippingAddress: shippingAddress ?? null,
+        paymentMethod: paymentMethod ?? null,
+        paid: paid ?? false,
+        total,
+        items: { create: items.map((i) => ({ name: i.name, qty: i.qty, price: i.price })) },
+      },
+      include: { items: true },
+    })
+    await fulfillOrderItems(tx, created.items.map((oi) => ({ orderItemId: oi.id, name: oi.name, qty: oi.qty })))
+    return created
   })
 
   // A manual order is a real sale — it hits the ledger exactly like a website

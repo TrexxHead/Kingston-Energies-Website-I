@@ -7,6 +7,7 @@ import { fmt } from '@/lib/catalog'
 import { sendOrderConfirmation } from '@/lib/email'
 import { bulkRateForQty } from '@/lib/pricing'
 import { trackToken } from '@/lib/trackToken'
+import { fulfillOrderItems } from '@/lib/orderFulfillment'
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
@@ -98,21 +99,26 @@ export async function POST(request: Request) {
   const orderNo = await nextOrderNo()
   const source = channel === 'whatsapp' ? 'WHATSAPP' : 'INSTAGRAM'
 
-  const order = await prisma.order.create({
-    data: {
-      orderNo,
-      customerName,
-      status: 'PENDING',
-      source,
-      contact: contact ?? null,
-      // 'online' stays unset until the customer pays; 'cod' is recorded up front.
-      // 'online' orders don't have a method yet — the customer picks one at
-      // checkout — but "pending" is more honest in reports than leaving it
-      // null (which reads as "unspecified"/a data-quality problem).
-      paymentMethod: payment === 'cod' ? 'cod' : 'pending',
-      total,
-      items: { create: resolved.map((i) => ({ name: i.name, qty: i.qty, price: i.price })) },
-    },
+  const order = await prisma.$transaction(async (tx) => {
+    const created = await tx.order.create({
+      data: {
+        orderNo,
+        customerName,
+        status: 'PENDING',
+        source,
+        contact: contact ?? null,
+        // 'online' stays unset until the customer pays; 'cod' is recorded up front.
+        // 'online' orders don't have a method yet — the customer picks one at
+        // checkout — but "pending" is more honest in reports than leaving it
+        // null (which reads as "unspecified"/a data-quality problem).
+        paymentMethod: payment === 'cod' ? 'cod' : 'pending',
+        total,
+        items: { create: resolved.map((i) => ({ name: i.name, qty: i.qty, price: i.price })) },
+      },
+      include: { items: true },
+    })
+    await fulfillOrderItems(tx, created.items.map((oi) => ({ orderItemId: oi.id, name: oi.name, qty: oi.qty })))
+    return created
   })
 
   // Optional confirmation email if the bot captured one.

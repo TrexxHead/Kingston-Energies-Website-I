@@ -12,6 +12,7 @@ import { resolvePointsRedemption, markPointsRedeemed } from '@/lib/pointsRedempt
 import { postOrderCogs, postOrderRevenue } from '@/lib/ledger/post'
 import { validateCartPrices } from '@/lib/cartValidation'
 import { trackToken } from '@/lib/trackToken'
+import { fulfillOrderItems } from '@/lib/orderFulfillment'
 
 const orderSchema = z.object({
   customerName: z.string().min(1).max(120),
@@ -104,20 +105,25 @@ export async function POST(request: Request) {
       ...(pointsUsed > 0 ? [{ name: `Rewards points redeemed (${pointsUsed} pts)`, qty: 1, price: -pointsDiscount }] : []),
     ]
 
-    const order = await prisma.order.create({
-      data: {
-        orderNo,
-        userId,
-        customerName,
-        email: contactEmail,
-        phone: phone ?? null,
-        shippingAddress: shippingAddress ?? null,
-        billingAddress: billingAddress ?? null,
-        status: 'PENDING',
-        paymentMethod: paymentMethod ?? null,
-        total,
-        items: { create: recordedItems.map((i) => ({ name: i.name, qty: i.qty, price: i.price })) },
-      },
+    const order = await prisma.$transaction(async (tx) => {
+      const created = await tx.order.create({
+        data: {
+          orderNo,
+          userId,
+          customerName,
+          email: contactEmail,
+          phone: phone ?? null,
+          shippingAddress: shippingAddress ?? null,
+          billingAddress: billingAddress ?? null,
+          status: 'PENDING',
+          paymentMethod: paymentMethod ?? null,
+          total,
+          items: { create: recordedItems.map((i) => ({ name: i.name, qty: i.qty, price: i.price })) },
+        },
+        include: { items: true },
+      })
+      await fulfillOrderItems(tx, created.items.map((oi) => ({ orderItemId: oi.id, name: oi.name, qty: oi.qty })))
+      return created
     })
 
     // Recognise the revenue + cost of sales in the general ledger. Best-effort:

@@ -14,7 +14,7 @@ export async function GET() {
 
   const [orders, expenses, budgets] = await Promise.all([
     safe(() => prisma.order.findMany({ select: { total: true, createdAt: true, status: true, paid: true } })),
-    safe(() => prisma.expense.findMany({ orderBy: { spentAt: 'desc' } })),
+    safe(() => prisma.expense.findMany({ orderBy: { spentAt: 'desc' }, include: { document: { select: { id: true } } } })),
     safe(() => prisma.budget.findMany()),
   ])
 
@@ -77,6 +77,7 @@ export async function GET() {
     description: e.description,
     amount: Math.round(e.amount),
     date: new Date(e.spentAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+    documentId: e.document?.id ?? null,
   }))
 
   return NextResponse.json({

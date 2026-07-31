@@ -100,6 +100,12 @@ export const NAV: NavGroup[] = [
         keywords: 'payments receipts movements',
       },
       {
+        href: `${BASE}/finance/calendar`,
+        label: 'Calendar',
+        description: 'Income and expenses, laid out by day',
+        keywords: 'calendar day date schedule income expense month',
+      },
+      {
         href: `${BASE}/finance/sales`,
         label: 'Sales',
         description: 'What sold, to whom, and what it earned',

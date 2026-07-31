@@ -13,7 +13,7 @@ export interface FinanceData {
   byCategory: { category: string; amount: number }[]
   budgets: { category: string; budget: number; actual: number }[]
   budgetMap: Record<string, number>
-  recentExpenses: { id: string; category: string; description: string | null; amount: number; date: string }[]
+  recentExpenses: { id: string; category: string; description: string | null; amount: number; date: string; documentId: string | null }[]
   currentMonth: string
 }
 

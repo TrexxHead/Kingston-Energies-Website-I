@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2, Paperclip } from 'lucide-react'
 import { cardStyle, h3Style } from '../ui/card'
 import Button from '../ui/Button'
 import Modal from '../ui/Modal'
@@ -16,26 +16,40 @@ export default function ExpensesTab() {
   const [expenseOpen, setExpenseOpen] = useState(false)
   const [budgetOpen, setBudgetOpen] = useState(false)
   const [form, setForm] = useState({ category: EXPENSE_CATEGORIES[0] as string, amount: '', description: '', spentAt: '' })
+  const [receipt, setReceipt] = useState<File | null>(null)
   const [budgetForm, setBudgetForm] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
 
   const addExpense = async () => {
     if (!form.amount || Number(form.amount) <= 0) return
     setBusy(true)
-    const res = await fetch('/api/admin/expenses', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        category: form.category,
-        amount: Number(form.amount),
-        description: form.description || undefined,
-        spentAt: form.spentAt || undefined,
-      }),
-    })
+
+    let res: Response
+    if (receipt) {
+      const body = new FormData()
+      body.append('category', form.category)
+      body.append('amount', form.amount)
+      if (form.description) body.append('description', form.description)
+      if (form.spentAt) body.append('spentAt', form.spentAt)
+      body.append('receipt', receipt)
+      res = await fetch('/api/admin/expenses', { method: 'POST', body })
+    } else {
+      res = await fetch('/api/admin/expenses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          category: form.category,
+          amount: Number(form.amount),
+          description: form.description || undefined,
+          spentAt: form.spentAt || undefined,
+        }),
+      })
+    }
     setBusy(false)
     if (res.ok) {
       setExpenseOpen(false)
       setForm({ category: EXPENSE_CATEGORIES[0], amount: '', description: '', spentAt: '' })
+      setReceipt(null)
       reload()
     }
   }
@@ -43,6 +57,13 @@ export default function ExpensesTab() {
   const removeExpense = async (id: string) => {
     await fetch(`/api/admin/expenses/${id}`, { method: 'DELETE' })
     reload()
+  }
+
+  const openReceipt = async (documentId: string) => {
+    const res = await fetch(`/api/admin/finance/documents/${documentId}`)
+    if (!res.ok) return
+    const doc = await res.json()
+    if (doc.fileUrl) window.open(doc.fileUrl, '_blank', 'noopener')
   }
 
   const openBudgets = () => {
@@ -153,6 +174,17 @@ export default function ExpensesTab() {
                   <span style={{ display: 'block', fontSize: 11, color: 'var(--color-text-subtle)' }}>{e.date}</span>
                 </span>
                 <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14 }}>{fmt(e.amount)}</span>
+                {e.documentId && (
+                  <button
+                    type="button"
+                    onClick={() => openReceipt(e.documentId as string)}
+                    aria-label="View receipt"
+                    title="View receipt"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ke-green-600)', display: 'flex' }}
+                  >
+                    <Paperclip size={15} />
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => removeExpense(e.id)}
@@ -189,6 +221,22 @@ export default function ExpensesTab() {
               <TextInput label="Date" value={form.spentAt} onChange={(v) => setForm({ ...form, spentAt: v })} type="date" />
             </div>
             <TextInput label="Note (optional)" value={form.description} onChange={(v) => setForm({ ...form, description: v })} placeholder="e.g. Facebook ads, June rent" />
+            <div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: 6 }}>
+                <Paperclip size={13} /> Receipt (optional)
+              </label>
+              <input
+                type="file"
+                accept="image/*,application/pdf"
+                onChange={(e) => setReceipt(e.target.files?.[0] ?? null)}
+                style={{ fontSize: 13, width: '100%' }}
+              />
+              {receipt && (
+                <p style={{ fontSize: 12, color: 'var(--color-text-muted)', margin: '6px 0 0' }}>
+                  {receipt.name} — kept as the evidence behind this expense.
+                </p>
+              )}
+            </div>
           </div>
         </Modal>
       )}

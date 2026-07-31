@@ -1,24 +1,39 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Trash2, Paperclip } from 'lucide-react'
+import { Plus, Trash2, Paperclip, X } from 'lucide-react'
 import { cardStyle, h3Style } from '../ui/card'
 import Button from '../ui/Button'
 import Modal from '../ui/Modal'
 import TextInput from '../ui/TextInput'
 import { fmt } from '../mockData'
 import { EXPENSE_CATEGORIES } from '@/lib/finance'
-import { useFinanceData } from './useFinanceData'
+import { useFinanceData, useExpenseCategories } from './useFinanceData'
 
 /** Budgets against actuals, and the log of what was actually spent. */
 export default function ExpensesTab() {
   const { data, reload } = useFinanceData()
+  const { categories, addCategory } = useExpenseCategories()
   const [expenseOpen, setExpenseOpen] = useState(false)
   const [budgetOpen, setBudgetOpen] = useState(false)
   const [form, setForm] = useState({ category: EXPENSE_CATEGORIES[0] as string, amount: '', description: '', spentAt: '' })
   const [receipt, setReceipt] = useState<File | null>(null)
   const [budgetForm, setBudgetForm] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
+  const [addingCategory, setAddingCategory] = useState(false)
+  const [newCategoryName, setNewCategoryName] = useState('')
+  const categoryOptions = categories.length ? categories : [...EXPENSE_CATEGORIES]
+
+  const saveNewCategory = async () => {
+    const name = newCategoryName.trim()
+    if (!name) return
+    const next = await addCategory(name)
+    if (next) {
+      setForm((f) => ({ ...f, category: name }))
+      setNewCategoryName('')
+      setAddingCategory(false)
+    }
+  }
 
   const addExpense = async () => {
     if (!form.amount || Number(form.amount) <= 0) return
@@ -68,7 +83,7 @@ export default function ExpensesTab() {
 
   const openBudgets = () => {
     const init: Record<string, string> = {}
-    EXPENSE_CATEGORIES.forEach((c) => {
+    categoryOptions.forEach((c) => {
       init[c] = data?.budgetMap[c] ? String(data.budgetMap[c]) : ''
     })
     setBudgetForm(init)
@@ -215,7 +230,38 @@ export default function ExpensesTab() {
           }
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <TextInput label="Category" value={form.category} onChange={(v) => setForm({ ...form, category: v })} options={[...EXPENSE_CATEGORIES]} />
+            <div>
+              <TextInput label="Category" value={form.category} onChange={(v) => setForm({ ...form, category: v })} options={categoryOptions} />
+              {addingCategory ? (
+                <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                  <input
+                    autoFocus
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); saveNewCategory() } }}
+                    placeholder="New category name"
+                    style={{ flex: 1, height: 34, padding: '0 10px', border: '1.5px solid var(--ke-green-500)', borderRadius: 8, fontSize: 12.5 }}
+                  />
+                  <Button size="sm" variant="primary" onClick={saveNewCategory}>Add</Button>
+                  <button
+                    type="button"
+                    onClick={() => { setAddingCategory(false); setNewCategoryName('') }}
+                    aria-label="Cancel"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', display: 'flex' }}
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setAddingCategory(true)}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 6, background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--ke-green-700,#15803d)', padding: 0 }}
+                >
+                  <Plus size={12} /> New category
+                </button>
+              )}
+            </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               <TextInput label="Amount (J$)" value={form.amount} onChange={(v) => setForm({ ...form, amount: v })} type="number" />
               <TextInput label="Date" value={form.spentAt} onChange={(v) => setForm({ ...form, spentAt: v })} type="date" />
@@ -260,7 +306,7 @@ export default function ExpensesTab() {
             Set a monthly target per category (leave blank for none). Actuals are compared against these.
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {EXPENSE_CATEGORIES.map((c) => (
+            {categoryOptions.map((c) => (
               <div key={c} style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 10, alignItems: 'center' }}>
                 <span style={{ fontSize: 13 }}>{c}</span>
                 <TextInput label="" value={budgetForm[c] ?? ''} onChange={(v) => setBudgetForm({ ...budgetForm, [c]: v })} type="number" placeholder="J$" />

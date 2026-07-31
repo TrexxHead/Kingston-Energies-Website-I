@@ -189,11 +189,15 @@
   --shadow-xl:0 18px 44px rgba(0,0,0,.55);
 }
 
-/* Respect the OS preference until the user picks explicitly. */
+/* Respect the OS preference until the user picks explicitly — this only ever
+   matters for /admin, since the storefront (see app/layout.tsx +
+   components/StorefrontTheme.tsx) always keeps an explicit data-theme="light"
+   on <html>, so :not([data-theme]) never actually applies there. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) { color-scheme: dark; }
 }
 :root[data-theme="dark"] { color-scheme: dark; }
+:root[data-theme="light"] { color-scheme: light; }
 
 .ke-root * { box-sizing:border-box; }
 .ke-root a { color:var(--ke-green-700); text-decoration:none; }

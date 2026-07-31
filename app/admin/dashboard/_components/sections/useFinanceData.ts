@@ -38,3 +38,36 @@ export function useFinanceData() {
 
   return { data, reload }
 }
+
+/**
+ * The expense category list — the built-in set plus whatever an admin has
+ * added. Shared by every screen with a category picker (expense log,
+ * budgets, receipts, the calendar's legend) so adding one in any of them
+ * makes it available everywhere else immediately.
+ */
+export function useExpenseCategories() {
+  const [categories, setCategories] = useState<string[]>([])
+
+  const reload = useCallback(async () => {
+    const res = await fetch('/api/admin/finance/categories')
+    if (res.ok) setCategories((await res.json()).categories)
+  }, [])
+
+  useEffect(() => {
+    reload()
+  }, [reload])
+
+  const addCategory = useCallback(async (name: string): Promise<string[] | null> => {
+    const res = await fetch('/api/admin/finance/categories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    })
+    if (!res.ok) return null
+    const { categories: next } = await res.json()
+    setCategories(next)
+    return next
+  }, [])
+
+  return { categories, addCategory, reload }
+}

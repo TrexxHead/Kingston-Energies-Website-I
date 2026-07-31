@@ -84,6 +84,8 @@ export default function OrdersSection() {
     source: 'FACE_TO_FACE' as OrderChannel, paymentMethod: '', paid: false,
   })
   const [newItems, setNewItems] = useState([{ name: '', price: '', qty: '1' }])
+  const [products, setProducts] = useState<{ id: string; name: string; price: number; salePrice: number | null }[]>([])
+  const [suggestFor, setSuggestFor] = useState<number | null>(null)
 
   const load = useCallback(async () => {
     const res = await fetch('/api/admin/orders')
@@ -93,6 +95,20 @@ export default function OrdersSection() {
   useEffect(() => {
     load()
   }, [load])
+
+  // Loaded once, on demand, when the "New order" form's item picker is first
+  // needed — the same catalog Inventory manages, so a manual order always
+  // reflects real products and their current price.
+  const loadProducts = useCallback(async () => {
+    if (products.length) return
+    const res = await fetch('/api/admin/products')
+    if (res.ok) setProducts((await res.json()).products)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    if (newOpen) loadProducts()
+  }, [newOpen, loadProducts])
 
   const setStatus = async (id: string, status: OrderStatus) => {
     // optimistic update
@@ -510,14 +526,52 @@ export default function OrdersSection() {
 
           <div style={{ marginTop: 12 }}>
             <span style={overline}>ITEMS</span>
-            {newItems.map((item, i) => (
-              <div key={i} style={{ display: 'flex', gap: 6, marginTop: 6, alignItems: 'center' }}>
-                <input
-                  value={item.name}
-                  onChange={(e) => setNewItems((prev) => prev.map((p, pi) => (pi === i ? { ...p, name: e.target.value } : p)))}
-                  placeholder="Item name"
-                  style={{ flex: 1, height: 34, padding: '0 10px', border: '1px solid var(--color-border)', borderRadius: 8, fontSize: 12.5 }}
-                />
+            {newItems.map((item, i) => {
+              const query = item.name.trim().toLowerCase()
+              const matches = query && suggestFor === i
+                ? products.filter((p) => p.name.toLowerCase().includes(query)).slice(0, 6)
+                : []
+              return (
+              <div key={i} style={{ display: 'flex', gap: 6, marginTop: 6, alignItems: 'center', position: 'relative' }}>
+                <div style={{ flex: 1, position: 'relative' }}>
+                  <input
+                    value={item.name}
+                    onChange={(e) => setNewItems((prev) => prev.map((p, pi) => (pi === i ? { ...p, name: e.target.value } : p)))}
+                    onFocus={() => setSuggestFor(i)}
+                    onBlur={() => setTimeout(() => setSuggestFor((cur) => (cur === i ? null : cur)), 120)}
+                    placeholder="Item name — start typing to pick a product"
+                    style={{ width: '100%', height: 34, padding: '0 10px', border: '1px solid var(--color-border)', borderRadius: 8, fontSize: 12.5 }}
+                  />
+                  {matches.length > 0 && (
+                    <div
+                      style={{
+                        position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 20,
+                        background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 10,
+                        boxShadow: '0 12px 28px rgba(0,0,0,.14)', overflow: 'hidden',
+                      }}
+                    >
+                      {matches.map((p) => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault() // fire before the input's onBlur closes this
+                            const effectivePrice = p.salePrice ?? p.price
+                            setNewItems((prev) => prev.map((row, pi) => (pi === i ? { ...row, name: p.name, price: String(effectivePrice) } : row)))
+                            setSuggestFor(null)
+                          }}
+                          style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, width: '100%',
+                            padding: '8px 10px', border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left', fontSize: 12.5,
+                          }}
+                        >
+                          <span style={{ color: 'var(--color-text)' }}>{p.name}</span>
+                          <span style={{ color: 'var(--color-text-muted)', flexShrink: 0 }}>{fmt(p.salePrice ?? p.price)}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <input
                   value={item.price}
                   onChange={(e) => setNewItems((prev) => prev.map((p, pi) => (pi === i ? { ...p, price: e.target.value } : p)))}
@@ -541,7 +595,8 @@ export default function OrdersSection() {
                   <Trash2 size={15} />
                 </button>
               </div>
-            ))}
+              )
+            })}
             <button
               type="button"
               onClick={() => setNewItems((prev) => [...prev, { name: '', price: '', qty: '1' }])}

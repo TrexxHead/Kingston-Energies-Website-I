@@ -9,6 +9,7 @@ import Modal from '../ui/Modal'
 import TextInput from '../ui/TextInput'
 import { fmt } from '../mockData'
 import { EXPENSE_CATEGORIES } from '@/lib/finance'
+import { useExpenseCategories } from './useFinanceData'
 
 /**
  * Receipts and bills.
@@ -22,6 +23,7 @@ export default function DocumentsTab() {
   const [uploadOpen, setUploadOpen] = useState(false)
   const [openId, setOpenId] = useState<string | null>(null)
   const [filter, setFilter] = useState<'NEEDS_REVIEW' | 'ALL'>('NEEDS_REVIEW')
+  const { categories } = useExpenseCategories()
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/admin/finance/documents?status=${filter}`)
@@ -126,6 +128,7 @@ export default function DocumentsTab() {
       {openId && (
         <DocumentModal
           id={openId}
+          categories={categories.length ? categories : [...EXPENSE_CATEGORIES]}
           onClose={() => setOpenId(null)}
           onChanged={() => {
             setOpenId(null)
@@ -218,9 +221,9 @@ interface DocumentDetail {
   expense: { id: string; category: string; amount: number } | null
 }
 
-function DocumentModal({ id, onClose, onChanged }: { id: string; onClose: () => void; onChanged: () => void }) {
+function DocumentModal({ id, categories, onClose, onChanged }: { id: string; categories: string[]; onClose: () => void; onChanged: () => void }) {
   const [doc, setDoc] = useState<DocumentDetail | null>(null)
-  const [form, setForm] = useState({ vendor: '', documentDate: '', total: '', taxAmount: '', category: EXPENSE_CATEGORIES[0] as string, notes: '' })
+  const [form, setForm] = useState({ vendor: '', documentDate: '', total: '', taxAmount: '', category: categories[0] ?? (EXPENSE_CATEGORIES[0] as string), notes: '' })
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
@@ -235,7 +238,7 @@ function DocumentModal({ id, onClose, onChanged }: { id: string; onClose: () => 
         documentDate: json.documentDate ? json.documentDate.slice(0, 10) : '',
         total: json.total != null ? String(json.total) : '',
         taxAmount: json.taxAmount != null ? String(json.taxAmount) : '',
-        category: json.category ?? (EXPENSE_CATEGORIES[0] as string),
+        category: json.category ?? (categories[0] ?? (EXPENSE_CATEGORIES[0] as string)),
         notes: json.notes ?? '',
       })
     })()
@@ -319,7 +322,7 @@ function DocumentModal({ id, onClose, onChanged }: { id: string; onClose: () => 
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <TextInput label="GCT included J$" value={form.taxAmount} onChange={(v) => setForm({ ...form, taxAmount: v })} />
-              <TextInput label="Category" value={form.category} options={[...EXPENSE_CATEGORIES]} onChange={(v) => setForm({ ...form, category: v })} />
+              <TextInput label="Category" value={form.category} options={categories} onChange={(v) => setForm({ ...form, category: v })} />
             </div>
             <TextInput label="Notes" value={form.notes} onChange={(v) => setForm({ ...form, notes: v })} />
             <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: 0, lineHeight: 1.5 }}>

@@ -8,6 +8,7 @@ import IconButton from '../ui/IconButton'
 import Modal from '../ui/Modal'
 import { fmt } from '../mockData'
 import { EXPENSE_CATEGORIES, DEFAULT_CATEGORY_COLORS } from '@/lib/finance'
+import { useExpenseCategories } from './useFinanceData'
 
 interface CalendarData {
   month: string
@@ -42,6 +43,8 @@ export default function CalendarTab() {
   const [selected, setSelected] = useState<string>(todayKey())
   const [colors, setColors] = useState<Record<string, string>>(DEFAULT_CATEGORY_COLORS)
   const [colorsOpen, setColorsOpen] = useState(false)
+  const { categories } = useExpenseCategories()
+  const categoryOptions = categories.length ? categories : [...EXPENSE_CATEGORIES]
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/admin/finance/calendar?month=${month}`)
@@ -208,9 +211,9 @@ export default function CalendarTab() {
             </button>
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 16px' }}>
-            {EXPENSE_CATEGORIES.map((cat) => (
+            {categoryOptions.map((cat) => (
               <span key={cat} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--color-text-muted)' }}>
-                <span style={{ width: 9, height: 9, borderRadius: '50%', background: colors[cat] ?? DEFAULT_CATEGORY_COLORS[cat] }} />
+                <span style={{ width: 9, height: 9, borderRadius: '50%', background: colors[cat] ?? DEFAULT_CATEGORY_COLORS[cat] ?? '#9ca3af' }} />
                 {cat}
               </span>
             ))}
@@ -254,6 +257,7 @@ export default function CalendarTab() {
 
       {colorsOpen && (
         <ColorsModal
+          categories={categoryOptions}
           colors={colors}
           onClose={() => setColorsOpen(false)}
           onSaved={(next) => {
@@ -267,10 +271,12 @@ export default function CalendarTab() {
 }
 
 function ColorsModal({
+  categories,
   colors,
   onClose,
   onSaved,
 }: {
+  categories: string[]
   colors: Record<string, string>
   onClose: () => void
   onSaved: (colors: Record<string, string>) => void
@@ -308,12 +314,12 @@ function ColorsModal({
       }
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {EXPENSE_CATEGORIES.map((cat) => (
+        {categories.map((cat) => (
           <div key={cat} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
             <span style={{ fontSize: 13.5, color: 'var(--color-text)' }}>{cat}</span>
             <input
               type="color"
-              value={form[cat] ?? DEFAULT_CATEGORY_COLORS[cat]}
+              value={form[cat] ?? DEFAULT_CATEGORY_COLORS[cat] ?? '#9ca3af'}
               onChange={(e) => setForm({ ...form, [cat]: e.target.value })}
               style={{ width: 40, height: 30, borderRadius: 8, border: '1px solid var(--color-border)', padding: 2, cursor: 'pointer', background: 'none' }}
             />

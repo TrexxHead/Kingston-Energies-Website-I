@@ -8,8 +8,18 @@ import AnnouncementBar from '@/components/AnnouncementBar'
 import JsonLd from '@/components/JsonLd'
 import GoogleAnalytics from '@/components/GoogleAnalytics'
 import { WebVitals } from '@/components/WebVitals'
+import StorefrontTheme from '@/components/StorefrontTheme'
 import { siteGraph } from '@/lib/structuredData'
 import { keFontVariables } from './_design-system/fonts'
+
+// Runs during HTML parsing, before first paint — pins <html> to the light
+// theme unless this is an admin route (which sets its own data-theme via
+// ThemeToggle). Without this, a customer's OS dark mode alone flips
+// `color-scheme` to dark site-wide, and any text relying on the browser's
+// unstyled default color renders near-white on the storefront's light
+// backgrounds. StorefrontTheme (mounted below) covers client-side
+// navigation; this covers the first, server-rendered paint.
+const storefrontThemeInitScript = `(function(){try{if(!location.pathname.startsWith('/admin')){document.documentElement.setAttribute('data-theme','light')}}catch(e){}})()`
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
@@ -47,6 +57,12 @@ export const metadata: Metadata = {
     description: 'Premium portable power for everyone, built in Kingston, Jamaica.',
   },
   robots: { index: true, follow: true },
+  // Google Search Console's "HTML tag" verification method — paste the
+  // content value it gives you (Settings → Ownership verification) into
+  // NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION. Renders nothing until it's set.
+  ...(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
+    ? { verification: { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION } }
+    : {}),
 }
 
 export default function RootLayout({
@@ -56,7 +72,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${keFontVariables} ke-root bg-light text-dark`}>
+      <body
+        className={`${keFontVariables} ke-root`}
+        style={{ background: 'var(--color-bg)', color: 'var(--color-text)' }}
+      >
+        <script dangerouslySetInnerHTML={{ __html: storefrontThemeInitScript }} />
         {/* Organization + WebSite — on every page, so Google always has a
             stable answer for who runs the site, independent of which page
             it crawled first. */}
@@ -68,6 +88,7 @@ export default function RootLayout({
           <CookieConsent />
           <GoogleAnalytics />
           <WebVitals />
+          <StorefrontTheme />
         </Providers>
       </body>
     </html>

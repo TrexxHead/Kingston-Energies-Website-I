@@ -94,7 +94,16 @@ export async function uploadPublicImage(
 ): Promise<string> {
   const s = storage()
   const { error } = await s.storage.from(PUBLIC_BUCKET).upload(path, body, { contentType, upsert: false })
-  if (error) throw new Error(`Upload failed: ${error.message}`)
+  if (error) {
+    // The most common cause by far: the bucket was never created. Point
+    // straight at the fix instead of surfacing Supabase's bare error string.
+    if (/bucket not found/i.test(error.message)) {
+      throw new Error(
+        `Upload failed: no "${PUBLIC_BUCKET}" storage bucket exists yet. In the Supabase dashboard → Storage → New bucket, name it exactly "${PUBLIC_BUCKET}" with the Public toggle ON, then try again.`,
+      )
+    }
+    throw new Error(`Upload failed: ${error.message}`)
+  }
   const { data } = s.storage.from(PUBLIC_BUCKET).getPublicUrl(path)
   return data.publicUrl
 }

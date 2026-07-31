@@ -188,6 +188,14 @@ Turns on **file uploads** for admin documents/policies and procurement attachmen
 
 Once configured, the "Add" buttons in **Policies & documentation** and **Suppliers & procurement** gain an **Upload file** tab alongside **Add link**.
 
+**Product photos use a second, separate bucket** — the one above (`admin-files`) is private and only for internal documents. To turn on image upload/drag-drop in **Inventory → Edit product → Images**:
+
+1. In the **Supabase dashboard** → **Storage** → **New bucket**.
+2. Name it exactly `product-images`. **Turn the "Public bucket" toggle ON** — these are storefront product photos, meant to be publicly viewable (unlike `admin-files`).
+3. No new env vars needed — it reuses the same `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` from above.
+
+Until this bucket exists, uploading in the Images panel fails with "Bucket not found." You can still add images by pasting a URL in the meantime — nothing else is blocked.
+
 ---
 
 ## Admin Access

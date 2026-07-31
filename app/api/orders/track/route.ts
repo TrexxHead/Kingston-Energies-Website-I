@@ -4,11 +4,20 @@ import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/authOptions'
 import { PIPELINE, clampStage } from '@/lib/pipeline'
 import { rateLimit, clientIp } from '@/lib/rateLimit'
+import { verifyTrackToken } from '@/lib/trackToken'
 
 /**
  * Public-ish tracking lookup by order number. Returns only low-sensitivity
  * delivery info (stage, customer-facing timeline, ETA, item names) — never the
  * customer's name, address or payment details.
+ *
+ * A lookup by number alone is only honoured when it's accompanied by proof
+ * this is actually that order's owner: the tracking token minted at order
+ * creation (rides along invisibly through the post-checkout redirect and the
+ * confirmation email — see lib/trackToken.ts), a signed-in session that owns
+ * the order, or a matching email on the order. Order numbers are sequential
+ * (KE-####), so without one of those this would otherwise let anyone browse
+ * every order on the site by counting.
  */
 export async function GET(request: Request) {
   // Order numbers are sequential (KE-####) — rate-limit lookups so the
@@ -20,9 +29,11 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url)
   const no = url.searchParams.get('no')?.trim().toUpperCase()
+  const token = url.searchParams.get('t')
+  const emailParam = url.searchParams.get('email')?.trim().toLowerCase()
   const session = await getServerSession(authOptions)
 
-  const order = no
+  let order = no
     ? await prisma.order.findUnique({
         where: { orderNo: no },
         include: { items: { select: { name: true, qty: true } }, events: { where: { adminOnly: false }, orderBy: { createdAt: 'asc' } } },
@@ -34,6 +45,15 @@ export async function GET(request: Request) {
           include: { items: { select: { name: true, qty: true } }, events: { where: { adminOnly: false }, orderBy: { createdAt: 'asc' } } },
         })
       : null
+
+  if (order && no) {
+    const tokenOk = verifyTrackToken(no, token)
+    const sessionOwnsIt = Boolean(session?.user?.id && order.userId === session.user.id)
+    const emailOk = Boolean(emailParam && order.email && order.email.toLowerCase() === emailParam)
+    // Looked up by number but couldn't prove ownership — answer the same as a
+    // genuine miss, so this can't be used to confirm an order number is real.
+    if (!tokenOk && !sessionOwnsIt && !emailOk) order = null
+  }
 
   if (!order) return NextResponse.json({ error: 'Order not found.' }, { status: 404 })
 

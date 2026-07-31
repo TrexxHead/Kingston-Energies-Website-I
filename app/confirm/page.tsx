@@ -31,21 +31,27 @@ function ConfirmInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [orderNo, setOrderNo] = useState('KE-1042')
+  const [orderToken, setOrderToken] = useState('')
   const [payInfo, setPayInfo] = useState<PayMethod | null>(null)
   const paidByCard = searchParams.get('paid') === '1'
 
   useEffect(() => {
     let method = ''
+    let token = ''
     try {
       const fromQuery = searchParams.get('order')
       const stored = sessionStorage.getItem('ke-last-order')
+      const tokenFromQuery = searchParams.get('t')
       if (fromQuery) {
         setOrderNo(fromQuery)
         // Card payments land here via a WiPay redirect, which never went
         // through the checkout page's sessionStorage write — persist it now
         // so "Track order" (and a future visit to /track) can find it.
         sessionStorage.setItem('ke-last-order', fromQuery)
+        if (tokenFromQuery) sessionStorage.setItem('ke-last-order-token', tokenFromQuery)
       } else if (stored) setOrderNo(stored)
+      token = tokenFromQuery || sessionStorage.getItem('ke-last-order-token') || ''
+      setOrderToken(token)
       method = sessionStorage.getItem('ke-last-method') ?? ''
     } catch {
       // ignore
@@ -71,7 +77,7 @@ function ConfirmInner() {
       let alreadyReported = false
       try { alreadyReported = sessionStorage.getItem(reportedKey) === '1' } catch { /* ignore */ }
       if (!alreadyReported) {
-        fetch(`/api/orders/track?no=${encodeURIComponent(orderForPurchase)}`)
+        fetch(`/api/orders/track?no=${encodeURIComponent(orderForPurchase)}${token ? `&t=${encodeURIComponent(token)}` : ''}`)
           .then((r) => (r.ok ? r.json() : null))
           .then((d: { total?: number; items?: { qty: number }[] } | null) => {
             if (!d || typeof d.total !== 'number') return
@@ -149,7 +155,7 @@ function ConfirmInner() {
         )}
 
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 30, flexWrap: 'wrap' }}>
-          <Button onClick={() => router.push(`/track?no=${encodeURIComponent(orderNo)}`)} iconRight={<ArrowRight size={17} />}>Track order</Button>
+          <Button onClick={() => router.push(`/track?no=${encodeURIComponent(orderNo)}${orderToken ? `&t=${encodeURIComponent(orderToken)}` : ''}`)} iconRight={<ArrowRight size={17} />}>Track order</Button>
           <Button variant="outline" onClick={() => router.push('/shop')}>Keep shopping</Button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, background: '#fff', border: '1px solid var(--color-border)', borderRadius: 18, padding: '20px 24px', marginTop: 44, textAlign: 'left', boxShadow: 'var(--shadow-sm)' }}>

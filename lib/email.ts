@@ -53,6 +53,8 @@ interface OrderEmailInput {
   orderNo: string
   total: number
   items: { name: string; qty: number; price: number }[]
+  /** Lets the "track your order" link go straight to this order without asking the customer to sign in. */
+  trackToken?: string
 }
 
 interface VerificationEmailInput {
@@ -276,6 +278,10 @@ async function deliver({ to, subject, html }: { to: string; subject: string; htm
 }
 
 function renderOrderHtml(input: OrderEmailInput): string {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://kingstonenergies.com'
+  const trackUrl = input.trackToken
+    ? `${siteUrl}/track?no=${encodeURIComponent(input.orderNo)}&t=${input.trackToken}`
+    : `${siteUrl}/track`
   const rows = input.items
     .map(
       (i) =>
@@ -295,7 +301,7 @@ function renderOrderHtml(input: OrderEmailInput): string {
         <tr><td style="padding:12px 0 0;border-top:1px solid #e2e8e4;font-weight:700">Total</td>
         <td style="padding:12px 0 0;border-top:1px solid #e2e8e4;text-align:right;font-weight:700">${fmt(input.total)}</td></tr>
       </table>
-      <p style="font-size:13px;color:#556059;margin-top:20px">We'll let you know when it's on the way. Track your order any time at kingstonenergies.com/track.</p>
+      <p style="font-size:13px;color:#556059;margin-top:20px">We'll let you know when it's on the way. <a href="${trackUrl}" style="color:#47701a">Track your order</a> any time.</p>
       <div style="margin-top:20px;padding:14px 16px;background:#f2f7f3;border-radius:12px">
         <div style="font-weight:700;font-size:13px;color:#1c2a25">Your warranty &amp; returns</div>
         <p style="font-size:12.5px;color:#556059;margin:6px 0 0;line-height:1.5">Every item includes a <strong>14-day return window</strong> plus the manufacturer's warranty. Keep this email as proof of purchase — to make a claim, just reply or contact us at kingstonenergies.com. Care tips for your device are on each product page.</p>

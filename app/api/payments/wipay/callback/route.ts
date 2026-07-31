@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { verifyWiPayCallback } from '@/lib/wipay'
 import { markPointsRedeemed } from '@/lib/pointsRedemption'
 import { postOrderPayment } from '@/lib/ledger/post'
+import { trackToken } from '@/lib/trackToken'
 
 const POINTS_LINE_RE = /^Rewards points redeemed \((\d+) pts\)$/
 
@@ -48,7 +49,7 @@ async function handle(params: URLSearchParams): Promise<NextResponse> {
     } catch {
       // Order not found — still send the customer somewhere sensible below.
     }
-    return NextResponse.redirect(`${siteUrl}/confirm?order=${encodeURIComponent(orderNo)}&paid=1`, 303)
+    return NextResponse.redirect(`${siteUrl}/confirm?order=${encodeURIComponent(orderNo)}&paid=1&t=${trackToken(orderNo)}`, 303)
   }
 
   // Failed / unverified — send them back to checkout with a flag.

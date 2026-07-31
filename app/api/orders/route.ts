@@ -11,6 +11,7 @@ import { deliveryFee, deliveryLineLabel } from '@/lib/delivery'
 import { resolvePointsRedemption, markPointsRedeemed } from '@/lib/pointsRedemption'
 import { postOrderCogs, postOrderRevenue } from '@/lib/ledger/post'
 import { validateCartPrices } from '@/lib/cartValidation'
+import { trackToken } from '@/lib/trackToken'
 
 const orderSchema = z.object({
   customerName: z.string().min(1).max(120),
@@ -134,14 +135,16 @@ export async function POST(request: Request) {
       await markPointsRedeemed(userId, pointsUsed)
     }
 
+    const token = trackToken(order.orderNo)
+
     // Fire-and-forget confirmation email (works for guests too, via captured email).
     if (contactEmail) {
-      void sendOrderConfirmation({ to: contactEmail, customerName, orderNo: order.orderNo, total, items: recordedItems })
+      void sendOrderConfirmation({ to: contactEmail, customerName, orderNo: order.orderNo, total, items: recordedItems, trackToken: token })
     }
     // Alert every admin so orders needing manual follow-up (bank/Lynk/PayPal/COD) get seen promptly.
     void sendNewOrderAlert({ orderNo: order.orderNo, customerName, total, paymentMethod: paymentMethod ?? null, items: recordedItems })
 
-    return NextResponse.json({ orderNo: order.orderNo }, { status: 201 })
+    return NextResponse.json({ orderNo: order.orderNo, trackToken: token }, { status: 201 })
   } catch (err) {
     console.error('[orders] failed to create order:', err)
     return NextResponse.json({ error: 'Could not place your order. Please try again.' }, { status: 500 })

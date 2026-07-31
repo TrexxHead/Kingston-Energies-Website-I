@@ -144,6 +144,7 @@ function CheckoutInner() {
 
     // Direct methods → record the order, then show pay instructions on /confirm.
     let orderNo: string | null = null
+    let orderTrackToken: string | null = null
     try {
       const res = await fetch('/api/orders', {
         method: 'POST',
@@ -151,7 +152,9 @@ function CheckoutInner() {
         body: JSON.stringify({ customerName, paymentMethod: selected.id, ...contact, items: payloadItems, promoCode: promoCode ?? undefined, pointsRedeemed: pointsApplied || undefined }),
       })
       if (res.ok) {
-        orderNo = (await res.json()).orderNo
+        const data = await res.json()
+        orderNo = data.orderNo
+        orderTrackToken = data.trackToken ?? null
       } else {
         const msg = await res.json().catch(() => null)
         console.error('[checkout] orders POST failed', res.status, msg)
@@ -173,6 +176,7 @@ function CheckoutInner() {
     try {
       sessionStorage.setItem('ke-last-order', orderNo)
       sessionStorage.setItem('ke-last-method', selected.id)
+      if (orderTrackToken) sessionStorage.setItem('ke-last-order-token', orderTrackToken)
     } catch {
       // ignore
     }

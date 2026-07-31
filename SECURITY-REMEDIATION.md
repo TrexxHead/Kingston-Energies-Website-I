@@ -128,11 +128,26 @@ Checked against every item the brief lists:
 - `/legal/*`, `/robots.txt`, `/sitemap.xml`, `/contact` — public/static/no-PII. `public, max-age=0, must-revalidate` (Next's default) is correct. **RISK ACCEPTED**, no change.
 - `/track`, `/cart`, `/hub`, `/admin` — now explicitly `private, no-cache, no-store, must-revalidate` via a new `headers()` rule in `next.config.js`. All `/api/*` routes now explicitly `no-store`. Verified live against a local production build (`curl -sI`, see script output below).
 
-**Real finding surfaced while triaging this, matching the brief's own hypothesis in §1.5 — `/track` order lookup by number alone:**
+**Real finding surfaced while triaging this, matching the brief's own hypothesis in §1.5 — `/track` order lookup by number alone — CONFIRMED, FIXED (follow-up pass):**
 
-`app/api/orders/track/route.ts` accepts an order number (`?no=KE-1042`) with **no authentication and no second factor**, and order numbers are sequential (`KE-####`, confirmed by `nextOrderNo()` in both order-creation routes, which just increments the highest existing number). The route's own comment confirms it's deliberately scoped to "low-sensitivity" fields — it does **not** return customer name, address, phone, or payment details — but it does return item names, quantities, delivery stage and timing for **any** order to **any** anonymous requester who guesses or enumerates a number, throttled only by a 20-requests/minute-per-IP rate limit (which slows but doesn't stop enumeration, and is itself subject to the same per-instance durability caveat as C.2).
+`app/api/orders/track/route.ts` accepted an order number (`?no=KE-1042`) with **no authentication and no second factor**, and order numbers are sequential (`KE-####`, confirmed by `nextOrderNo()` in both order-creation routes, which just increments the highest existing number). The route's own comment confirms it was deliberately scoped to "low-sensitivity" fields — it never returned customer name, address, phone, or payment details — but it did return item names, quantities, delivery stage and timing for **any** order to **any** anonymous requester who guessed or enumerated a number, throttled only by a 20-requests/minute-per-IP rate limit (slows enumeration, doesn't stop it).
 
-**This was left as RISK ACCEPTED with a recommendation, not fixed, deliberately:** the natural fix (require an email match alongside the order number) would change the behaviour of the post-checkout flow that every real customer currently goes through — `app/confirm/page.tsx` redirects straight to `/track?no=<order>` immediately after payment with no email ever collected for that redirect, including the WiPay card flow. Landing that change unilaterally risks breaking the confirmation page for every customer who just paid, which is a customer-facing product decision, not a pure security patch — exactly the kind of consequential, ambiguous change this review's own ground rules say to flag rather than push through silently. Cache-Control is fixed either way (closes the CDN cross-user-caching risk this raised); the enumeration/second-factor question is the user's call. If wanted, the fix is straightforward: accept an optional `email` param, and when a customer account exists on the order, require it to match (or require an authenticated session matching `order.userId`) before returning item-level detail — keep the coarse stage-only response available by number alone for the confirmation redirect.
+**Fix — no disruption to the post-checkout flow, per the user's explicit ask to confirm that was possible first:**
+
+`lib/trackToken.ts` — a per-order credential *derived*, not stored (`HMAC-SHA256("track:" + orderNo)` under `NEXTAUTH_SECRET`, so no schema change/migration needed). A lookup by order number now only succeeds with one of three things: this token, a signed-in session that owns the order, or a matching `email` query param against the order's own email on file. Anything else gets the same 404 as a genuinely wrong number — it can't be used to confirm an order number is even real.
+
+The token rides along invisibly through every path that already carries the order number, so a customer who just paid never sees or types anything new:
+- Non-card checkout: `/api/orders` now returns `trackToken` alongside `orderNo`; `app/checkout/page.tsx` stores it in `sessionStorage` next to the existing `ke-last-order` key.
+- Card checkout: `app/api/payments/wipay/callback/route.ts` computes the token fresh (it's derived, not stored, so the callback doesn't need it passed through the WiPay round-trip) and appends it to the existing `/confirm?order=...&paid=1` redirect.
+- `app/confirm/page.tsx` picks up the token from either source, persists it, and appends it to the existing "Track order" button link and to its own GA4 purchase-report fetch (which also calls `/api/orders/track` and would otherwise have started 404ing under the new check).
+- `app/track/page.tsx` reads it from the URL or the same `sessionStorage` key and includes it in its fetch.
+- The order-confirmation email's "Track your order" link (`lib/email.ts`) now also carries the token, so it works as a direct, one-click deep link even for a guest returning on a different device days later — an actual improvement over the previous plain `kingstonenergies.com/track` mention, which had no order number attached at all.
+
+A signed-in customer looking up their *own* past order by number also just works, token or not (session ownership is checked independently). Cache-Control was already fixed regardless (closes the CDN cross-user-caching risk); this closes the enumeration risk on top of it.
+
+**Tests:** `tests/trackToken.test.ts` (token generation/verification properties) and `tests/apiOrdersTrackAuth.test.ts` (7 cases against the route itself, mocked: bare lookup rejected, correct token accepted, token for a different order rejected, owning session accepted, non-owning session rejected, matching email accepted, wrong email rejected).
+
+**Not verified in this pass:** the full live redirect chain (real checkout → real confirm → click "Track order") — this sandbox has no database. The unit tests above cover the token logic and the route's authorization decision directly; recommend one real click-through on staging before merge.
 
 ---
 
@@ -182,7 +197,7 @@ The brief's Insights section (52% 4xx, 59% slow) requires production access logs
 | Gap | Status |
 |---|---|
 | Authenticated ZAP scan (customer + admin) | Not run — recommend before next scan |
-| Authorization/IDOR sweep | Done for `/admin`, `/hub`, and every `/api/hub/*`/`/api/admin/*` route (§B.2) — all verified session/role-gated server-side. `/track`'s order-number-only lookup flagged in §C.5 as the one open item, left for the user's decision given the checkout-flow tradeoff. |
+| Authorization/IDOR sweep | Done for `/admin`, `/hub`, and every `/api/hub/*`/`/api/admin/*` route (§B.2) — all verified session/role-gated server-side. `/track`'s order-number-only lookup — **fixed**, see §C.5. |
 | Supabase RLS audit | Not applicable — see §B.4 |
 | WiPay payment integrity | Done — see §A |
 | `npm audit --production` | Run: 4 findings (3 moderate, 1 high), all inside `next`'s own **bundled, build-time-only** copy of `postcss` (not this project's direct dependency, no fix currently available upstream). No runtime user-input attack surface. Recommend Dependabot/Renovate to pick up the fix once Next ships one. |
@@ -208,7 +223,7 @@ The brief's Insights section (52% 4xx, 59% slow) requires production access logs
 - [x] `callbackUrl` — confirmed no exploitable path exists today (§C.1); no unused allowlist code added per Ground Rule 2
 - [~] `/api/chat` rate-limited, body-validated, `max_tokens` capped, `no-store` — all true except the rate limiter isn't cross-instance-durable (§C.2)
 - [x] `/track`, `/cart`, `/hub`, `/admin`, `/api/*` return no-store cache headers — fixed, verified with `curl`
-- [ ] `/track` lookup requires a second factor — **flagged, not fixed**, user decision needed (§C.5)
+- [x] `/track` lookup requires a second factor — **fixed** (§C.5): tracking token (invisible to the customer), owning session, or matching email — no disruption to the post-checkout flow
 - [x] `npm audit --production` — 4 findings, all in Next's bundled build-time postcss, documented (§G)
 - [~] `gitleaks` — tool unavailable in this sandbox; manual equivalent checks clean (§G)
 - [ ] Full end-to-end regression (Google sign-in, add-to-cart, WiPay checkout, tracking, AI chat) under the new CSP — **not run live**; this sandbox has no database, no real OAuth credentials, and no WiPay sandbox access. Verified instead: production build succeeds, all 147 automated tests pass (5 new), headers verified live against a local production server (`scripts/verify-headers.sh`). **The user needs to run this against a real preview deployment before merging to production.**
@@ -218,18 +233,23 @@ The brief's Insights section (52% 4xx, 59% slow) requires production access logs
 ## I. Files changed
 
 - `lib/cartValidation.ts` — new; server-side price validation (§A.1)
-- `app/api/orders/route.ts`, `app/api/payments/wipay/create/route.ts` — wire in price validation
-- `app/api/payments/wipay/callback/route.ts` — cross-check WiPay's reported total against the order record
+- `app/api/orders/route.ts`, `app/api/payments/wipay/create/route.ts` — wire in price validation, issue a tracking token
+- `app/api/payments/wipay/callback/route.ts` — cross-check WiPay's reported total against the order record; append the tracking token to the confirm redirect
 - `next.config.js` — `poweredByHeader: false`; CSP: removed `unsafe-eval`, `api.anthropic.com`, `*.supabase.co`; added `upgrade-insecure-requests`, `worker-src`, `manifest-src`, tightened `Permissions-Policy`, added `Cross-Origin-Opener-Policy`; new `Cache-Control: no-store` rules for `/track`, `/cart`, `/hub`, `/admin`, `/api/*`
+- `lib/trackToken.ts` — new; derived per-order tracking credential (§C.5)
+- `app/api/orders/track/route.ts` — require the token, an owning session, or a matching email for a number-based lookup
+- `app/checkout/page.tsx`, `app/confirm/page.tsx`, `app/track/page.tsx` — carry the tracking token through the existing checkout → confirm → track handoff (sessionStorage + URL param, no new UI)
+- `lib/email.ts`, `app/api/integrations/orders/route.ts` — order-confirmation email's tracking link now carries the token too
 - `tests/apiChatSecurity.test.ts` — new; SQLi false-positive regression test
 - `tests/cartValidation.test.ts` — new; price-validation tests
+- `tests/trackToken.test.ts`, `tests/apiOrdersTrackAuth.test.ts` — new; tracking-token and route-authorization tests
 - `scripts/verify-headers.sh` — new; live header verification, wired for CI use against a preview deployment
 
 ## J. Verification run in this pass
 
 ```
 npx tsc --noEmit                     # clean
-npx vitest run                       # 147/147 passing (5 new)
+npx vitest run                       # 159/159 passing (12 new)
 npx next build                       # succeeds
 npx next start -p 3100 &
 ./scripts/verify-headers.sh http://localhost:3100   # all checks pass

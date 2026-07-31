@@ -55,14 +55,17 @@ function TrackInner() {
 
   const load = useCallback(async () => {
     let no = params.get('no')?.trim() ?? ''
+    let token = params.get('t')?.trim() ?? ''
     if (!no) {
       try {
         no = sessionStorage.getItem('ke-last-order') ?? ''
+        token = sessionStorage.getItem('ke-last-order-token') ?? ''
       } catch {
         // ignore
       }
     }
-    const res = await fetch(`/api/orders/track${no ? `?no=${encodeURIComponent(no)}` : ''}`)
+    const qs = no ? `?no=${encodeURIComponent(no)}${token ? `&t=${encodeURIComponent(token)}` : ''}` : ''
+    const res = await fetch(`/api/orders/track${qs}`)
     if (res.ok) {
       setData(await res.json())
       setNotFound(false)

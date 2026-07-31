@@ -6,6 +6,7 @@ import { getShopProducts } from '@/lib/products'
 import { fmt } from '@/lib/catalog'
 import { sendOrderConfirmation } from '@/lib/email'
 import { bulkRateForQty } from '@/lib/pricing'
+import { trackToken } from '@/lib/trackToken'
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
@@ -116,7 +117,7 @@ export async function POST(request: Request) {
 
   // Optional confirmation email if the bot captured one.
   if (email) {
-    void sendOrderConfirmation({ to: email, customerName, orderNo: order.orderNo, total, items: resolved })
+    void sendOrderConfirmation({ to: email, customerName, orderNo: order.orderNo, total, items: resolved, trackToken: trackToken(order.orderNo) })
   }
 
   const lines = resolved.map((i) => `${i.qty}× ${i.name} — ${fmt(i.price * i.qty)}`)

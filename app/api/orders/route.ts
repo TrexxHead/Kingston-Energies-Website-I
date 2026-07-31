@@ -10,6 +10,7 @@ import { validatePromo } from '@/lib/promo'
 import { deliveryFee, deliveryLineLabel } from '@/lib/delivery'
 import { resolvePointsRedemption, markPointsRedeemed } from '@/lib/pointsRedemption'
 import { postOrderCogs, postOrderRevenue } from '@/lib/ledger/post'
+import { validateCartPrices } from '@/lib/cartValidation'
 
 const orderSchema = z.object({
   customerName: z.string().min(1).max(120),
@@ -76,6 +77,13 @@ export async function POST(request: Request) {
     const { customerName, email, phone, shippingAddress, billingAddress, cartId, parish, deliveryMethod, paymentMethod, promoCode, pointsRedeemed, items } = parsed.data
     // Prefer the signed-in email, else the one the guest typed at checkout.
     const contactEmail = session?.user?.email ?? email ?? null
+
+    // Item prices come from the request body — confirm every one is a real
+    // product at its real current price before it becomes an order total.
+    const priceCheck = await validateCartPrices(items)
+    if (!priceCheck.ok) {
+      return NextResponse.json({ error: priceCheck.error }, { status: 400 })
+    }
 
     const units = items.reduce((sum, i) => sum + i.qty, 0)
     const gross = items.reduce((sum, i) => sum + i.price * i.qty, 0)

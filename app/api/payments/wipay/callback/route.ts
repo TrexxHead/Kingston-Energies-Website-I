@@ -25,6 +25,16 @@ async function handle(params: URLSearchParams): Promise<NextResponse> {
 
   if (orderNo && status === 'success' && verified) {
     try {
+      const existing = await prisma.order.findUnique({ where: { orderNo }, select: { total: true } })
+      // The hash proves this total genuinely came from WiPay, but not that it's
+      // the amount we actually billed for — cross-check against our own record
+      // before trusting it (within a cent for float rounding).
+      const paidTotal = Number(params.get('total') ?? NaN)
+      if (!existing || !Number.isFinite(paidTotal) || Math.abs(paidTotal - existing.total) > 1) {
+        console.error(`[wipay] total mismatch on ${orderNo}: charged ${paidTotal}, order total ${existing?.total}`)
+        return NextResponse.redirect(`${siteUrl}/checkout?payment=failed`, 303)
+      }
+
       const order = await prisma.order.update({ where: { orderNo }, data: { paid: true }, include: { items: true } })
       // Journal the cash receipt against the receivable now that it cleared.
       void postOrderPayment(order, new Date()).catch((err) => console.error('[ledger] wipay payment posting failed:', err))

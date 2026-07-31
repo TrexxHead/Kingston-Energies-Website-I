@@ -10,6 +10,7 @@ import { validatePromo } from '@/lib/promo'
 import { deliveryFee, deliveryLineLabel } from '@/lib/delivery'
 import { sendNewOrderAlert } from '@/lib/email'
 import { resolvePointsRedemption } from '@/lib/pointsRedemption'
+import { validateCartPrices } from '@/lib/cartValidation'
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
@@ -55,6 +56,14 @@ export async function POST(request: Request) {
   const session = await getServerSession(authOptions)
   const userId = session?.user?.id ?? null
   const { customerName, email, phone, shippingAddress, billingAddress, cartId, parish, deliveryMethod, promoCode, pointsRedeemed, items } = parsed.data
+
+  // Item prices come from the request body — confirm every one is a real
+  // product at its real current price before a card gets charged for it.
+  const priceCheck = await validateCartPrices(items)
+  if (!priceCheck.ok) {
+    return NextResponse.json({ error: priceCheck.error }, { status: 400 })
+  }
+
   const units = items.reduce((sum, i) => sum + i.qty, 0)
   const gross = items.reduce((sum, i) => sum + i.price * i.qty, 0)
   const bulkDiscount = Math.round(gross * bulkRateForQty(units))

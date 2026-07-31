@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { guardAdmin } from '@/lib/requireAdmin'
 import { periodStart, periodLabel, type Period } from '@/lib/finance'
 import { getAccounting } from '@/lib/accounting'
+import { isProductLine } from '@/lib/orderLineItems'
 
 /**
  * Profit & Loss + cash-flow statement for a reporting period. Revenue comes from
@@ -38,6 +39,7 @@ export async function GET(request: Request) {
   let totalUnits = 0
   for (const o of orders) {
     for (const it of o.items) {
+      if (!isProductLine(it.name)) continue
       totalUnits += it.qty
       const c = costByName.get(it.name.toLowerCase())
       if (c != null) {

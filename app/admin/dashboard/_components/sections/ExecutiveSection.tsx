@@ -1,10 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { TriangleAlert, Star } from 'lucide-react'
+import Link from 'next/link'
+import { TriangleAlert, Star, ArrowUpRight } from 'lucide-react'
 import Badge from '../ui/Badge'
 import { cardStyle, h3Style } from '../ui/card'
 import SheetsSyncCard from './SheetsSyncCard'
+import CalendarTab from './CalendarTab'
 import { fmt } from '../mockData'
 import Skeleton from '@/components/Skeleton'
 
@@ -207,6 +209,20 @@ export default function ExecutiveSection() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Cash-flow calendar */}
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <h3 style={{ ...h3Style, margin: 0 }}>Cash-flow calendar</h3>
+          <Link
+            href="/admin/dashboard/finance/calendar"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12.5, fontWeight: 600, color: 'var(--ke-green-700,#15803d)', textDecoration: 'none' }}
+          >
+            Open in Finance <ArrowUpRight size={13} />
+          </Link>
+        </div>
+        <CalendarTab />
       </div>
 
       <SheetsSyncCard />

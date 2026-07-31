@@ -21,6 +21,8 @@ interface BarChartProps {
   horizontal?: boolean
   height?: number
   format?: (n: number) => string
+  /** Compact formatter for axis ticks — defaults to compactMoney; pass your own for non-currency series (counts, etc). */
+  tickFormat?: (n: number) => string
   onSelect?: (index: number, category: string) => void
   footnote?: React.ReactNode
   actions?: React.ReactNode
@@ -43,6 +45,7 @@ export default function BarChart({
   horizontal = false,
   height = 240,
   format = money,
+  tickFormat = compactMoney,
   onSelect,
   footnote,
   actions,
@@ -141,14 +144,14 @@ export default function BarChart({
               <g key={t}>
                 <line x1={PAD.left + scale(t)} x2={PAD.left + scale(t)} y1={PAD.top} y2={PAD.top + plotH} stroke={CHROME.grid} strokeWidth={1} />
                 <text x={PAD.left + scale(t)} y={height - 8} textAnchor="middle" fontSize={10} fill={CHROME.textSubtle} fontFamily="var(--font-mono)">
-                  {compactMoney(t)}
+                  {tickFormat(t)}
                 </text>
               </g>
             ) : (
               <g key={t}>
                 <line x1={PAD.left} x2={PAD.left + plotW} y1={PAD.top + plotH - scale(t)} y2={PAD.top + plotH - scale(t)} stroke={CHROME.grid} strokeWidth={1} />
                 <text x={PAD.left - 8} y={PAD.top + plotH - scale(t) + 3.5} textAnchor="end" fontSize={10} fill={CHROME.textSubtle} fontFamily="var(--font-mono)">
-                  {compactMoney(t)}
+                  {tickFormat(t)}
                 </text>
               </g>
             ),

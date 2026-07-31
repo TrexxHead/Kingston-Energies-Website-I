@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { guardAdmin } from '@/lib/requireAdmin'
 import { periodStart, periodLabel, type Period } from '@/lib/finance'
+import { isProductLine } from '@/lib/orderLineItems'
 
 /**
  * Sales breakdown for a reporting period — total, order count, average order
@@ -34,8 +35,8 @@ export async function GET(request: Request) {
   const byProduct = new Map<string, { qty: number; revenue: number }>()
   for (const o of orders) {
     for (const it of o.items) {
-      // Delivery line items are a shipping charge, not a product sale.
-      if (it.name.startsWith('Delivery — ')) continue
+      // Delivery, discount and points-redemption lines aren't product sales.
+      if (!isProductLine(it.name)) continue
       const row = byProduct.get(it.name) ?? { qty: 0, revenue: 0 }
       row.qty += it.qty
       row.revenue += it.price * it.qty

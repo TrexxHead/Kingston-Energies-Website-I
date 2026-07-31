@@ -50,6 +50,7 @@ export default function AnalyticsSection() {
           horizontal
           height={Math.max(150, channels.length * 34 + 40)}
           format={(n) => `${n} order${n === 1 ? '' : 's'}`}
+          tickFormat={(n) => String(Math.round(n))}
           footnote={
             <>
               Abandoned carts: <strong>{k ? k.abandonedCarts : '—'}</strong> · potential recovery{' '}
@@ -68,6 +69,7 @@ export default function AnalyticsSection() {
           series={[{ label: 'Orders', values: days.map((d) => d.count) }]}
           height={200}
           format={(n) => `${n} order${n === 1 ? '' : 's'}`}
+          tickFormat={(n) => String(Math.round(n))}
         />
       </div>
 

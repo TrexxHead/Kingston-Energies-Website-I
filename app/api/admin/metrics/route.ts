@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { guardAdmin } from '@/lib/requireAdmin'
+import { isProductLine } from '@/lib/orderLineItems'
 
 /** Real-time executive metrics computed from live data. */
 export async function GET() {
@@ -86,9 +87,10 @@ export async function GET() {
     buckets.push({ label: day.toLocaleDateString('en-GB', { day: 'numeric' }), value: total })
   }
 
-  // Best sellers by units sold.
+  // Best sellers by units sold — real products only, never a delivery fee,
+  // discount, or points-redemption line.
   const unitsByName = new Map<string, number>()
-  for (const o of valid) for (const it of o.items) unitsByName.set(it.name, (unitsByName.get(it.name) ?? 0) + it.qty)
+  for (const o of valid) for (const it of o.items) if (isProductLine(it.name)) unitsByName.set(it.name, (unitsByName.get(it.name) ?? 0) + it.qty)
   const bestSellers = [...unitsByName.entries()]
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)

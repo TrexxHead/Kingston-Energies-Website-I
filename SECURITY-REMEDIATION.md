@@ -69,19 +69,21 @@ curl -i https://<staging>/api/admin/orders         # expect 401/403
 
 **Action taken:** removed `https://api.anthropic.com` from `connect-src` in `next.config.js`. The browser never calls it — the CSP entry described a capability the app doesn't have and should never grant itself.
 
-### B.4 — Supabase RLS / browser-direct database access — **NOT APPLICABLE — this app has no browser-side Supabase client**
+### B.4 — Supabase RLS / browser-direct database access — **revised: real, fixed via `prisma/enable-rls.sql`**
 
-The brief's Task 0.3(6) assumes an architecture (browser talks to Supabase directly, anon key + RLS is the authorization boundary) that this codebase doesn't use:
+The brief's Task 0.3(6) assumes an architecture (browser talks to Supabase directly, anon key + RLS is the authorization boundary) that this codebase's *own code* doesn't use:
 
 - `grep -rl "@supabase/supabase-js"` across the app returns exactly one file, `lib/storage.ts`, which is server-only (used inside admin-guarded API routes for private-bucket file storage). No `'use client'` file anywhere imports or constructs a Supabase client.
 - No `NEXT_PUBLIC_SUPABASE_ANON_KEY` (or any Supabase secret) exists in `.env.example` or is referenced anywhere.
 - Authorization in this app is enforced entirely server-side: NextAuth sessions + Prisma (parameterised queries) + `guardAdmin()`/`getServerSession()` checks in every route handler, verified route-by-route in §B.2.
 
-Supabase here is used only as (a) the Postgres host, reached exclusively via `DATABASE_URL`/`DIRECT_URL` from server-side Prisma, never from the browser, and (b) private/public file storage, reached exclusively via `SUPABASE_SERVICE_ROLE_KEY` from server-side route handlers, with browser access only ever via short-lived signed URLs minted server-side.
+**Correction from the initial pass, made once the user ran Supabase's own Advisor against the live project:** the assessment above was too narrow. Whether *this app's code* calls Supabase's REST API (PostgREST) is beside the point — Supabase auto-generates and exposes that API for every table in `public` regardless, reachable by anyone holding the project's `anon` key. RLS is the only thing standing between that API and the data. Supabase's Advisor confirmed this concretely: RLS disabled on all 48 tables (`rls_disabled_in_public`, ERROR), and three specifically flagged as exposing sensitive columns with no protection at all (`sensitive_columns_exposed`, ERROR): `Account.access_token`/`refresh_token` (raw Google OAuth tokens), `User.password` (hashed, but still), `VerificationToken.token` (raw password-reset/email-verification tokens).
 
-Since RLS is not the authorization boundary here, auditing `pg_tables.rowsecurity` (the brief's Task 0.3(6) SQL) would not change the actual security posture of this application either way — the real boundary is the one audited in §B.2, and it holds. (This review did not have a live database connection to run that query regardless; noting for completeness that it wouldn't be the load-bearing check even if it had.)
+**Fix:** `prisma/enable-rls.sql` — `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` on all 48 tables, no policies attached. This is safe specifically *because* of the architecture point above being correct as far as it went: Prisma connects via `DATABASE_URL`/`DIRECT_URL` using Supabase's `postgres` role, which bypasses RLS by design — enabling RLS with zero policies only closes the separate `anon`/`authenticated` PostgREST path this app never uses, defaulting it to deny-all. The application's own database access is unaffected.
 
-**Action taken:** removed `https://*.supabase.co` from `connect-src` for the same reason as B.3 — the browser never calls it directly. `img-src` already permits `https:` broadly (unaffected, unrelated directive) and Next's own image optimizer (server-side) still reads the same `remotePatterns` entry in `next.config.js` for product images.
+**Not run in this pass:** this sandbox has no live database connection (established repeatedly this session — no `DATABASE_URL` available here). The SQL is provided for the user to run once via the Supabase dashboard → SQL Editor, the same "I can prepare it, you run it" pattern already used for `prisma db push` earlier in this engagement.
+
+**Action taken on the CSP, independent of the above:** removed `https://*.supabase.co` from `connect-src` for the same reason as B.3 — the browser never calls it directly. `img-src` already permits `https:` broadly (unaffected, unrelated directive) and Next's own image optimizer (server-side) still reads the same `remotePatterns` entry in `next.config.js` for product images.
 
 ---
 

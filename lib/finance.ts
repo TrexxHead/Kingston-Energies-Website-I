@@ -13,6 +13,15 @@ export const EXPENSE_CATEGORIES = [
 
 export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number]
 
+// A distinct, readable set for the expense calendar's default legend — picked
+// to stay legible on both light and dark surfaces, not tied to any one
+// category's "meaning". An admin can reassign these per category.
+const DEFAULT_PALETTE = ['#dc2626', '#d97706', '#7c3aed', '#2563eb', '#0891b2', '#65a30d', '#db2777', '#57534e']
+
+export const DEFAULT_CATEGORY_COLORS: Record<string, string> = Object.fromEntries(
+  EXPENSE_CATEGORIES.map((c, i) => [c, DEFAULT_PALETTE[i % DEFAULT_PALETTE.length]]),
+)
+
 /** Month key like "2026-07" from a date. */
 export function monthKey(d: Date): string {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`

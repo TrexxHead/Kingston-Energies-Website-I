@@ -19,6 +19,7 @@ interface PointsBalance {
   minRedeem: number
   step: number
   stepValue: number
+  isFirstTimeCustomer: boolean
 }
 
 const RECO_IDS = ['chcab', 'ch20']
@@ -26,9 +27,9 @@ const RECO_IDS = ['chcab', 'ch20']
 export default function CartPage() {
   const router = useRouter()
   const {
-    items, subtotal, delivery, discount, bulkDiscount, bulkRate, total,
+    items, subtotal, delivery, discount, bulkDiscount, bulkRate, firstOrderDiscountAmt, total,
     promoOn, promoCode, pointsApplied, pointsDiscount,
-    inc, dec, remove, addItem, applyPromo, applyPoints, removePoints,
+    inc, dec, remove, addItem, applyPromo, applyPoints, removePoints, setFirstOrderEligible,
   } = useCart()
   const { pushToast } = useToast()
   const [promoVal, setPromoVal] = useState('')
@@ -45,7 +46,10 @@ export default function CartPage() {
   useEffect(() => {
     fetch('/api/rewards/balance')
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => setBalance(d))
+      .then((d) => {
+        setBalance(d)
+        setFirstOrderEligible(Boolean(d?.isFirstTimeCustomer))
+      })
       .catch(() => setBalance(null))
     fetch('/api/products')
       .then((r) => (r.ok ? r.json() : { prices: {} }))
@@ -142,7 +146,8 @@ export default function CartPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 18, fontSize: 14.5 }}>
                 <Row label="Subtotal" value={fmt(subtotal)} />
                 <Row label="Delivery" value={delivery === 0 ? 'Free' : fmt(delivery)} valueColor="var(--ke-green-700)" />
-                {bulkDiscount > 0 && <Row label={`Bulk discount — ${Math.round(bulkRate * 100)}% off`} value={'−' + fmt(bulkDiscount)} labelColor="var(--ke-green-700)" valueColor="var(--ke-green-700)" />}
+                {bulkDiscount > 0 && <Row label={`Bulk discount (3+ of the same item) — ${Math.round(bulkRate * 100)}% off`} value={'−' + fmt(bulkDiscount)} labelColor="var(--ke-green-700)" valueColor="var(--ke-green-700)" />}
+                {firstOrderDiscountAmt > 0 && <Row label="First order — 10% off your first item" value={'−' + fmt(firstOrderDiscountAmt)} labelColor="var(--ke-green-700)" valueColor="var(--ke-green-700)" />}
                 {promoOn && <Row label={`Promo — ${promoCode}`} value={'−' + fmt(discount)} labelColor="var(--ke-green-700)" valueColor="var(--ke-green-700)" />}
                 {pointsApplied > 0 && <Row label={`Points — ${pointsApplied} pts`} value={'−' + fmt(pointsDiscount)} labelColor="var(--ke-green-700)" valueColor="var(--ke-green-700)" />}
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--color-border)', paddingTop: 12, marginTop: 4 }}>

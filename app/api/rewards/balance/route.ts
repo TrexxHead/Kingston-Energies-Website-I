@@ -11,7 +11,7 @@ import { loyaltyPoints, pointsToValue, POINTS_REDEEM_MIN, POINTS_REDEEM_STEP, PO
 export async function GET() {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) {
-    return NextResponse.json({ signedIn: false, points: 0, redeemable: 0, minRedeem: POINTS_REDEEM_MIN, step: POINTS_REDEEM_STEP, stepValue: POINTS_REDEEM_VALUE })
+    return NextResponse.json({ signedIn: false, points: 0, redeemable: 0, minRedeem: POINTS_REDEEM_MIN, step: POINTS_REDEEM_STEP, stepValue: POINTS_REDEEM_VALUE, isFirstTimeCustomer: false })
   }
 
   const user = await prisma.user.findUnique({
@@ -19,7 +19,7 @@ export async function GET() {
     include: { orders: true, _count: { select: { reviews: true, registeredUnits: true } } },
   })
   if (!user) {
-    return NextResponse.json({ signedIn: false, points: 0, redeemable: 0, minRedeem: POINTS_REDEEM_MIN, step: POINTS_REDEEM_STEP, stepValue: POINTS_REDEEM_VALUE })
+    return NextResponse.json({ signedIn: false, points: 0, redeemable: 0, minRedeem: POINTS_REDEEM_MIN, step: POINTS_REDEEM_STEP, stepValue: POINTS_REDEEM_VALUE, isFirstTimeCustomer: false })
   }
 
   const totalSpent = user.orders.filter((o) => o.status !== 'CANCELLED').reduce((s, o) => s + o.total, 0)
@@ -33,5 +33,8 @@ export async function GET() {
     minRedeem: POINTS_REDEEM_MIN,
     step: POINTS_REDEEM_STEP,
     stepValue: POINTS_REDEEM_VALUE,
+    // Any order at all — including a cancelled one — disqualifies the
+    // one-time first-order discount, so it can't be re-earned by cancel/reorder.
+    isFirstTimeCustomer: user.orders.length === 0,
   })
 }

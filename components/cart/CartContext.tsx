@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import { FREE_DELIVERY_THRESHOLD, DELIVERY_FEE, bulkRateForQty } from '@/lib/pricing'
+import { FREE_DELIVERY_THRESHOLD, DELIVERY_FEE, bulkDiscountForLines, firstOrderDiscount } from '@/lib/pricing'
 import { pointsToValue } from '@/lib/loyalty'
 
 export interface CartItem {
@@ -20,6 +20,8 @@ interface CartContextValue {
   discount: number
   bulkDiscount: number
   bulkRate: number
+  firstOrderEligible: boolean
+  firstOrderDiscountAmt: number
   total: number
   promoOn: boolean
   promoCode: string | null
@@ -35,6 +37,7 @@ interface CartContextValue {
   removePromo: () => void
   applyPoints: (points: number) => void
   removePoints: () => void
+  setFirstOrderEligible: (eligible: boolean) => void
 }
 
 interface AppliedPromo {
@@ -54,6 +57,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([])
   const [promo, setPromo] = useState<AppliedPromo | null>(null)
   const [pointsApplied, setPointsApplied] = useState(0)
+  const [firstOrderEligible, setFirstOrderEligible] = useState(false)
   const [hydrated, setHydrated] = useState(false)
 
   useEffect(() => {
@@ -164,8 +168,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const count = items.reduce((a, c) => a + c.qty, 0)
     const subtotal = subtotalNow
     const delivery = subtotal === 0 || subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE
-    const bulkRate = bulkRateForQty(count)
-    const bulkDiscount = Math.round(subtotal * bulkRate)
+    const bulkDiscount = bulkDiscountForLines(items)
+    const bulkRate = subtotal > 0 ? bulkDiscount / subtotal : 0
+    const firstOrderDiscountAmt = firstOrderDiscount(items, firstOrderEligible)
     // Recompute the promo discount against the current subtotal so it stays
     // correct as the cart changes.
     const discount = promo
@@ -174,15 +179,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
         : Math.min(Math.round(promo.value), subtotal)
       : 0
     const pointsDiscount = pointsToValue(pointsApplied)
-    const total = Math.max(0, subtotal + delivery - discount - bulkDiscount - pointsDiscount)
+    const total = Math.max(0, subtotal + delivery - discount - bulkDiscount - firstOrderDiscountAmt - pointsDiscount)
 
     return {
-      items, count, subtotal, delivery, discount, bulkDiscount, bulkRate, total,
+      items, count, subtotal, delivery, discount, bulkDiscount, bulkRate, firstOrderEligible, firstOrderDiscountAmt, total,
       promoOn: Boolean(promo), promoCode: promo?.code ?? null,
       pointsApplied, pointsDiscount,
-      hydrated, addItem, inc, dec, remove, clear, applyPromo, removePromo, applyPoints, removePoints,
+      hydrated, addItem, inc, dec, remove, clear, applyPromo, removePromo, applyPoints, removePoints, setFirstOrderEligible,
     }
-  }, [items, promo, pointsApplied, hydrated])
+  }, [items, promo, pointsApplied, firstOrderEligible, hydrated])
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>
 }

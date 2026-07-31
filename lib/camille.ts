@@ -37,7 +37,7 @@ ${CATALOG.map((p) => `- ${p.name} — ${fmt(p.price)} — ${p.cat} — ${p.spec}
 KEY FACTS:
 - Delivery is free on orders over J$10,000, otherwise a flat J$800; Kingston-wide.
 - Every device has a 14-day replacement guarantee plus the manufacturer's own warranty; register devices in the Kingston Hub to keep proof of purchase and earn points. There is no blanket 12-month Kingston warranty.
-- Promo code KINGSTON10 gives 10% off.
+- Genuine first-time customers get 10% off automatically on one item in their first order — no code needed, and it's never a cut of the whole cart. Buy 3+ of the same item and that item gets 5% off (10+ gets 10% off) — also automatic, based on quantity of that one product, not the cart total. There is no sitewide/evergreen promo code.
 - Ordering: browse /shop → add to cart → /cart → /checkout → order confirmed → /track to follow delivery.
 - Payment options include bank transfer, Lynk, PayPal, cash on delivery, and card (Visa/Mastercard) — whichever the store has enabled at checkout.
 - Solar power stations are on the roadmap (early access) — point interested people to /contact to join the waitlist.
@@ -87,7 +87,7 @@ const FALLBACK_RULES: FallbackRule[] = [
   { keywords: ['checkout', 'pay', 'payment', 'order', 'place an order', 'buy now'], answer: 'To order: add items to your /cart, then go to /checkout. We accept Google Pay, Visa/Mastercard, and PayPal. Delivery is free over J$10,000.' },
   { keywords: ['track', 'delivery', 'where is my order', 'shipping'], answer: 'Track a delivery here: /track. For a specific order query, contact us at /contact or call 876-338-9958.' },
   { keywords: ['warranty', 'broken', 'not working', 'fault', 'repair'], answer: 'Every device has a 14-day replacement guarantee plus the manufacturer’s own warranty. Register it in your Kingston Hub (/hub) to keep your proof of purchase, or reach us at /contact for a fault.' },
-  { keywords: ['promo', 'discount', 'coupon', 'code', 'voucher'], answer: 'Use code KINGSTON10 at the cart for 10% off. Delivery is also free on orders over J$10,000.' },
+  { keywords: ['promo', 'discount', 'coupon', 'code', 'voucher'], answer: 'No code needed — first-time customers automatically get 10% off one item in their first order, and buying 3+ of the same item gets that item 5% off (10+ gets 10% off). Delivery is also free on orders over J$10,000.' },
   { keywords: ['account', 'sign in', 'login', 'log in', 'register', 'sign up', 'hub', 'dashboard'], answer: 'Sign in at /login or create an account at /signup. Your dashboard (the Kingston Hub) is at /hub.' },
   { keywords: ['instagram', 'social', 'follow', 'facebook'], answer: 'Follow us on Instagram @kingstonenergies — https://instagram.com/kingstonenergies' },
   { keywords: ['contact', 'quote', 'phone', 'call', 'email', 'bulk', 'business'], answer: 'Get in touch or request a quote at /contact, call 876-338-9958, or email kingstonenergygroup@outlook.com. We handle bulk and business orders too.' },

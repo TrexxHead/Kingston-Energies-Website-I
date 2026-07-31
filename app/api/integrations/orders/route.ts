@@ -5,9 +5,10 @@ import { guardIntegration } from '@/lib/integrationAuth'
 import { getShopProducts } from '@/lib/products'
 import { fmt } from '@/lib/catalog'
 import { sendOrderConfirmation } from '@/lib/email'
-import { bulkRateForQty } from '@/lib/pricing'
+import { bulkDiscountForLines, firstOrderDiscount } from '@/lib/pricing'
 import { trackToken } from '@/lib/trackToken'
 import { fulfillOrderItems } from '@/lib/orderFulfillment'
+import { isFirstTimeCustomer } from '@/lib/customerHistory'
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
@@ -93,9 +94,15 @@ export async function POST(request: Request) {
     )
   }
 
-  const units = resolved.reduce((sum, i) => sum + i.qty, 0)
   const gross = resolved.reduce((sum, i) => sum + i.price * i.qty, 0)
-  const total = Math.round(gross * (1 - bulkRateForQty(units))) // apply bulk discount
+  const bulkDiscount = bulkDiscountForLines(resolved)
+  const firstTime = await isFirstTimeCustomer(null, email ?? null)
+  const firstOrderDisc = firstOrderDiscount(resolved, firstTime)
+  const total = Math.max(0, gross - bulkDiscount - firstOrderDisc)
+  const recordedItems = [
+    ...resolved,
+    ...(firstOrderDisc > 0 ? [{ name: 'First order discount (10% off first item)', qty: 1, price: -firstOrderDisc }] : []),
+  ]
   const orderNo = await nextOrderNo()
   const source = channel === 'whatsapp' ? 'WHATSAPP' : 'INSTAGRAM'
 
@@ -113,7 +120,7 @@ export async function POST(request: Request) {
         // null (which reads as "unspecified"/a data-quality problem).
         paymentMethod: payment === 'cod' ? 'cod' : 'pending',
         total,
-        items: { create: resolved.map((i) => ({ name: i.name, qty: i.qty, price: i.price })) },
+        items: { create: recordedItems.map((i) => ({ name: i.name, qty: i.qty, price: i.price })) },
       },
       include: { items: true },
     })
@@ -123,10 +130,10 @@ export async function POST(request: Request) {
 
   // Optional confirmation email if the bot captured one.
   if (email) {
-    void sendOrderConfirmation({ to: email, customerName, orderNo: order.orderNo, total, items: resolved, trackToken: trackToken(order.orderNo) })
+    void sendOrderConfirmation({ to: email, customerName, orderNo: order.orderNo, total, items: recordedItems, trackToken: trackToken(order.orderNo) })
   }
 
-  const lines = resolved.map((i) => `${i.qty}× ${i.name} — ${fmt(i.price * i.qty)}`)
+  const lines = recordedItems.map((i) => `${i.qty}× ${i.name} — ${fmt(i.price * i.qty)}`)
   const payUrl = payment === 'online' ? `${siteUrl}/track` : null
 
   // A ready-to-send confirmation the bot can forward verbatim.

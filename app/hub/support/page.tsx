@@ -44,7 +44,7 @@ const FAQ_GROUPS: FaqGroup[] = [
       },
       {
         q: 'Are there any discounts?',
-        a: 'Use code KINGSTON10 for 10% off your first order. Refer a friend from the Rewards tab and you each get J$1,000 in credit.',
+        a: 'First-time customers get 10% off one item automatically on their first order — no code needed. Buy 3+ of the same item and it gets 5% off (10+ gets 10% off). Refer a friend from the Rewards tab and you each get J$1,000 in credit.',
       },
       {
         q: 'Is my payment information secure?',

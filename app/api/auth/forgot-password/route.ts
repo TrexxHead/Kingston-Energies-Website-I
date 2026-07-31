@@ -30,6 +30,17 @@ export async function POST(request: Request) {
   }
 
   const { email } = parsed.data
+
+  // Also cap per email, not just per IP — an attacker spread across many IPs
+  // could otherwise still flood one person's inbox even though each
+  // individual IP stays under its own limit. Same "always return ok" shape
+  // as an unregistered email below, so this can't be used to enumerate
+  // accounts either.
+  const emailRl = rateLimit(`forgot-email:${email.toLowerCase()}`, 3, 60 * 60_000)
+  if (!emailRl.ok) {
+    return NextResponse.json({ ok: true })
+  }
+
   const user = await prisma.user.findUnique({ where: { email } })
 
   // Only send if the account exists and has a password (not a Google-only account),

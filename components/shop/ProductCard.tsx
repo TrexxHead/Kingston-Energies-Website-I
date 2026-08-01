@@ -93,7 +93,7 @@ export default function ProductCard({
         e.currentTarget.style.boxShadow = 'var(--shadow-sm)'
       }}
     >
-      <div role="button" tabIndex={0} onClick={viewDetails} onKeyDown={(e) => { if (e.key === 'Enter') viewDetails() }} aria-label={`View ${product.name}`} style={{ position: 'relative', width: '100%', height: 215, background: '#eef3ee', cursor: 'pointer' }}>
+      <div role="button" tabIndex={0} onClick={viewDetails} onKeyDown={(e) => { if (e.key === 'Enter') viewDetails() }} aria-label={`View ${product.name}`} style={{ position: 'relative', width: '100%', aspectRatio: '1', background: '#eef3ee', cursor: 'pointer' }}>
         <ProductImage src={product.image} alt={product.name} cat={product.cat} sizes="(max-width: 900px) 100vw, 33vw" iconSize={44} />
         {/* Wishlist heart */}
         <button

@@ -201,13 +201,13 @@ export default function ProductClient({ product, initialReviews = [] }: { produc
         style={{ maxWidth: 1240, margin: '0 auto', padding: '56px 32px 80px', display: 'grid', gridTemplateColumns: '1.05fr 0.95fr', gap: 56 }}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ position: 'relative', width: '100%', height: 440, borderRadius: 28, overflow: 'hidden', background: '#eef3ee', boxShadow: 'var(--shadow-md)' }}>
+          <div style={{ position: 'relative', width: '100%', aspectRatio: '1', borderRadius: 28, overflow: 'hidden', background: '#eef3ee', boxShadow: 'var(--shadow-md)' }}>
             <ProductImage src={product.image} alt={product.name} cat={product.cat} sizes="(max-width: 900px) 100vw, 600px" iconSize={72} priority />
           </div>
           {gallery.length > 1 && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12 }}>
               {gallery.slice(0, 8).map((src) => (
-                <div key={src} style={{ position: 'relative', width: '100%', height: 88, borderRadius: 14, overflow: 'hidden', background: '#eef3ee' }}>
+                <div key={src} style={{ position: 'relative', width: '100%', aspectRatio: '1', borderRadius: 14, overflow: 'hidden', background: '#eef3ee' }}>
                   <Image src={src} alt={product.name} fill sizes="120px" style={{ objectFit: 'cover' }} />
                 </div>
               ))}

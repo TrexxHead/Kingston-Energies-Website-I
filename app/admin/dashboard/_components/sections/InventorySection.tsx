@@ -131,6 +131,17 @@ export default function InventorySection() {
     setSaveError('')
   }
 
+  // A product with no images saved in the DB yet still shows a real photo on
+  // the storefront — the static catalog's own gallery, used as a fallback (see
+  // lib/products.ts overlay()). Prefill the editor with those exact images so
+  // "what's live on the site" is always what shows up here to adjust, not an
+  // empty box, even though nothing's been uploaded through admin for it yet.
+  const catalogImagesFor = (name: string): string[] => {
+    const match = CATALOG.find((c) => c.name.trim().toLowerCase() === name.trim().toLowerCase())
+    if (!match) return []
+    return match.gallery ?? (match.image ? [match.image] : [])
+  }
+
   const openEdit = (p: Product) => {
     setForm({
       name: p.name,
@@ -152,7 +163,7 @@ export default function InventorySection() {
       tags: (p.tags ?? []).join(', '),
       features: (p.features ?? []).join('\n'),
     })
-    setImages(p.images ?? [])
+    setImages(p.images && p.images.length > 0 ? p.images : catalogImagesFor(p.name))
     setSpecs(parseSpecs(p.specs))
     setNewImage('')
     setSaveError('')

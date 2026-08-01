@@ -68,7 +68,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     })
 
     if (before && before.stock === 0 && product.stock > 0) {
-      void notifyRestockWaitlist(before.name, product.stock)
+      void notifyRestockWaitlist(product.name, product.stock, product.catalogId)
     }
 
     return NextResponse.json({ product })
@@ -78,8 +78,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 }
 
 /** Email everyone waiting on a now-restocked product, then clear their requests. */
-async function notifyRestockWaitlist(productName: string, stock: number): Promise<void> {
-  const catalogId = productIdForName(productName)
+async function notifyRestockWaitlist(productName: string, stock: number, catalogIdLink: string | null): Promise<void> {
+  const catalogId = productIdForName(productName, catalogIdLink)
   const waiters = await prisma.restockRequest.findMany({ where: { productId: catalogId }, select: { email: true } })
   if (waiters.length === 0) return
 

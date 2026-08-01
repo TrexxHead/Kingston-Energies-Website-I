@@ -3,6 +3,8 @@ import { CATALOG, type ShopProduct, type SpecItem, type Category } from '@/lib/c
 
 // The DB fields we overlay onto the presentation catalog.
 interface DbProduct {
+  id: string
+  catalogId: string | null
   name: string
   price: number
   salePrice: number | null
@@ -48,12 +50,16 @@ function dbId(name: string): string {
 // Trimmed + lowercased so a stray space or case difference between the
 // catalog entry and the admin-entered product name doesn't silently break
 // the join between them (price, images, description, … all depend on it).
+// Only used as a fallback for rows that haven't been linked by catalogId yet
+// (see scripts/backfillCatalogIds.ts) — once linked, renaming a product can
+// no longer affect the join at all.
 export function normName(s: string): string {
   return s.trim().toLowerCase()
 }
 
-/** The stable catalog/shop id for a product, looked up by its DB name. */
-export function productIdForName(name: string): string {
+/** The stable catalog/shop id for a product — prefer its real catalogId link, fall back to matching its current name. */
+export function productIdForName(name: string, catalogId?: string | null): string {
+  if (catalogId) return catalogId
   return CATALOG.find((c) => normName(c.name) === normName(name))?.id ?? dbId(name)
 }
 
@@ -65,6 +71,7 @@ function overlay(base: ShopProduct, db: DbProduct): ShopProduct {
   const specs = toSpecItems(db.specs)
   return {
     ...base,
+    name: db.name,
     price: effectivePrice,
     listPrice: onSale ? db.price : undefined,
     stock: db.stock,
@@ -88,18 +95,22 @@ function overlay(base: ShopProduct, db: DbProduct): ShopProduct {
 
 /**
  * The presentation catalog (images, specs, marketing copy) lives in code, but
- * any field an admin fills in via Inventory (price, sale price, images,
- * descriptions, specs, warranty, …) is overlaid from the database Product table,
- * joined by product name. Products that exist only in the database (added from
- * the admin CMS) are surfaced too. If the DB is unavailable we degrade to the
- * static catalog so the shop still renders.
+ * any field an admin fills in via Inventory (name, price, sale price, images,
+ * descriptions, specs, warranty, …) is overlaid from the database Product
+ * table. Joined primarily by Product.catalogId — a stable link set once (see
+ * scripts/backfillCatalogIds.ts) — so renaming a product in admin can never
+ * break the link and fork it into a duplicate listing the way matching by
+ * name alone used to. Rows not yet linked (catalogId still null) fall back to
+ * matching by their current name. Products that exist only in the database
+ * (added from the admin CMS, no catalog entry) are surfaced too. If the DB is
+ * unavailable we degrade to the static catalog so the shop still renders.
  */
 export async function getShopProducts(): Promise<ShopProduct[]> {
   let rows: DbProduct[] = []
   try {
     rows = (await prisma.product.findMany({
       select: {
-        name: true, price: true, salePrice: true, stock: true, archived: true, category: true,
+        id: true, catalogId: true, name: true, price: true, salePrice: true, stock: true, archived: true, category: true,
         spec: true, badge: true, description: true, shortDescription: true, brand: true,
         weight: true, dimensions: true, warranty: true, images: true, features: true, tags: true, specs: true,
       },
@@ -109,8 +120,9 @@ export async function getShopProducts(): Promise<ShopProduct[]> {
     return CATALOG.map((c) => ({ ...c, stock: null, inStock: true }))
   }
 
+  const byCatalogId = new Map(rows.filter((r) => r.catalogId).map((r) => [r.catalogId as string, r]))
   const byName = new Map(rows.map((r) => [normName(r.name), r]))
-  const usedNames = new Set<string>()
+  const usedIds = new Set<string>()
 
   // Average rating + count per product (keyed by catalog id).
   const ratings = new Map<string, { rating: number; reviewCount: number }>()
@@ -132,16 +144,16 @@ export async function getShopProducts(): Promise<ShopProduct[]> {
   }
 
   const fromCatalog: ShopProduct[] = CATALOG.map((c) => {
-    const db = byName.get(normName(c.name))
+    const db = byCatalogId.get(c.id) ?? byName.get(normName(c.name))
     const base: ShopProduct = { ...c, stock: null, inStock: true }
     if (!db) return withRating(base)
-    usedNames.add(normName(c.name))
+    usedIds.add(db.id)
     return withRating(overlay(base, db))
   })
 
   // DB-only products (created in the CMS, no catalog entry) — show unless archived.
   const fromDb: ShopProduct[] = rows
-    .filter((r) => !usedNames.has(normName(r.name)) && !r.archived)
+    .filter((r) => !usedIds.has(r.id) && !r.archived)
     .map((r) => {
       const base: ShopProduct = {
         id: dbId(r.name),

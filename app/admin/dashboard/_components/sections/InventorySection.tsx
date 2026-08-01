@@ -21,6 +21,7 @@ interface SpecItem {
 
 interface Product {
   id: string
+  catalogId: string | null
   name: string
   sku: string | null
   barcode: string | null
@@ -136,8 +137,10 @@ export default function InventorySection() {
   // lib/products.ts overlay()). Prefill the editor with those exact images so
   // "what's live on the site" is always what shows up here to adjust, not an
   // empty box, even though nothing's been uploaded through admin for it yet.
-  const catalogImagesFor = (name: string): string[] => {
-    const match = CATALOG.find((c) => c.name.trim().toLowerCase() === name.trim().toLowerCase())
+  const catalogImagesFor = (name: string, catalogId: string | null): string[] => {
+    const match = catalogId
+      ? CATALOG.find((c) => c.id === catalogId)
+      : CATALOG.find((c) => c.name.trim().toLowerCase() === name.trim().toLowerCase())
     if (!match) return []
     return match.gallery ?? (match.image ? [match.image] : [])
   }
@@ -163,7 +166,7 @@ export default function InventorySection() {
       tags: (p.tags ?? []).join(', '),
       features: (p.features ?? []).join('\n'),
     })
-    setImages(p.images && p.images.length > 0 ? p.images : catalogImagesFor(p.name))
+    setImages(p.images && p.images.length > 0 ? p.images : catalogImagesFor(p.name, p.catalogId))
     setSpecs(parseSpecs(p.specs))
     setNewImage('')
     setSaveError('')

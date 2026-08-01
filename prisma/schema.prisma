@@ -148,6 +148,11 @@ model VerificationToken {
 
 model Product {
   id          String   @id @default(cuid())
+  // Stable link to the matching lib/catalog.ts entry this row overlays, if
+  // any — set once (see scripts/backfillCatalogIds.ts) and never derived
+  // from `name`, so renaming a product in admin can never fork it into a
+  // second, duplicate storefront listing the way name-based matching did.
+  catalogId   String?  @unique
   name        String
   description String   @db.Text
   shortDescription String? @db.Text // storefront card / summary copy

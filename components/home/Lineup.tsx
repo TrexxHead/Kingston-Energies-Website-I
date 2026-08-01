@@ -4,50 +4,59 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Zap } from 'lucide-react'
 import Reveal from '../../app/_design-system/Reveal'
+import { fmt } from '@/lib/catalog'
 
-const CARDS = [
-  {
-    n: '01',
-    title: 'Power banks',
-    desc: '10,000–20,000mAh. USB-C PD, multi-port, LED displays.',
-    from: 'FROM J$6,999',
-    href: '/shop?category=powerbanks',
-    image: '/images/powerbanks-window.jpg',
-    hoverBorder: 'rgba(147,201,63,.5)',
-  },
-  {
-    n: '02',
-    title: 'Chargers & cables',
-    desc: 'Fast wall chargers. USB-C, Lightning and braided cables.',
-    from: 'FROM J$2,499',
-    href: '/shop?category=chargers',
-    image: '/images/charger-cable.jpg',
-    objectPosition: 'center 45%',
-    hoverBorder: 'rgba(41,171,226,.55)',
-  },
-  {
-    n: '03',
-    title: 'Accessories',
-    desc: 'Stands, organizers, and the extras that pair with power.',
-    from: 'FROM J$2,499',
-    href: '/shop?category=accessories',
-    image: '/images/phone-stand.jpg',
-    objectPosition: 'center 40%',
-    hoverBorder: 'rgba(147,201,63,.5)',
-  },
-  {
-    n: '04',
-    title: 'Power stations',
-    desc: 'Big off-grid power. AC output, solar-ready inputs.',
-    from: 'FROM J$49,999',
-    href: '/shop?category=stations',
-    image: '/images/anker-1.jpg',
-    objectPosition: 'center 40%',
-    hoverBorder: 'rgba(253,184,19,.55)',
-  },
-]
+interface LineupProps {
+  /** Lowest live price per group (powerbanks/chargers/accessories/stations), or null if nothing's listed. */
+  minPrices: Record<string, number | null>
+  /** Live thumbnail for the featured power bank (Charmast) — falls back to the static image if unavailable. */
+  powerbanksImage: string | null
+  /** Live thumbnail for the featured power station (Anker) — falls back to the static image if unavailable. */
+  stationsImage: string | null
+}
 
-export default function Lineup() {
+export default function Lineup({ minPrices, powerbanksImage, stationsImage }: LineupProps) {
+  const CARDS = [
+    {
+      n: '01',
+      title: 'Power banks',
+      desc: '10,000–20,000mAh. USB-C PD, multi-port, LED displays.',
+      group: 'powerbanks',
+      href: '/shop?category=powerbanks',
+      image: powerbanksImage ?? '/images/powerbanks-window.jpg',
+      hoverBorder: 'rgba(147,201,63,.5)',
+    },
+    {
+      n: '02',
+      title: 'Chargers & cables',
+      desc: 'Fast wall chargers. USB-C, Lightning and braided cables.',
+      group: 'chargers',
+      href: '/shop?category=chargers',
+      image: '/images/charger-cable.jpg',
+      objectPosition: 'center 45%',
+      hoverBorder: 'rgba(41,171,226,.55)',
+    },
+    {
+      n: '03',
+      title: 'Accessories',
+      desc: 'Stands, organizers, and the extras that pair with power.',
+      group: 'accessories',
+      href: '/shop?category=accessories',
+      image: '/images/phone-stand.jpg',
+      objectPosition: 'center 40%',
+      hoverBorder: 'rgba(147,201,63,.5)',
+    },
+    {
+      n: '04',
+      title: 'Power stations',
+      desc: 'Big off-grid power. AC output, solar-ready inputs.',
+      group: 'stations',
+      href: '/shop?category=stations',
+      image: stationsImage ?? '/images/anker-1.jpg',
+      objectPosition: 'center 40%',
+      hoverBorder: 'rgba(253,184,19,.55)',
+    },
+  ]
   return (
     <section id="ke-lineup" style={{ background: '#0d1714', padding: '110px 0 90px', position: 'relative' }}>
       <div style={{ maxWidth: 1240, margin: '0 auto', padding: '0 32px' }}>
@@ -107,9 +116,11 @@ export default function Lineup() {
                     {card.title}
                   </div>
                   <div style={{ fontSize: 14.5, lineHeight: 1.6, color: 'rgba(234,242,236,.6)', marginTop: 8 }}>{card.desc}</div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, letterSpacing: '.18em', color: 'rgba(234,242,236,.5)', marginTop: 16 }}>
-                    {card.from}
-                  </div>
+                  {minPrices[card.group] != null && (
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, letterSpacing: '.18em', color: 'rgba(234,242,236,.5)', marginTop: 16 }}>
+                      FROM {fmt(minPrices[card.group] as number)}
+                    </div>
+                  )}
                 </div>
               </Link>
             </Reveal>

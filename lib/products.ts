@@ -45,9 +45,16 @@ function dbId(name: string): string {
   return 'db-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
 }
 
+// Trimmed + lowercased so a stray space or case difference between the
+// catalog entry and the admin-entered product name doesn't silently break
+// the join between them (price, images, description, … all depend on it).
+export function normName(s: string): string {
+  return s.trim().toLowerCase()
+}
+
 /** The stable catalog/shop id for a product, looked up by its DB name. */
 export function productIdForName(name: string): string {
-  return CATALOG.find((c) => c.name === name)?.id ?? dbId(name)
+  return CATALOG.find((c) => normName(c.name) === normName(name))?.id ?? dbId(name)
 }
 
 /** Apply admin CMS overrides on top of a base catalog entry (or a bare one). */
@@ -102,7 +109,7 @@ export async function getShopProducts(): Promise<ShopProduct[]> {
     return CATALOG.map((c) => ({ ...c, stock: null, inStock: true }))
   }
 
-  const byName = new Map(rows.map((r) => [r.name, r]))
+  const byName = new Map(rows.map((r) => [normName(r.name), r]))
   const usedNames = new Set<string>()
 
   // Average rating + count per product (keyed by catalog id).
@@ -125,16 +132,16 @@ export async function getShopProducts(): Promise<ShopProduct[]> {
   }
 
   const fromCatalog: ShopProduct[] = CATALOG.map((c) => {
-    const db = byName.get(c.name)
+    const db = byName.get(normName(c.name))
     const base: ShopProduct = { ...c, stock: null, inStock: true }
     if (!db) return withRating(base)
-    usedNames.add(c.name)
+    usedNames.add(normName(c.name))
     return withRating(overlay(base, db))
   })
 
   // DB-only products (created in the CMS, no catalog entry) — show unless archived.
   const fromDb: ShopProduct[] = rows
-    .filter((r) => !usedNames.has(r.name) && !r.archived)
+    .filter((r) => !usedNames.has(normName(r.name)) && !r.archived)
     .map((r) => {
       const base: ShopProduct = {
         id: dbId(r.name),

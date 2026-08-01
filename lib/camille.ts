@@ -53,7 +53,7 @@ RULES:
 - Never ask for or accept passwords, card numbers, or other sensitive details in chat.`
 
 export const JORDYN_GREETING =
-  "Hi, I'm Jordyn, the Kingston Energies assistant. Ask me anything about our power banks and chargers, how to place an order, track a delivery, or find your way around the site."
+  "Hey! I'm Jordyn, your Kingston Energies assistant. Ask me anything, power banks, chargers, an order you placed, tracking a delivery, or just finding your way around. What can I help with?"
 
 /**
  * IDIC "Customize" for Jordyn: when we know a signed-in customer's primary

@@ -101,6 +101,7 @@ export default function InventorySection() {
   const [newImage, setNewImage] = useState('')
   const [specs, setSpecs] = useState<SpecItem[]>([])
   const [busy, setBusy] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const [showArchived, setShowArchived] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
@@ -127,6 +128,7 @@ export default function InventorySection() {
     setImages([])
     setSpecs([])
     setNewImage('')
+    setSaveError('')
   }
 
   const openEdit = (p: Product) => {
@@ -153,6 +155,7 @@ export default function InventorySection() {
     setImages(p.images ?? [])
     setSpecs(parseSpecs(p.specs))
     setNewImage('')
+    setSaveError('')
     setEditing(p)
   }
 
@@ -182,29 +185,49 @@ export default function InventorySection() {
   const saveEdit = async () => {
     if (!editing) return
     setBusy(true)
-    await fetch(`/api/admin/products/${editing.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(buildPayload()),
-    })
-    setBusy(false)
-    setEditing(null)
-    resetEditor()
-    loadProducts()
+    setSaveError('')
+    try {
+      const res = await fetch(`/api/admin/products/${editing.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(buildPayload()),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setSaveError(data.error ?? 'Could not save changes — please try again.')
+        return
+      }
+      setEditing(null)
+      resetEditor()
+      loadProducts()
+    } catch {
+      setSaveError('Could not save changes — check your connection and try again.')
+    } finally {
+      setBusy(false)
+    }
   }
 
   const createProduct = async () => {
     setBusy(true)
-    const res = await fetch('/api/admin/products', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...buildPayload(), sku: form.sku || null }),
-    })
-    setBusy(false)
-    if (res.ok) {
+    setSaveError('')
+    try {
+      const res = await fetch('/api/admin/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...buildPayload(), sku: form.sku || null }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setSaveError(data.error ?? 'Could not create product — please try again.')
+        return
+      }
       setAddOpen(false)
       resetEditor()
       loadProducts()
+    } catch {
+      setSaveError('Could not create product — check your connection and try again.')
+    } finally {
+      setBusy(false)
     }
   }
 
@@ -415,6 +438,11 @@ export default function InventorySection() {
           onClose={() => { setEditing(null); setAddOpen(false); resetEditor() }}
           footer={
             <>
+              {saveError && (
+                <div style={{ flex: 1, background: 'var(--color-danger-soft)', color: 'var(--color-danger)', borderRadius: 8, padding: '7px 10px', fontSize: 11.5 }}>
+                  {saveError}
+                </div>
+              )}
               <Button size="sm" variant="outline" onClick={() => { setEditing(null); setAddOpen(false); resetEditor() }}>Cancel</Button>
               <Button size="sm" variant="primary" onClick={editing ? saveEdit : createProduct}>{busy ? 'Saving…' : 'Save'}</Button>
             </>

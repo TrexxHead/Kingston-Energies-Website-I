@@ -250,7 +250,7 @@ function Employees() {
                       <div style={{ fontWeight: 600 }}>{r.name}</div>
                       <div style={{ fontSize: 11.5, color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)' }}>{r.employeeNo}</div>
                     </td>
-                    <td style={{ ...td, color: 'var(--color-text-muted)' }}>{r.jobTitle || '—'}</td>
+                    <td style={{ ...td, color: 'var(--color-text-muted)' }}>{r.jobTitle || 'N/A'}</td>
                     <td style={{ ...td, color: 'var(--color-text-muted)' }}>{r.frequency.toLowerCase()}</td>
                     <td style={tdNum}>{fmt(r.grossPerPeriod)}</td>
                     <td style={tdNum}>{fmt(Math.round(r.preview.net))}</td>
@@ -435,7 +435,7 @@ function Runs() {
       <Modal onClose={() => setDraftOpen(false)} title="New pay run">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: 0, lineHeight: 1.5 }}>
-            Every active employee is included. The run is calculated against today&rsquo;s rates and saved as a draft —
+            Every active employee is included. The run is calculated against today&rsquo;s rates and saved as a draft.
             nothing reaches the ledger until you approve it.
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -624,7 +624,7 @@ function RunDetail({ id, onBack }: { id: string; onBack: () => void }) {
       <div style={cardStyle}>
         <h3 style={{ ...h3Style, margin: '0 0 4px' }}>What you owe, and to whom</h3>
         <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: '0 0 12px', lineHeight: 1.5 }}>
-          Approving records these as liabilities. They stay on the balance sheet until you log the remittance — the
+          Approving records these as liabilities. They stay on the balance sheet until you log the remittance. The
           system never pays anyone.
         </p>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -678,14 +678,14 @@ const RATE_FIELDS: { key: keyof RatesShape; label: string; percent?: boolean }[]
   { key: 'payeRate', label: 'PAYE rate', percent: true },
   { key: 'payeHigherThresholdAnnual', label: 'PAYE higher-rate threshold (annual, J$)' },
   { key: 'payeHigherRate', label: 'PAYE higher rate', percent: true },
-  { key: 'nisEmployeeRate', label: 'NIS — employee', percent: true },
-  { key: 'nisEmployerRate', label: 'NIS — employer', percent: true },
+  { key: 'nisEmployeeRate', label: 'NIS: employee', percent: true },
+  { key: 'nisEmployerRate', label: 'NIS: employer', percent: true },
   { key: 'nisCeilingAnnual', label: 'NIS insurable ceiling (annual, J$)' },
-  { key: 'nhtEmployeeRate', label: 'NHT — employee', percent: true },
-  { key: 'nhtEmployerRate', label: 'NHT — employer', percent: true },
-  { key: 'edTaxEmployeeRate', label: 'Education tax — employee', percent: true },
-  { key: 'edTaxEmployerRate', label: 'Education tax — employer', percent: true },
-  { key: 'heartEmployerRate', label: 'HEART — employer', percent: true },
+  { key: 'nhtEmployeeRate', label: 'NHT: employee', percent: true },
+  { key: 'nhtEmployerRate', label: 'NHT: employer', percent: true },
+  { key: 'edTaxEmployeeRate', label: 'Education tax: employee', percent: true },
+  { key: 'edTaxEmployerRate', label: 'Education tax: employer', percent: true },
+  { key: 'heartEmployerRate', label: 'HEART: employer', percent: true },
   { key: 'heartMonthlyThreshold', label: 'HEART monthly payroll threshold (J$)' },
 ]
 

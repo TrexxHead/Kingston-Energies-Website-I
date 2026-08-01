@@ -50,7 +50,7 @@ export default function NpsCard() {
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
         <h3 style={{ ...h3Style, margin: 0 }}>Net Promoter Score</h3>
         <span style={{ fontSize: 11, color: 'var(--color-text-subtle)' }}>
-          {overall ? `${overall.total} responses` : '—'}
+          {overall ? `${overall.total} responses` : 'N/A'}
         </span>
       </div>
 
@@ -118,7 +118,7 @@ function SourceStat({ label, summary }: { label: string; summary: NpsSummary }) 
   return (
     <div>
       <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 18, color: summary.total === 0 ? 'var(--color-text-subtle)' : npsColor(summary.score) }}>
-        {summary.total === 0 ? '—' : summary.score}
+        {summary.total === 0 ? 'N/A' : summary.score}
       </div>
       <div style={{ fontSize: 10.5, color: 'var(--color-text-muted)' }}>
         {label} ({summary.total})

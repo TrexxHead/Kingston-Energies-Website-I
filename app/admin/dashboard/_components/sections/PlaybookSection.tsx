@@ -25,15 +25,15 @@ export default function PlaybookSection() {
   const sections: Section[] = [
     {
       id: 'idic',
-      title: 'IDIC — our CRM backbone',
+      title: 'IDIC: our CRM backbone',
       intro: 'Peppers & Rogers’ four-stage model. Treat different customers differently, and let every interaction teach us more.',
       body: (
         <Steps
           items={[
-            ['Identify', 'Know who each customer is — capture their contact details and their primary need (see below). Live on signup, checkout and the Hub profile.'],
+            ['Identify', 'Know who each customer is: capture their contact details and their primary need (see below). Live on signup, checkout and the Hub profile.'],
             ['Differentiate', 'Rank customers by value and need. The Customers tab auto-tags each into a value tier from their order history.'],
             ['Interact', 'Learn through every touchpoint. We collect an NPS score after each order and after a Jordyn chat (Analytics tab).'],
-            ['Customize', 'Act on what we learn — the Hub tailors product recommendations to each customer’s stated need.'],
+            ['Customize', 'Act on what we learn: the Hub tailors product recommendations to each customer’s stated need.'],
           ]}
         />
       ),
@@ -46,7 +46,7 @@ export default function PlaybookSection() {
         <ul style={listStyle}>
           {CUSTOMER_NEEDS.map((n) => (
             <li key={n.id} style={liStyle}>
-              <strong>{n.label}</strong> — {n.detail}
+              <strong>{n.label}</strong>: {n.detail}
             </li>
           ))}
         </ul>
@@ -62,7 +62,7 @@ export default function PlaybookSection() {
             <div key={t} style={rowStyle}>
               <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, minWidth: 42 }}>{t}</span>
               <span style={{ flex: 1 }}>
-                <strong>{VALUE_TIERS[t].label}</strong> — {VALUE_TIERS[t].strategy}
+                <strong>{VALUE_TIERS[t].label}</strong>: {VALUE_TIERS[t].strategy}
               </span>
             </div>
           ))}
@@ -71,28 +71,28 @@ export default function PlaybookSection() {
     },
     {
       id: 'servqual',
-      title: 'Service quality — RATER',
+      title: 'Service quality: RATER',
       intro: 'SERVQUAL measures the gap between what customers expect and what they perceive, across five dimensions.',
       body: (
         <ul style={listStyle}>
-          <li style={liStyle}><strong>Reliability</strong> — deliver on the promise: accurate ETAs, correct orders, honest warranties.</li>
-          <li style={liStyle}><strong>Assurance</strong> — knowledgeable, courteous staff; clear specs and certifications that build trust.</li>
-          <li style={liStyle}><strong>Tangibles</strong> — the site, packaging and product condition on arrival.</li>
-          <li style={liStyle}><strong>Empathy</strong> — individual care, especially for outage-driven urgent purchases.</li>
-          <li style={liStyle}><strong>Responsiveness</strong> — fast help on chat, WhatsApp and phone.</li>
+          <li style={liStyle}><strong>Reliability</strong>: deliver on the promise: accurate ETAs, correct orders, honest warranties.</li>
+          <li style={liStyle}><strong>Assurance</strong>: knowledgeable, courteous staff; clear specs and certifications that build trust.</li>
+          <li style={liStyle}><strong>Tangibles</strong>: the site, packaging and product condition on arrival.</li>
+          <li style={liStyle}><strong>Empathy</strong>: individual care, especially for outage-driven urgent purchases.</li>
+          <li style={liStyle}><strong>Responsiveness</strong>: fast help on chat, WhatsApp and phone.</li>
         </ul>
       ),
     },
     {
       id: 'culture',
       title: 'Service culture',
-      intro: 'A branded service culture keeps the experience consistent across every channel. Position: the reliable power partner — Service + Convenience leader.',
+      intro: 'A branded service culture keeps the experience consistent across every channel. Position: the reliable power partner: Service + Convenience leader.',
       body: (
         <ul style={listStyle}>
-          <li style={liStyle}><strong>Mission</strong> — keep Jamaica powered with dependable, honestly-priced portable energy.</li>
-          <li style={liStyle}><strong>Consistency</strong> — same tone and quality online, in person and over WhatsApp.</li>
-          <li style={liStyle}><strong>Empowerment</strong> — front-line staff may resolve small issues (replacements, expedited delivery) without escalation.</li>
-          <li style={liStyle}><strong>Proactive</strong> — flag delays before the customer has to ask.</li>
+          <li style={liStyle}><strong>Mission</strong>: keep Jamaica powered with dependable, honestly-priced portable energy.</li>
+          <li style={liStyle}><strong>Consistency</strong>: same tone and quality online, in person and over WhatsApp.</li>
+          <li style={liStyle}><strong>Empowerment</strong>: front-line staff may resolve small issues (replacements, expedited delivery) without escalation.</li>
+          <li style={liStyle}><strong>Proactive</strong>: flag delays before the customer has to ask.</li>
         </ul>
       ),
     },
@@ -123,9 +123,9 @@ export default function PlaybookSection() {
       intro: 'A good guarantee is meaningful, pays out fairly, and is easy to invoke.',
       body: (
         <ul style={listStyle}>
-          <li style={liStyle}><strong>Meaningful</strong> — promise something beyond the ordinary (e.g. on-time delivery or it’s credited).</li>
-          <li style={liStyle}><strong>Fair payout</strong> — make the customer whole.</li>
-          <li style={liStyle}><strong>Easy to invoke</strong> — the return/RMA flow should be one simple form, never a runaround.</li>
+          <li style={liStyle}><strong>Meaningful</strong>: promise something beyond the ordinary (e.g. on-time delivery or it’s credited).</li>
+          <li style={liStyle}><strong>Fair payout</strong>: make the customer whole.</li>
+          <li style={liStyle}><strong>Easy to invoke</strong>: the return/RMA flow should be one simple form, never a runaround.</li>
         </ul>
       ),
     },
@@ -138,7 +138,7 @@ export default function PlaybookSection() {
       <div style={cardStyle}>
         <h3 style={h3Style}>Customer-centric service playbook</h3>
         <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: 0 }}>
-          The working guide for how Kingston Energies wins and keeps customers — distilled from the
+          The working guide for how Kingston Energies wins and keeps customers, distilled from the
           MGMT 3069 frameworks and wired into this platform. Use it for onboarding, day-to-day service
           decisions, and as the reference behind the CRM tools in the other tabs.
         </p>
@@ -200,7 +200,7 @@ function Steps({ items }: { items: [string, string][] }) {
             {i + 1}
           </span>
           <span style={{ fontSize: 13 }}>
-            <strong>{label}</strong> — <span style={{ color: 'var(--color-text-muted)' }}>{detail}</span>
+            <strong>{label}</strong>: <span style={{ color: 'var(--color-text-muted)' }}>{detail}</span>
           </span>
         </div>
       ))}

@@ -126,7 +126,7 @@ export default function BankRulesTab() {
         <Info size={16} style={{ color: CHROME.textMuted, flexShrink: 0, marginTop: 2 }} aria-hidden />
         <div style={{ fontSize: 13, lineHeight: 1.55, color: CHROME.textMuted }}>
           A rule matches text in a statement line and assigns it a category. New rules only <strong>suggest</strong>.
-          Turn on auto-post for a rule once you have watched it get the answer right — a rule that books to the wrong
+          Turn on auto-post for a rule once you have watched it get the answer right. A rule that books to the wrong
           account produces books that look tidy and are wrong.
         </div>
       </div>
@@ -212,7 +212,7 @@ export default function BankRulesTab() {
       {open && (
         <Modal onClose={() => setOpen(false)} title="New rule" width={480}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <TextInput label="Rule name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} placeholder="Flow — internet" />
+            <TextInput label="Rule name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} placeholder="Flow: internet" />
             <TextInput
               label="Description contains"
               value={form.contains}

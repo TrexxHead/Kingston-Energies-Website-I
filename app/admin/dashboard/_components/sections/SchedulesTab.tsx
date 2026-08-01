@@ -113,7 +113,7 @@ function FixedAssets() {
     const res = await fetch('/api/admin/finance/assets', { method: 'PUT' })
     const d = await res.json().catch(() => ({}))
     setBusy(false)
-    setMsg(res.ok ? (d.posted ? `Posted ${d.posted} depreciation period(s).` : 'Nothing due — depreciation is up to date.') : 'Run failed.')
+    setMsg(res.ok ? (d.posted ? `Posted ${d.posted} depreciation period(s).` : 'Nothing due. Depreciation is up to date.') : 'Run failed.')
     load()
   }
 
@@ -144,10 +144,10 @@ function FixedAssets() {
   return (
     <>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14 }} className="kad-kpi-grid">
-        <Stat label="Asset cost" value={data ? fmt(data.totals.cost) : '—'} />
-        <Stat label="Accumulated depreciation" value={data ? fmt(data.totals.accumulatedDepreciation) : '—'} />
-        <Stat label="Net book value" value={data ? fmt(data.totals.netBookValue) : '—'} />
-        <Stat label="Periods due" value={data ? String(data.totals.periodsDue) : '—'} warn={Boolean(data && data.totals.periodsDue > 0)} />
+        <Stat label="Asset cost" value={data ? fmt(data.totals.cost) : 'N/A'} />
+        <Stat label="Accumulated depreciation" value={data ? fmt(data.totals.accumulatedDepreciation) : 'N/A'} />
+        <Stat label="Net book value" value={data ? fmt(data.totals.netBookValue) : 'N/A'} />
+        <Stat label="Periods due" value={data ? String(data.totals.periodsDue) : 'N/A'} warn={Boolean(data && data.totals.periodsDue > 0)} />
       </div>
 
       <div style={{ ...cardStyle, padding: 0, overflow: 'hidden' }}>
@@ -225,7 +225,7 @@ function FixedAssets() {
             Also record the purchase in the ledger (Equipment / Bank)
           </label>
           <p style={{ fontSize: 11.5, color: 'var(--color-text-subtle)', marginTop: 6 }}>
-            Untick if you already logged this purchase as an expense or bank payment — otherwise it would be counted twice.
+            Untick if you already logged this purchase as an expense or bank payment, otherwise it would be counted twice.
           </p>
           {error && <p style={{ fontSize: 12.5, color: 'var(--color-danger)', marginTop: 8 }}>{error}</p>}
         </Modal>
@@ -239,7 +239,7 @@ function FixedAssets() {
         >
           <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: '0 0 12px' }}>
             Depreciation is caught up to the disposal date first, then the asset and its accumulated depreciation come off the books.
-            Current net book value is <strong>{fmt(Math.round(disposing.netBookValue))}</strong> — anything above that is a gain, below is a loss.
+            Current net book value is <strong>{fmt(Math.round(disposing.netBookValue))}</strong>: anything above that is a gain, below is a loss.
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <TextInput label="Disposal date" value={disposal.disposedAt} onChange={(v) => setDisposal({ ...disposal, disposedAt: v })} type="date" />
@@ -348,9 +348,9 @@ function ScheduleList({
   return (
     <>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }} className="kad-kpi-grid">
-        <Stat label={remainingLabel} value={data ? fmt(Math.round(data.items.reduce((s, i) => s + i.remaining, 0))) : '—'} />
-        <Stat label={progressLabel} value={data ? fmt(Math.round(data.items.reduce((s, i) => s + i.recognised, 0))) : '—'} />
-        <Stat label="Periods due" value={data ? String(totalDue) : '—'} warn={totalDue > 0} />
+        <Stat label={remainingLabel} value={data ? fmt(Math.round(data.items.reduce((s, i) => s + i.remaining, 0))) : 'N/A'} />
+        <Stat label={progressLabel} value={data ? fmt(Math.round(data.items.reduce((s, i) => s + i.recognised, 0))) : 'N/A'} />
+        <Stat label="Periods due" value={data ? String(totalDue) : 'N/A'} warn={totalDue > 0} />
       </div>
 
       <div style={{ ...cardStyle, padding: 0, overflow: 'hidden' }}>
@@ -408,7 +408,7 @@ function ScheduleList({
 
       {addOpen && (
         <Modal
-          title={`Add — ${title}`}
+          title={`Add: ${title}`}
           onClose={() => { setAddOpen(false); setError('') }}
           footer={<><Button size="sm" variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button><Button size="sm" variant="primary" onClick={create} disabled={busy}>{busy ? 'Saving…' : 'Save'}</Button></>}
         >

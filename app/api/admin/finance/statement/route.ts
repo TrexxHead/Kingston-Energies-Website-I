@@ -86,7 +86,7 @@ export async function GET(request: Request) {
   if (asCsv) {
     const fmt = (n: number) => n.toString()
     const rows: [string, string][] = [
-      ['Kingston Energies — Profit & Loss', statement.periodLabel],
+      ['Kingston Energies: Profit & Loss', statement.periodLabel],
       ['', ''],
       ['Gross sales', fmt(statement.grossSales)],
       [`Less GCT (${statement.gctRate}%)`, fmt(-statement.gct)],

@@ -88,7 +88,7 @@ async function notifyRestockWaitlist(productName: string, stock: number, catalog
     `${productName} is back in stock`,
     wrapEmailHtml(
       'Back in stock',
-      `<p><strong>${escapeHtml(productName)}</strong> is back in stock${stock <= 5 ? ` — only ${stock} left` : ''}. Grab yours before it sells out again.</p>
+      `<p><strong>${escapeHtml(productName)}</strong> is back in stock${stock <= 5 ? `, only ${stock} left` : ''}. Grab yours before it sells out again.</p>
        <p><a href="${siteUrl}/product/${catalogId}" style="color:#4a7c2c;font-weight:600;">Shop ${escapeHtml(productName)} &rarr;</a></p>`,
     ),
   ).catch(() => {})

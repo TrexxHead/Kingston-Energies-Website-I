@@ -12,7 +12,7 @@ export default function HubError({ error, reset }: { error: Error & { digest?: s
       <div style={{ background: '#fff', border: '1px solid var(--color-border)', borderRadius: 16, padding: '32px 24px', textAlign: 'center', maxWidth: 460, margin: '0 auto' }}>
         <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 18, marginBottom: 6 }}>This section couldn’t load</div>
         <p style={{ fontSize: 13.5, color: 'var(--color-text-muted)', margin: '0 0 18px' }}>
-          We hit a snag loading your account data. This is usually temporary — please try again.
+          We hit a snag loading your account data. This is usually temporary. Please try again.
         </p>
         <button
           type="button"

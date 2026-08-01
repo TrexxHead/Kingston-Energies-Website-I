@@ -41,7 +41,7 @@ export default function DonutChart({
   const total = slices.reduce((s, x) => s + x.value, 0)
   const table = {
     columns: ['Category', 'Amount', 'Share'],
-    rows: slices.map((s) => [s.label, format(s.value), total > 0 ? `${((s.value / total) * 100).toFixed(1)}%` : '—']),
+    rows: slices.map((s) => [s.label, format(s.value), total > 0 ? `${((s.value / total) * 100).toFixed(1)}%` : 'N/A']),
   }
 
   const r = size / 2
@@ -127,7 +127,7 @@ export default function DonutChart({
               <span style={{ flex: 1, fontSize: 12.5, color: CHROME.textMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.label}</span>
               <span style={{ fontSize: 12.5, fontWeight: 700, color: CHROME.text, fontVariantNumeric: 'tabular-nums' }}>{format(s.value)}</span>
               <span style={{ fontSize: 11, color: CHROME.textSubtle, fontVariantNumeric: 'tabular-nums', width: 42, textAlign: 'right' }}>
-                {total > 0 ? `${((s.value / total) * 100).toFixed(0)}%` : '—'}
+                {total > 0 ? `${((s.value / total) * 100).toFixed(0)}%` : 'N/A'}
               </span>
             </button>
           ))}

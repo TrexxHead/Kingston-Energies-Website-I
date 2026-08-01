@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "We couldn't find a device with that serial number." }, { status: 404 })
   }
   if (unit.status === 'IN_STOCK') {
-    return NextResponse.json({ error: "That serial hasn't been sold yet — double-check the number on your invoice." }, { status: 409 })
+    return NextResponse.json({ error: "That serial hasn't been sold yet. Double-check the number on your invoice." }, { status: 409 })
   }
   if (unit.status === 'REGISTERED') {
     return NextResponse.json(

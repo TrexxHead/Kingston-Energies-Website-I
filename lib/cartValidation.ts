@@ -37,7 +37,7 @@ export async function validateCartPrices(items: CartItemInput[]): Promise<{ ok: 
   for (const item of items) {
     const real = priceByName.get(item.name.trim().toLowerCase())
     if (real === undefined) {
-      return { ok: false, error: `"${item.name}" isn't a product we recognise — please refresh your cart and try again.` }
+      return { ok: false, error: `"${item.name}" isn't a product we recognise. Please refresh your cart and try again.` }
     }
     // Prices here are whole Jamaican dollars; a fraction of a cent of float
     // drift is not a manipulation attempt.

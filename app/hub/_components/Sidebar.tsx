@@ -152,7 +152,7 @@ export default function Sidebar() {
           </span>
         </div>
         <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 26, marginTop: 6 }}>
-          {co2 ?? '—'}
+          {co2 ?? 'N/A'}
         </div>
         <div style={{ fontSize: 10.5, color: 'rgba(255,255,255,.45)', marginTop: 4 }}>Estimated from your orders</div>
       </div>

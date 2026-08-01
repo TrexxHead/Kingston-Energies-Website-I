@@ -43,7 +43,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   const runs = await prisma.scheduleRun.count({ where: { kind: 'REVENUE_RECOGNITION', refId: id } })
   if (runs > 0) {
     return NextResponse.json(
-      { error: `This schedule has ${runs} recognised period(s) and can't be deleted — that would break the audit trail.` },
+      { error: `This schedule has ${runs} recognised period(s) and can't be deleted. That would break the audit trail.` },
       { status: 400 },
     )
   }

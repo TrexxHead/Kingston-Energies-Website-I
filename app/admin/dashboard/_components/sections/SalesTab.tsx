@@ -61,7 +61,7 @@ export default function SalesTab() {
             <Stat label="Average order value" value={fmt(data.avgOrderValue)} />
           </div>
           <p style={{ fontSize: 12, color: 'var(--color-text-muted)', margin: 0 }}>
-            Gross sales counts every order placed in this period, paid or not — it is not the same as cash in hand. See Cash Flow for collections over time.
+            Gross sales counts every order placed in this period, paid or not. It is not the same as cash in hand. See Cash Flow for collections over time.
           </p>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(340px,1fr))', gap: 16, alignItems: 'start' }}>

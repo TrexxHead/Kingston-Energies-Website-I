@@ -24,7 +24,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!session?.user?.id) return NextResponse.json({ error: 'Please sign in.' }, { status: 401 })
 
   if (!isStorageConfigured()) {
-    return NextResponse.json({ error: 'File uploads are not set up yet — please email your proof of payment instead.' }, { status: 503 })
+    return NextResponse.json({ error: 'File uploads are not set up yet. Please email your proof of payment instead.' }, { status: 503 })
   }
 
   const { id } = await params
@@ -47,11 +47,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   if (bytes.byteLength > MAX_UPLOAD_BYTES) {
     if (!isCompressibleImage(contentType)) {
-      return NextResponse.json({ error: 'That PDF is over 5 MB — please compress it or upload a photo instead.' }, { status: 400 })
+      return NextResponse.json({ error: 'That PDF is over 5 MB. Please compress it or upload a photo instead.' }, { status: 400 })
     }
     const compressed = await compressImageToLimit(bytes, contentType).catch(() => null)
     if (!compressed || compressed.buffer.byteLength > MAX_UPLOAD_BYTES) {
-      return NextResponse.json({ error: 'That image is over 5 MB and could not be compressed enough — please try a smaller photo.' }, { status: 400 })
+      return NextResponse.json({ error: 'That image is over 5 MB and could not be compressed enough. Please try a smaller photo.' }, { status: 400 })
     }
     bytes = compressed.buffer
     contentType = compressed.contentType

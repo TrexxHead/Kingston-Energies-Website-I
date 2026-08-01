@@ -11,11 +11,11 @@ import { Button } from './ui'
 
 const ROWS: { label: string; render: (p: Product) => string }[] = [
   { label: 'Price', render: (p) => fmt(p.price) },
-  { label: 'Capacity', render: (p) => p.cap ?? '—' },
-  { label: 'Ports', render: (p) => p.ports ?? '—' },
-  { label: 'Speed', render: (p) => p.speed ?? '—' },
-  { label: 'Best for', render: (p) => p.best ?? '—' },
-  { label: 'Warranty', render: (p) => p.warranty ?? '—' },
+  { label: 'Capacity', render: (p) => p.cap ?? 'N/A' },
+  { label: 'Ports', render: (p) => p.ports ?? 'N/A' },
+  { label: 'Speed', render: (p) => p.speed ?? 'N/A' },
+  { label: 'Best for', render: (p) => p.best ?? 'N/A' },
+  { label: 'Warranty', render: (p) => p.warranty ?? 'N/A' },
 ]
 
 export default function CompareModal({ onClose }: { onClose: () => void }) {

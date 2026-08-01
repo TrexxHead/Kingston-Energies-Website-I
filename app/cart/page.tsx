@@ -76,14 +76,14 @@ export default function CartPage() {
     // Redeem the largest whole step available, capped by what the order can absorb.
     const maxByBalance = Math.floor(balance.points / balance.step) * balance.step
     applyPoints(maxByBalance)
-    pushToast('tag', 'Points applied', `${maxByBalance} pts — ${fmt((maxByBalance / balance.step) * balance.stepValue)} off`)
+    pushToast('tag', 'Points applied', `${maxByBalance} pts: ${fmt((maxByBalance / balance.step) * balance.stepValue)} off`)
   }
 
   return (
     <CommerceShell>
       <section style={{ maxWidth: 1140, margin: '0 auto', padding: '56px 32px 96px' }}>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, letterSpacing: '.3em', color: 'var(--ke-green-600)' }}>
-          YOUR&nbsp;CART&nbsp;—&nbsp;{countLabel}
+          YOUR&nbsp;CART:&nbsp;{countLabel}
         </div>
         <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(38px,6vw,52px)', letterSpacing: '-.025em', lineHeight: 1, color: 'var(--color-text)', margin: '16px 0 0' }}>
           Almost yours.
@@ -146,10 +146,10 @@ export default function CartPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 18, fontSize: 14.5 }}>
                 <Row label="Subtotal" value={fmt(subtotal)} />
                 <Row label="Delivery" value={delivery === 0 ? 'Free' : fmt(delivery)} valueColor="var(--ke-green-700)" />
-                {bulkDiscount > 0 && <Row label={`Bulk discount (3+ of the same item) — ${Math.round(bulkRate * 100)}% off`} value={'−' + fmt(bulkDiscount)} labelColor="var(--ke-green-700)" valueColor="var(--ke-green-700)" />}
-                {firstOrderDiscountAmt > 0 && <Row label="First order — 10% off your first item" value={'−' + fmt(firstOrderDiscountAmt)} labelColor="var(--ke-green-700)" valueColor="var(--ke-green-700)" />}
-                {promoOn && <Row label={`Promo — ${promoCode}`} value={'−' + fmt(discount)} labelColor="var(--ke-green-700)" valueColor="var(--ke-green-700)" />}
-                {pointsApplied > 0 && <Row label={`Points — ${pointsApplied} pts`} value={'−' + fmt(pointsDiscount)} labelColor="var(--ke-green-700)" valueColor="var(--ke-green-700)" />}
+                {bulkDiscount > 0 && <Row label={`Bulk discount (3+ of the same item): ${Math.round(bulkRate * 100)}% off`} value={'−' + fmt(bulkDiscount)} labelColor="var(--ke-green-700)" valueColor="var(--ke-green-700)" />}
+                {firstOrderDiscountAmt > 0 && <Row label="First order: 10% off your first item" value={'−' + fmt(firstOrderDiscountAmt)} labelColor="var(--ke-green-700)" valueColor="var(--ke-green-700)" />}
+                {promoOn && <Row label={`Promo: ${promoCode}`} value={'−' + fmt(discount)} labelColor="var(--ke-green-700)" valueColor="var(--ke-green-700)" />}
+                {pointsApplied > 0 && <Row label={`Points: ${pointsApplied} pts`} value={'−' + fmt(pointsDiscount)} labelColor="var(--ke-green-700)" valueColor="var(--ke-green-700)" />}
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--color-border)', paddingTop: 12, marginTop: 4 }}>
                   <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700 }}>Total</span>
                   <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 20 }}>{fmt(total)}</span>
@@ -170,13 +170,13 @@ export default function CartPage() {
 
                   {pointsApplied > 0 ? (
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
-                      <span style={{ fontSize: 12.5, color: 'var(--color-text-muted)' }}>{pointsApplied} pts applied — {fmt(pointsDiscount)} off</span>
+                      <span style={{ fontSize: 12.5, color: 'var(--color-text-muted)' }}>{pointsApplied} pts applied: {fmt(pointsDiscount)} off</span>
                       <Button size="sm" variant="ghost" onClick={removePoints}>Remove</Button>
                     </div>
                   ) : balance.points >= balance.minRedeem ? (
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                       <span style={{ fontSize: 12.5, color: 'var(--color-text-muted)' }}>
-                        You have <strong style={{ color: 'var(--color-text)' }}>{balance.points} pts</strong> — redeem {Math.floor(balance.points / balance.step) * balance.step} pts for {fmt(balance.redeemable)} off
+                        You have <strong style={{ color: 'var(--color-text)' }}>{balance.points} pts</strong>: redeem {Math.floor(balance.points / balance.step) * balance.step} pts for {fmt(balance.redeemable)} off
                       </span>
                       <Button size="sm" variant="outline" onClick={handleRedeemPoints}>Use points</Button>
                     </div>

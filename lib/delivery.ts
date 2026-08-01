@@ -46,5 +46,5 @@ export function deliveryTimeframe(method: DeliveryMethod, parish: string): strin
 export function deliveryLineLabel(method: DeliveryMethod, parish: string): string {
   const courier = deliveryCourier(method, parish)
   const tier = method === 'express' ? 'Express' : 'Standard'
-  return `Delivery — ${tier} (${courier}, ${parish})`
+  return `Delivery: ${tier} (${courier}, ${parish})`
 }

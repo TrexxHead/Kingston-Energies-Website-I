@@ -97,7 +97,7 @@ export default function SignupPage() {
         </div>
 
         <div style={{ marginBottom: 14 }}>
-          <label style={authLabelStyle}>Username <span style={{ color: 'var(--ke-dark-text-muted)', fontWeight: 400 }}>(optional — sign in with this or your email)</span></label>
+          <label style={authLabelStyle}>Username <span style={{ color: 'var(--ke-dark-text-muted)', fontWeight: 400 }}>(optional, sign in with this or your email)</span></label>
           <input
             value={username}
             onChange={(e) => setUsername(e.target.value)}

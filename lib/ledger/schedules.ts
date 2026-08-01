@@ -187,7 +187,7 @@ export async function runAssetDepreciation(assetId: string, createdBy?: string |
       period,
       debitCode: asset.depreciationExpenseCode,
       creditCode: asset.accumDepAccountCode,
-      memo: `Depreciation — ${asset.name} (${MONTH_LABEL(period.periodDate)})`,
+      memo: `Depreciation: ${asset.name} (${MONTH_LABEL(period.periodDate)})`,
       createdBy,
     })
     if (ok) posted++
@@ -215,7 +215,7 @@ export async function runPrepaidAmortization(prepaidId: string, createdBy?: stri
       // Expense goes up, the prepaid asset comes down.
       debitCode: prepaid.expenseAccountCode,
       creditCode: prepaid.prepaidAccountCode,
-      memo: `Prepaid amortization — ${prepaid.description} (${MONTH_LABEL(period.periodDate)})`,
+      memo: `Prepaid amortization: ${prepaid.description} (${MONTH_LABEL(period.periodDate)})`,
       createdBy,
     })
     if (ok) posted++
@@ -243,7 +243,7 @@ export async function runRevenueRecognition(scheduleId: string, createdBy?: stri
       // Release the liability into earned revenue.
       debitCode: sched.deferredAccountCode,
       creditCode: sched.revenueAccountCode,
-      memo: `Revenue recognised — ${sched.description} (${MONTH_LABEL(period.periodDate)})`,
+      memo: `Revenue recognised: ${sched.description} (${MONTH_LABEL(period.periodDate)})`,
       createdBy,
     })
     if (ok) posted++

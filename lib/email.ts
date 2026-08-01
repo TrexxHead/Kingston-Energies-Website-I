@@ -147,12 +147,12 @@ export async function sendNewOrderAlert(input: {
         <tr><td style="padding:8px 0 0;border-top:1px solid #e2e8e4;font-weight:700">Total</td>
         <td style="padding:8px 0 0;border-top:1px solid #e2e8e4;text-align:right;font-weight:700">${fmt(input.total)}</td></tr>
       </table>` +
-      `<p style="font-size:12.5px;color:#556059;margin-top:14px">Payment method: ${escapeHtml(input.paymentMethod ?? '—')}</p>` +
+      `<p style="font-size:12.5px;color:#556059;margin-top:14px">Payment method: ${escapeHtml(input.paymentMethod ?? 'N/A')}</p>` +
       `<a href="${site}/admin/dashboard" style="display:inline-block;margin-top:12px;background:#1f6b45;color:#fff;text-decoration:none;padding:10px 20px;border-radius:999px;font-weight:600;font-size:13px">Open admin dashboard</a>`,
   )
 
   try {
-    await Promise.all(recipients.map((to) => deliver({ to, subject: `New order ${input.orderNo} — ${fmt(input.total)}`, html })))
+    await Promise.all(recipients.map((to) => deliver({ to, subject: `New order ${input.orderNo}: ${fmt(input.total)}`, html })))
   } catch (err) {
     console.error('[email] failed to send new-order alert:', err)
   }
@@ -185,7 +185,7 @@ export async function sendProofOfPaymentAlert(input: { orderNo: string; customer
   try {
     await Promise.all(
       recipients.map((to) =>
-        deliver({ to, subject: `${input.customerName} — Proof of Payment — Order ${input.orderNo}`, html }),
+        deliver({ to, subject: `${input.customerName}: Proof of Payment for Order ${input.orderNo}`, html }),
       ),
     )
   } catch (err) {
@@ -234,7 +234,7 @@ export async function sendInvoiceEmail(input: { to: string; orderNo: string; htm
     return false
   }
   try {
-    await deliver({ to: input.to, subject: `Invoice ${input.orderNo} — Kingston Energies`, html: input.html })
+    await deliver({ to: input.to, subject: `Invoice ${input.orderNo} from Kingston Energies`, html: input.html })
     return true
   } catch (err) {
     console.error('[email] failed to send invoice:', err)
@@ -304,7 +304,7 @@ function renderOrderHtml(input: OrderEmailInput): string {
       <p style="font-size:13px;color:#556059;margin-top:20px">We'll let you know when it's on the way. <a href="${trackUrl}" style="color:#47701a">Track your order</a> any time.</p>
       <div style="margin-top:20px;padding:14px 16px;background:#f2f7f3;border-radius:12px">
         <div style="font-weight:700;font-size:13px;color:#1c2a25">Your warranty &amp; returns</div>
-        <p style="font-size:12.5px;color:#556059;margin:6px 0 0;line-height:1.5">Every item includes a <strong>14-day return window</strong> plus the manufacturer's warranty. Keep this email as proof of purchase — to make a claim, just reply or contact us at kingstonenergies.com. Care tips for your device are on each product page.</p>
+        <p style="font-size:12.5px;color:#556059;margin:6px 0 0;line-height:1.5">Every item includes a <strong>14-day return window</strong> plus the manufacturer's warranty. Keep this email as proof of purchase. To make a claim, just reply or contact us at kingstonenergies.com. Care tips for your device are on each product page.</p>
       </div>
     </div>
   </div>`
@@ -316,7 +316,7 @@ function renderPasswordResetHtml(input: PasswordResetEmailInput): string {
     ${emailHeader('Reset your password')}
     <div style="border:1px solid #e2e8e4;border-top:none;padding:24px;border-radius:0 0 16px 16px">
       <p>Hi ${input.name}, we got a request to reset your password.</p>
-      <p style="font-size:14px;color:#556059">Click below to choose a new one. If you didn't ask for this, you can safely ignore this email — your password won't change.</p>
+      <p style="font-size:14px;color:#556059">Click below to choose a new one. If you didn't ask for this, you can safely ignore this email, your password won't change.</p>
       <a href="${input.resetUrl}" style="display:inline-block;margin-top:16px;padding:12px 24px;background:#1c4a44;color:#fff;text-decoration:none;border-radius:999px;font-weight:700;font-size:14px">Reset my password</a>
       <p style="font-size:12px;color:#8a938d;margin-top:20px">This link expires in 1 hour.</p>
     </div>

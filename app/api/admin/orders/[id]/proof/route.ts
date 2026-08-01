@@ -13,7 +13,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   if (!order?.proofOfPaymentPath) return NextResponse.json({ error: 'No proof of payment on file.' }, { status: 404 })
 
   const url = await signedUrl(order.proofOfPaymentPath)
-  if (!url) return NextResponse.json({ error: 'Could not generate a link — storage may be unavailable.' }, { status: 503 })
+  if (!url) return NextResponse.json({ error: 'Could not generate a link. Storage may be unavailable.' }, { status: 503 })
 
   return NextResponse.redirect(url)
 }

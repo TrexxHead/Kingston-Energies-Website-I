@@ -63,7 +63,7 @@ const CATALOG: { group: string; items: CatalogEntry[] }[] = [
         id: 'ap-bills',
         label: 'Bills & supplier balances',
         description: 'Outstanding supplier invoices',
-        blocked: 'Supplier bills are not modelled as documents — expenses are recorded as already settled. This needs a bills workflow first.',
+        blocked: 'Supplier bills are not modelled as documents. Expenses are recorded as already settled. This needs a bills workflow first.',
       },
     ],
   },
@@ -89,7 +89,7 @@ const CATALOG: { group: string; items: CatalogEntry[] }[] = [
         id: 'exp-vendor',
         label: 'Vendor spend',
         description: 'Spend by supplier',
-        blocked: 'Expenses carry a category but not a supplier. Confirming receipts records the vendor — this becomes possible once there is enough of that history.',
+        blocked: 'Expenses carry a category but not a supplier. Confirming receipts records the vendor. This becomes possible once there is enough of that history.',
       },
     ],
   },
@@ -283,7 +283,7 @@ function AgingReport({ type }: { type: 'receivables' | 'payables' }) {
       {data.rows.length > 0 && (
         <div style={cardStyle}>
           <h3 style={{ ...h3Style, margin: '0 0 4px' }}>Detail</h3>
-          <p style={{ fontSize: 12.5, color: CHROME.textMuted, margin: '0 0 12px' }}>Oldest first — that is the order worth working through.</p>
+          <p style={{ fontSize: 12.5, color: CHROME.textMuted, margin: '0 0 12px' }}>Oldest first: that is the order worth working through.</p>
           <ChartTable
             columns={['Reference', 'Party', 'Age', 'Amount']}
             rows={data.rows.map((r) => [`${r.reference} · ${r.party}`, new Date(r.date).toLocaleDateString('en-JM', { day: 'numeric', month: 'short', year: 'numeric' }), `${r.ageDays}d`, money(r.amount)])}

@@ -23,7 +23,7 @@ export function LegalPage({ title, updated, children }: { title: string; updated
           {title}
         </h1>
         <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, letterSpacing: '.16em', color: 'var(--color-text-muted)', marginTop: 12 }}>
-          LAST UPDATED — {updated}
+          LAST UPDATED: {updated}
         </p>
         <div style={{ marginTop: 32, fontSize: 16, lineHeight: 1.7, color: 'var(--color-text)' }}>{children}</div>
         <p style={{ fontSize: 13.5, color: 'var(--color-text-muted)', marginTop: 40, paddingTop: 20, borderTop: '1px solid var(--color-border)' }}>

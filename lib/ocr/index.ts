@@ -78,7 +78,7 @@ export function ocrStatus(): { available: boolean; provider: string | null; mess
     return {
       available: true,
       provider: provider.label,
-      message: `${provider.label} pre-fills the fields from the document. Check them before confirming — an extraction is a suggestion, not a reading you can rely on.`,
+      message: `${provider.label} pre-fills the fields from the document. Check them before confirming: an extraction is a suggestion, not a reading you can rely on.`,
     }
   }
   return {

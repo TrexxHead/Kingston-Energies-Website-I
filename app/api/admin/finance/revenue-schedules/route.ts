@@ -76,7 +76,7 @@ export async function POST(request: Request) {
     await postEntry({
       date: startDate,
       source: 'MANUAL',
-      memo: `Deferred revenue — ${d.description}`,
+      memo: `Deferred revenue: ${d.description}`,
       createdBy: session?.user?.email ?? null,
       lines: [
         { code: ACC.BANK, debit: d.totalAmount },

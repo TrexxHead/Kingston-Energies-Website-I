@@ -30,7 +30,7 @@ export async function GET(request: Request) {
 
   // A compact text block the bot can quote directly.
   const summary = products
-    .map((p) => `• ${p.name} — ${p.priceFormatted}${p.inStock ? '' : ' (out of stock)'} — ${p.url}`)
+    .map((p) => `• ${p.name}: ${p.priceFormatted}${p.inStock ? '' : ' (out of stock)'} · ${p.url}`)
     .join('\n')
 
   return NextResponse.json({ products, summary, shopUrl: `${siteUrl}/shop` })

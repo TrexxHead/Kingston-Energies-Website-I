@@ -78,7 +78,7 @@ export default function MarketingSection() {
                 </button>
               </div>
             ))}
-            {cfg && cfg.banners.length === 0 && <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: 0 }}>No banners — add one above.</p>}
+            {cfg && cfg.banners.length === 0 && <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: 0 }}>No banners. Add one above.</p>}
           </div>
         </div>
 
@@ -94,7 +94,7 @@ export default function MarketingSection() {
               <DarkField label="Subtext" value={cfg.flash.subtext} onChange={(v) => setFlash({ subtext: v })} placeholder="This weekend only" />
               <DarkField label="Link" value={cfg.flash.href} onChange={(v) => setFlash({ href: v })} placeholder="/shop" />
               <p style={{ fontSize: 11.5, color: 'rgba(255,255,255,.6)', margin: 0 }}>
-                {cfg.flash.enabled ? 'Live on the homepage when saved.' : 'Paused — turn on and save to show it.'}
+                {cfg.flash.enabled ? 'Live on the homepage when saved.' : 'Paused: turn on and save to show it.'}
               </p>
             </div>
           )}
@@ -105,7 +105,7 @@ export default function MarketingSection() {
         <Button size="sm" variant="primary" onClick={save}>{busy ? 'Saving…' : 'Save homepage promos'}</Button>
         {saved && (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12.5, color: 'var(--ke-green-700)' }}>
-            <Check size={14} /> Saved — live on the homepage
+            <Check size={14} /> Saved: live on the homepage
           </span>
         )}
       </div>

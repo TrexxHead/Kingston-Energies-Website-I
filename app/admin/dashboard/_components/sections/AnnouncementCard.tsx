@@ -75,7 +75,7 @@ export default function AnnouncementCard() {
       </p>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <TextInput label="Message" value={a.message} onChange={(v) => setA({ ...a, message: v })} placeholder="🎉 Flash sale — 20% off power banks this weekend!" />
+        <TextInput label="Message" value={a.message} onChange={(v) => setA({ ...a, message: v })} placeholder="🎉 Flash sale: 20% off power banks this weekend!" />
         <TextInput label="Link (optional)" value={a.link} onChange={(v) => setA({ ...a, link: v })} placeholder="/shop" />
         <TextInput label="Style" value={a.style} onChange={(v) => setA({ ...a, style: v as Announcement['style'] })} options={['marquee', 'bar']} />
       </div>
@@ -100,7 +100,7 @@ export default function AnnouncementCard() {
         <Button size="sm" variant="primary" onClick={save}>{busy ? 'Saving…' : 'Save announcement'}</Button>
         {saved && (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12.5, color: 'var(--ke-green-700)' }}>
-            <Check size={14} /> Saved — it's live on the site
+            <Check size={14} /> Saved: it's live on the site
           </span>
         )}
       </div>

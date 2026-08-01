@@ -102,7 +102,7 @@ export default function DocumentsTab() {
                 </div>
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                   <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
-                    {doc.total ? fmt(Math.round(doc.total)) : '—'}
+                    {doc.total ? fmt(Math.round(doc.total)) : 'N/A'}
                   </span>
                   <Badge tone={doc.status === 'CONFIRMED' ? 'green' : doc.status === 'FAILED' ? 'red' : 'orange'}>
                     {doc.status === 'CONFIRMED' ? 'Confirmed' : doc.status === 'FAILED' ? 'Failed' : 'Needs review'}
@@ -311,7 +311,7 @@ function DocumentModal({ id, categories, onClose, onChanged }: { id: string; cat
           <>
             {doc.provider && (
               <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: 0, lineHeight: 1.5 }}>
-                Fields pre-filled by {doc.provider}. Check them against the document — anything highlighted was read
+                Fields pre-filled by {doc.provider}. Check them against the document: anything highlighted was read
                 with low confidence.
               </p>
             )}

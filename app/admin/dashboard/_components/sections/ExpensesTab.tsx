@@ -177,7 +177,7 @@ export default function ExpensesTab() {
         </div>
         {data.recentExpenses.length === 0 ? (
           <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: 0 }}>
-            Nothing logged yet — record your first expense to start tracking profit.
+            Nothing logged yet. Record your first expense to start tracking profit.
           </p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -279,7 +279,7 @@ export default function ExpensesTab() {
               />
               {receipt && (
                 <p style={{ fontSize: 12, color: 'var(--color-text-muted)', margin: '6px 0 0' }}>
-                  {receipt.name} — kept as the evidence behind this expense.
+                  {receipt.name}: kept as the evidence behind this expense.
                 </p>
               )}
             </div>

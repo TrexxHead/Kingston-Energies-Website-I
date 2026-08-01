@@ -35,7 +35,7 @@ interface TrackDto {
 }
 
 function fmtTime(iso: string | null): string {
-  if (!iso) return '—'
+  if (!iso) return 'N/A'
   const d = new Date(iso)
   const today = new Date()
   const sameDay = d.toDateString() === today.toDateString()
@@ -127,7 +127,7 @@ function TrackInner() {
           {live && (
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--ke-green-50)', borderRadius: 999, padding: '6px 14px', fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '.2em', color: 'var(--ke-green-700)' }}>
               <span style={{ width: 7, height: 7, borderRadius: 999, background: 'var(--ke-green-500)', animation: 'kePulse 1.6s var(--ease-standard) infinite' }} />
-              LIVE&nbsp;—&nbsp;UPDATES&nbsp;AUTOMATICALLY
+              LIVE:&nbsp;UPDATES&nbsp;AUTOMATICALLY
             </div>
           )}
         </div>
@@ -180,7 +180,7 @@ function TrackInner() {
                   </div>
                   <div style={{ paddingBottom: 18, flex: 1, display: 'flex', justifyContent: 'space-between', gap: 12 }}>
                     <span style={{ fontFamily: 'var(--font-display)', fontWeight: s.done ? 700 : 600, fontSize: 15, color: s.done ? 'var(--color-text)' : 'var(--color-text-muted)' }}>{s.label}</span>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '.05em', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>{s.done ? fmtTime(s.at) : '—'}</span>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '.05em', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>{s.done ? fmtTime(s.at) : 'N/A'}</span>
                   </div>
                 </div>
               )
@@ -208,7 +208,7 @@ function TrackInner() {
           </FeatureIcon>
           <div style={{ flex: 1 }}>
             <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15 }}>Kingston courier</div>
-            <div style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 2 }}>Hand-delivered by the team — call us anytime.</div>
+            <div style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 2 }}>Hand-delivered by the team. Call us anytime.</div>
           </div>
           <a href="tel:+18763389958"><Button size="sm" variant="outline">Call</Button></a>
         </div>
@@ -218,7 +218,7 @@ function TrackInner() {
             <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 17 }}>How was it?</div>
             {feedbackDone ? (
               <div style={{ background: 'var(--color-success-soft)', color: 'var(--ke-green-700)', borderRadius: 12, padding: '12px 14px', marginTop: 12, fontSize: 13.5 }}>
-                Thanks for the feedback — your 50 points have been added.
+                Thanks for the feedback. Your 50 points have been added.
               </div>
             ) : (
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 12, flexWrap: 'wrap' }}>
@@ -229,7 +229,7 @@ function TrackInner() {
                     </button>
                   ))}
                 </div>
-                <Button size="sm" onClick={submitFeedback}>Send — earn 50 pts</Button>
+                <Button size="sm" onClick={submitFeedback}>Send: earn 50 pts</Button>
               </div>
             )}
           </div>

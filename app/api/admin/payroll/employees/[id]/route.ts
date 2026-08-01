@@ -39,7 +39,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   const slips = await prisma.payslip.count({ where: { employeeId: id } })
   if (slips > 0) {
     return NextResponse.json(
-      { error: `This employee has ${slips} payslip(s). Set them to Terminated instead — deleting would break the payroll record.` },
+      { error: `This employee has ${slips} payslip(s). Set them to Terminated instead. Deleting would break the payroll record.` },
       { status: 400 },
     )
   }

@@ -23,7 +23,7 @@ export const PIPELINE: PipelineStage[] = [
   { key: 'packaged', label: 'Packaged', headline: 'Packaged', blurb: 'Your order is boxed and labelled.', status: 'PACKED' },
   { key: 'dispatch', label: 'Ready for Dispatch', headline: 'Ready for dispatch', blurb: 'Waiting for the courier to collect.', status: 'PACKED' },
   { key: 'out', label: 'Out for Delivery', headline: 'On the way', blurb: 'Your Kingston courier is en route.', status: 'OUT' },
-  { key: 'delivered', label: 'Delivered', headline: 'Delivered', blurb: 'Enjoy — thanks for choosing Kingston Energies.', status: 'DONE' },
+  { key: 'delivered', label: 'Delivered', headline: 'Delivered', blurb: 'Enjoy, and thanks for choosing Kingston Energies.', status: 'DONE' },
 ]
 
 export const LAST_STAGE = PIPELINE.length - 1

@@ -16,7 +16,7 @@ export default function ResendVerificationLink({ email }: { email: string }) {
     setState('sent')
   }
 
-  if (state === 'sent') return <span style={{ color: 'var(--ke-green-400)' }}>sent — check your inbox</span>
+  if (state === 'sent') return <span style={{ color: 'var(--ke-green-400)' }}>sent: check your inbox</span>
 
   return (
     <button

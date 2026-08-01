@@ -48,7 +48,7 @@ export async function POST(request: Request) {
   const d = parsed.data
 
   if (d.salvageValue >= d.cost) {
-    return NextResponse.json({ error: 'Salvage value must be less than cost — there would be nothing to depreciate.' }, { status: 400 })
+    return NextResponse.json({ error: 'Salvage value must be less than cost. There would be nothing to depreciate.' }, { status: 400 })
   }
   const acquiredAt = new Date(d.acquiredAt)
   if (Number.isNaN(acquiredAt.getTime())) return NextResponse.json({ error: 'Invalid acquisition date' }, { status: 400 })

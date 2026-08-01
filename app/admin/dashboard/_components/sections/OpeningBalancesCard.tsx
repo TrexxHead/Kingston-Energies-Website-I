@@ -74,7 +74,7 @@ export default function OpeningBalancesCard({ onDone }: { onDone?: () => void })
         <div style={{ flex: 1 }}>
           <h3 style={{ ...h3Style, margin: 0 }}>Opening balances set</h3>
           <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: '4px 0 0' }}>
-            Recorded as at {data.setAt ? new Date(data.setAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}.
+            Recorded as at {data.setAt ? new Date(data.setAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'N/A'}.
             Corrections go through a normal journal entry so the original stays in the audit trail.
           </p>
         </div>
@@ -89,7 +89,7 @@ export default function OpeningBalancesCard({ onDone }: { onDone?: () => void })
         <div style={{ flex: 1, minWidth: 240 }}>
           <h3 style={{ ...h3Style, margin: 0 }}>Set opening balances</h3>
           <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: '6px 0 0' }}>
-            Your books start from the day the ledger began, so anything the business already owned or owed isn&apos;t in them yet —
+            Your books start from the day the ledger began, so anything the business already owned or owed isn&apos;t in them yet.
             that&apos;s why the Balance Sheet currently looks lopsided. This records that starting position once.
           </p>
         </div>
@@ -108,7 +108,7 @@ export default function OpeningBalancesCard({ onDone }: { onDone?: () => void })
           }
         >
           <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: '0 0 14px' }}>
-            Enter what the business owned and owed on the day you want the books to start. Leave anything you don&apos;t have blank —
+            Enter what the business owned and owed on the day you want the books to start. Leave anything you don&apos;t have blank.
             you can always post an adjusting entry later.
           </p>
 

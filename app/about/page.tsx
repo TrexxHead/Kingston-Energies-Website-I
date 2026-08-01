@@ -8,7 +8,7 @@ import JsonLd from '@/components/JsonLd'
 import { buildBreadcrumbs } from '@/lib/structuredData'
 
 export const metadata = {
-  title: 'About — Kingston Energies',
+  title: 'About: Kingston Energies',
   description: 'Born in Kingston, built for everywhere. The story behind Kingston Energies.',
 }
 
@@ -23,15 +23,15 @@ const overline = {
 
 const VALUES = [
   { icon: Recycle, title: 'Sustainable by design', body: 'Portable power today, renewable and smart energy tomorrow. Every product is a step toward a cleaner grid.' },
-  { icon: Wrench, title: 'Built to be repaired', body: 'We favour devices you can open, service and keep. Repairability beats replacement — for your wallet and the planet.' },
+  { icon: Wrench, title: 'Built to be repaired', body: 'We favour devices you can open, service and keep. Repairability beats replacement, for your wallet and the planet.' },
   { icon: HeartHandshake, title: 'People first', body: 'We started hand to hand at Kingston markets. Real support from real people is still the standard we answer to.' },
   { icon: Sparkles, title: 'Quietly innovative', body: 'Premium engineering without the premium theatre. The best technology is the kind you never have to think about.' },
 ]
 
 const PHASES = [
-  { tag: 'PHASE 01 · TODAY', title: 'Portable energy', body: 'Power banks, chargers, cables and accessories — dependable power for everyday life across Jamaica.' },
+  { tag: 'PHASE 01 · TODAY', title: 'Portable energy', body: 'Power banks, chargers, cables and accessories, dependable power for everyday life across Jamaica.' },
   { tag: 'PHASE 02 · NEXT', title: 'Renewable energy', body: 'Solar-ready power stations and home storage, bringing clean generation within reach of every household.' },
-  { tag: 'PHASE 03 · HORIZON', title: 'Smart energy', body: 'Connected homes that generate, store and balance their own power — energy that manages itself.' },
+  { tag: 'PHASE 03 · HORIZON', title: 'Smart energy', body: 'Connected homes that generate, store and balance their own power, energy that manages itself.' },
 ]
 
 const STATS = [
@@ -70,7 +70,7 @@ export default function About() {
               </span>
             </h1>
             <p style={{ fontSize: 18, lineHeight: 1.65, color: 'rgba(234,242,236,.72)', margin: '24px 0 0', maxWidth: 620 }}>
-              Kingston Energies is a portable-power company from Kingston, Jamaica — evolving, deliberately, into an
+              Kingston Energies is a portable-power company from Kingston, Jamaica, evolving, deliberately, into an
               energy-technology company. This is how we got here, and where we&apos;re going.
             </p>
           </Reveal>
@@ -89,7 +89,7 @@ export default function About() {
                 Built for everywhere.
               </h2>
               <p style={{ fontSize: 16.5, lineHeight: 1.7, color: 'rgba(234,242,236,.78)', margin: '20px 0 0' }}>
-                We began hand to hand — at markets and pop-ups, keeping real people charged when it mattered. That
+                We began hand to hand, at markets and pop-ups, keeping real people charged when it mattered. That
                 closeness to customers shaped everything: honest pricing, products that last, and support you can
                 actually reach. As we grow into renewable and smart energy, that market-stall standard travels with us.
               </p>
@@ -100,7 +100,7 @@ export default function About() {
         {/* Values bento */}
         <section style={{ maxWidth: 1240, margin: '0 auto', padding: '56px 32px' }}>
           <Reveal>
-            <div style={overline}>01 — WHAT WE STAND FOR</div>
+            <div style={overline}>01: WHAT WE STAND FOR</div>
             <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(28px,4.5vw,44px)', letterSpacing: '-.02em', color: '#fff', margin: '16px 0 40px' }}>
               Four things we don&apos;t compromise.
             </h2>
@@ -126,7 +126,7 @@ export default function About() {
         {/* Roadmap phases */}
         <section style={{ maxWidth: 1240, margin: '0 auto', padding: '40px 32px 64px' }}>
           <Reveal>
-            <div style={overline}>02 — THE ROADMAP</div>
+            <div style={overline}>02: THE ROADMAP</div>
             <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(28px,4.5vw,44px)', letterSpacing: '-.02em', color: '#fff', margin: '16px 0 40px' }}>
               From power bank to power grid.
             </h2>

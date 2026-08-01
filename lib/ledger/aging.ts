@@ -124,7 +124,7 @@ export async function payablesAging(asOf: Date = new Date()): Promise<AgingRepor
       rows.push({
         id: `${run.id}-net`,
         reference: run.runNo,
-        party: 'Staff — net pay',
+        party: 'Staff: net pay',
         date: run.payDate.toISOString(),
         ageDays,
         amount: net,
@@ -140,7 +140,7 @@ export async function payablesAging(asOf: Date = new Date()): Promise<AgingRepor
       rows.push({
         id: `${run.id}-statutory`,
         reference: run.runNo,
-        party: 'Tax Administration Jamaica — statutory',
+        party: 'Tax Administration Jamaica: statutory',
         date: run.payDate.toISOString(),
         ageDays,
         amount: statutory,

@@ -98,7 +98,7 @@ export default function ProfileForm({ initialName, initialUsername, initialEmail
 
       <div style={{ marginBottom: 14 }}>
         <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: 6 }}>
-          Username <span style={{ fontWeight: 400 }}>(optional — sign in with this or your email)</span>
+          Username <span style={{ fontWeight: 400 }}>(optional, sign in with this or your email)</span>
         </label>
         <input
           value={username}
@@ -161,7 +161,7 @@ export default function ProfileForm({ initialName, initialUsername, initialEmail
           <option value="">Prefer not to say</option>
           {CUSTOMER_NEEDS.map((n) => (
             <option key={n.id} value={n.id}>
-              {n.label} — {n.detail}
+              {n.label}: {n.detail}
             </option>
           ))}
         </select>

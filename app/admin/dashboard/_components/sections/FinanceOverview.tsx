@@ -145,14 +145,14 @@ export default function FinanceOverview() {
         <StatTile label="Working capital" value={money(k.workingCapital.value)} href={`${F}/reports`} hint="Current assets less current liabilities." />
         <StatTile
           label="Current ratio"
-          value={data.ratios.currentRatio !== null ? data.ratios.currentRatio.toFixed(2) : '—'}
+          value={data.ratios.currentRatio !== null ? data.ratios.currentRatio.toFixed(2) : 'N/A'}
           unavailable={data.ratios.ratiosUnavailable ?? undefined}
           href={`${F}/reports`}
           hint="Current assets ÷ current liabilities."
         />
         <StatTile
           label="Quick ratio"
-          value={data.ratios.quickRatio !== null ? data.ratios.quickRatio.toFixed(2) : '—'}
+          value={data.ratios.quickRatio !== null ? data.ratios.quickRatio.toFixed(2) : 'N/A'}
           unavailable={data.ratios.ratiosUnavailable ?? undefined}
           href={`${F}/reports`}
           hint="Current assets excluding inventory ÷ current liabilities."

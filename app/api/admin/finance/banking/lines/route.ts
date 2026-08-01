@@ -169,7 +169,7 @@ export async function PATCH(request: Request) {
       // silently misstates the bank balance, and there is no reading of it that
       // is correct.
       return NextResponse.json(
-        { error: `Amounts differ — the statement says ${line.amount.toFixed(2)} and the entry says ${bookAmount.toFixed(2)}.` },
+        { error: `Amounts differ: the statement says ${line.amount.toFixed(2)} and the entry says ${bookAmount.toFixed(2)}.` },
         { status: 400 },
       )
     }
@@ -201,7 +201,7 @@ export async function PATCH(request: Request) {
     source: 'MANUAL',
     sourceId: `bankline:${line.id}`,
     createdBy: who,
-    memo: `${line.description} — from ${line.connection.name} statement`,
+    memo: `${line.description}: from ${line.connection.name} statement`,
     lines: moneyIn
       ? [
           { code: line.connection.account.code, debit: magnitude },

@@ -31,7 +31,7 @@ const FACTS = [
     valueGradient: 'linear-gradient(120deg,var(--ke-blue-400),var(--ke-blue-600))',
     valueColor: 'var(--ke-blue-600)',
     unit: '',
-    copy: "USB-C, Micro and USB-A. Yours, your partner's, and your friend's — charging together.",
+    copy: "USB-C, Micro and USB-A. Yours, your partner's, and your friend's, charging together.",
   },
   {
     label: 'SPEED',
@@ -84,7 +84,7 @@ export default function ProductChapter({ price, inStock, productId }: { price: n
       <div style={{ maxWidth: 1240, margin: '0 auto', padding: '110px 32px 0', textAlign: 'center' }}>
         <Reveal>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, letterSpacing: '.3em', color: 'var(--ke-green-600)' }}>
-            01 — THE FLAGSHIP
+            01: THE FLAGSHIP
           </div>
           <h2
             style={{
@@ -99,7 +99,7 @@ export default function ProductChapter({ price, inStock, productId }: { price: n
             Charmast 10,400.
           </h2>
           <p style={{ fontSize: 18, color: 'var(--color-text-muted)', maxWidth: 480, margin: '18px auto 0', lineHeight: 1.6 }}>
-            A pocket-sized brick of energy. Keep scrolling — it&apos;ll explain itself.
+            A pocket-sized brick of energy. Keep scrolling: it&apos;ll explain itself.
           </p>
         </Reveal>
       </div>

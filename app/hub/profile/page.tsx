@@ -58,7 +58,7 @@ export default async function ProfilePage() {
         <div style={{ ...cardStyle, marginBottom: 0 }}>
           <h3 style={h3Style}>Payment methods</h3>
           <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: 0 }}>
-            No saved payment methods yet. You choose how to pay at checkout — card, Google Pay, PayPal or cash on delivery.
+            No saved payment methods yet. You choose how to pay at checkout: card, Google Pay, PayPal or cash on delivery.
           </p>
         </div>
       </div>

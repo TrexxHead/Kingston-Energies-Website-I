@@ -53,10 +53,10 @@ export default function AnalyticsSection() {
           tickFormat={(n) => String(Math.round(n))}
           footnote={
             <>
-              Abandoned carts: <strong>{k ? k.abandonedCarts : '—'}</strong> · potential recovery{' '}
-              <strong style={{ color: 'var(--ke-green-700)' }}>{k ? fmt(k.abandonedValue) : '—'}</strong>
+              Abandoned carts: <strong>{k ? k.abandonedCarts : 'N/A'}</strong> · potential recovery{' '}
+              <strong style={{ color: 'var(--ke-green-700)' }}>{k ? fmt(k.abandonedValue) : 'N/A'}</strong>
               <span style={{ display: 'block', fontSize: 11, marginTop: 2, color: 'var(--color-text-subtle)' }}>
-                Same figure as the Executive Dashboard — carts idle 60+ minutes with items in them.
+                Same figure as the Executive Dashboard: carts idle 60+ minutes with items in them.
               </span>
             </>
           }
@@ -77,20 +77,20 @@ export default function AnalyticsSection() {
         <h3 style={h3Style}>Repeat purchases &amp; checkout completion</h3>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
           <div>
-            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 26 }}>{k ? `${k.repeatRate}%` : '—'}</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 26 }}>{k ? `${k.repeatRate}%` : 'N/A'}</div>
             <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>repeat customer rate</div>
           </div>
           <div>
-            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 26 }}>{k?.conversionRate != null ? `${k.conversionRate}%` : '—'}</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 26 }}>{k?.conversionRate != null ? `${k.conversionRate}%` : 'N/A'}</div>
             <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>checkout completion</div>
           </div>
           <div>
-            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 26 }}>{k ? k.orders : '—'}</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 26 }}>{k ? k.orders : 'N/A'}</div>
             <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>total orders</div>
           </div>
         </div>
         <p style={{ fontSize: 11, color: 'var(--color-text-subtle)', margin: '10px 0 0' }}>
-          Same numbers as the Executive Dashboard — this tab no longer computes its own.
+          Same numbers as the Executive Dashboard. This tab no longer computes its own.
         </p>
       </div>
     </div>

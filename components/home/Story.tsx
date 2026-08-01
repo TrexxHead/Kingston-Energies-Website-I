@@ -49,7 +49,7 @@ export default function Story() {
             Built for everywhere.
           </h2>
           <p style={{ fontSize: 17, lineHeight: 1.65, color: 'rgba(234,242,236,.78)', margin: '22px 0 0' }}>
-            We started hand to hand — at markets and pop-ups, keeping real people charged. Every product we make
+            We started hand to hand, at markets and pop-ups, keeping real people charged. Every product we make
             still answers to that standard.
           </p>
         </Reveal>

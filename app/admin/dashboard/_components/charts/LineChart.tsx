@@ -111,7 +111,7 @@ export default function LineChart({
 
   const table = {
     columns: ['Period', ...series.map((s) => s.label)],
-    rows: categories.map((c, i) => [c, ...series.map((s) => (s.values[i] === null ? '—' : format(s.values[i] as number)))]),
+    rows: categories.map((c, i) => [c, ...series.map((s) => (s.values[i] === null ? 'N/A' : format(s.values[i] as number)))]),
   }
 
   const isEmpty = flat.length === 0
@@ -264,7 +264,7 @@ export default function LineChart({
             title={categories[hover]}
             rows={visible.map((s) => ({
               label: s.label,
-              value: s.values[hover] === null ? '—' : format(s.values[hover] as number),
+              value: s.values[hover] === null ? 'N/A' : format(s.values[hover] as number),
               color: seriesColor(series.indexOf(s)),
             }))}
           />

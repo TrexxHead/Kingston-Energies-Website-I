@@ -131,7 +131,7 @@ export default function NotificationsBell({ onNavigate }: { onNavigate?: (tab: S
             <p style={{ fontSize: 13, color: 'var(--color-text-muted)', padding: '10px 8px' }}>Checking…</p>
           ) : clear ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 9, color: 'var(--ke-green-700)', fontSize: 13, padding: '14px 8px' }}>
-              <CheckCircle2 size={16} /> All clear — nothing needs action.
+              <CheckCircle2 size={16} /> All clear. Nothing needs action.
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>

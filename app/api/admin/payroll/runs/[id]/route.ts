@@ -119,7 +119,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ error: `This run is already ${run.status.toLowerCase()}.` }, { status: 409 })
     }
     if (run.payslips.length === 0) {
-      return NextResponse.json({ error: 'There is nothing to approve — this run has no payslips.' }, { status: 400 })
+      return NextResponse.json({ error: 'There is nothing to approve. This run has no payslips.' }, { status: 400 })
     }
 
     const entry = await postPayrollRun(

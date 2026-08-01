@@ -7,7 +7,7 @@ import JsonLd from '@/components/JsonLd'
 import { buildBreadcrumbs } from '@/lib/structuredData'
 
 export const metadata = {
-  title: 'Services — Kingston Energies',
+  title: 'Services: Kingston Energies',
   description: 'Portable power, fast charging, repairability, business orders and solar early-access.',
 }
 
@@ -33,7 +33,7 @@ const SERVICES: Service[] = [
   {
     icon: BatteryCharging,
     title: 'Portable power',
-    body: 'Slim everyday power banks to 20,000mAh PD workhorses — dependable charge for phones, tablets and more, wherever the day takes you.',
+    body: 'Slim everyday power banks to 20,000mAh PD workhorses, dependable charge for phones, tablets and more, wherever the day takes you.',
     href: '/shop?category=powerbanks',
     cta: 'Shop power banks',
   },
@@ -47,7 +47,7 @@ const SERVICES: Service[] = [
   {
     icon: Package,
     title: 'Accessories',
-    body: 'Stands, pouches and the small essentials that round out your kit — considered, durable, and priced fairly.',
+    body: 'Stands, pouches and the small essentials that round out your kit: considered, durable, and priced fairly.',
     href: '/shop?category=accessories',
     cta: 'Shop accessories',
   },
@@ -61,13 +61,13 @@ const SERVICES: Service[] = [
   {
     icon: Building2,
     title: 'Business & bulk orders',
-    body: 'Kitting out a team, an event or a storefront? Tell us what you need and we’ll put together a bulk quote — Kingston-wide delivery included.',
+    body: 'Kitting out a team, an event or a storefront? Tell us what you need and we’ll put together a bulk quote, Kingston-wide delivery included.',
     href: '/contact',
     cta: 'Request a quote',
   },
   {
     icon: Sun,
-    title: 'Solar — early access',
+    title: 'Solar: early access',
     body: 'Solar-ready power stations and home storage are next on our roadmap. Join the waitlist to be first when clean generation goes live.',
     href: '/contact',
     cta: 'Join the waitlist',
@@ -103,7 +103,7 @@ export default function Services() {
               </span>
             </h1>
             <p style={{ fontSize: 18, lineHeight: 1.65, color: 'rgba(234,242,236,.72)', margin: '24px 0 0', maxWidth: 600 }}>
-              From the power bank in your pocket to the energy that will one day run your home — here&apos;s how Kingston
+              From the power bank in your pocket to the energy that will one day run your home. Here&apos;s how Kingston
               Energies can help.
             </p>
           </Reveal>

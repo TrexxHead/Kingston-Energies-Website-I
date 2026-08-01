@@ -39,7 +39,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   // System accounts are wired into the posting engine by code — they can be
   // renamed but never archived out from under it.
   if (account.isSystem && parsed.data.archived) {
-    return NextResponse.json({ error: 'System accounts cannot be archived — the posting engine depends on them.' }, { status: 400 })
+    return NextResponse.json({ error: 'System accounts cannot be archived. The posting engine depends on them.' }, { status: 400 })
   }
 
   const updated = await prisma.ledgerAccount.update({ where: { id }, data: parsed.data })
@@ -59,7 +59,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   const lineCount = await prisma.journalLine.count({ where: { accountId: id } })
   if (lineCount > 0) {
     return NextResponse.json(
-      { error: `This account has ${lineCount} posted entries. Archive it instead — deleting would break the audit trail.` },
+      { error: `This account has ${lineCount} posted entries. Archive it instead. Deleting would break the audit trail.` },
       { status: 400 },
     )
   }

@@ -44,11 +44,11 @@ const FAQ_GROUPS: FaqGroup[] = [
       },
       {
         q: 'Are there any discounts?',
-        a: 'First-time customers get 10% off one item automatically on their first order — no code needed. Buy 3+ of the same item and it gets 5% off (10+ gets 10% off). Refer a friend from the Rewards tab and you each get J$1,000 in credit.',
+        a: 'First-time customers get 10% off one item automatically on their first order. No code needed. Buy 3+ of the same item and it gets 5% off (10+ gets 10% off). Refer a friend from the Rewards tab and you each get J$1,000 in credit.',
       },
       {
         q: 'Is my payment information secure?',
-        a: 'Yes. Card details are never stored on our servers — payments are handled by the payment provider directly.',
+        a: 'Yes. Card details are never stored on our servers. Payments are handled by the payment provider directly.',
       },
     ],
   },
@@ -132,7 +132,7 @@ export default function SupportPage() {
             {filtered.length === 0 && (
               <div style={hubCard}>
                 <p style={{ margin: 0, fontSize: 14, color: 'var(--color-text-muted)' }}>
-                  No articles match &ldquo;{query}&rdquo;. Try the chat with Jordyn — she can help with anything.
+                  No articles match &ldquo;{query}&rdquo;. Try the chat with Jordyn. She can help with anything.
                 </p>
               </div>
             )}

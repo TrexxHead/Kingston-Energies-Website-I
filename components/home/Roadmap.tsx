@@ -7,7 +7,7 @@ const PHASES = [
     phase: 'PHASE 01',
     when: 'NOW',
     title: 'Portable power',
-    copy: 'Power banks, chargers, cables and accessories — shipping today, sold hand to hand and door to door.',
+    copy: 'Power banks, chargers, cables and accessories, shipping today, sold hand to hand and door to door.',
     borderBottom: false,
   },
   {

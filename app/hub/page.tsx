@@ -56,7 +56,7 @@ export default async function HubPage() {
   const firstName = user?.name?.split(' ')[0] ?? 'there'
   const customerSince = user
     ? new Date(user.createdAt).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })
-    : '—'
+    : 'N/A'
 
   // Impact metrics derived from purchase activity (0 for a fresh account — honest).
   const lifetimeSavings = Math.round(totalSpent * 0.08)
@@ -90,7 +90,7 @@ export default async function HubPage() {
 
   return (
     <>
-      <Topbar title={`Good afternoon, ${firstName}`} subtitle="Your Kingston hub — orders, devices and rewards" />
+      <Topbar title={`Good afternoon, ${firstName}`} subtitle="Your Kingston hub: orders, devices and rewards" />
       <div className="ke-screen" style={hubScreen}>
         {/* Stat grid */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 22 }} className="hub-stat-grid">

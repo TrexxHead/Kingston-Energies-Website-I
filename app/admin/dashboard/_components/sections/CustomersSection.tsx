@@ -328,11 +328,11 @@ export default function CustomersSection() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
                   <div style={{ background: 'var(--ke-gray-50, #f6f7f6)', borderRadius: 10, padding: '9px 11px' }}>
                     <div style={overline}>SHIPPING</div>
-                    <div style={{ fontSize: 12, marginTop: 3 }}>{detail.shippingAddress ?? '—'}</div>
+                    <div style={{ fontSize: 12, marginTop: 3 }}>{detail.shippingAddress ?? 'N/A'}</div>
                   </div>
                   <div style={{ background: 'var(--ke-gray-50, #f6f7f6)', borderRadius: 10, padding: '9px 11px' }}>
                     <div style={overline}>BILLING</div>
-                    <div style={{ fontSize: 12, marginTop: 3 }}>{detail.billingAddress ?? (detail.shippingAddress ? 'Same as shipping' : '—')}</div>
+                    <div style={{ fontSize: 12, marginTop: 3 }}>{detail.billingAddress ?? (detail.shippingAddress ? 'Same as shipping' : 'N/A')}</div>
                   </div>
                 </div>
               )}
@@ -375,7 +375,7 @@ export default function CustomersSection() {
                 </>
               ) : (
                 <div style={{ background: 'var(--ke-sun-50,#fff7e6)', borderRadius: 10, padding: '10px 12px', marginBottom: 14, fontSize: 12, color: 'var(--color-text-muted)' }}>
-                  Guest customer — profile fields (segment, loyalty, need) unlock automatically if they create an account with this email.
+                  Guest customer: profile fields (segment, loyalty, need) unlock automatically if they create an account with this email.
                 </div>
               )}
 
@@ -458,7 +458,7 @@ export default function CustomersSection() {
             <select value={mergeTargetId} onChange={(e) => setMergeTargetId(e.target.value)} style={detailSelect}>
               <option value="">Choose a customer…</option>
               {customers.filter((c) => c.id !== detail.id).map((c) => (
-                <option key={c.id} value={c.id}>{c.name} — {c.email} ({c.registered ? 'registered' : 'guest'})</option>
+                <option key={c.id} value={c.id}>{c.name}, {c.email} ({c.registered ? 'registered' : 'guest'})</option>
               ))}
             </select>
           </label>
@@ -498,7 +498,7 @@ function CrmInsights({ customers }: { customers: CustomerRow[] }) {
   return (
     <div style={{ ...cardStyle, display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'center' }}>
       <Stat label="Customers" value={String(customers.length)} />
-      <Stat label="Top 20% share of value" value={`${top20Share}%`} hint="Pareto — focus retention here" />
+      <Stat label="Top 20% share of value" value={`${top20Share}%`} hint="Pareto: focus retention here" />
       <Stat label="Need on file" value={`${needPct}%`} hint={`${withNeed} of ${customers.length} identified`} />
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginLeft: 'auto' }}>
         {tierCounts.map(({ tier, count }) => (

@@ -26,11 +26,11 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: 'Kingston Energies — Portable Power, Built in Kingston',
+    default: 'Kingston Energies: Portable Power, Built in Kingston',
     template: '%s · Kingston Energies',
   },
   description:
-    'Premium portable power for everyone — power banks, fast chargers, cables and power stations, built in Kingston, Jamaica. Free delivery over J$10,000, 14-day replacement guarantee.',
+    'Premium portable power for everyone: power banks, fast chargers, cables and power stations, built in Kingston, Jamaica. Free delivery over J$10,000, 14-day replacement guarantee.',
   keywords: [
     'Kingston Energies',
     'power bank Jamaica',
@@ -45,15 +45,15 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     siteName: 'Kingston Energies',
-    title: 'Kingston Energies — Portable Power, Built in Kingston',
+    title: 'Kingston Energies: Portable Power, Built in Kingston',
     description:
-      'Premium portable power for everyone — power banks, fast chargers and power stations, built in Kingston, Jamaica.',
+      'Premium portable power for everyone: power banks, fast chargers and power stations, built in Kingston, Jamaica.',
     url: siteUrl,
     locale: 'en_JM',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Kingston Energies — Portable Power, Built in Kingston',
+    title: 'Kingston Energies: Portable Power, Built in Kingston',
     description: 'Premium portable power for everyone, built in Kingston, Jamaica.',
   },
   robots: { index: true, follow: true },

@@ -115,7 +115,7 @@ export default function ProfitLossCard({ view = 'report' }: { view?: View }) {
             value={s.grossProfit}
             strong
             warn={s.cogsCoverage === 0}
-            sub={s.cogsCoverage === 0 ? `${s.grossMargin}% margin — not real, no product costs logged` : `${s.grossMargin}% margin`}
+            sub={s.cogsCoverage === 0 ? `${s.grossMargin}% margin: not real, no product costs logged` : `${s.grossMargin}% margin`}
             divider
           />
           {s.opex.length > 0 && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '.1em', color: 'var(--color-text-muted)', margin: '10px 0 6px' }}>OPERATING EXPENSES</div>}
@@ -129,14 +129,14 @@ export default function ProfitLossCard({ view = 'report' }: { view?: View }) {
             warn={s.cogsCoverage === 0 && s.totalOpex === 0}
             sub={
               s.cogsCoverage === 0 && s.totalOpex === 0
-                ? `${s.netMargin}% net margin — not real, no costs or expenses logged yet`
+                ? `${s.netMargin}% net margin: not real, no costs or expenses logged yet`
                 : `${s.netMargin}% net margin`
             }
             divider
           />
           {s.cogsCoverage < 100 && (
             <p style={{ fontSize: 12, color: 'var(--ke-sun-600, #b45309)', marginTop: 16, fontWeight: 600 }}>
-              Set each product&apos;s <strong>unit cost</strong> in Inventory for accurate COGS &amp; margins — the figures above overstate profit until you do.
+              Set each product&apos;s <strong>unit cost</strong> in Inventory for accurate COGS &amp; margins. The figures above overstate profit until you do.
             </p>
           )}
         </div>
@@ -161,7 +161,7 @@ export default function ProfitLossCard({ view = 'report' }: { view?: View }) {
               <Button size="sm" variant="outline" onClick={saveRate}>{savingRate ? '…' : 'Save'}</Button>
             </div>
             <p style={{ fontSize: 11.5, color: 'var(--color-text-subtle)', marginTop: 10 }}>
-              This is what you owe Tax Administration Jamaica for the period shown — set aside {fmt(s.gct)} from sales.
+              This is what you owe Tax Administration Jamaica for the period shown: set aside {fmt(s.gct)} from sales.
             </p>
           </div>
         </div>

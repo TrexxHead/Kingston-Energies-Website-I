@@ -42,7 +42,7 @@ export default function ShopClient({ products }: { products: ShopProduct[] }) {
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
           <div>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, letterSpacing: '.3em', color: 'var(--ke-green-600)' }}>
-              THE&nbsp;CATALOG&nbsp;—&nbsp;{countLabel}
+              THE&nbsp;CATALOG:&nbsp;{countLabel}
             </div>
             <h1
               style={{

@@ -73,7 +73,7 @@ export async function POST(request: Request) {
   const d = parsed.data
 
   if (d.currency === FUNCTIONAL_CURRENCY) {
-    return NextResponse.json({ error: `${FUNCTIONAL_CURRENCY} is the functional currency — its rate is always 1.` }, { status: 400 })
+    return NextResponse.json({ error: `${FUNCTIONAL_CURRENCY} is the functional currency. Its rate is always 1.` }, { status: 400 })
   }
 
   const asOf = new Date(d.asOf)

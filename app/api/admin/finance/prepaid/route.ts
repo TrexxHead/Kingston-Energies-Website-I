@@ -75,7 +75,7 @@ export async function POST(request: Request) {
     await postEntry({
       date: startDate,
       source: 'MANUAL',
-      memo: `Prepaid — ${d.description}`,
+      memo: `Prepaid: ${d.description}`,
       createdBy: session?.user?.email ?? null,
       lines: [
         { code: ACC.PREPAID, debit: d.totalAmount },

@@ -115,7 +115,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const expense = await prisma.expense.create({
     data: {
       category: fields.category as string,
-      description: fields.vendor ? `${fields.vendor}${fields.notes ? ` — ${fields.notes}` : ''}` : fields.notes,
+      description: fields.vendor ? `${fields.vendor}${fields.notes ? `: ${fields.notes}` : ''}` : fields.notes,
       amount: fields.total as number,
       spentAt: fields.documentDate as Date,
     },

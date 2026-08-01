@@ -83,7 +83,7 @@ export default function WaterfallChart({
 
   const table = {
     columns: ['Step', 'Movement', 'Running total'],
-    rows: bars.map((b) => [b.label, b.total ? '—' : format(b.value), format(b.to)]),
+    rows: bars.map((b) => [b.label, b.total ? 'N/A' : format(b.value), format(b.to)]),
   }
 
   return (

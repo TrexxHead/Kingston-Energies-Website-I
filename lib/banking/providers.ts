@@ -67,6 +67,6 @@ export function liveFeedStatus(): { available: boolean; providers: string[]; mes
     available: false,
     providers: [],
     message:
-      'No live bank feed is connected. Automatic feeds need an agreement with your bank or an aggregator; until one is in place, import a CSV or OFX statement from online banking — the result is identical once imported.',
+      'No live bank feed is connected. Automatic feeds need an agreement with your bank or an aggregator; until one is in place, import a CSV or OFX statement from online banking, and the result is identical once imported.',
   }
 }

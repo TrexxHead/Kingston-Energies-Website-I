@@ -41,7 +41,7 @@ export async function POST(request: Request) {
   const rl = rateLimit(`integration-chat:${from ?? 'shared'}`, 20, 60_000)
   if (!rl.ok) {
     return NextResponse.json(
-      { reply: "You're sending messages a little fast — give me a moment and try again." },
+      { reply: "You're sending messages a little fast. Give me a moment and try again." },
       { status: 200 },
     )
   }

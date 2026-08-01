@@ -131,10 +131,10 @@ export default function PaymentSettingsCard() {
         {/* Card (WiPay) */}
         <MethodBlock title="Debit / credit card (WiPay)" enabled={cfg.card.enabled} onToggle={(v) => set('card', { enabled: v })}>
           {wipayConfigured ? (
-            <p style={{ fontSize: 12.5, color: 'var(--ke-green-700)', margin: 0 }}>WiPay is connected — cards will appear at checkout when this is on.</p>
+            <p style={{ fontSize: 12.5, color: 'var(--ke-green-700)', margin: 0 }}>WiPay is connected. Cards will appear at checkout when this is on.</p>
           ) : (
             <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: 0 }}>
-              Card payments stay hidden until WiPay is connected (set WIPAY_ACCOUNT_NUMBER &amp; WIPAY_API_KEY — see DEPLOY.md).
+              Card payments stay hidden until WiPay is connected (set WIPAY_ACCOUNT_NUMBER &amp; WIPAY_API_KEY, see DEPLOY.md).
               You can switch this on now; it activates automatically once WiPay is set up.
             </p>
           )}

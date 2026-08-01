@@ -281,7 +281,7 @@ export default function ProductClient({ product, initialReviews = [] }: { produc
 
           <div style={{ display: 'flex', gap: 12, marginTop: 30 }}>
             <Button size="lg" block onClick={handleAdd} disabled={soldOut} iconRight={soldOut ? undefined : <ArrowRight size={17} />}>
-              {soldOut ? 'Sold out' : `Add to cart — ${fmt(activePrice)}`}
+              {soldOut ? 'Sold out' : `Add to cart: ${fmt(activePrice)}`}
             </Button>
             <Button
               size="lg"
@@ -298,7 +298,7 @@ export default function ProductClient({ product, initialReviews = [] }: { produc
             <div style={{ marginTop: 14, padding: '14px 16px', borderRadius: 14, border: '1px solid var(--color-border)', background: 'var(--ke-green-50)' }}>
               {notifySent ? (
                 <p style={{ fontSize: 13.5, color: 'var(--ke-green-700)', margin: 0, fontWeight: 600 }}>
-                  You&apos;re on the list — we&apos;ll email you the moment it&apos;s back in stock.
+                  You&apos;re on the list, we&apos;ll email you the moment it&apos;s back in stock.
                 </p>
               ) : (
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -424,7 +424,7 @@ export default function ProductClient({ product, initialReviews = [] }: { produc
             />
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 14 }}>
               <Button size="sm" onClick={submitReview} disabled={submitting}>
-                {submitting ? 'Submitting…' : 'Submit review — earn 50 pts'}
+                {submitting ? 'Submitting…' : 'Submit review, earn 50 pts'}
               </Button>
             </div>
           </div>
@@ -432,7 +432,7 @@ export default function ProductClient({ product, initialReviews = [] }: { produc
 
         {reviews.length === 0 && !revOpen && (
           <div style={{ background: '#fff', border: '1px solid var(--color-border)', borderRadius: 18, padding: '32px 24px', marginTop: 22, textAlign: 'center', color: 'var(--color-text-muted)', fontSize: 14 }}>
-            No reviews yet — be the first to share your experience.
+            No reviews yet, be the first to share your experience.
           </div>
         )}
 

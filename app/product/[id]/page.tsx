@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   if (!product) return { title: 'Product not found' }
   return {
     title: product.name,
-    description: `${product.name} — ${product.spec}. ${fmt(product.price)} at Kingston Energies.`,
+    description: `${product.name}: ${product.spec}. ${fmt(product.price)} at Kingston Energies.`,
   }
 }
 

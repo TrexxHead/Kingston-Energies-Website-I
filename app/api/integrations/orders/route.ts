@@ -133,14 +133,14 @@ export async function POST(request: Request) {
     void sendOrderConfirmation({ to: email, customerName, orderNo: order.orderNo, total, items: recordedItems, trackToken: trackToken(order.orderNo) })
   }
 
-  const lines = recordedItems.map((i) => `${i.qty}× ${i.name} — ${fmt(i.price * i.qty)}`)
+  const lines = recordedItems.map((i) => `${i.qty}× ${i.name}: ${fmt(i.price * i.qty)}`)
   const payUrl = payment === 'online' ? `${siteUrl}/track` : null
 
   // A ready-to-send confirmation the bot can forward verbatim.
   const reply =
     `✅ Order ${order.orderNo} received!\n\n${lines.join('\n')}\nTotal: ${fmt(total)}\n\n` +
     (payment === 'online'
-      ? `To pay online, complete checkout here: ${siteUrl}/shop — reference ${order.orderNo}. We'll confirm once payment lands.`
+      ? `To pay online, complete checkout here: ${siteUrl}/shop, reference ${order.orderNo}. We'll confirm once payment lands.`
       : `You've chosen pay on delivery. We'll be in touch to arrange delivery of ${order.orderNo}.`) +
     `\n\nTrack your order anytime at ${siteUrl}/track.`
 

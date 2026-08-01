@@ -32,7 +32,7 @@ export function organizationSchema() {
     url: SITE_URL,
     logo: absoluteUrl('/images/logo-mark.png'),
     description:
-      'Premium portable power for everyone — power banks, fast chargers, cables and power stations, built in Kingston, Jamaica.',
+      'Premium portable power for everyone: power banks, fast chargers, cables and power stations, built in Kingston, Jamaica.',
     email: 'kingstonenergygroup@outlook.com',
     telephone: '+1-876-338-9958',
     address: { '@type': 'PostalAddress', addressCountry: 'JM' },
@@ -107,7 +107,7 @@ export function productSchema(product: ShopProduct, url: string) {
   const description =
     product.shortDescription ||
     product.longDescription ||
-    `${product.name} — ${product.spec}`.trim()
+    `${product.name}: ${product.spec}`.trim()
 
   return {
     '@context': 'https://schema.org',

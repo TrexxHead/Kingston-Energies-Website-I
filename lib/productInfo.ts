@@ -40,25 +40,25 @@ export function formatCharges(n: number): string {
 export const CARE_TIPS: Record<Category, string[]> = {
   powerbanks: [
     'Charge it to full before first use, then top up whenever it drops below ~20%.',
-    'Keep it out of hot cars and direct sun — heat is the number-one killer of battery life.',
+    'Keep it out of hot cars and direct sun. Heat is the number-one killer of battery life.',
     'Storing it for a while? Leave it around 50% and recharge every 2–3 months.',
     'Recharge it with a good USB-C cable and a proper wall charger for the fastest refill.',
   ],
   chargers: [
     'Unplug by the head, not the cable, to stop the wire from fraying.',
     'Keep the connectors dry and lint-free for a reliable connection.',
-    'Match the charger to the device — 20W is plenty for phones; use more for tablets.',
+    'Match the charger to the device: 20W is plenty for phones; use more for tablets.',
   ],
   components: [
     'Unplug and disconnect by the connector head, not the cable, to stop it from fraying.',
-    'Avoid tight bends or knots near the connectors — that\'s where cables fail first.',
+    'Avoid tight bends or knots near the connectors, that\'s where cables fail first.',
     'Keep connectors dry and free of lint for a reliable, fast connection.',
   ],
   stations: [
     'Charge it fully before first use, and recharge every ~3 months when stored.',
     'Keep the vents clear and run it on a hard, flat surface so it stays cool.',
     'For the solar panel: angle it toward the sun and keep it out of shade for best output.',
-    'Wipe the panel clean — dust and water spots cut charging speed.',
+    'Wipe the panel clean: dust and water spots cut charging speed.',
   ],
   accessories: [
     'Wipe down with a dry cloth; skip harsh cleaners on printed or coated surfaces.',

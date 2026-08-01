@@ -30,7 +30,7 @@ export default function CancelOrderButton({
 
   // Not cancellable — explain why, plainly.
   if (!CANCELLABLE.has(status)) {
-    const note = status === 'CANCELLED' && cancelReason ? `Cancelled — ${cancelReason}` : BLOCKED_REASON[status]
+    const note = status === 'CANCELLED' && cancelReason ? `Cancelled: ${cancelReason}` : BLOCKED_REASON[status]
     if (!note) return null
     return (
       <span style={{ fontSize: 12, color: 'var(--color-text-muted)', fontStyle: 'italic' }}>{note}</span>
@@ -55,7 +55,7 @@ export default function CancelOrderButton({
       setOpen(false)
       router.refresh()
     } catch {
-      setError('Network error — please try again.')
+      setError('Network error. Please try again.')
       setBusy(false)
     }
   }
@@ -102,7 +102,7 @@ export default function CancelOrderButton({
       <textarea
         value={reason}
         onChange={(e) => setReason(e.target.value)}
-        placeholder="Reason (optional) — helps us improve"
+        placeholder="Reason (optional): helps us improve"
         rows={2}
         maxLength={300}
         style={{

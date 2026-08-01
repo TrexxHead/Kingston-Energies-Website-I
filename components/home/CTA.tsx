@@ -22,7 +22,7 @@ export default function CTA() {
           charges here.
         </h2>
         <p style={{ fontSize: 18, lineHeight: 1.6, color: 'rgba(234,242,236,.7)', maxWidth: 440, margin: '22px auto 0' }}>
-          Questions, bulk orders, or first dibs on solar — talk to a real person in Kingston.
+          Questions, bulk orders, or first dibs on solar: talk to a real person in Kingston.
         </p>
         <div style={{ display: 'flex', gap: 14, justifyContent: 'center', marginTop: 38, flexWrap: 'wrap' }}>
           <Link

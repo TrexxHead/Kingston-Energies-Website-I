@@ -8,7 +8,7 @@ describe('isProductLine', () => {
   })
 
   it('excludes delivery, first-order discount, and points-redemption lines', () => {
-    expect(isProductLine('Delivery — Standard (Kingston Energies courier, Kingston)')).toBe(false)
+    expect(isProductLine('Delivery: Standard (Kingston Energies courier, Kingston)')).toBe(false)
     expect(isProductLine('First order discount (10% off first item)')).toBe(false)
     expect(isProductLine('Rewards points redeemed (250 pts)')).toBe(false)
   })

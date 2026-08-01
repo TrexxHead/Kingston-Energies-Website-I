@@ -170,7 +170,7 @@ function CheckoutInner() {
     }
     if (!orderNo) {
       setPlacing(false)
-      pushToast('x', "Couldn't place your order", 'Something went wrong — please try again.')
+      pushToast('x', "Couldn't place your order", 'Something went wrong. Please try again.')
       return
     }
     try {
@@ -217,7 +217,7 @@ function CheckoutInner() {
                       <Radio
                         key={m.id}
                         name="delm"
-                        label={`${m.label} — ${time} (${priceText})`}
+                        label={`${m.label}: ${time} (${priceText})`}
                         checked={deliveryMethod === m.id}
                         onChange={() => setDeliveryMethod(m.id)}
                       />
@@ -234,7 +234,7 @@ function CheckoutInner() {
                   <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, color: 'var(--color-text)' }}>Pickup location</span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>
                     {PICKUP_LOCATIONS.map((loc, i) => (
-                      <Radio key={loc.name} name="pickupLoc" label={`${loc.name} — ${loc.address}`} checked={pickupLocation === i} onChange={() => setPickupLocation(i)} />
+                      <Radio key={loc.name} name="pickupLoc" label={`${loc.name}: ${loc.address}`} checked={pickupLocation === i} onChange={() => setPickupLocation(i)} />
                     ))}
                   </div>
                 </div>
@@ -325,7 +325,7 @@ function CheckoutInner() {
                 <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 8, fontSize: 14, color: 'var(--color-text-muted)' }}>
                   <SummaryLine
                     icon={<Truck size={15} color="var(--ke-green-600)" />}
-                    text={`${methodLabel} — ${deliveryTimeframe(deliveryMethod, parish)} (${fee === 0 ? 'Free' : fmt(fee)})`}
+                    text={`${methodLabel}: ${deliveryTimeframe(deliveryMethod, parish)} (${fee === 0 ? 'Free' : fmt(fee)})`}
                   />
                   <SummaryLine icon={<CreditCard size={15} color="var(--ke-green-600)" />} text={selected?.label ?? 'Payment'} />
                   <SummaryLine

@@ -107,11 +107,11 @@ export async function POST(request: Request) {
 
   if (bytes.byteLength > MAX_UPLOAD_BYTES) {
     if (!isCompressibleImage(contentType)) {
-      return NextResponse.json({ error: 'That PDF is over 5MB — compress it or photograph the receipt instead.' }, { status: 400 })
+      return NextResponse.json({ error: 'That PDF is over 5MB. Compress it or photograph the receipt instead.' }, { status: 400 })
     }
     const compressed = await compressImageToLimit(bytes, contentType).catch(() => null)
     if (!compressed || compressed.buffer.byteLength > MAX_UPLOAD_BYTES) {
-      return NextResponse.json({ error: 'That image is over 5MB and could not be compressed enough — try a smaller photo.' }, { status: 400 })
+      return NextResponse.json({ error: 'That image is over 5MB and could not be compressed enough. Try a smaller photo.' }, { status: 400 })
     }
     bytes = compressed.buffer
     contentType = compressed.contentType

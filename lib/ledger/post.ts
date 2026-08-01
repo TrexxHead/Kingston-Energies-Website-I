@@ -165,7 +165,7 @@ export async function postOrderRevenue(order: OrderLike): Promise<void> {
   for (const it of order.items) {
     const amount = it.price * it.qty
     if (amount < 0) discountGross += -amount
-    else if (it.name.startsWith('Delivery — ')) deliveryGross += amount
+    else if (it.name.startsWith('Delivery: ')) deliveryGross += amount
     else productGross += amount
   }
 
@@ -180,7 +180,7 @@ export async function postOrderRevenue(order: OrderLike): Promise<void> {
     date: order.createdAt,
     source: 'ORDER',
     sourceId: order.id,
-    memo: `Order ${order.orderNo} — ${order.customerName}`,
+    memo: `Order ${order.orderNo}: ${order.customerName}`,
     lines: [
       { code: ACC.RECEIVABLES, debit: order.total, memo: `Order ${order.orderNo}` },
       { code: ACC.SALES, credit: productNet },
@@ -213,7 +213,7 @@ export async function postOrderCogs(order: OrderLike): Promise<void> {
     date: order.createdAt,
     source: 'COGS',
     sourceId: order.id,
-    memo: `Cost of sales — order ${order.orderNo}`,
+    memo: `Cost of sales: order ${order.orderNo}`,
     lines: [
       { code: ACC.COGS, debit: cogs },
       { code: ACC.INVENTORY, credit: cogs },
@@ -234,7 +234,7 @@ export async function postOrderPayment(order: { id: string; orderNo: string; tot
     date: receivedAt,
     source: 'PAYMENT',
     sourceId: order.id,
-    memo: `Payment received — order ${order.orderNo}`,
+    memo: `Payment received: order ${order.orderNo}`,
     lines: [
       { code: cashAccount, debit: order.total },
       { code: ACC.RECEIVABLES, credit: order.total },
@@ -292,7 +292,7 @@ export async function postStockAdjustment(adj: {
     source: 'STOCK_ADJUSTMENT',
     sourceId: adj.id,
     createdBy: adj.adminEmail,
-    memo: `Stock ${increase ? 'increase' : 'decrease'} — ${product.name}${adj.reason ? ` (${adj.reason})` : ''}`,
+    memo: `Stock ${increase ? 'increase' : 'decrease'}: ${product.name}${adj.reason ? ` (${adj.reason})` : ''}`,
     lines: increase
       ? [
           { code: ACC.INVENTORY, debit: value },
@@ -316,7 +316,7 @@ export async function reverseEntry(entryId: string, createdBy?: string | null): 
   const reversal = await postEntry({
     date: new Date(),
     source: 'MANUAL',
-    memo: `Reversal of ${entry.entryNo}${entry.memo ? ` — ${entry.memo}` : ''}`,
+    memo: `Reversal of ${entry.entryNo}${entry.memo ? `: ${entry.memo}` : ''}`,
     createdBy,
     lines: entry.lines.map((l) => ({ code: l.account.code, debit: l.credit, credit: l.debit })),
   })
@@ -380,7 +380,7 @@ export async function postPayrollRun(run: {
     source: 'PAYROLL',
     sourceId: run.id,
     createdBy,
-    memo: `Payroll ${run.runNo} — ${run.payslips.length} employee${run.payslips.length === 1 ? '' : 's'}`,
+    memo: `Payroll ${run.runNo}: ${run.payslips.length} employee${run.payslips.length === 1 ? '' : 's'}`,
     lines: [
       { code: ACC.SALARIES, debit: gross, memo: 'Gross wages' },
       { code: ACC.EMPLOYER_CONTRIBUTIONS, debit: employerContributions, memo: 'Employer statutory contributions' },
@@ -411,7 +411,7 @@ export async function postPayrollPayment(run: { id: string; runNo: string; net: 
     source: 'PAYMENT',
     sourceId: `payroll:${run.id}`,
     createdBy,
-    memo: `Net pay disbursed — payroll ${run.runNo}`,
+    memo: `Net pay disbursed: payroll ${run.runNo}`,
     lines: [
       { code: ACC.NET_PAY_PAYABLE, debit: run.net },
       { code: ACC.BANK, credit: run.net },

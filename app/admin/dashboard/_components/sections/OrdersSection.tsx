@@ -128,7 +128,7 @@ export default function OrdersSection() {
     const res = await fetch(`/api/admin/orders/${id}/invoice`, { method: 'POST' })
     if (res.ok) {
       const { sent, to } = await res.json()
-      setInvoiceMsg(sent ? `Invoice emailed to ${to}` : to ? 'Email provider not configured — use View invoice' : 'No email on file — use View invoice to share it')
+      setInvoiceMsg(sent ? `Invoice emailed to ${to}` : to ? 'Email provider not configured: use View invoice' : 'No email on file: use View invoice to share it')
       setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, invoiced: true } : o)))
       setDetail((d) => (d && d.id === id ? { ...d, invoiced: true } : d))
     } else {
@@ -147,8 +147,8 @@ export default function OrdersSection() {
     // Surface the auto-issued invoice result when marking paid.
     if (res.ok && paid) {
       const { invoice } = await res.json().catch(() => ({}))
-      if (invoice?.sent) setInvoiceMsg(`Paid — invoice emailed to ${invoice.to}`)
-      else if (invoice) setInvoiceMsg('Paid — invoice ready (View invoice to share)')
+      if (invoice?.sent) setInvoiceMsg(`Paid: invoice emailed to ${invoice.to}`)
+      else if (invoice) setInvoiceMsg('Paid: invoice ready (View invoice to share)')
     }
     load()
   }
@@ -195,7 +195,7 @@ export default function OrdersSection() {
   }
 
   const deleteOrder = async (id: string, orderNo: string) => {
-    if (!confirm(`Permanently delete order ${orderNo}? This removes it from all reports — prefer cancelling (drag to Cancelled) unless this is an erroneous or duplicate entry.`)) return
+    if (!confirm(`Permanently delete order ${orderNo}? This removes it from all reports. Prefer cancelling (drag to Cancelled) unless this is an erroneous or duplicate entry.`)) return
     const res = await fetch(`/api/admin/orders/${id}`, { method: 'DELETE' })
     if (res.ok) {
       setOrders((prev) => prev.filter((o) => o.id !== id))
@@ -355,7 +355,7 @@ export default function OrdersSection() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13 }}>
             <span style={{ color: 'var(--color-text-muted)' }}>Payment</span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontWeight: 600 }}>{detail.paymentMethod ? PAYMENT_LABEL[detail.paymentMethod] ?? detail.paymentMethod : '—'}</span>
+              <span style={{ fontWeight: 600 }}>{detail.paymentMethod ? PAYMENT_LABEL[detail.paymentMethod] ?? detail.paymentMethod : 'N/A'}</span>
               {detail.paid ? <Badge tone="green" dot>Paid</Badge> : <Badge tone="orange" dot>Unpaid</Badge>}
             </span>
           </div>
@@ -427,8 +427,8 @@ export default function OrdersSection() {
                 onChange={(e) => setCustomerNote(e.target.value)}
                 placeholder={
                   stageEmailsOnMove(Math.min(detail.stage + 1, PIPELINE.length - 1))
-                    ? 'Customer-facing update (optional) — shown on their tracking page & emailed'
-                    : 'Customer-facing update (optional) — shown on their tracking page (not emailed for this stage)'
+                    ? 'Customer-facing update (optional): shown on their tracking page & emailed'
+                    : 'Customer-facing update (optional): shown on their tracking page (not emailed for this stage)'
                 }
                 rows={2}
                 maxLength={400}
@@ -437,7 +437,7 @@ export default function OrdersSection() {
               <textarea
                 value={internalNote}
                 onChange={(e) => setInternalNote(e.target.value)}
-                placeholder="Internal note (admin only) — never shown to the customer"
+                placeholder="Internal note (admin only): never shown to the customer"
                 rows={2}
                 maxLength={400}
                 style={{ width: '100%', resize: 'vertical', fontSize: 12.5, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--color-border)', fontFamily: 'inherit', background: 'var(--ke-gray-50,#fafafa)' }}
@@ -463,7 +463,7 @@ export default function OrdersSection() {
                       {e.adminOnly && <Badge tone="grey">Internal</Badge>}
                       <span style={{ color: 'var(--color-text-muted)' }}>
                         <strong style={{ color: 'var(--color-text)', fontWeight: 600 }}>{e.label}</strong>
-                        {e.note ? ` — ${e.note}` : ''}
+                        {e.note ? `: ${e.note}` : ''}
                       </span>
                     </div>
                   ))}
@@ -492,7 +492,7 @@ export default function OrdersSection() {
           }
         >
           <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: '0 0 12px' }}>
-            For sales that happened outside checkout — Instagram DM, a phone call, face to face, etc. It joins the normal
+            For sales that happened outside checkout: Instagram DM, a phone call, face to face, etc. It joins the normal
             pipeline (status, invoicing, delivery tracking) like any other order, but never creates a customer account or earns loyalty points.
           </p>
           <TextInput label="Customer name" value={newOrder.customerName} onChange={(v) => setNewOrder({ ...newOrder, customerName: v })} />
@@ -539,7 +539,7 @@ export default function OrdersSection() {
                     onChange={(e) => setNewItems((prev) => prev.map((p, pi) => (pi === i ? { ...p, name: e.target.value } : p)))}
                     onFocus={() => setSuggestFor(i)}
                     onBlur={() => setTimeout(() => setSuggestFor((cur) => (cur === i ? null : cur)), 120)}
-                    placeholder="Item name — start typing to pick a product"
+                    placeholder="Item name: start typing to pick a product"
                     style={{ width: '100%', height: 34, padding: '0 10px', border: '1px solid var(--color-border)', borderRadius: 8, fontSize: 12.5 }}
                   />
                   {matches.length > 0 && (

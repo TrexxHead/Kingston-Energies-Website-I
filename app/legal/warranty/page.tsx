@@ -12,13 +12,13 @@ export default function WarrantyPage() {
       <p>
         Every Kingston Energies device comes with a <strong>14-day replacement guarantee</strong>, plus the{' '}
         <strong>manufacturer&apos;s warranty</strong> that ships with the product. We don&apos;t offer a blanket
-        12-month Kingston warranty — instead you get our own 14-day cover on top of whatever the maker provides.
+        12-month Kingston warranty. Instead you get our own 14-day cover on top of whatever the maker provides.
       </p>
 
       <LegalSection heading="Our 14-day guarantee">
         <p>
           If a device arrives faulty, or fails from a manufacturing defect within 14 days of delivery, we&apos;ll
-          replace it or refund you in full at no cost — for example, a battery that won&apos;t hold charge, a port that
+          replace it or refund you in full at no cost: for example, a battery that won&apos;t hold charge, a port that
           stops working, or a charger that fails electrically. Just reach out with your order number.
         </p>
       </LegalSection>
@@ -27,7 +27,7 @@ export default function WarrantyPage() {
         <p>
           After the first 14 days, your device is covered by the manufacturer&apos;s own warranty, which varies by brand
           and product (OtterBox, Anker, UGREEN and others each set their own terms). We&apos;ll happily help you start a
-          manufacturer claim — keep your order number and the original packaging where possible.
+          manufacturer claim. Keep your order number and the original packaging where possible.
         </p>
       </LegalSection>
 

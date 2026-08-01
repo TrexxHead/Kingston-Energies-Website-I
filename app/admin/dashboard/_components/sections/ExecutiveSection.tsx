@@ -61,19 +61,19 @@ export default function ExecutiveSection() {
 
   const k = m?.kpis
   const stats: { label: string; value: string; sub?: string }[] = [
-    { label: 'GROSS SALES', value: k ? fmt(k.revenue) : '—', sub: k ? `${fmt(k.monthRevenue)} this month` : undefined },
-    { label: 'CASH COLLECTED', value: k ? fmt(k.collected) : '—', sub: k ? `${fmt(k.outstanding)} outstanding` : undefined },
-    { label: 'ORDERS', value: k ? String(k.orders) : '—' },
-    { label: 'AVG ORDER VALUE', value: k ? fmt(k.aov) : '—' },
-    { label: 'REPEAT CUSTOMERS', value: k ? `${k.repeatRate}%` : '—' },
-    { label: 'CONVERSION RATE', value: k?.conversionRate != null ? `${k.conversionRate}%` : '—', sub: 'checkout completion' },
-    { label: 'ABANDONED CARTS', value: k ? String(k.abandonedCarts) : '—', sub: k && k.abandonedValue ? `${fmt(k.abandonedValue)} value` : undefined },
-    { label: 'PENDING DELIVERIES', value: k ? String(k.pendingDeliveries) : '—', sub: k && k.unpaid ? `${k.unpaid} unpaid` : undefined },
-    { label: 'LOW / OUT OF STOCK', value: k ? String(k.lowStockCount) : '—' },
-    { label: 'CUSTOMERS', value: k ? String(k.customers) : '—', sub: k ? `+${k.newCustomers} this month` : undefined },
-    { label: 'AVG RATING', value: k?.avgRating != null ? `${k.avgRating}★` : '—', sub: k ? `${k.reviewCount} reviews` : undefined },
-    { label: 'OPEN SUPPORT TICKETS', value: k ? String(k.openTickets) : '—' },
-    { label: 'CAMPAIGNS SENT', value: k ? String(k.campaignsSent) : '—', sub: k && k.campaignReach ? `${k.campaignReach} reached` : undefined },
+    { label: 'GROSS SALES', value: k ? fmt(k.revenue) : 'N/A', sub: k ? `${fmt(k.monthRevenue)} this month` : undefined },
+    { label: 'CASH COLLECTED', value: k ? fmt(k.collected) : 'N/A', sub: k ? `${fmt(k.outstanding)} outstanding` : undefined },
+    { label: 'ORDERS', value: k ? String(k.orders) : 'N/A' },
+    { label: 'AVG ORDER VALUE', value: k ? fmt(k.aov) : 'N/A' },
+    { label: 'REPEAT CUSTOMERS', value: k ? `${k.repeatRate}%` : 'N/A' },
+    { label: 'CONVERSION RATE', value: k?.conversionRate != null ? `${k.conversionRate}%` : 'N/A', sub: 'checkout completion' },
+    { label: 'ABANDONED CARTS', value: k ? String(k.abandonedCarts) : 'N/A', sub: k && k.abandonedValue ? `${fmt(k.abandonedValue)} value` : undefined },
+    { label: 'PENDING DELIVERIES', value: k ? String(k.pendingDeliveries) : 'N/A', sub: k && k.unpaid ? `${k.unpaid} unpaid` : undefined },
+    { label: 'LOW / OUT OF STOCK', value: k ? String(k.lowStockCount) : 'N/A' },
+    { label: 'CUSTOMERS', value: k ? String(k.customers) : 'N/A', sub: k ? `+${k.newCustomers} this month` : undefined },
+    { label: 'AVG RATING', value: k?.avgRating != null ? `${k.avgRating}★` : 'N/A', sub: k ? `${k.reviewCount} reviews` : undefined },
+    { label: 'OPEN SUPPORT TICKETS', value: k ? String(k.openTickets) : 'N/A' },
+    { label: 'CAMPAIGNS SENT', value: k ? String(k.campaignsSent) : 'N/A', sub: k && k.campaignReach ? `${k.campaignReach} reached` : undefined },
   ]
 
   const series = m?.revenueSeries ?? []
@@ -100,7 +100,7 @@ export default function ExecutiveSection() {
       <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 16 }}>
         <div style={cardStyle}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-            <h3 style={{ ...h3Style, margin: 0 }}>Revenue — last 14 days</h3>
+            <h3 style={{ ...h3Style, margin: 0 }}>Revenue: last 14 days</h3>
             <Badge tone="green">Live</Badge>
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 140 }}>
@@ -170,7 +170,7 @@ export default function ExecutiveSection() {
           <h3 style={h3Style}>Customer growth</h3>
           <div style={{ display: 'flex', gap: 26 }}>
             <div>
-              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 26 }}>{m?.customerGrowth.total ?? '—'}</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 26 }}>{m?.customerGrowth.total ?? 'N/A'}</div>
               <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>total customers</div>
             </div>
             <div>
@@ -180,7 +180,7 @@ export default function ExecutiveSection() {
               <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>new this month</div>
             </div>
             <div>
-              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 26 }}>{k ? fmt(k.inventoryValue) : '—'}</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 26 }}>{k ? fmt(k.inventoryValue) : 'N/A'}</div>
               <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>inventory value</div>
             </div>
           </div>

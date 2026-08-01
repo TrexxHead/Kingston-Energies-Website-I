@@ -92,7 +92,7 @@ export default function ForecastTab() {
       ) : (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }} className="kad-kpi-grid">
-            <Stat label={`Projected cash in ${months} months`} value={data.projectedCashPosition != null ? fmt(Math.round(data.projectedCashPosition)) : '—'} />
+            <Stat label={`Projected cash in ${months} months`} value={data.projectedCashPosition != null ? fmt(Math.round(data.projectedCashPosition)) : 'N/A'} />
             <Stat
               label="Cash runway"
               value={data.cashRunwayMonths ? `${data.cashRunwayMonths} mo` : 'No shortfall projected'}
@@ -103,14 +103,14 @@ export default function ForecastTab() {
 
           {data.cashRunwayMonths && (
             <p style={{ fontSize: 12.5, color: 'var(--ke-sun-600,#b45309)', fontWeight: 600, margin: 0 }}>
-              On current trend, cash could go negative in about {data.cashRunwayMonths} month{data.cashRunwayMonths === 1 ? '' : 's'} —
+              On current trend, cash could go negative in about {data.cashRunwayMonths} month{data.cashRunwayMonths === 1 ? '' : 's'},
               worth treating as an early warning rather than a prediction, given the {CONF_LABEL[data.confidence].toLowerCase()}.
             </p>
           )}
 
           <div style={cardStyle}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
-              <h3 style={{ ...h3Style, margin: 0 }}>Net cash — history and projection</h3>
+              <h3 style={{ ...h3Style, margin: 0 }}>Net cash: history and projection</h3>
               <div style={{ display: 'flex', gap: 6 }}>
                 {[3, 6, 12].map((m) => (
                   <Pill key={m} label={`${m} mo`} selected={months === m} onClick={() => setMonths(m)} />
@@ -154,7 +154,7 @@ export default function ForecastTab() {
           <div style={{ ...cardStyle, padding: 0, overflow: 'hidden' }}>
             <div style={{ padding: '14px 18px' }}>
               <h3 style={{ ...h3Style, margin: 0 }}>Monthly history</h3>
-              <p style={{ fontSize: 12, color: 'var(--color-text-muted)', margin: '4px 0 0' }}>Straight from the ledger — revenue and expenses as posted.</p>
+              <p style={{ fontSize: 12, color: 'var(--color-text-muted)', margin: '4px 0 0' }}>Straight from the ledger: revenue and expenses as posted.</p>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 10, padding: '9px 18px', background: 'var(--ke-gray-50,#f5f7f5)', fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '.1em', color: 'var(--color-text-muted)' }}>
               <span>MONTH</span>

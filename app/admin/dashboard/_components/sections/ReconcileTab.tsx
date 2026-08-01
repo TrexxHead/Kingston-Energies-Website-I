@@ -138,7 +138,7 @@ function Start({ onOpen }: { onOpen: (id: string) => void }) {
                   style={{ width: '100%', height: 36, padding: '0 10px', border: '1.5px solid var(--color-border)', borderRadius: 9, fontSize: 13, background: 'var(--color-surface)', fontFamily: 'var(--font-body)' }}
                 >
                   {data.accounts.map((a) => (
-                    <option key={a.id} value={a.id}>{a.code} · {a.name} — book {fmt(a.bookBalance)}</option>
+                    <option key={a.id} value={a.id}>{a.code} · {a.name}: book {fmt(a.bookBalance)}</option>
                   ))}
                 </select>
               </label>
@@ -252,7 +252,7 @@ function Session({ id, onBack }: { id: string; onBack: () => void }) {
 
       {!data.balanced && !done && (
         <p style={{ fontSize: 12.5, color: 'var(--ke-sun-600,#b45309)', margin: 0, fontWeight: 600 }}>
-          Out by {fmt(Math.round(Math.abs(data.difference)))} — tick off the transactions that appear on the statement until this reaches zero.
+          Out by {fmt(Math.round(Math.abs(data.difference)))}. Tick off the transactions that appear on the statement until this reaches zero.
         </p>
       )}
       {error && <p style={{ fontSize: 12.5, color: 'var(--color-danger)', margin: 0 }}>{error}</p>}
@@ -278,7 +278,7 @@ function Session({ id, onBack }: { id: string; onBack: () => void }) {
                 {new Date(l.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
               </span>
               <span style={{ minWidth: 0 }}>
-                <span style={{ display: 'block', fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.memo ?? '—'}</span>
+                <span style={{ display: 'block', fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.memo ?? 'N/A'}</span>
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-subtle)' }}>{l.entryNo}</span>
               </span>
               <span style={{ textAlign: 'right', fontSize: 12.5 }}>{l.debit ? fmt(Math.round(l.debit)) : ''}</span>

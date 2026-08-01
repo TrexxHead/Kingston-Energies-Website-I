@@ -70,7 +70,7 @@ export async function POST(request: Request) {
   const account = await prisma.ledgerAccount.findUnique({ where: { id: d.accountId }, select: { isBank: true } })
   if (!account) return NextResponse.json({ error: 'That category no longer exists.' }, { status: 400 })
   if (account.isBank) {
-    return NextResponse.json({ error: 'A rule cannot categorise a bank line back to a bank account — that would be an entry to itself.' }, { status: 400 })
+    return NextResponse.json({ error: 'A rule cannot categorise a bank line back to a bank account. That would be an entry to itself.' }, { status: 400 })
   }
 
   const rule = await prisma.bankRule.create({ data: { ...d, createdBy: session.user?.email ?? null } })
@@ -163,7 +163,7 @@ export async function PUT() {
       source: 'MANUAL',
       sourceId: `bankline:${line.id}`,
       createdBy: who,
-      memo: `${line.description} — auto-categorised by rule "${match.ruleName}"`,
+      memo: `${line.description}: auto-categorised by rule "${match.ruleName}"`,
       lines: moneyIn
         ? [
             { code: line.connection.account.code, debit: magnitude },

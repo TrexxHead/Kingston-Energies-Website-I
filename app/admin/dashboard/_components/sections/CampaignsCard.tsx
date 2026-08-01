@@ -97,7 +97,7 @@ export default function CampaignsCard() {
       {msg && <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 10 }}>{msg}</div>}
 
       {items.length === 0 ? (
-        <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: 0 }}>No campaigns yet. Create one — email blasts send for real.</p>
+        <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: 0 }}>No campaigns yet. Create one. Email blasts send for real.</p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {items.map((c) => {

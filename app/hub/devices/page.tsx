@@ -64,7 +64,7 @@ export default function DevicesPage() {
       if (!res.ok) {
         setMessage({ kind: 'error', text: data.error ?? 'Could not register that device.' })
       } else {
-        setMessage({ kind: 'ok', text: `✓ Device registered — ${data.pointsAwarded} loyalty points added.` })
+        setMessage({ kind: 'ok', text: `✓ Device registered: ${data.pointsAwarded} loyalty points added.` })
         setSerial('')
         load()
       }
@@ -83,7 +83,7 @@ export default function DevicesPage() {
         <div style={{ ...hubCard, marginBottom: 16 }}>
           <h3 style={hubH3}>Register a new device</h3>
           <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: '0 0 14px' }}>
-            The serial number is on your invoice — it&apos;s unique to the exact unit you received.
+            The serial number is on your invoice. It&apos;s unique to the exact unit you received.
           </p>
           <form onSubmit={register} style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             <input
@@ -120,7 +120,7 @@ export default function DevicesPage() {
                 opacity: submitting ? 0.7 : 1,
               }}
             >
-              {submitting ? 'Registering…' : 'Register — +25 pts'}
+              {submitting ? 'Registering…' : 'Register: +25 pts'}
             </button>
           </form>
           {message && (
@@ -172,7 +172,7 @@ export default function DevicesPage() {
                   SN {d.serial} · PURCHASED {fmtDate(d.purchasedAt)}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--color-text-muted)', margin: '0 0 16px' }}>
-                  {d.manufacturerWarranty ?? 'Manufacturer’s warranty applies — terms vary by brand.'}
+                  {d.manufacturerWarranty ?? 'Manufacturer’s warranty applies. Terms vary by brand.'}
                 </div>
 
                 {d.hasBattery && d.batteryHealthPct !== null ? (
@@ -185,7 +185,7 @@ export default function DevicesPage() {
                       <div style={{ width: `${d.batteryHealthPct}%`, height: '100%', background: 'var(--gradient-brand)' }} />
                     </div>
                     <div style={{ fontSize: 11.5, color: 'var(--color-text-muted)', marginBottom: 16 }}>
-                      Modeled from typical Li-ion fade over {monthsOwnedLabel(d.purchasedAt)} of ownership — not a live sensor reading.
+                      Modeled from typical Li-ion fade over {monthsOwnedLabel(d.purchasedAt)} of ownership, not a live sensor reading.
                     </div>
                   </>
                 ) : (

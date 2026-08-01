@@ -74,12 +74,12 @@ const NPS_RESPONSES = [
 
 // productId matches the lib/catalog.ts ids so each review can link to /product/<id>.
 const REVIEWS = [
-  { productId: 'pb10', author: 'Renée B.', location: 'Kingston', rating: 5, body: 'The Charmast 10,400 gets me through two full days on one charge. The LED read-out is a nice touch — no more guessing.' },
+  { productId: 'pb10', author: 'Renée B.', location: 'Kingston', rating: 5, body: 'The Charmast 10,400 gets me through two full days on one charge. The LED read-out is a nice touch, no more guessing.' },
   { productId: 'pbmag', author: 'Marcus D.', location: 'Portmore', rating: 5, body: 'The MagSafe bank snaps right onto my iPhone and tops it up wirelessly. 16,000mAh gets me through a whole weekend.' },
   { productId: 'ch20', author: 'Alicia K.', location: 'Spanish Town', rating: 4, body: 'Tiny 20W USB-C charger that fills my phone crazy fast. Works with both my iPhone and my sister’s Android.' },
   { productId: 'pbot', author: 'Devon R.', location: 'Kingston', rating: 5, body: 'The OtterBox leather bank looks premium and survived a drop off my desk. Feels built to last.' },
   { productId: 'st300', author: 'Paula S.', location: 'Mandeville', rating: 5, body: 'Ran my fridge and fan through a 3-hour outage. Kingston Energies delivered exactly what they promised.' },
-  { productId: 'chcab', author: 'JoWayne F.', location: 'Kingston', rating: 5, body: 'Braided cable that actually lasts — fast charge every time and it hasn’t frayed after months of daily use.' },
+  { productId: 'chcab', author: 'JoWayne F.', location: 'Kingston', rating: 5, body: 'Braided cable that actually lasts, fast charge every time and it hasn’t frayed after months of daily use.' },
   { productId: 'pbmi', author: 'Simone A.', location: 'Ocho Rios', rating: 4, body: 'The MIADY is slim enough to disappear in my bag and the 22.5W output tops me up fast. Perfect on the go.' },
   { productId: 'acst', author: 'Kemar T.', location: 'Kingston', rating: 5, body: 'Sturdy aluminium stand, folds flat, holds my phone at the perfect angle for calls. Great value.' },
 ]

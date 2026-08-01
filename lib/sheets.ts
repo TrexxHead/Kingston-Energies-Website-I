@@ -98,7 +98,7 @@ export async function syncBusinessDataToSheet(): Promise<SheetsSyncResult> {
         Date: o.createdAt.toISOString().slice(0, 10),
         Customer: o.customerName,
         Status: o.status,
-        'Payment method': o.paymentMethod ?? '—',
+        'Payment method': o.paymentMethod ?? 'N/A',
         Items: o.items.map((i) => `${i.name} x${i.qty}`).join('; '),
         'Total (J$)': o.total,
       }))
@@ -109,11 +109,11 @@ export async function syncBusinessDataToSheet(): Promise<SheetsSyncResult> {
       'Customers',
       ['Name', 'Email', 'Phone', 'Segment', 'Loyalty tier', 'Orders', 'Lifetime value (J$)', 'Joined'],
       customers.map((c) => ({
-        Name: c.name ?? '—',
+        Name: c.name ?? 'N/A',
         Email: c.email,
-        Phone: c.phone ?? '—',
-        Segment: c.segment ?? '—',
-        'Loyalty tier': c.loyaltyTier ?? '—',
+        Phone: c.phone ?? 'N/A',
+        Segment: c.segment ?? 'N/A',
+        'Loyalty tier': c.loyaltyTier ?? 'N/A',
         Orders: c.orders.length,
         'Lifetime value (J$)': c.orders.filter((o) => o.status !== 'CANCELLED').reduce((sum, o) => sum + o.total, 0),
         Joined: c.createdAt.toISOString().slice(0, 10),
@@ -125,9 +125,9 @@ export async function syncBusinessDataToSheet(): Promise<SheetsSyncResult> {
       'Inventory',
       ['SKU', 'Name', 'Category', 'Price (J$)', 'Stock', 'Threshold', 'Low stock?'],
       products.map((p) => ({
-        SKU: p.sku ?? '—',
+        SKU: p.sku ?? 'N/A',
         Name: p.name,
-        Category: p.category ?? '—',
+        Category: p.category ?? 'N/A',
         'Price (J$)': p.price,
         Stock: p.stock,
         Threshold: p.threshold,
@@ -141,8 +141,8 @@ export async function syncBusinessDataToSheet(): Promise<SheetsSyncResult> {
       ['Supplier', 'Contact email', 'Contact phone', 'Open POs', 'Received POs'],
       suppliers.map((s) => ({
         Supplier: s.name,
-        'Contact email': s.contactEmail ?? '—',
-        'Contact phone': s.contactPhone ?? '—',
+        'Contact email': s.contactEmail ?? 'N/A',
+        'Contact phone': s.contactPhone ?? 'N/A',
         'Open POs': s.purchaseOrders.filter((po) => po.status === 'OPEN').length,
         'Received POs': s.purchaseOrders.filter((po) => po.status === 'RECEIVED').length,
       }))

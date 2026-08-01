@@ -56,10 +56,10 @@ describe('customerNeedLabel', () => {
     expect(customerNeedLabel('EVERYDAY')).toBe('Everyday carry')
   })
 
-  it('returns a dash for null, undefined, or unknown values', () => {
-    expect(customerNeedLabel(null)).toBe('—')
-    expect(customerNeedLabel(undefined)).toBe('—')
-    expect(customerNeedLabel('WHatever')).toBe('—')
+  it('returns "N/A" for null, undefined, or unknown values', () => {
+    expect(customerNeedLabel(null)).toBe('N/A')
+    expect(customerNeedLabel(undefined)).toBe('N/A')
+    expect(customerNeedLabel('WHatever')).toBe('N/A')
   })
 })
 

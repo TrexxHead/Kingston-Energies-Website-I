@@ -157,7 +157,7 @@ export const CATALOG: Product[] = [
   {
     id: 'cmp-adpt-w',
     cat: 'components',
-    name: 'USB-C Wall Adapter — White',
+    name: 'USB-C Wall Adapter, White',
     spec: 'USB-C POWER ADAPTER · WALL PLUG',
     price: 1500,
     image: null,
@@ -166,7 +166,7 @@ export const CATALOG: Product[] = [
   {
     id: 'cmp-adpt-b',
     cat: 'components',
-    name: 'USB-C Wall Adapter — Black',
+    name: 'USB-C Wall Adapter, Black',
     spec: 'USB-C POWER ADAPTER · WALL PLUG',
     price: 1500,
     image: null,

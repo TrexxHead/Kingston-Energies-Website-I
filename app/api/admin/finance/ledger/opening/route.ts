@@ -50,7 +50,7 @@ export async function POST(request: Request) {
   const existing = await prisma.journalEntry.findFirst({ where: { source: 'OPENING' } })
   if (existing) {
     return NextResponse.json(
-      { error: 'Opening balances have already been set. Post an adjusting journal entry instead — rewriting them would break the audit trail.' },
+      { error: 'Opening balances have already been set. Post an adjusting journal entry instead. Rewriting them would break the audit trail.' },
       { status: 400 },
     )
   }

@@ -81,7 +81,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   await postEntry({
     date: disposedAt,
     source: 'MANUAL',
-    memo: `Disposal — ${asset.name}`,
+    memo: `Disposal: ${asset.name}`,
     createdBy: session?.user?.email ?? null,
     lines: [
       { code: ACC.BANK, debit: proceeds, memo: 'Disposal proceeds' },
@@ -110,7 +110,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   const runs = await prisma.scheduleRun.count({ where: { kind: 'DEPRECIATION', refId: id } })
   if (runs > 0) {
     return NextResponse.json(
-      { error: `This asset has ${runs} posted depreciation period(s). Dispose of it instead — deleting would break the audit trail.` },
+      { error: `This asset has ${runs} posted depreciation period(s). Dispose of it instead. Deleting would break the audit trail.` },
       { status: 400 },
     )
   }

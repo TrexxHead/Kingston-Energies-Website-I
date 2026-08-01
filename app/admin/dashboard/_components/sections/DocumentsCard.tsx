@@ -140,8 +140,8 @@ export default function DocumentsCard() {
       </div>
       <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: '0 0 12px' }}>
         {storageEnabled
-          ? 'Upload SOPs, warranty policy, manuals and staff guides — or paste a share link. Organise them into folders.'
-          : 'Store links to your SOPs, warranty policy and staff guides — paste a Google Drive (or any) share URL.'}
+          ? 'Upload SOPs, warranty policy, manuals and staff guides, or paste a share link. Organise them into folders.'
+          : 'Store links to your SOPs, warranty policy and staff guides. Paste a Google Drive (or any) share URL.'}
       </p>
 
       {/* Folder filter chips */}
@@ -186,7 +186,7 @@ export default function DocumentsCard() {
                   {d.isFile ? <Download size={14} /> : <ExternalLink size={14} />} View
                 </a>
               ) : (
-                <span title="File can't be opened — Supabase Storage isn't configured (add SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY and redeploy)" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, border: '1px solid var(--color-border)', color: 'var(--color-text-subtle)', fontSize: 12.5 }}>
+                <span title="File can't be opened: Supabase Storage isn't configured (add SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY and redeploy)" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, border: '1px solid var(--color-border)', color: 'var(--color-text-subtle)', fontSize: 12.5 }}>
                   <Download size={14} /> Unavailable
                 </span>
               )}
@@ -225,7 +225,7 @@ export default function DocumentsCard() {
 
           {mode === 'file' ? (
             <div style={{ margin: '4px 0 8px' }}>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6, color: 'var(--color-text-muted)' }}>File (PDF, image or doc — up to 20 MB)</label>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6, color: 'var(--color-text-muted)' }}>File (PDF, image or doc, up to 20 MB)</label>
               <input
                 ref={fileRef}
                 type="file"
@@ -250,7 +250,7 @@ export default function DocumentsCard() {
 
           {!storageEnabled && (
             <p style={{ fontSize: 11.5, color: 'var(--color-text-subtle)', marginTop: 10 }}>
-              File uploads are off until Supabase Storage is configured — links work now.
+              File uploads are off until Supabase Storage is configured. Links work now.
             </p>
           )}
         </Modal>

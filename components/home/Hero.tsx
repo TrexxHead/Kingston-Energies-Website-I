@@ -91,7 +91,7 @@ export default function Hero() {
             animation: 'keUp .9s var(--ease-out) .26s both',
           }}
         >
-          Premium portable power — built in Kingston, priced for everyone. And a roadmap that ends with the sun.
+          Premium portable power, built in Kingston, priced for everyone. And a roadmap that ends with the sun.
         </p>
 
         <div

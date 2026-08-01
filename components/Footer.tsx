@@ -40,7 +40,7 @@ export default function Footer() {
               color: 'rgba(234,242,236,.45)',
             }}
           >
-            © 2026 KINGSTON ENERGIES — POWERING PROGRESS
+            © 2026 KINGSTON ENERGIES: POWERING PROGRESS
           </span>
         </div>
 

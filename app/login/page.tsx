@@ -19,7 +19,7 @@ const OAUTH_ERROR_MESSAGE =
   'Google sign-in isn\'t configured yet. Please use email and password, or try again later.'
 
 const VERIFY_BANNERS: Record<string, { tone: 'ok' | 'err'; text: string }> = {
-  success: { tone: 'ok', text: 'Email confirmed — you can sign in now.' },
+  success: { tone: 'ok', text: 'Email confirmed. You can sign in now.' },
   expired: { tone: 'err', text: 'That verification link expired. Sign in to request a new one.' },
   invalid: { tone: 'err', text: 'That verification link is invalid. Sign in to request a new one.' },
 }

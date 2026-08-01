@@ -41,7 +41,7 @@ export async function validatePromo(codeRaw: string, subtotal: number): Promise<
     type: promo.type,
     value: promo.value,
     discount,
-    message: `${promo.code} applied — ${promo.type === 'PERCENT' ? `${promo.value}% off` : `${fmtJ(promo.value)} off`}.`,
+    message: `${promo.code} applied: ${promo.type === 'PERCENT' ? `${promo.value}% off` : `${fmtJ(promo.value)} off`}.`,
   }
 }
 

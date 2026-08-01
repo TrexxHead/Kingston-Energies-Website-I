@@ -127,7 +127,7 @@ function Branches() {
           <AlertTriangle size={16} style={{ color: 'var(--ke-sun-600,#b45309)', flexShrink: 0, marginTop: 2 }} />
           <div style={{ fontSize: 13, lineHeight: 1.55 }}>
             Only {coverage}% of journal entries are attributed to a branch, so per-branch figures will be missing most
-            of the business. Group totals are unaffected — they always cover everything.
+            of the business. Group totals are unaffected. They always cover everything.
           </div>
         </div>
       )}
@@ -140,7 +140,7 @@ function Branches() {
           </Button>
         </div>
         <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: '0 0 12px', lineHeight: 1.55 }}>
-          A branch is a label on entries in the one ledger, not a second set of books — so reports can be filtered by
+          A branch is a label on entries in the one ledger, not a second set of books, so reports can be filtered by
           location while the group figures still add up.
         </p>
 
@@ -183,7 +183,7 @@ function Branches() {
                 ))}
                 {data.unassignedEntries > 0 && (
                   <tr>
-                    <td style={{ ...td, color: 'var(--color-text-muted)' }}>—</td>
+                    <td style={{ ...td, color: 'var(--color-text-muted)' }}>N/A</td>
                     <td style={{ ...td, color: 'var(--color-text-muted)' }}>Unassigned</td>
                     <td style={{ ...tdNum, color: 'var(--color-text-muted)' }}>{data.unassignedEntries}</td>
                     <td style={td} />
@@ -300,9 +300,9 @@ function Currencies() {
               {data.currencies.map((c) => (
                 <tr key={c.currency}>
                   <td style={{ ...td, fontFamily: 'var(--font-mono)', fontSize: 12.5 }}>{c.currency}</td>
-                  <td style={tdNum}>{c.rate != null ? c.rate.toFixed(4) : '—'}</td>
-                  <td style={{ ...td, color: 'var(--color-text-muted)' }}>{c.asOf ? day(c.asOf) : '—'}</td>
-                  <td style={{ ...td, color: 'var(--color-text-muted)' }}>{c.source || '—'}</td>
+                  <td style={tdNum}>{c.rate != null ? c.rate.toFixed(4) : 'N/A'}</td>
+                  <td style={{ ...td, color: 'var(--color-text-muted)' }}>{c.asOf ? day(c.asOf) : 'N/A'}</td>
+                  <td style={{ ...td, color: 'var(--color-text-muted)' }}>{c.source || 'N/A'}</td>
                   <td style={td}>
                     {c.rate == null ? (
                       <Badge tone="neutral">No rate</Badge>
@@ -339,8 +339,8 @@ function Currencies() {
                     <td style={{ ...td, whiteSpace: 'nowrap' }}>{day(h.asOf)}</td>
                     <td style={{ ...td, fontFamily: 'var(--font-mono)', fontSize: 12.5 }}>{h.currency}</td>
                     <td style={tdNum}>{h.rate.toFixed(4)}</td>
-                    <td style={{ ...td, color: 'var(--color-text-muted)' }}>{h.source || '—'}</td>
-                    <td style={{ ...td, color: 'var(--color-text-muted)' }}>{h.enteredBy || '—'}</td>
+                    <td style={{ ...td, color: 'var(--color-text-muted)' }}>{h.source || 'N/A'}</td>
+                    <td style={{ ...td, color: 'var(--color-text-muted)' }}>{h.enteredBy || 'N/A'}</td>
                   </tr>
                 ))}
               </tbody>

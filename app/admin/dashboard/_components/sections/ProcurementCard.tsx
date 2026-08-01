@@ -321,7 +321,7 @@ export default function ProcurementCard() {
       {/* New PO modal */}
       {poFor && (
         <Modal
-          title={`New PO — ${poFor.name}`}
+          title={`New PO: ${poFor.name}`}
           onClose={() => setPoFor(null)}
           footer={
             <>
@@ -371,7 +371,7 @@ export default function ProcurementCard() {
             )}
             {!storageEnabled && (
               <p style={{ fontSize: 11.5, color: 'var(--color-text-subtle)', margin: 0 }}>
-                File uploads are off until Supabase Storage is configured — links work now.
+                File uploads are off until Supabase Storage is configured. Links work now.
               </p>
             )}
           </div>
@@ -407,7 +407,7 @@ function FileList({ files, onAttach, onDelete, heading, compact }: { files: PFil
                   {f.isFile ? <Download size={12} /> : <ExternalLink size={12} />}
                 </a>
               ) : (
-                <span style={{ color: 'var(--color-text-subtle)' }} title="File unavailable — storage not configured">{f.label}</span>
+                <span style={{ color: 'var(--color-text-subtle)' }} title="File unavailable: storage not configured">{f.label}</span>
               )}
               <button type="button" onClick={() => onDelete(f.id)} aria-label="Remove" style={{ ...plainBtn, color: 'var(--color-text-subtle)' }}><Trash2 size={12} /></button>
             </span>

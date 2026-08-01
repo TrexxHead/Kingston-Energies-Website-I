@@ -132,7 +132,7 @@ export function buildInvoiceHtml(d: InvoiceData): string {
           <div style="width:240px;flex-shrink:0;background:#f5f8f5;border:1px solid #e8ece9;border-radius:12px;padding:18px 20px">
             <div style="display:flex;justify-content:space-between;font-size:12.5px;color:#5b655f;padding:5px 0">
               <span style="font-family:${FONT_HEAD};font-weight:600;white-space:nowrap;flex-shrink:0">Payment</span>
-              <span style="color:#1c2a25;font-weight:600;white-space:nowrap;margin-left:10px;font-size:11.5px">${d.paymentMethod ? (PAYMENT_LABEL[d.paymentMethod] ?? d.paymentMethod) : '—'}</span>
+              <span style="color:#1c2a25;font-weight:600;white-space:nowrap;margin-left:10px;font-size:11.5px">${d.paymentMethod ? (PAYMENT_LABEL[d.paymentMethod] ?? d.paymentMethod) : 'N/A'}</span>
             </div>
             <div style="display:flex;justify-content:space-between;font-size:12.5px;color:#5b655f;padding:5px 0">
               <span style="font-family:${FONT_HEAD};font-weight:600">Status</span>
@@ -206,7 +206,7 @@ export function buildInvoiceHtml(d: InvoiceData): string {
         </div>
 
         <div style="margin-top:24px;padding-top:20px;border-top:1px solid rgba(255,255,255,.12);color:#a9c2ae;font-size:11.5px;text-align:center">
-          Thank you for your business — ${BUSINESS.name}
+          Thank you for your business, from ${BUSINESS.name}
         </div>
       </div>
     </div>

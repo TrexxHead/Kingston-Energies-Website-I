@@ -76,7 +76,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
           `Order ${order.orderNo}: ${def.headline}`,
           wrapEmailHtml(
             def.headline,
-            `<p><strong>${escapeHtml(def.headline)}</strong> — ${escapeHtml(customerNote?.trim() || def.blurb)}</p>` +
+            `<p><strong>${escapeHtml(def.headline)}</strong>: ${escapeHtml(customerNote?.trim() || def.blurb)}</p>` +
               `<p style="font-size:13px;color:#556059">Track your order any time at kingstonenergies.com/track.</p>`,
           ),
         )
@@ -92,7 +92,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
           `How did we do with ${order.orderNo}?`,
           wrapEmailHtml(
             'How did we do?',
-            `<p>Your order has been delivered — thank you for choosing Kingston Energies.</p>` +
+            `<p>Your order has been delivered. Thank you for choosing Kingston Energies.</p>` +
               `<p>Would you take ten seconds to rate your experience?</p>` +
               `<p><a href="${link}" style="display:inline-block;background:#1f6b45;color:#fff;text-decoration:none;padding:11px 22px;border-radius:999px;font-weight:600">Rate your experience</a></p>`,
           ),

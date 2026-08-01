@@ -135,7 +135,7 @@ function Connections({ onOpen }: { onOpen: (id: string) => void }) {
 
         {data.connections.length === 0 ? (
           <Empty>
-            No bank accounts set up yet. Add one, then import a CSV or OFX statement from your online banking — every
+            No bank accounts set up yet. Add one, then import a CSV or OFX statement from your online banking. Every
             line lands here waiting to be matched against the books.
           </Empty>
         ) : (
@@ -261,7 +261,7 @@ function ImportModal({ connection, onClose, onDone }: { connection: Connection; 
   }
 
   return (
-    <Modal onClose={result ? onDone : onClose} title={`Import statement — ${connection.name}`} width={520}>
+    <Modal onClose={result ? onDone : onClose} title={`Import statement: ${connection.name}`} width={520}>
       {result ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ fontSize: 14, lineHeight: 1.6 }}>
@@ -280,7 +280,7 @@ function ImportModal({ connection, onClose, onDone }: { connection: Connection; 
               <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
                 {result.skipped.slice(0, 5).map((s) => (
                   <li key={s.row}>
-                    Row {s.row} — {s.reason}
+                    Row {s.row}: {s.reason}
                   </li>
                 ))}
               </ul>
@@ -292,7 +292,7 @@ function ImportModal({ connection, onClose, onDone }: { connection: Connection; 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: 0, lineHeight: 1.55 }}>
             Export a CSV or OFX/QFX statement from your online banking and attach it. Importing an overlapping date
-            range is safe — anything already here is recognised and skipped rather than duplicated.
+            range is safe. Anything already here is recognised and skipped rather than duplicated.
           </p>
           <input
             ref={inputRef}
@@ -415,8 +415,8 @@ function Lines({ connectionId, onBack }: { connectionId: string; onBack: () => v
                         {top && (
                           <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 4, lineHeight: 1.5 }}>
                             {ambiguous
-                              ? `${l.suggestions.length} entries match equally well — pick the right one.`
-                              : `Looks like ${top.entryNo}${top.memo ? ` · ${top.memo}` : ''} — ${top.reasons.join('; ').toLowerCase()}.`}
+                              ? `${l.suggestions.length} entries match equally well. Pick the right one.`
+                              : `Looks like ${top.entryNo}${top.memo ? ` · ${top.memo}` : ''}: ${top.reasons.join('; ').toLowerCase()}.`}
                           </div>
                         )}
                       </td>
@@ -533,7 +533,7 @@ function Categorise({
         />
         <TextInput label="Note (optional)" value={note} onChange={setNote} />
         <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: 0, lineHeight: 1.5 }}>
-          This posts a journal entry dated {d(line.postedAt)} — {moneyIn ? 'debiting' : 'crediting'} the bank account and{' '}
+          This posts a journal entry dated {d(line.postedAt)}: {moneyIn ? 'debiting' : 'crediting'} the bank account and{' '}
           {moneyIn ? 'crediting' : 'debiting'} the category you choose.
         </p>
         {error && <div style={{ color: 'var(--color-danger,#dc2626)', fontSize: 13 }}>{error}</div>}

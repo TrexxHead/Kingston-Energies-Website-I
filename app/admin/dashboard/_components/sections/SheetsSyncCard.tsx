@@ -48,7 +48,7 @@ export default function SheetsSyncCard() {
       {configured === false && (
         <p style={{ fontSize: 13, color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
           Business data can sync automatically to a Google Sheet. Add the service account credentials
-          to enable it — see DEPLOY.md for setup steps.
+          to enable it. See DEPLOY.md for setup steps.
         </p>
       )}
 
@@ -78,7 +78,7 @@ export default function SheetsSyncCard() {
           {lastResult && (
             <div style={{ marginTop: 10, fontSize: 12, color: lastResult.ok ? 'var(--color-text-muted)' : 'var(--color-danger, #d33)' }}>
               {lastResult.ok
-                ? `Synced ${new Date(lastResult.syncedAt).toLocaleTimeString()} — ${lastResult.counts?.orders ?? 0} orders, ${lastResult.counts?.customers ?? 0} customers`
+                ? `Synced ${new Date(lastResult.syncedAt).toLocaleTimeString()}: ${lastResult.counts?.orders ?? 0} orders, ${lastResult.counts?.customers ?? 0} customers`
                 : `Sync failed: ${lastResult.error}`}
             </div>
           )}

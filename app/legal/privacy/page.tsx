@@ -16,7 +16,7 @@ export default function PrivacyPage() {
 
       <LegalSection heading="Information we collect">
         <p>
-          We collect information you provide directly — your name, email, phone number, and delivery address when you
+          We collect information you provide directly: your name, email, phone number, and delivery address when you
           create an account, place an order, or request a quote. We also collect limited technical data (device and
           browser type, pages viewed) to operate and improve the site.
         </p>
@@ -24,8 +24,8 @@ export default function PrivacyPage() {
 
       <LegalSection heading="How we use it">
         <p>
-          To process and deliver orders, provide customer support, activate warranties, send order updates, and — where
-          you&apos;ve opted in — occasional product news. We do not sell your personal information.
+          To process and deliver orders, provide customer support, activate warranties, send order updates, and, where
+          you&apos;ve opted in, occasional product news. We do not sell your personal information.
         </p>
       </LegalSection>
 

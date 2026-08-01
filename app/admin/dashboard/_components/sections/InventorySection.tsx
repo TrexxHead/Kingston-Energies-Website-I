@@ -208,14 +208,14 @@ export default function InventorySection() {
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        setSaveError(data.error ?? 'Could not save changes — please try again.')
+        setSaveError(data.error ?? 'Could not save changes. Please try again.')
         return
       }
       setEditing(null)
       resetEditor()
       loadProducts()
     } catch {
-      setSaveError('Could not save changes — check your connection and try again.')
+      setSaveError('Could not save changes. Check your connection and try again.')
     } finally {
       setBusy(false)
     }
@@ -232,14 +232,14 @@ export default function InventorySection() {
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        setSaveError(data.error ?? 'Could not create product — please try again.')
+        setSaveError(data.error ?? 'Could not create product. Please try again.')
         return
       }
       setAddOpen(false)
       resetEditor()
       loadProducts()
     } catch {
-      setSaveError('Could not create product — check your connection and try again.')
+      setSaveError('Could not create product. Check your connection and try again.')
     } finally {
       setBusy(false)
     }
@@ -268,7 +268,7 @@ export default function InventorySection() {
         setUploadError(data.error ?? 'Upload failed.')
       }
     } catch {
-      setUploadError('Upload failed — check your connection.')
+      setUploadError('Upload failed. Check your connection.')
     } finally {
       setUploading(false)
     }
@@ -388,8 +388,8 @@ export default function InventorySection() {
           return (
             <div key={p.id} style={{ display: 'grid', gridTemplateColumns: GRID_COLS, gap: 10, padding: '11px 18px', borderTop: '1px solid var(--color-border)', alignItems: 'center' }}>
               <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13 }}>{p.name}</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--color-text-muted)' }}>{p.sku ?? '—'}</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-text-subtle)' }}>{p.barcode ?? '—'}</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--color-text-muted)' }}>{p.sku ?? 'N/A'}</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-text-subtle)' }}>{p.barcode ?? 'N/A'}</span>
               <span style={{ fontSize: 13 }}>{fmt(p.price)}</span>
               <button
                 type="button"
@@ -485,7 +485,7 @@ export default function InventorySection() {
               <label style={{ display: 'block' }}>
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '.14em', color: 'var(--color-text-muted)', display: 'block', marginBottom: 6 }}>INVENTORY QUANTITY</span>
                 <div style={{ height: 36, display: 'flex', alignItems: 'center', gap: 8, padding: '0 10px', border: '1.5px solid var(--color-border)', borderRadius: 9, fontSize: 13, background: 'var(--ke-gray-50,#fafafa)', color: 'var(--color-text-muted)' }}>
-                  {form.stock} <span style={{ fontSize: 11 }}>— use &quot;Adjust stock&quot; from the list to change this</span>
+                  {form.stock} <span style={{ fontSize: 11 }}>: use &quot;Adjust stock&quot; from the list to change this</span>
                 </div>
               </label>
             ) : (
@@ -507,7 +507,7 @@ export default function InventorySection() {
           {/* Images */}
           <SectionLabel>Images</SectionLabel>
           <p style={{ fontSize: 11.5, color: 'var(--color-text-muted)', margin: '0 0 4px' }}>
-            Drag &amp; drop or browse to upload, or paste an image URL. The first image is the thumbnail — reorder or set any as the thumbnail.
+            Drag &amp; drop or browse to upload, or paste an image URL. The first image is the thumbnail. Reorder or set any as the thumbnail.
           </p>
           {/* Drag & drop uploader */}
           <label
@@ -594,7 +594,7 @@ export default function InventorySection() {
 
       {adjustTarget && (
         <Modal
-          title={`Adjust stock — ${adjustTarget.name}`}
+          title={`Adjust stock: ${adjustTarget.name}`}
           onClose={() => setAdjustTarget(null)}
           footer={
             <>
@@ -605,7 +605,7 @@ export default function InventorySection() {
         >
           <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: '0 0 12px' }}>
             Currently <strong>{adjustTarget.stock}</strong> in stock. This only changes the inventory count and its
-            value — it never creates a sale, so revenue, sales, and profit are untouched.
+            value. It never creates a sale, so revenue, sales, and profit are untouched.
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>

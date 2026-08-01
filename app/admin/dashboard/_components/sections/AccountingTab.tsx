@@ -80,7 +80,7 @@ export default function AccountingTab() {
     setSyncing(false)
     if (res.ok) {
       const posted = (data.orders ?? 0) + (data.payments ?? 0) + (data.cogs ?? 0) + (data.expenses ?? 0) + (data.stockAdjustments ?? 0)
-      setSyncMsg(posted === 0 ? 'Already up to date — nothing new to post.' : `Posted ${posted} new journal entries.`)
+      setSyncMsg(posted === 0 ? 'Already up to date. Nothing new to post.' : `Posted ${posted} new journal entries.`)
       loadStatus()
     } else {
       setSyncMsg(data.error ?? 'Sync failed.')
@@ -105,13 +105,13 @@ export default function AccountingTab() {
           <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: '6px 0 0' }}>
             {status
               ? `${status.entries} journal entries across ${status.accounts} accounts. ${
-                  status.balanced ? 'Debits equal credits.' : 'Out of balance — review the trial balance.'
+                  status.balanced ? 'Debits equal credits.' : 'Out of balance. Review the trial balance.'
                 }`
               : 'Loading…'}
           </p>
           {status && unposted > 0 && (
             <p style={{ fontSize: 12.5, color: 'var(--ke-sun-600, #b45309)', margin: '6px 0 0', fontWeight: 600 }}>
-              {unposted} operational record{unposted === 1 ? '' : 's'} not yet journalled — run Sync to bring the books current.
+              {unposted} operational record{unposted === 1 ? '' : 's'} not yet journalled. Run Sync to bring the books current.
             </p>
           )}
           {syncMsg && <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: '6px 0 0' }}>{syncMsg}</p>}
@@ -302,7 +302,7 @@ function AccountLedgerModal({ account, onClose }: { account: LedgerAccount; onCl
                   {new Date(r.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
                 </span>
                 <span style={{ minWidth: 0 }}>
-                  <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.memo ?? '—'}</span>
+                  <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.memo ?? 'N/A'}</span>
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-subtle)' }}>{r.entryNo}</span>
                 </span>
                 <span style={{ textAlign: 'right' }}>{r.debit ? fmt(Math.round(r.debit)) : ''}</span>
@@ -372,7 +372,7 @@ function Journal() {
         <p style={{ fontSize: 13, color: 'var(--color-text-muted)', padding: '0 18px 18px' }}>Loading…</p>
       ) : entries.length === 0 ? (
         <p style={{ fontSize: 13, color: 'var(--color-text-muted)', padding: '0 18px 18px' }}>
-          Nothing posted yet — run Sync ledger above to journal your existing orders and expenses.
+          Nothing posted yet. Run Sync ledger above to journal your existing orders and expenses.
         </p>
       ) : (
         <>
@@ -389,7 +389,7 @@ function Journal() {
                 </span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                   <Badge tone="grey">{SOURCE_LABEL[e.source] ?? e.source}</Badge>
-                  <span style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.memo ?? '—'}</span>
+                  <span style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.memo ?? 'N/A'}</span>
                 </span>
                 <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13 }}>{fmt(Math.round(e.totalDebit))}</span>
               </button>
@@ -543,7 +543,7 @@ function BalanceSheet() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }} className="kad-kpi-grid">
         <Stat label="Total assets" value={fmt(Math.round(data.totalAssets))} />
         <Stat label="Working capital" value={fmt(Math.round(data.workingCapital))} />
-        <Stat label="Current ratio" value={data.currentRatio != null ? `${data.currentRatio}` : '—'} />
+        <Stat label="Current ratio" value={data.currentRatio != null ? `${data.currentRatio}` : 'N/A'} />
       </div>
 
       <div style={{ ...cardStyle }}>
@@ -581,7 +581,7 @@ function BalanceSheet() {
 
         {Math.abs(data.outOfBalance) >= 1 && (
           <p style={{ fontSize: 12.5, color: 'var(--ke-sun-600,#b45309)', fontWeight: 600, marginTop: 14 }}>
-            Out of balance by {fmt(Math.round(data.outOfBalance))} — check the trial balance for an unbalanced entry.
+            Out of balance by {fmt(Math.round(data.outOfBalance))}. Check the trial balance for an unbalanced entry.
           </p>
         )}
       </div>

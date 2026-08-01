@@ -133,7 +133,7 @@ function ConfirmInner() {
         </div>
         {paidByCard && (
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--ke-green-50)', color: 'var(--ke-green-700)', borderRadius: 999, padding: '8px 16px', marginTop: 14, fontSize: 13, fontWeight: 600 }}>
-            <BadgeCheck size={15} /> Card payment received — thank you!
+            <BadgeCheck size={15} /> Card payment received, thank you!
           </div>
         )}
 
@@ -141,7 +141,7 @@ function ConfirmInner() {
           <div style={{ background: '#fff', border: '1px solid var(--ke-sun-400)', borderRadius: 18, padding: '20px 22px', marginTop: 30, textAlign: 'left', boxShadow: 'var(--shadow-sm)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}>
               <Wallet size={17} color="var(--ke-sun-500)" />
-              <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15 }}>Complete your payment — {payInfo.label}</span>
+              <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15 }}>Complete your payment: {payInfo.label}</span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13.5, color: 'var(--color-text)' }}>
               {payInfo.details.map((d, i) => <div key={i}>{linkifyText(d)}</div>)}

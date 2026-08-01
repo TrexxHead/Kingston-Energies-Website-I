@@ -26,7 +26,7 @@ export interface CustomerNeedOption {
 export const CUSTOMER_NEEDS: CustomerNeedOption[] = [
   { id: 'EVERYDAY', label: 'Everyday carry', detail: 'Keeping phones and small devices topped up on the go' },
   { id: 'BACKUP', label: 'Home backup', detail: 'Staying powered through outages at home' },
-  { id: 'OFFGRID', label: 'Off-grid', detail: 'Power away from the grid — rural, camping, field work' },
+  { id: 'OFFGRID', label: 'Off-grid', detail: 'Power away from the grid: rural, camping, field work' },
   { id: 'BUSINESS', label: 'Small business', detail: 'Keeping a shop, stall or work site running' },
 ]
 
@@ -37,10 +37,10 @@ export function isCustomerNeed(value: unknown): value is CustomerNeed {
   return typeof value === 'string' && NEED_BY_ID.has(value as CustomerNeed)
 }
 
-/** Human-readable label for a stored need, or a dash when none is set. */
+/** Human-readable label for a stored need, or "N/A" when none is set. */
 export function customerNeedLabel(need: string | null | undefined): string {
-  if (!need) return '—'
-  return NEED_BY_ID.get(need as CustomerNeed)?.label ?? '—'
+  if (!need) return 'N/A'
+  return NEED_BY_ID.get(need as CustomerNeed)?.label ?? 'N/A'
 }
 
 /* ------------------------------------------------------------------ *
@@ -63,11 +63,11 @@ export interface ValueTierMeta {
 }
 
 export const VALUE_TIERS: Record<ValueTier, ValueTierMeta> = {
-  MVC: { id: 'MVC', label: 'Most Valuable', strategy: 'Retain — protect with loyalty perks and priority service', tone: 'green' },
-  SGC: { id: 'SGC', label: 'Super-Growth', strategy: 'Retain and mine — high value and still growing', tone: 'blue' },
-  MGC: { id: 'MGC', label: 'Most Growable', strategy: 'Grow — invest to capture more of their spend', tone: 'orange' },
-  LMC: { id: 'LMC', label: 'Low Maintenance', strategy: 'Automate — serve efficiently via self-service', tone: 'grey' },
-  BZC: { id: 'BZC', label: 'Below Zero', strategy: 'Deprioritise — costs more to serve than it returns', tone: 'red' },
+  MVC: { id: 'MVC', label: 'Most Valuable', strategy: 'Retain: protect with loyalty perks and priority service', tone: 'green' },
+  SGC: { id: 'SGC', label: 'Super-Growth', strategy: 'Retain and mine: high value and still growing', tone: 'blue' },
+  MGC: { id: 'MGC', label: 'Most Growable', strategy: 'Grow: invest to capture more of their spend', tone: 'orange' },
+  LMC: { id: 'LMC', label: 'Low Maintenance', strategy: 'Automate: serve efficiently via self-service', tone: 'grey' },
+  BZC: { id: 'BZC', label: 'Below Zero', strategy: 'Deprioritise: costs more to serve than it returns', tone: 'red' },
 }
 
 /**

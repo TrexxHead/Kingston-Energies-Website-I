@@ -63,7 +63,7 @@ export default function StatTile({
               lineHeight: 1.15,
             }}
           >
-            {unavailable ? '—' : value}
+            {unavailable ? 'N/A' : value}
           </div>
           <div
             style={{

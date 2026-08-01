@@ -13,9 +13,9 @@ import { buildBreadcrumbs } from '@/lib/structuredData'
 const breadcrumbs = buildBreadcrumbs([{ name: 'Home', path: '/' }, { name: 'Contact' }])
 
 const SHOPPING_FOR = ['Myself', 'My business', 'A bulk order', 'Solar (early access)']
-const INTERESTS = ['Power banks', 'Chargers & cables', 'Accessories', 'Solar — join the waitlist']
+const INTERESTS = ['Power banks', 'Chargers & cables', 'Accessories', 'Solar: join the waitlist']
 const TIMEFRAMES = ['This week', 'This month', 'Just browsing']
-const STEP_LABELS = ['Step 1 of 3 — What you need', 'Step 2 of 3 — Where & when', 'Step 3 of 3 — Your details']
+const STEP_LABELS = ['Step 1 of 3: What you need', 'Step 2 of 3: Where & when', 'Step 3 of 3: Your details']
 
 export default function ContactPage() {
   const router = useRouter()
@@ -39,8 +39,8 @@ export default function ContactPage() {
     setSubmitting(true)
     const message = [
       `Shopping for: ${shoppingFor}`,
-      `Interested in: ${interests.join(', ') || '—'}`,
-      `Area: ${area || '—'}`,
+      `Interested in: ${interests.join(', ') || 'N/A'}`,
+      `Area: ${area || 'N/A'}`,
       `Timeframe: ${timeframe}`,
       solarOptIn ? 'Wants solar-launch updates.' : '',
     ]
@@ -140,10 +140,10 @@ export default function ContactPage() {
                   <div style={{ fontSize: 13.5, marginTop: 4 }}>A real person from Kingston will reach out within one working day.</div>
                 </div>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, letterSpacing: '.18em', color: 'var(--color-text-muted)' }}>
-                  OR&nbsp;CALL&nbsp;NOW&nbsp;—&nbsp;<a href="tel:+18763389958" style={{ color: 'var(--ke-green-600)' }}>876-338-9958</a>
+                  OR&nbsp;CALL&nbsp;NOW:&nbsp;<a href="tel:+18763389958" style={{ color: 'var(--ke-green-600)' }}>876-338-9958</a>
                 </div>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, letterSpacing: '.18em', color: 'var(--color-text-muted)' }}>
-                  OR&nbsp;EMAIL&nbsp;—&nbsp;<a href="mailto:kingstonenergygroup@outlook.com" style={{ color: 'var(--ke-green-600)' }}>kingstonenergygroup@outlook.com</a>
+                  OR&nbsp;EMAIL:&nbsp;<a href="mailto:kingstonenergygroup@outlook.com" style={{ color: 'var(--ke-green-600)' }}>kingstonenergygroup@outlook.com</a>
                 </div>
               </div>
             )}

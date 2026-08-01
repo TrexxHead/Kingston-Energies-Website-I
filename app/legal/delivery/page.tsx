@@ -12,7 +12,7 @@ const RATE_ROWS: { zone: string; standard: number; express: number; note?: strin
   { zone: 'Kingston', standard: 800, express: 1500 },
   { zone: 'St. Andrew', standard: 800, express: 1500, note: 'Same rate as Kingston' },
   { zone: 'St. Catherine', standard: 1500, express: 2500 },
-  { zone: 'All other parishes', standard: 700, express: 1400, note: 'Via Knutsford Express — see below' },
+  { zone: 'All other parishes', standard: 700, express: 1400, note: 'Via Knutsford Express: see below' },
 ]
 
 function Th({ children, align = 'left' }: { children: React.ReactNode; align?: 'left' | 'right' }) {
@@ -83,7 +83,7 @@ export default function DeliveryRateSheetPage() {
                 </tr>
               ))}
               <tr>
-                <Td strong>Pickup — any location below</Td>
+                <Td strong>Pickup: any location below</Td>
                 <Td align="right" strong>
                   Free
                 </Td>
@@ -100,21 +100,21 @@ export default function DeliveryRateSheetPage() {
         </p>
       </LegalSection>
 
-      <LegalSection heading="Kingston & St. Andrew — direct courier">
+      <LegalSection heading="Kingston & St. Andrew: direct courier">
         <p>
           Orders shipping within Kingston or St. Andrew are delivered by our own courier. Standard delivery is{' '}
           {fmt(800)} (1–3 days); Express is {fmt(1500)} (next day). St. Andrew is priced identically to Kingston.
         </p>
       </LegalSection>
 
-      <LegalSection heading="St. Catherine — direct courier">
+      <LegalSection heading="St. Catherine: direct courier">
         <p>
           Orders shipping to St. Catherine are also delivered by our own courier. Standard delivery is {fmt(1500)}{' '}
           (1–3 days); Express is {fmt(2500)} (next day).
         </p>
       </LegalSection>
 
-      <LegalSection heading="Islandwide — Knutsford Express">
+      <LegalSection heading="Islandwide: Knutsford Express">
         <p>
           Orders shipping to any other parish (Clarendon, Manchester, St. James, and the rest of the island) travel
           via <strong>Knutsford Express</strong>, Jamaica&apos;s islandwide coach/courier network. You collect your
@@ -130,12 +130,12 @@ export default function DeliveryRateSheetPage() {
         <ul style={{ margin: '10px 0 0', paddingLeft: 20, lineHeight: 1.8 }}>
           {PICKUP_LOCATIONS.map((loc) => (
             <li key={loc.name}>
-              <strong>{loc.name}</strong> — {loc.address}
+              <strong>{loc.name}</strong>: {loc.address}
             </li>
           ))}
         </ul>
         <p style={{ marginTop: 10 }}>
-          We&apos;ll notify you by email/phone once your order is ready for collection — usually the same day it&apos;s
+          We&apos;ll notify you by email/phone once your order is ready for collection, usually the same day it&apos;s
           placed.
         </p>
       </LegalSection>
@@ -143,7 +143,7 @@ export default function DeliveryRateSheetPage() {
       <LegalSection heading="Delivery times">
         <p>
           Standard and Express timeframes above are estimates from when your order is confirmed, not from when it&apos;s
-          placed — orders paid by bank transfer, Lynk or PayPal are confirmed once we&apos;ve matched your payment to
+          placed. Orders paid by bank transfer, Lynk or PayPal are confirmed once we&apos;ve matched your payment to
           your order number. Card payments are confirmed instantly.
         </p>
       </LegalSection>

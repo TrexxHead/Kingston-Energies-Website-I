@@ -29,7 +29,7 @@ export default function ProofOfPaymentUpload({ orderId, initiallyUploaded }: { o
       setFile(null)
       router.refresh()
     } catch {
-      setError('Network error — please try again.')
+      setError('Network error. Please try again.')
     } finally {
       setBusy(false)
     }
@@ -43,13 +43,13 @@ export default function ProofOfPaymentUpload({ orderId, initiallyUploaded }: { o
       </div>
       <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: '0 0 14px' }}>
         Paid by bank transfer, Lynk, or PayPal? Upload a screenshot or photo of the confirmation so we can mark your order
-        as paid faster. JPEG, PNG, WEBP, GIF or PDF — up to 5 MB (larger photos are compressed automatically).
+        as paid faster. JPEG, PNG, WEBP, GIF or PDF, up to 5 MB (larger photos are compressed automatically).
       </p>
 
       {uploaded && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ke-green-700)', marginBottom: 12 }}>
           <CheckCircle2 size={16} />
-          Received — we'll confirm once it's checked.
+          Received: we'll confirm once it's checked.
         </div>
       )}
 

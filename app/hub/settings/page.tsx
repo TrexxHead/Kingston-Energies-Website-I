@@ -86,8 +86,8 @@ export default function SettingsPage() {
             <SignOutButton />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <Field label="Signed in as" value={session?.user?.email ?? '—'} />
-            <Field label="Name" value={session?.user?.name ?? '—'} />
+            <Field label="Signed in as" value={session?.user?.email ?? 'N/A'} />
+            <Field label="Name" value={session?.user?.name ?? 'N/A'} />
           </div>
 
           <div style={{ marginTop: 20, paddingTop: 18, borderTop: '1px solid var(--color-border)' }}>

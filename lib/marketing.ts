@@ -24,7 +24,7 @@ const KEY = 'marketing'
 
 export const DEFAULT_MARKETING: MarketingConfig = {
   banners: [
-    { text: 'Free delivery over J$10,000 — Kingston-wide', active: true },
+    { text: 'Free delivery over J$10,000, Kingston-wide', active: true },
     { text: 'New: 20,000mAh PD power bank', active: true },
     { text: 'Solar early-access waitlist now open', active: false },
   ],

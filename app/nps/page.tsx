@@ -15,7 +15,7 @@ function NpsInner() {
     <CommerceShell>
       <section style={{ maxWidth: 620, margin: '0 auto', padding: '64px 32px 96px' }}>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, letterSpacing: '.3em', color: 'var(--ke-green-600)' }}>
-          YOUR FEEDBACK{orderNo ? ` — ${orderNo}` : ''}
+          YOUR FEEDBACK{orderNo ? `: ${orderNo}` : ''}
         </div>
         <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(30px,5vw,44px)', letterSpacing: '-.025em', lineHeight: 1.05, margin: '14px 0 8px' }}>
           How did we do?

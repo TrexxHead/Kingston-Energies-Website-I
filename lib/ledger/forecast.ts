@@ -56,7 +56,7 @@ function confidenceFor(months: number): { level: Confidence; nextTierAt: number 
 const BASIS: Record<Confidence, string> = {
   none: 'Not enough trading history to project anything yet. At least two months of activity are needed.',
   indicative:
-    'Based on very little history — treat this as a rough indication of direction, not a number to plan against.',
+    'Based on very little history. Treat this as a rough indication of direction, not a number to plan against.',
   low: 'Based on a few months of trading. Useful for spotting direction; the range is wide because the sample is small.',
   moderate: 'Based on several months of trading, including some month-to-month variation. Reasonable for short-range planning.',
   good: 'Based on a year or more of trading, so seasonality and normal variation are reflected in the range.',

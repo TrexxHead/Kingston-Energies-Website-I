@@ -9,7 +9,7 @@ import { bulkDiscountForLines, firstOrderDiscount } from '@/lib/pricing'
 import { validatePromo } from '@/lib/promo'
 import { isFirstTimeCustomer } from '@/lib/customerHistory'
 import { deliveryFee, deliveryLineLabel } from '@/lib/delivery'
-import { resolvePointsRedemption, markPointsRedeemed } from '@/lib/pointsRedemption'
+import { resolvePointsRedemption, redeemPointsAtomic, PointsUnavailableError } from '@/lib/pointsRedemption'
 import { postOrderCogs, postOrderRevenue } from '@/lib/ledger/post'
 import { validateCartPrices } from '@/lib/cartValidation'
 import { trackToken } from '@/lib/trackToken'
@@ -119,6 +119,14 @@ export async function POST(request: Request) {
           include: { items: true },
         })
         await fulfillOrderItems(tx, created.items.map((oi) => ({ orderItemId: oi.id, name: oi.name, qty: oi.qty })))
+        // Deducted atomically inside the same transaction as the order itself —
+        // re-checks the balance at commit time, not just at quote time above, so
+        // a second concurrent checkout can't spend the same points twice. If the
+        // balance won't actually cover it any more, the whole order rolls back
+        // (safe here: no payment has cleared yet on this path).
+        if (userId && pointsUsed > 0) {
+          await redeemPointsAtomic(tx, userId, pointsUsed)
+        }
         return created
       })
     )
@@ -132,10 +140,6 @@ export async function POST(request: Request) {
     // Mark this cart as converted so it isn't counted as abandoned.
     if (cartId) {
       await prisma.cart.updateMany({ where: { id: cartId }, data: { status: 'CONVERTED' } }).catch(() => {})
-    }
-    // Deduct the redeemed points from the customer's balance now that the order exists.
-    if (userId && pointsUsed > 0) {
-      await markPointsRedeemed(userId, pointsUsed)
     }
 
     const token = trackToken(order.orderNo)
@@ -151,6 +155,9 @@ export async function POST(request: Request) {
   } catch (err) {
     if (err instanceof InsufficientStockError) {
       return NextResponse.json({ error: `Sorry, "${err.productName}" just sold out. Please update your cart and try again.` }, { status: 409 })
+    }
+    if (err instanceof PointsUnavailableError) {
+      return NextResponse.json({ error: err.message }, { status: 409 })
     }
     console.error('[orders] failed to create order:', err)
     return NextResponse.json({ error: 'Could not place your order. Please try again.' }, { status: 500 })

@@ -3,10 +3,25 @@ import { prisma } from '@/lib/prisma'
 import { guardAdmin } from '@/lib/requireAdmin'
 import { isProductLine } from '@/lib/orderLineItems'
 
+// This computes every headline number from a full, unbounded order history
+// (revenue, repeat rate, day-of-week/channel breakdowns, ...) — correct, but
+// it's the same live orders table checkout writes to, so an admin refreshing
+// the dashboard during a busy sale is competing with checkout for the same
+// DB connections at exactly the wrong moment. Nothing here is truly
+// real-time (nobody notices a 20s-old dashboard number), so a short cache
+// absorbs repeated loads/tab-switches without touching any of the
+// calculations below — same numbers, just not recomputed on every request.
+const CACHE_TTL_MS = 20_000
+let cache: { at: number; body: unknown } | null = null
+
 /** Real-time executive metrics computed from live data. */
 export async function GET() {
   const denied = await guardAdmin()
   if (denied) return denied
+
+  if (cache && Date.now() - cache.at < CACHE_TTL_MS) {
+    return NextResponse.json(cache.body)
+  }
 
   const now = new Date()
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
@@ -122,7 +137,7 @@ export async function GET() {
   for (const o of valid) dowCounts[new Date(o.createdAt).getDay()] += 1
   const dayOfWeekBreakdown = DOW.map((label, i) => ({ label, count: dowCounts[i] }))
 
-  return NextResponse.json({
+  const body = {
     kpis: {
       revenue,
       collected,
@@ -158,5 +173,8 @@ export async function GET() {
       body: r.body,
       at: r.createdAt.toISOString(),
     })),
-  })
+  }
+
+  cache = { at: Date.now(), body }
+  return NextResponse.json(body)
 }

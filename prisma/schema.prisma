@@ -295,6 +295,11 @@ model Order {
   billingAddress  String?   @db.Text
   paymentMethod String?
   paid          Boolean     @default(false) // payment received/confirmed
+  // The discount code redeemed on this order, if any — kept even though the
+  // discount itself was already folded into `total`/line items, because
+  // without it there's no way to know which code (or which campaign, via
+  // Campaign.discountCodeId) actually drove a sale. See lib/campaignAttribution.ts.
+  promoCode     String?
   invoicedAt    DateTime?   // when an invoice was issued/sent (prevents dupes)
   cancelReason  String?
   cancelledAt   DateTime?
@@ -318,6 +323,7 @@ model Order {
   @@index([status])
   @@index([createdAt])
   @@index([email])
+  @@index([promoCode])
 }
 
 // Timeline events for an order (cancellations, stage changes, notes). Powers
@@ -812,6 +818,8 @@ model DiscountCode {
   description String?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+
+  campaigns   Campaign[]
 }
 
 enum DiscountType {
@@ -836,7 +844,22 @@ model Campaign {
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
+  // Optional audience: a saved Segment instead of "every subscriber".
+  segmentId      String?
+  segment        Segment?        @relation(fields: [segmentId], references: [id], onDelete: SetNull)
+  // Optional linked discount code — the mechanism campaign-to-revenue
+  // attribution uses: orders that redeemed this code count as this
+  // campaign's results. A campaign without one has no attributed revenue,
+  // shown honestly as "not tracked" rather than a fabricated number.
+  discountCodeId String?
+  discountCode   DiscountCode?   @relation(fields: [discountCodeId], references: [id], onDelete: SetNull)
+  // Optional manual spend entry (e.g. a paid boost) so ROI can be shown
+  // alongside attributed revenue when the admin knows the cost.
+  spend          Float?
+
   @@index([createdAt])
+  @@index([segmentId])
+  @@index([discountCodeId])
 }
 
 enum CampaignChannel {
@@ -850,6 +873,39 @@ enum CampaignStatus {
   DRAFT
   SCHEDULED
   SENT
+}
+
+// A saved, reusable customer filter usable as a campaign audience. Criteria
+// are stored as JSON (see lib/segments.ts for the shape) and evaluated live
+// against Customer/Order data at read time — no membership snapshot to keep
+// in sync, so a segment is always current.
+model Segment {
+  id          String     @id @default(cuid())
+  name        String
+  description String?
+  criteria    Json
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  campaigns   Campaign[]
+}
+
+// Emails that must never receive a marketing send again — unsubscribed via
+// the one-click link in every campaign, or added manually by an admin.
+// Independent of User (covers guest-checkout emails too, which have no
+// account) and independent of transactional email (order confirmations,
+// password resets, etc. are never gated by this).
+model Suppression {
+  id        String            @id @default(cuid())
+  email     String            @unique
+  reason    SuppressionReason
+  createdAt DateTime          @default(now())
+}
+
+enum SuppressionReason {
+  UNSUBSCRIBED
+  BOUNCED
+  MANUAL
 }
 
 enum OrderStatus {

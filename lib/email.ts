@@ -263,6 +263,28 @@ export async function sendBulkEmail(recipients: string[], subject: string, html:
   return sent
 }
 
+/**
+ * Same as sendBulkEmail, but the HTML is generated per-recipient — for
+ * campaign sends, where each customer needs their own unsubscribe link
+ * baked in rather than one shared blob going out to everyone.
+ */
+export async function sendPersonalizedBulkEmail(recipients: string[], subject: string, htmlFor: (email: string) => string): Promise<number> {
+  if (!isEmailConfigured()) {
+    console.info(`[email] skipped campaign "${subject}" (no provider) → ${recipients.length} recipients`)
+    return 0
+  }
+  let sent = 0
+  for (const to of recipients) {
+    try {
+      await deliver({ to, subject, html: htmlFor(to) })
+      sent++
+    } catch (err) {
+      console.error(`[email] campaign send failed for ${to}:`, err)
+    }
+  }
+  return sent
+}
+
 async function deliver({ to, subject, html }: { to: string; subject: string; html: string }): Promise<void> {
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',

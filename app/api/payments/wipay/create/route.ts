@@ -91,6 +91,7 @@ export async function POST(request: Request) {
           status: 'PENDING',
           paymentMethod: 'card',
           paid: false,
+          promoCode: promo?.valid ? promo.code ?? null : null,
           total,
           items: { create: recordedItems.map((i) => ({ name: i.name, qty: i.qty, price: i.price })) },
         },

@@ -29,7 +29,7 @@ const reviewSchema = z.object({
 
 // Authenticated: submit one review per customer per product.
 export async function POST(request: Request) {
-  const rl = rateLimit(`review:${clientIp(request)}`, 10, 60_000)
+  const rl = await rateLimit(`review:${clientIp(request)}`, 10, 60_000)
   if (!rl.ok) {
     return NextResponse.json(
       { error: 'Too many requests. Please try again in a moment.' },

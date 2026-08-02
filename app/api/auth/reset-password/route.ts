@@ -13,7 +13,7 @@ const schema = z.object({
 const resetIdentifier = (email: string) => `reset:${email}`
 
 export async function POST(request: Request) {
-  const rl = rateLimit(`reset:${clientIp(request)}`, 10, 15 * 60_000)
+  const rl = await rateLimit(`reset:${clientIp(request)}`, 10, 15 * 60_000)
   if (!rl.ok) {
     return NextResponse.json(
       { error: 'Too many requests. Please try again later.' },

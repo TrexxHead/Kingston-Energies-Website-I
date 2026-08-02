@@ -11,7 +11,7 @@ const schema = z.object({
 
 /** Public: join the back-in-stock waitlist for a sold-out product. */
 export async function POST(request: Request) {
-  const rl = rateLimit(`restock:${clientIp(request)}`, 10, 60_000)
+  const rl = await rateLimit(`restock:${clientIp(request)}`, 10, 60_000)
   if (!rl.ok) {
     return NextResponse.json({ error: 'Too many requests. Please try again in a moment.' }, { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } })
   }

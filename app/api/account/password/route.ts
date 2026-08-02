@@ -18,7 +18,7 @@ export async function POST(request: Request) {
   }
 
   // 5 attempts per IP per 5 minutes — blunts brute-forcing the current password.
-  const rl = rateLimit(`pwchange:${clientIp(request)}`, 5, 5 * 60_000)
+  const rl = await rateLimit(`pwchange:${clientIp(request)}`, 5, 5 * 60_000)
   if (!rl.ok) {
     return NextResponse.json(
       { error: 'Too many attempts. Please try again later.' },

@@ -26,7 +26,7 @@ const signupSchema = z.object({
 
 export async function POST(request: Request) {
   // 5 sign-up attempts per IP per 10 minutes — blunts credential-stuffing / spam accounts.
-  const rl = rateLimit(`signup:${clientIp(request)}`, 5, 10 * 60_000)
+  const rl = await rateLimit(`signup:${clientIp(request)}`, 5, 10 * 60_000)
   if (!rl.ok) {
     return NextResponse.json(
       { error: 'Too many attempts. Please try again later.' },

@@ -14,7 +14,7 @@ const npsSchema = z.object({
 
 export async function POST(request: Request) {
   // 5 submissions per IP per minute — one per survey, blocks spam.
-  const rl = rateLimit(`nps:${clientIp(request)}`, 5, 60_000)
+  const rl = await rateLimit(`nps:${clientIp(request)}`, 5, 60_000)
   if (!rl.ok) {
     return NextResponse.json(
       { error: 'Too many requests. Please try again in a moment.' },

@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return NextResponse.json({ error: 'Please sign in.' }, { status: 401 })
 
-  const rl = rateLimit(`device-register:${clientIp(request)}`, 10, 60_000)
+  const rl = await rateLimit(`device-register:${clientIp(request)}`, 10, 60_000)
   if (!rl.ok) return NextResponse.json({ error: 'Too many attempts. Please try again shortly.' }, { status: 429 })
 
   const parsed = schema.safeParse(await request.json().catch(() => null))

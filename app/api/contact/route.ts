@@ -12,7 +12,7 @@ const contactSchema = z.object({
 
 export async function POST(request: Request) {
   // 5 submissions per IP per 10 minutes — blunts contact-form spam.
-  const rl = rateLimit(`contact:${clientIp(request)}`, 5, 10 * 60_000)
+  const rl = await rateLimit(`contact:${clientIp(request)}`, 5, 10 * 60_000)
   if (!rl.ok) {
     return NextResponse.json(
       { error: 'Too many submissions. Please try again later.' },

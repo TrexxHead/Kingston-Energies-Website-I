@@ -183,6 +183,10 @@ model Product {
   orderItems    OrderItem[]
   stockAdjustments StockAdjustment[]
   units         ProductUnit[]
+
+  // getShopProducts()/metrics filter archived products out on every shop
+  // and dashboard load.
+  @@index([archived])
 }
 
 // One row per physical unit of inventory, carrying its own serial number —
@@ -307,6 +311,13 @@ model Order {
   events OrderEvent[]
 
   @@index([userId])
+  // Hot filters as the orders table grows: admin views/status changes filter
+  // on status, most lists sort by createdAt, and isFirstTimeCustomer() /
+  // guest lookups filter by email — all sequential-scan today at low volume,
+  // index scans once this table is large.
+  @@index([status])
+  @@index([createdAt])
+  @@index([email])
 }
 
 // Timeline events for an order (cancellations, stage changes, notes). Powers

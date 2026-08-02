@@ -16,7 +16,7 @@ const resetIdentifier = (email: string) => `reset:${email}`
 
 export async function POST(request: Request) {
   // 5 requests per IP per 15 minutes — limits reset-email spam / enumeration.
-  const rl = rateLimit(`forgot:${clientIp(request)}`, 5, 15 * 60_000)
+  const rl = await rateLimit(`forgot:${clientIp(request)}`, 5, 15 * 60_000)
   if (!rl.ok) {
     return NextResponse.json(
       { error: 'Too many requests. Please try again later.' },
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
   // individual IP stays under its own limit. Same "always return ok" shape
   // as an unregistered email below, so this can't be used to enumerate
   // accounts either.
-  const emailRl = rateLimit(`forgot-email:${email.toLowerCase()}`, 3, 60 * 60_000)
+  const emailRl = await rateLimit(`forgot-email:${email.toLowerCase()}`, 3, 60 * 60_000)
   if (!emailRl.ok) {
     return NextResponse.json({ ok: true })
   }

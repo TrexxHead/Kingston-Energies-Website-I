@@ -32,7 +32,7 @@ const bodySchema = z.object({
 })
 
 export async function POST(request: Request) {
-  const rl = rateLimit(`chat:${clientIp(request)}`, RATE_MAX, RATE_WINDOW_MS)
+  const rl = await rateLimit(`chat:${clientIp(request)}`, RATE_MAX, RATE_WINDOW_MS)
   if (!rl.ok) {
     return new Response(
       "You're sending messages a little fast. Give me a few seconds and try again.",

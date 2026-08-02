@@ -41,7 +41,7 @@ const orderSchema = z.object({
 
 export async function POST(request: Request) {
   // 10 orders per IP per minute — stops runaway/duplicate submissions.
-  const rl = rateLimit(`orders:${clientIp(request)}`, 10, 60_000)
+  const rl = await rateLimit(`orders:${clientIp(request)}`, 10, 60_000)
   if (!rl.ok) {
     return NextResponse.json(
       { error: 'Too many requests. Please try again in a moment.' },

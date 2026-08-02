@@ -38,7 +38,7 @@ export async function POST(request: Request) {
   const { message, from, history } = parsed.data
 
   // Throttle per sender (fall back to a shared bucket if no id supplied).
-  const rl = rateLimit(`integration-chat:${from ?? 'shared'}`, 20, 60_000)
+  const rl = await rateLimit(`integration-chat:${from ?? 'shared'}`, 20, 60_000)
   if (!rl.ok) {
     return NextResponse.json(
       { reply: "You're sending messages a little fast. Give me a moment and try again." },

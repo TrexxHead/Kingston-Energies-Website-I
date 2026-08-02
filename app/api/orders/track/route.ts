@@ -22,7 +22,7 @@ import { verifyTrackToken } from '@/lib/trackToken'
 export async function GET(request: Request) {
   // Order numbers are sequential (KE-####) — rate-limit lookups so the
   // endpoint can't be used to enumerate every order on the site.
-  const rl = rateLimit(`track:${clientIp(request)}`, 20, 60_000)
+  const rl = await rateLimit(`track:${clientIp(request)}`, 20, 60_000)
   if (!rl.ok) {
     return NextResponse.json({ error: 'Too many requests. Please try again in a moment.' }, { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } })
   }

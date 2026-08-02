@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { guardAdmin } from '@/lib/requireAdmin'
+import { discountCodeStats } from '@/lib/campaignAttribution'
 
 const createSchema = z.object({
   name: z.string().min(1).max(120),
@@ -10,27 +11,45 @@ const createSchema = z.object({
   subject: z.string().max(160).nullish(),
   body: z.string().max(5000).nullish(),
   scheduledAt: z.string().nullish(),
+  segmentId: z.string().nullish(),
+  discountCodeId: z.string().nullish(),
+  spend: z.number().nonnegative().nullish(),
 })
 
 export async function GET() {
   const denied = await guardAdmin()
   if (denied) return denied
 
-  const campaigns = await prisma.campaign.findMany({ orderBy: { createdAt: 'desc' } })
-  return NextResponse.json({
-    campaigns: campaigns.map((c) => ({
-      id: c.id,
-      name: c.name,
-      channel: c.channel,
-      category: c.category,
-      subject: c.subject,
-      body: c.body,
-      status: c.status,
-      scheduledAt: c.scheduledAt ? new Date(c.scheduledAt).toISOString().slice(0, 16) : null,
-      recipientCount: c.recipientCount,
-      sentAt: c.sentAt ? new Date(c.sentAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : null,
-    })),
+  const campaigns = await prisma.campaign.findMany({
+    orderBy: { createdAt: 'desc' },
+    include: { segment: { select: { id: true, name: true } }, discountCode: { select: { id: true, code: true } } },
   })
+
+  const withStats = await Promise.all(
+    campaigns.map(async (c) => {
+      const stats = c.discountCode ? await discountCodeStats(c.discountCode.code) : null
+      return {
+        id: c.id,
+        name: c.name,
+        channel: c.channel,
+        category: c.category,
+        subject: c.subject,
+        body: c.body,
+        status: c.status,
+        scheduledAt: c.scheduledAt ? new Date(c.scheduledAt).toISOString().slice(0, 16) : null,
+        recipientCount: c.recipientCount,
+        sentAt: c.sentAt ? new Date(c.sentAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : null,
+        segment: c.segment,
+        discountCode: c.discountCode,
+        spend: c.spend,
+        // null = not tracked (no linked discount code) — never render as a fabricated $0.
+        attributedOrders: stats?.orders ?? null,
+        attributedRevenue: stats?.revenue ?? null,
+      }
+    }),
+  )
+
+  return NextResponse.json({ campaigns: withStats })
 }
 
 export async function POST(request: Request) {
@@ -50,6 +69,9 @@ export async function POST(request: Request) {
       body: d.body ?? null,
       scheduledAt: d.scheduledAt ? new Date(d.scheduledAt) : null,
       status: d.scheduledAt ? 'SCHEDULED' : 'DRAFT',
+      segmentId: d.segmentId ?? null,
+      discountCodeId: d.discountCodeId ?? null,
+      spend: d.spend ?? null,
     },
   })
   return NextResponse.json({ id: campaign.id }, { status: 201 })

@@ -11,9 +11,13 @@ export interface AttributionStats {
  * mechanism available today — there's no click-tracking or UTM capture, so a
  * campaign's "results" are only as real as whether it has a linked code.
  */
-export async function discountCodeStats(code: string): Promise<AttributionStats> {
+export async function discountCodeStats(code: string, since?: Date): Promise<AttributionStats> {
   const orders = await prisma.order.findMany({
-    where: { promoCode: { equals: code, mode: 'insensitive' }, status: { not: 'CANCELLED' } },
+    where: {
+      promoCode: { equals: code, mode: 'insensitive' },
+      status: { not: 'CANCELLED' },
+      ...(since ? { createdAt: { gte: since } } : {}),
+    },
     select: { total: true },
   })
   return { orders: orders.length, revenue: orders.reduce((s, o) => s + o.total, 0) }

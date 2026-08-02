@@ -10,6 +10,9 @@ const patchSchema = z.object({
   body: z.string().max(5000).nullish(),
   scheduledAt: z.string().nullish(),
   status: z.enum(['DRAFT', 'SCHEDULED', 'SENT']).optional(),
+  segmentId: z.string().nullish(),
+  discountCodeId: z.string().nullish(),
+  spend: z.number().nonnegative().nullish(),
 })
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -31,6 +34,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         ...(d.body !== undefined ? { body: d.body } : {}),
         ...(d.status !== undefined ? { status: d.status } : {}),
         ...(d.scheduledAt !== undefined ? { scheduledAt: d.scheduledAt ? new Date(d.scheduledAt) : null } : {}),
+        ...(d.segmentId !== undefined ? { segmentId: d.segmentId } : {}),
+        ...(d.discountCodeId !== undefined ? { discountCodeId: d.discountCodeId } : {}),
+        ...(d.spend !== undefined ? { spend: d.spend } : {}),
       },
     })
     return NextResponse.json({ campaign })

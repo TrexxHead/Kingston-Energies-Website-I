@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { guardAdmin } from '@/lib/requireAdmin'
 import { broadcastNotification } from '@/lib/notify'
+import { discountCodeStats } from '@/lib/campaignAttribution'
 
 const createSchema = z.object({
   code: z.string().min(2).max(40),
@@ -19,18 +20,24 @@ export async function GET() {
   if (denied) return denied
 
   const codes = await prisma.discountCode.findMany({ orderBy: { createdAt: 'desc' } })
-  return NextResponse.json({
-    codes: codes.map((c) => ({
-      id: c.id,
-      code: c.code,
-      type: c.type,
-      value: c.value,
-      minSpend: c.minSpend,
-      active: c.active,
-      expiresAt: c.expiresAt ? new Date(c.expiresAt).toISOString().slice(0, 10) : null,
-      description: c.description,
-    })),
-  })
+  const withStats = await Promise.all(
+    codes.map(async (c) => {
+      const stats = await discountCodeStats(c.code)
+      return {
+        id: c.id,
+        code: c.code,
+        type: c.type,
+        value: c.value,
+        minSpend: c.minSpend,
+        active: c.active,
+        expiresAt: c.expiresAt ? new Date(c.expiresAt).toISOString().slice(0, 10) : null,
+        description: c.description,
+        redemptions: stats.orders,
+        revenue: stats.revenue,
+      }
+    }),
+  )
+  return NextResponse.json({ codes: withStats })
 }
 
 export async function POST(request: Request) {

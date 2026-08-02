@@ -65,7 +65,40 @@ export const NAV: NavGroup[] = [
     label: 'Marketing',
     icon: 'megaphone',
     href: `${BASE}/marketing`,
-    description: 'Banners, promotions, campaigns',
+    description: 'Campaigns, segments, discounts and leads, one place',
+    children: [
+      { href: `${BASE}/marketing`, label: 'Overview', description: 'What is running, what it earned, what needs attention' },
+      {
+        href: `${BASE}/marketing/campaigns`,
+        label: 'Campaigns',
+        description: 'Create, schedule and send email campaigns',
+        keywords: 'email blast newsletter send schedule',
+      },
+      {
+        href: `${BASE}/marketing/segments`,
+        label: 'Segments',
+        description: 'Saved customer filters, usable as a campaign audience',
+        keywords: 'audience filter targeting customer groups',
+      },
+      {
+        href: `${BASE}/marketing/discounts`,
+        label: 'Discounts',
+        description: 'Codes, redemptions and the revenue they drove',
+        keywords: 'coupon promo code discount',
+      },
+      {
+        href: `${BASE}/marketing/leads`,
+        label: 'Leads',
+        description: 'Contact-form enquiries, from new to converted',
+        keywords: 'contact form enquiry lead pipeline',
+      },
+      {
+        href: `${BASE}/marketing/content`,
+        label: 'Site content',
+        description: 'The announcement bar and homepage banners/flash sale',
+        keywords: 'announcement banner flash sale promo bar',
+      },
+    ],
   },
   {
     id: 'finance',

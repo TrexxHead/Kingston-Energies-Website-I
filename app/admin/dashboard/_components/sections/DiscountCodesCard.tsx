@@ -18,6 +18,8 @@ interface Code {
   active: boolean
   expiresAt: string | null
   description: string | null
+  redemptions: number
+  revenue: number
 }
 
 const emptyForm = { code: '', type: 'PERCENT', value: '', minSpend: '', expiresAt: '', description: '', announce: true }
@@ -109,6 +111,9 @@ export default function DiscountCodesCard() {
                   {rate(c)}
                   {c.minSpend ? ` · min ${fmt(c.minSpend)}` : ''}
                   {c.expiresAt ? ` · until ${c.expiresAt}` : ''}
+                </div>
+                <div style={{ fontSize: 11, color: c.redemptions ? 'var(--ke-green-700)' : 'var(--color-text-subtle)', marginTop: 2 }}>
+                  {c.redemptions ? `${c.redemptions} redemption${c.redemptions === 1 ? '' : 's'} · ${fmt(c.revenue)} revenue` : 'Not redeemed yet'}
                 </div>
               </div>
               <Badge tone={c.active ? 'green' : 'neutral'} onClick={() => toggle(c)}>{c.active ? 'Active' : 'Paused'}</Badge>

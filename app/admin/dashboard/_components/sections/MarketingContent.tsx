@@ -6,14 +6,13 @@ import Button from '../ui/Button'
 import Switch from '../ui/Switch'
 import { cardStyle, h3Style } from '../ui/card'
 import AnnouncementCard from './AnnouncementCard'
-import DiscountCodesCard from './DiscountCodesCard'
-import CampaignsCard from './CampaignsCard'
 
 interface Banner { text: string; active: boolean }
 interface FlashSale { enabled: boolean; headline: string; subtext: string; href: string }
 interface MarketingConfig { banners: Banner[]; flash: FlashSale }
 
-export default function MarketingSection() {
+/** The announcement bar and homepage banners/flash sale — everything a visitor sees directly on the site, as opposed to campaigns/discounts/segments which live elsewhere in Marketing. */
+export default function MarketingContent() {
   const [cfg, setCfg] = useState<MarketingConfig | null>(null)
   const [busy, setBusy] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -108,11 +107,6 @@ export default function MarketingSection() {
             <Check size={14} /> Saved: live on the homepage
           </span>
         )}
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'start' }}>
-        <DiscountCodesCard />
-        <CampaignsCard />
       </div>
     </div>
   )

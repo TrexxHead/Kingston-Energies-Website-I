@@ -1,5 +1,5 @@
-import MarketingSection from '../_components/sections/MarketingSection'
+import MarketingOverview from '../_components/sections/MarketingOverview'
 
 export default function Page() {
-  return <MarketingSection />
+  return <MarketingOverview />
 }

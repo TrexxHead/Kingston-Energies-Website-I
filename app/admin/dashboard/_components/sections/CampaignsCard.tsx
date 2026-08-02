@@ -7,6 +7,7 @@ import Badge from '../ui/Badge'
 import Button from '../ui/Button'
 import Modal from '../ui/Modal'
 import TextInput from '../ui/TextInput'
+import { fmt } from '../mockData'
 
 type Channel = 'EMAIL' | 'SMS' | 'PUSH' | 'SOCIAL'
 type Status = 'DRAFT' | 'SCHEDULED' | 'SENT'
@@ -22,6 +23,22 @@ interface Campaign {
   scheduledAt: string | null
   recipientCount: number | null
   sentAt: string | null
+  segment: { id: string; name: string } | null
+  discountCode: { id: string; code: string } | null
+  spend: number | null
+  attributedOrders: number | null
+  attributedRevenue: number | null
+}
+
+interface Segment {
+  id: string
+  name: string
+  size: number
+}
+
+interface DiscountCode {
+  id: string
+  code: string
 }
 
 const CHANNEL_META: Record<Channel, { icon: typeof Mail; tone: 'blue' | 'green' | 'orange' | 'neutral' }> = {
@@ -32,11 +49,14 @@ const CHANNEL_META: Record<Channel, { icon: typeof Mail; tone: 'blue' | 'green' 
 }
 const STATUS_TONE: Record<Status, 'neutral' | 'orange' | 'green'> = { DRAFT: 'neutral', SCHEDULED: 'orange', SENT: 'green' }
 const CATEGORIES = ['Promotion', 'Newsletter', 'Product launch', 'Re-engagement', 'Announcement', 'Other']
+const NONE = '(everyone / none)'
 
-const emptyForm = { name: '', channel: 'EMAIL' as Channel, category: 'Promotion', subject: '', body: '', scheduledAt: '' }
+const emptyForm = { name: '', channel: 'EMAIL' as Channel, category: 'Promotion', subject: '', body: '', scheduledAt: '', segmentId: NONE, discountCodeId: NONE, spend: '' }
 
 export default function CampaignsCard() {
   const [items, setItems] = useState<Campaign[]>([])
+  const [segments, setSegments] = useState<Segment[]>([])
+  const [codes, setCodes] = useState<DiscountCode[]>([])
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const [busy, setBusy] = useState(false)
@@ -50,12 +70,16 @@ export default function CampaignsCard() {
 
   useEffect(() => {
     load()
+    fetch('/api/admin/segments').then((r) => (r.ok ? r.json() : null)).then((d) => d && setSegments(d.segments))
+    fetch('/api/admin/discount-codes').then((r) => (r.ok ? r.json() : null)).then((d) => d && setCodes(d.codes))
   }, [load])
 
   const create = async () => {
     setError('')
     if (!form.name.trim()) { setError('Give the campaign a name.'); return }
     setBusy(true)
+    const segment = segments.find((s) => s.name === form.segmentId)
+    const code = codes.find((c) => c.code === form.discountCodeId)
     const res = await fetch('/api/admin/campaigns', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -66,6 +90,9 @@ export default function CampaignsCard() {
         subject: form.subject || undefined,
         body: form.body || undefined,
         scheduledAt: form.scheduledAt || undefined,
+        segmentId: segment?.id ?? null,
+        discountCodeId: code?.id ?? null,
+        spend: form.spend ? Number(form.spend) : undefined,
       }),
     })
     setBusy(false)
@@ -74,7 +101,8 @@ export default function CampaignsCard() {
   }
 
   const send = async (c: Campaign) => {
-    if (!confirm(c.channel === 'EMAIL' ? `Send "${c.name}" to all verified customers now?` : `Mark "${c.name}" as sent?`)) return
+    const audience = c.segment ? `segment "${c.segment.name}"` : 'all subscribed customers'
+    if (!confirm(c.channel === 'EMAIL' ? `Send "${c.name}" to ${audience} now?` : `Mark "${c.name}" as sent?`)) return
     setMsg('Sending…')
     const res = await fetch(`/api/admin/campaigns/${c.id}/send`, { method: 'POST' })
     const data = await res.json().catch(() => ({}))
@@ -97,7 +125,7 @@ export default function CampaignsCard() {
       {msg && <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 10 }}>{msg}</div>}
 
       {items.length === 0 ? (
-        <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: 0 }}>No campaigns yet. Create one. Email blasts send for real.</p>
+        <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: 0 }}>No campaigns yet. Create one. Email blasts send for real, on schedule.</p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {items.map((c) => {
@@ -112,9 +140,16 @@ export default function CampaignsCard() {
                   <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13.5 }}>{c.name}</div>
                   <div style={{ fontSize: 11, color: 'var(--color-text-subtle)' }}>
                     {c.channel}{c.category ? ` · ${c.category}` : ''}
+                    {c.segment ? ` · ${c.segment.name}` : ' · everyone'}
+                    {c.discountCode ? ` · ${c.discountCode.code}` : ''}
                     {c.status === 'SENT' && c.recipientCount != null ? ` · ${c.recipientCount} sent${c.sentAt ? ` ${c.sentAt}` : ''}` : ''}
                     {c.status === 'SCHEDULED' && c.scheduledAt ? ` · ${c.scheduledAt.replace('T', ' ')}` : ''}
                   </div>
+                  {c.status === 'SENT' && (
+                    <div style={{ fontSize: 11, color: c.attributedRevenue != null ? 'var(--ke-green-700)' : 'var(--color-text-subtle)', marginTop: 2 }}>
+                      {c.attributedRevenue != null ? `${fmt(c.attributedRevenue)} attributed · ${c.attributedOrders} orders` : 'Not tracked (link a discount code to measure results)'}
+                    </div>
+                  )}
                 </div>
                 <Badge tone={STATUS_TONE[c.status]}>{c.status[0] + c.status.slice(1).toLowerCase()}</Badge>
                 {c.status !== 'SENT' && (
@@ -155,9 +190,30 @@ export default function CampaignsCard() {
                 </label>
               </>
             )}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <TextInput
+                label="Audience"
+                value={form.segmentId}
+                onChange={(v) => setForm({ ...form, segmentId: v })}
+                options={[NONE, ...segments.map((s) => s.name)]}
+              />
+              <TextInput
+                label="Linked discount code (optional)"
+                value={form.discountCodeId}
+                onChange={(v) => setForm({ ...form, discountCodeId: v })}
+                options={[NONE, ...codes.map((c) => c.code)]}
+              />
+            </div>
+            <p style={{ fontSize: 11, color: 'var(--color-text-subtle)', margin: 0 }}>
+              {form.segmentId === NONE
+                ? 'No segment picked — sends to every subscribed customer.'
+                : `Sends to the "${form.segmentId}" segment (${segments.find((s) => s.name === form.segmentId)?.size ?? 0} customers right now).`}
+              {' '}Linking a discount code is what lets this campaign's results be measured — without one, orders from it won't show as attributed.
+            </p>
             <TextInput label="Schedule for (optional)" value={form.scheduledAt} onChange={(v) => setForm({ ...form, scheduledAt: v })} type="datetime-local" />
+            <TextInput label="Spend (J$, optional)" value={form.spend} onChange={(v) => setForm({ ...form, spend: v })} type="number" placeholder="For a paid boost — used to judge ROI" />
             <p style={{ fontSize: 11.5, color: 'var(--color-text-subtle)', margin: 0 }}>
-              Email campaigns send to your verified customers via Resend. SMS/push/social are tracked here and actioned through your external tooling.
+              Email campaigns send via Resend and check the suppression list automatically. SMS/push/social are tracked here and actioned through your external tooling.
             </p>
           </div>
         </Modal>

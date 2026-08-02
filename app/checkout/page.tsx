@@ -43,7 +43,7 @@ function CheckoutInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { data: session } = useSession()
-  const { items, total, delivery: cartDeliveryEstimate, promoCode, pointsApplied, clear, hydrated } = useCart()
+  const { items, subtotal, discount, bulkDiscount, firstOrderDiscountAmt, pointsDiscount, promoCode, pointsApplied, clear, hydrated } = useCart()
   const { pushToast } = useToast()
   const [step, setStep] = useState(0)
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('standard')
@@ -312,7 +312,12 @@ function CheckoutInner() {
 
           {step === 2 && (() => {
             const fee = deliveryFee(deliveryMethod, parish)
-            const displayTotal = total - cartDeliveryEstimate + fee
+            // Mirrors the server's exact formula (app/api/orders/route.ts): clamp the
+            // discounted subtotal to zero, THEN add delivery — not the other way round.
+            // Clamping after folding in an estimated delivery fee (as this used to)
+            // could show a lower total here than what's actually charged whenever
+            // combined discounts meet or exceed the subtotal.
+            const displayTotal = Math.max(0, subtotal - bulkDiscount - discount - firstOrderDiscountAmt - pointsDiscount) + fee
             const methodLabel = DELIVERY_METHODS.find((m) => m.id === deliveryMethod)?.label ?? 'Delivery'
             return (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

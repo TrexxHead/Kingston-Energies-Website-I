@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/authOptions'
 import { loyaltyPoints, pointsToValue, POINTS_REDEEM_MIN, POINTS_REDEEM_STEP, POINTS_REDEEM_VALUE } from '@/lib/loyalty'
+import { countsTowardCustomerHistory } from '@/lib/customerHistory'
 
 /**
  * The signed-in customer's current redeemable points balance — backs the
@@ -22,7 +23,8 @@ export async function GET() {
     return NextResponse.json({ signedIn: false, points: 0, redeemable: 0, minRedeem: POINTS_REDEEM_MIN, step: POINTS_REDEEM_STEP, stepValue: POINTS_REDEEM_VALUE, isFirstTimeCustomer: false })
   }
 
-  const totalSpent = user.orders.filter((o) => o.status !== 'CANCELLED').reduce((s, o) => s + o.total, 0)
+  const countedOrders = user.orders.filter(countsTowardCustomerHistory)
+  const totalSpent = countedOrders.filter((o) => o.status !== 'CANCELLED').reduce((s, o) => s + o.total, 0)
   const earned = loyaltyPoints({ totalSpent, reviewCount: user._count.reviews, deviceRegistrations: user._count.registeredUnits })
   const points = Math.max(0, earned - user.pointsRedeemed)
 
@@ -33,8 +35,9 @@ export async function GET() {
     minRedeem: POINTS_REDEEM_MIN,
     step: POINTS_REDEEM_STEP,
     stepValue: POINTS_REDEEM_VALUE,
-    // Any order at all — including a cancelled one — disqualifies the
+    // Any counted order — including a cancelled one — disqualifies the
     // one-time first-order discount, so it can't be re-earned by cancel/reorder.
-    isFirstTimeCustomer: user.orders.length === 0,
+    // An abandoned/declined card order was never a real sale, so it doesn't count.
+    isFirstTimeCustomer: countedOrders.length === 0,
   })
 }

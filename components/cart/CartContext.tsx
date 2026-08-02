@@ -175,7 +175,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     // correct as the cart changes.
     const discount = promo
       ? promo.type === 'PERCENT'
-        ? Math.round(subtotal * (promo.value / 100))
+        ? Math.min(Math.round(subtotal * (promo.value / 100)), subtotal)
         : Math.min(Math.round(promo.value), subtotal)
       : 0
     const pointsDiscount = pointsToValue(pointsApplied)

@@ -6,6 +6,7 @@ import { fmt } from '@/lib/catalog'
 import { getShopProducts } from '@/lib/products'
 import { co2SavedKg, formatCo2 } from '@/lib/impact'
 import { loyaltyPoints } from '@/lib/loyalty'
+import { countsTowardCustomerHistory } from '@/lib/customerHistory'
 import { recommendProductsForNeed, customerNeedLabel, NEED_PITCH, type CustomerNeed } from '@/lib/crm'
 import { ArrowRight } from 'lucide-react'
 import Topbar from './_components/Topbar'
@@ -47,7 +48,7 @@ export default async function HubPage() {
   ])
 
   const orders = user?.orders ?? []
-  const purchasedOrders = orders.filter((o) => o.status !== 'CANCELLED')
+  const purchasedOrders = orders.filter((o) => o.status !== 'CANCELLED' && countsTowardCustomerHistory(o))
   const itemsPurchased = purchasedOrders.reduce((sum, o) => sum + o.items.reduce((n, i) => n + i.qty, 0), 0)
   const activeOrders = orders.filter((o) => o.status !== 'DONE' && o.status !== 'CANCELLED')
   const completed = orders.filter((o) => o.status === 'DONE').length

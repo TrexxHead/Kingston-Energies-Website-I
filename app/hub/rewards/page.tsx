@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { fmt } from '@/lib/catalog'
 import { UserPlus, Ticket, Award } from 'lucide-react'
 import { loyaltyPoints, POINTS_REDEEM_STEP, POINTS_REDEEM_VALUE } from '@/lib/loyalty'
+import { countsTowardCustomerHistory } from '@/lib/customerHistory'
 import { ensureReferralCode } from '@/lib/referral'
 import Topbar from '../_components/Topbar'
 import { hubScreen, hubCard, hubH3 } from '../_components/ui'
@@ -44,7 +45,7 @@ export default async function RewardsPage() {
     }
   }
 
-  const totalSpent = (user?.orders ?? []).filter((o) => o.status !== 'CANCELLED').reduce((s, o) => s + o.total, 0)
+  const totalSpent = (user?.orders ?? []).filter((o) => o.status !== 'CANCELLED' && countsTowardCustomerHistory(o)).reduce((s, o) => s + o.total, 0)
   const points = loyaltyPoints({ totalSpent, reviewCount: user?._count?.reviews ?? 0, deviceRegistrations: user?._count?.registeredUnits ?? 0 })
   const tier = tierFor(points)
   const progressPct = Math.round(((points % REWARD_STEP) / REWARD_STEP) * 100)

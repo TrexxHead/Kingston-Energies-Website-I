@@ -171,7 +171,53 @@ export async function getShopProducts(): Promise<ShopProduct[]> {
   return [...fromCatalog, ...fromDb]
 }
 
+const PRODUCT_SELECT = {
+  id: true, catalogId: true, name: true, price: true, salePrice: true, stock: true, archived: true, category: true,
+  spec: true, badge: true, description: true, shortDescription: true, brand: true,
+  weight: true, dimensions: true, warranty: true, images: true, features: true, tags: true, specs: true,
+} as const
+
+/**
+ * A single product page's data, without paying for the full-catalog fetch +
+ * full-reviews aggregate that getShopProducts() does for the /shop listing.
+ * Catalog-defined products (the vast majority, and the ones any ad campaign
+ * or share link would point at) get a scoped DB lookup. DB-only products
+ * (added purely via the admin CMS, no catalog entry) have no cheap way to
+ * reverse their generated id back to a name, so those fall back to the full
+ * listing — a small, rare set, not the hot path this optimizes for.
+ */
 export async function getShopProduct(id: string): Promise<ShopProduct | undefined> {
-  const all = await getShopProducts()
-  return all.find((p) => p.id === id)
+  const catalogEntry = CATALOG.find((c) => c.id === id)
+  if (!catalogEntry) {
+    const all = await getShopProducts()
+    return all.find((p) => p.id === id)
+  }
+
+  let product: ShopProduct = { ...catalogEntry, stock: null, inStock: true }
+  try {
+    const rows = (await prisma.product.findMany({
+      where: { OR: [{ catalogId: catalogEntry.id }, { name: { equals: catalogEntry.name, mode: 'insensitive' } }] },
+      select: PRODUCT_SELECT,
+    })) as DbProduct[]
+    const db = rows.find((r) => r.catalogId === catalogEntry.id) ?? rows.find((r) => normName(r.name) === normName(catalogEntry.name))
+    if (db) product = overlay(product, db)
+  } catch {
+    // DB down — degrade to the static catalog entry, same as getShopProducts().
+  }
+
+  try {
+    const agg = await prisma.review.groupBy({
+      by: ['productId'],
+      where: { productId: id },
+      _avg: { rating: true },
+      _count: { _all: true },
+    })
+    if (agg[0]?._avg.rating != null) {
+      product = { ...product, rating: Math.round(agg[0]._avg.rating * 10) / 10, reviewCount: agg[0]._count._all }
+    }
+  } catch {
+    // ratings are non-essential — skip on error
+  }
+
+  return product
 }

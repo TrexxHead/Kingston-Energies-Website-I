@@ -41,7 +41,9 @@ async function handle(params: URLSearchParams): Promise<NextResponse> {
         const updated = await tx.order.update({ where: { orderNo }, data: { paid: true }, include: { items: true } })
         // Stock/serials are only claimed once the card payment actually clears —
         // an abandoned or failed WiPay attempt never touches inventory.
-        await fulfillOrderItems(tx, updated.items.map((oi) => ({ orderItemId: oi.id, name: oi.name, qty: oi.qty })))
+        // Payment already cleared with WiPay by this point — never roll back and
+        // leave a charged customer without an order over a stock race.
+        await fulfillOrderItems(tx, updated.items.map((oi) => ({ orderItemId: oi.id, name: oi.name, qty: oi.qty })), { mode: 'allow' })
         return updated
       })
       // Journal the cash receipt against the receivable now that it cleared.

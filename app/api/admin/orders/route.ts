@@ -5,6 +5,7 @@ import { guardAdmin } from '@/lib/requireAdmin'
 import { sendNewOrderAlert } from '@/lib/email'
 import { postOrderCogs, postOrderPayment, postOrderRevenue } from '@/lib/ledger/post'
 import { fulfillOrderItems } from '@/lib/orderFulfillment'
+import { withOrderNoRetry } from '@/lib/orderNo'
 
 export async function GET() {
   const denied = await guardAdmin()
@@ -66,16 +67,6 @@ const manualOrderSchema = z.object({
     .min(1),
 })
 
-async function nextOrderNo(): Promise<string> {
-  const orders = await prisma.order.findMany({ select: { orderNo: true } })
-  let max = 1023
-  for (const o of orders) {
-    const n = Number.parseInt(o.orderNo.replace(/[^\d]/g, ''), 10)
-    if (Number.isFinite(n) && n > max) max = n
-  }
-  return `KE-${max + 1}`
-}
-
 /**
  * Record an order the admin took manually (Instagram DM, face to face, a
  * phone call, etc). It lands in the exact same table as website orders, so
@@ -93,29 +84,31 @@ export async function POST(request: Request) {
 
   const { customerName, contact, email, phone, source, paymentMethod, paid, shippingAddress, items } = parsed.data
   const total = items.reduce((sum, i) => sum + i.price * i.qty, 0)
-  const orderNo = await nextOrderNo()
 
-  const order = await prisma.$transaction(async (tx) => {
-    const created = await tx.order.create({
-      data: {
-        orderNo,
-        customerName,
-        status: 'PENDING',
-        source,
-        contact: contact ?? null,
-        email: email ?? null,
-        phone: phone ?? null,
-        shippingAddress: shippingAddress ?? null,
-        paymentMethod: paymentMethod ?? null,
-        paid: paid ?? false,
-        total,
-        items: { create: items.map((i) => ({ name: i.name, qty: i.qty, price: i.price })) },
-      },
-      include: { items: true },
+  const order = await withOrderNoRetry((orderNo) =>
+    prisma.$transaction(async (tx) => {
+      const created = await tx.order.create({
+        data: {
+          orderNo,
+          customerName,
+          status: 'PENDING',
+          source,
+          contact: contact ?? null,
+          email: email ?? null,
+          phone: phone ?? null,
+          shippingAddress: shippingAddress ?? null,
+          paymentMethod: paymentMethod ?? null,
+          paid: paid ?? false,
+          total,
+          items: { create: items.map((i) => ({ name: i.name, qty: i.qty, price: i.price })) },
+        },
+        include: { items: true },
+      })
+      // Staff are trusted to record a sale deliberately even if stock is off (e.g. a backorder) — never block it.
+      await fulfillOrderItems(tx, created.items.map((oi) => ({ orderItemId: oi.id, name: oi.name, qty: oi.qty })), { mode: 'allow' })
+      return created
     })
-    await fulfillOrderItems(tx, created.items.map((oi) => ({ orderItemId: oi.id, name: oi.name, qty: oi.qty })))
-    return created
-  })
+  )
 
   // A manual order is a real sale — it hits the ledger exactly like a website
   // order, which is what keeps off-site revenue inside the financial statements.

@@ -12,6 +12,7 @@ import { deliveryFee, deliveryLineLabel } from '@/lib/delivery'
 import { sendNewOrderAlert } from '@/lib/email'
 import { resolvePointsRedemption } from '@/lib/pointsRedemption'
 import { validateCartPrices } from '@/lib/cartValidation'
+import { withOrderNoRetry } from '@/lib/orderNo'
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
@@ -28,16 +29,6 @@ const bodySchema = z.object({
   pointsRedeemed: z.number().int().min(0).max(1_000_000).optional(),
   items: z.array(z.object({ name: z.string().min(1).max(160), price: z.number().min(0), qty: z.number().int().min(1) })).min(1),
 })
-
-async function nextOrderNo(): Promise<string> {
-  const orders = await prisma.order.findMany({ select: { orderNo: true } })
-  let max = 1023
-  for (const o of orders) {
-    const n = Number.parseInt(o.orderNo.replace(/[^\d]/g, ''), 10)
-    if (Number.isFinite(n) && n > max) max = n
-  }
-  return `KE-${max + 1}`
-}
 
 /**
  * Start a card payment: create the order (unpaid), then return the WiPay hosted
@@ -78,7 +69,6 @@ export async function POST(request: Request) {
   // Delivery fee is recomputed server-side from the rate sheet — never trust a client-sent amount.
   const fee = deliveryMethod && parish ? deliveryFee(deliveryMethod, parish) : 0
   const total = Math.max(0, gross - bulkDiscount - (promo?.valid ? (promo.discount ?? 0) : 0) - pointsDiscount - firstOrderDisc) + fee
-  const orderNo = await nextOrderNo()
   const recordedItems = [
     ...items,
     ...(fee > 0 && deliveryMethod && parish ? [{ name: deliveryLineLabel(deliveryMethod, parish), qty: 1, price: fee }] : []),
@@ -86,22 +76,31 @@ export async function POST(request: Request) {
     ...(pointsUsed > 0 ? [{ name: `Rewards points redeemed (${pointsUsed} pts)`, qty: 1, price: -pointsDiscount }] : []),
   ]
 
-  await prisma.order.create({
-    data: {
-      orderNo,
-      userId: session?.user?.id ?? null,
-      customerName,
-      email: session?.user?.email ?? email ?? null,
-      phone: phone ?? null,
-      shippingAddress: shippingAddress ?? null,
-      billingAddress: billingAddress ?? null,
-      status: 'PENDING',
-      paymentMethod: 'card',
-      paid: false,
-      total,
-      items: { create: recordedItems.map((i) => ({ name: i.name, qty: i.qty, price: i.price })) },
-    },
-  })
+  let orderNo: string
+  try {
+    const created = await withOrderNoRetry((no) =>
+      prisma.order.create({
+        data: {
+          orderNo: no,
+          userId: session?.user?.id ?? null,
+          customerName,
+          email: session?.user?.email ?? email ?? null,
+          phone: phone ?? null,
+          shippingAddress: shippingAddress ?? null,
+          billingAddress: billingAddress ?? null,
+          status: 'PENDING',
+          paymentMethod: 'card',
+          paid: false,
+          total,
+          items: { create: recordedItems.map((i) => ({ name: i.name, qty: i.qty, price: i.price })) },
+        },
+      })
+    )
+    orderNo = created.orderNo
+  } catch (err) {
+    console.error('[wipay/create] failed to create order:', err)
+    return NextResponse.json({ error: 'Could not start checkout. Please try again.' }, { status: 500 })
+  }
 
   // Reaching the payment step counts as a conversion for cart analytics.
   if (cartId) {

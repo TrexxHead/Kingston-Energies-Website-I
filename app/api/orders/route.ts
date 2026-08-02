@@ -13,7 +13,8 @@ import { resolvePointsRedemption, markPointsRedeemed } from '@/lib/pointsRedempt
 import { postOrderCogs, postOrderRevenue } from '@/lib/ledger/post'
 import { validateCartPrices } from '@/lib/cartValidation'
 import { trackToken } from '@/lib/trackToken'
-import { fulfillOrderItems } from '@/lib/orderFulfillment'
+import { fulfillOrderItems, InsufficientStockError } from '@/lib/orderFulfillment'
+import { withOrderNoRetry } from '@/lib/orderNo'
 
 const orderSchema = z.object({
   customerName: z.string().min(1).max(120),
@@ -37,17 +38,6 @@ const orderSchema = z.object({
     )
     .min(1),
 })
-
-// Generate the next KE-#### order number by incrementing the current max.
-async function nextOrderNo(): Promise<string> {
-  const orders = await prisma.order.findMany({ select: { orderNo: true } })
-  let max = 1023
-  for (const o of orders) {
-    const n = Number.parseInt(o.orderNo.replace(/[^\d]/g, ''), 10)
-    if (Number.isFinite(n) && n > max) max = n
-  }
-  return `KE-${max + 1}`
-}
 
 export async function POST(request: Request) {
   // 10 orders per IP per minute — stops runaway/duplicate submissions.
@@ -103,7 +93,6 @@ export async function POST(request: Request) {
     // Delivery fee is recomputed server-side from the rate sheet — never trust a client-sent amount.
     const fee = deliveryMethod && parish ? deliveryFee(deliveryMethod, parish) : 0
     const total = Math.max(0, gross - bulkDiscount - promoDiscount - pointsDiscount - firstOrderDisc) + fee
-    const orderNo = await nextOrderNo()
     const recordedItems = [
       ...items,
       ...(fee > 0 && deliveryMethod && parish ? [{ name: deliveryLineLabel(deliveryMethod, parish), qty: 1, price: fee }] : []),
@@ -111,26 +100,28 @@ export async function POST(request: Request) {
       ...(pointsUsed > 0 ? [{ name: `Rewards points redeemed (${pointsUsed} pts)`, qty: 1, price: -pointsDiscount }] : []),
     ]
 
-    const order = await prisma.$transaction(async (tx) => {
-      const created = await tx.order.create({
-        data: {
-          orderNo,
-          userId,
-          customerName,
-          email: contactEmail,
-          phone: phone ?? null,
-          shippingAddress: shippingAddress ?? null,
-          billingAddress: billingAddress ?? null,
-          status: 'PENDING',
-          paymentMethod: paymentMethod ?? null,
-          total,
-          items: { create: recordedItems.map((i) => ({ name: i.name, qty: i.qty, price: i.price })) },
-        },
-        include: { items: true },
+    const order = await withOrderNoRetry((orderNo) =>
+      prisma.$transaction(async (tx) => {
+        const created = await tx.order.create({
+          data: {
+            orderNo,
+            userId,
+            customerName,
+            email: contactEmail,
+            phone: phone ?? null,
+            shippingAddress: shippingAddress ?? null,
+            billingAddress: billingAddress ?? null,
+            status: 'PENDING',
+            paymentMethod: paymentMethod ?? null,
+            total,
+            items: { create: recordedItems.map((i) => ({ name: i.name, qty: i.qty, price: i.price })) },
+          },
+          include: { items: true },
+        })
+        await fulfillOrderItems(tx, created.items.map((oi) => ({ orderItemId: oi.id, name: oi.name, qty: oi.qty })))
+        return created
       })
-      await fulfillOrderItems(tx, created.items.map((oi) => ({ orderItemId: oi.id, name: oi.name, qty: oi.qty })))
-      return created
-    })
+    )
 
     // Recognise the revenue + cost of sales in the general ledger. Best-effort:
     // the order must never fail because of a posting problem, and the backfill
@@ -158,6 +149,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ orderNo: order.orderNo, trackToken: token }, { status: 201 })
   } catch (err) {
+    if (err instanceof InsufficientStockError) {
+      return NextResponse.json({ error: `Sorry, "${err.productName}" just sold out. Please update your cart and try again.` }, { status: 409 })
+    }
     console.error('[orders] failed to create order:', err)
     return NextResponse.json({ error: 'Could not place your order. Please try again.' }, { status: 500 })
   }

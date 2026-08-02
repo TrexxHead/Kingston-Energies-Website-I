@@ -7,7 +7,8 @@ import { fmt } from '@/lib/catalog'
 import { sendOrderConfirmation } from '@/lib/email'
 import { bulkDiscountForLines, firstOrderDiscount } from '@/lib/pricing'
 import { trackToken } from '@/lib/trackToken'
-import { fulfillOrderItems } from '@/lib/orderFulfillment'
+import { fulfillOrderItems, InsufficientStockError } from '@/lib/orderFulfillment'
+import { withOrderNoRetry } from '@/lib/orderNo'
 import { isFirstTimeCustomer } from '@/lib/customerHistory'
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
@@ -30,16 +31,6 @@ const bodySchema = z.object({
     .min(1)
     .max(20),
 })
-
-async function nextOrderNo(): Promise<string> {
-  const orders = await prisma.order.findMany({ select: { orderNo: true } })
-  let max = 1023
-  for (const o of orders) {
-    const n = Number.parseInt(o.orderNo.replace(/[^\d]/g, ''), 10)
-    if (Number.isFinite(n) && n > max) max = n
-  }
-  return `KE-${max + 1}`
-}
 
 /**
  * Create an order from a WhatsApp / Instagram conversation. The order lands in
@@ -103,30 +94,40 @@ export async function POST(request: Request) {
     ...resolved,
     ...(firstOrderDisc > 0 ? [{ name: 'First order discount (10% off first item)', qty: 1, price: -firstOrderDisc }] : []),
   ]
-  const orderNo = await nextOrderNo()
   const source = channel === 'whatsapp' ? 'WHATSAPP' : 'INSTAGRAM'
 
-  const order = await prisma.$transaction(async (tx) => {
-    const created = await tx.order.create({
-      data: {
-        orderNo,
-        customerName,
-        status: 'PENDING',
-        source,
-        contact: contact ?? null,
-        // 'online' stays unset until the customer pays; 'cod' is recorded up front.
-        // 'online' orders don't have a method yet — the customer picks one at
-        // checkout — but "pending" is more honest in reports than leaving it
-        // null (which reads as "unspecified"/a data-quality problem).
-        paymentMethod: payment === 'cod' ? 'cod' : 'pending',
-        total,
-        items: { create: recordedItems.map((i) => ({ name: i.name, qty: i.qty, price: i.price })) },
-      },
-      include: { items: true },
-    })
-    await fulfillOrderItems(tx, created.items.map((oi) => ({ orderItemId: oi.id, name: oi.name, qty: oi.qty })))
-    return created
-  })
+  let order
+  try {
+    order = await withOrderNoRetry((orderNo) =>
+      prisma.$transaction(async (tx) => {
+        const created = await tx.order.create({
+          data: {
+            orderNo,
+            customerName,
+            status: 'PENDING',
+            source,
+            contact: contact ?? null,
+            // 'online' stays unset until the customer pays; 'cod' is recorded up front.
+            // 'online' orders don't have a method yet — the customer picks one at
+            // checkout — but "pending" is more honest in reports than leaving it
+            // null (which reads as "unspecified"/a data-quality problem).
+            paymentMethod: payment === 'cod' ? 'cod' : 'pending',
+            total,
+            items: { create: recordedItems.map((i) => ({ name: i.name, qty: i.qty, price: i.price })) },
+          },
+          include: { items: true },
+        })
+        await fulfillOrderItems(tx, created.items.map((oi) => ({ orderItemId: oi.id, name: oi.name, qty: oi.qty })))
+        return created
+      })
+    )
+  } catch (err) {
+    if (err instanceof InsufficientStockError) {
+      return NextResponse.json({ error: `"${err.productName}" just sold out.`, outOfStock: [err.productName] }, { status: 409 })
+    }
+    console.error('[integrations/orders] failed to create order:', err)
+    return NextResponse.json({ error: 'Could not place order. Please try again.' }, { status: 500 })
+  }
 
   // Optional confirmation email if the bot captured one.
   if (email) {

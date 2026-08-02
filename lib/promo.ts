@@ -32,7 +32,7 @@ export async function validatePromo(codeRaw: string, subtotal: number): Promise<
 
   const discount =
     promo.type === 'PERCENT'
-      ? Math.round(subtotal * (promo.value / 100))
+      ? Math.min(Math.round(subtotal * (promo.value / 100)), subtotal)
       : Math.min(Math.round(promo.value), subtotal)
 
   return {

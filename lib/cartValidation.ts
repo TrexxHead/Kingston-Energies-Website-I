@@ -27,7 +27,11 @@ export interface CartItemInput {
  * every other manual-entry field on that form.
  */
 export async function validateCartPrices(items: CartItemInput[]): Promise<{ ok: true } | { ok: false; error: string }> {
-  const dbProducts = await prisma.product.findMany({ select: { name: true, price: true, salePrice: true } })
+  const names = items.map((i) => i.name.trim())
+  const dbProducts = await prisma.product.findMany({
+    where: { name: { in: names, mode: 'insensitive' } },
+    select: { name: true, price: true, salePrice: true },
+  })
 
   const priceByName = new Map<string, number>()
   // Static catalog first, DB second — DB (with any admin-set sale price) wins on a name collision.

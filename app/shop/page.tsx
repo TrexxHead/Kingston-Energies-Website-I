@@ -10,8 +10,13 @@ export const metadata: Metadata = {
   description: 'Browse power banks, fast chargers, cables, power stations and accessories from Kingston Energies.',
 }
 
-// Always reflect the latest DB price/stock (no static caching of the catalog).
-export const dynamic = 'force-dynamic'
+// Cached briefly instead of hitting the DB on every view — a 20s-stale price/
+// stock display is imperceptible to a shopper, and checkout re-validates both
+// server-side regardless (see lib/cartValidation.ts, lib/orderFulfillment.ts),
+// so nothing downstream trusts this snapshot. Cuts DB load under a traffic
+// spike (an ad campaign, a sale) roughly in proportion to how much traffic
+// arrives within the same 20s window.
+export const revalidate = 20
 
 const breadcrumbs = buildBreadcrumbs([{ name: 'Home', path: '/' }, { name: 'Shop' }])
 

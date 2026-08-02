@@ -7,7 +7,9 @@ import { fmt } from '@/lib/catalog'
 import JsonLd from '@/components/JsonLd'
 import { buildBreadcrumbs, productSchema } from '@/lib/structuredData'
 
-export const dynamic = 'force-dynamic'
+// See app/shop/page.tsx for why a short ISR window (not force-dynamic) is
+// safe here: checkout re-validates price/stock server-side regardless.
+export const revalidate = 20
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params

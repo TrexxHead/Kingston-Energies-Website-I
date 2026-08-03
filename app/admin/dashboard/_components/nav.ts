@@ -98,6 +98,12 @@ export const NAV: NavGroup[] = [
         description: 'The announcement bar and homepage banners/flash sale',
         keywords: 'announcement banner flash sale promo bar',
       },
+      {
+        href: `${BASE}/marketing/reports`,
+        label: 'Reports',
+        description: 'Channel ROI and customer repeat-purchase trends',
+        keywords: 'roi channel cohort retention repeat purchase attribution analytics',
+      },
     ],
   },
   {

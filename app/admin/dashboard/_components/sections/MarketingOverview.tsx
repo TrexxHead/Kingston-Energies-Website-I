@@ -5,6 +5,10 @@ import Link from 'next/link'
 import { TriangleAlert, ArrowUpRight } from 'lucide-react'
 import { cardStyle, h3Style } from '../ui/card'
 import Badge from '../ui/Badge'
+import LineChart from '../charts/LineChart'
+import BarChart from '../charts/BarChart'
+import DonutChart from '../charts/DonutChart'
+import { money } from '../charts/palette'
 import { fmt } from '../mockData'
 import Skeleton from '@/components/Skeleton'
 
@@ -23,6 +27,9 @@ interface Overview {
     suppressedContacts: number
   }
   campaignPerformance: { id: string; name: string; orders: number; revenue: number }[]
+  revenueSeries: { label: string; value: number }[]
+  leadsByStatus: { label: string; value: number }[]
+  channelBreakdown: { label: string; value: number }[]
 }
 
 const RANGES = [7, 30, 90]
@@ -31,7 +38,8 @@ const RANGES = [7, 30, 90]
  * The Marketing tab's landing page: what's running, what it earned, what
  * needs attention. Deliberately shows only what's measurable from live
  * data — no ad spend/ROAS/CAC, since there's no ad-platform integration to
- * compute them from honestly.
+ * compute them from honestly, and the charts plot the same attribution data
+ * as the KPI cards above them, never a separate estimate.
  */
 export default function MarketingOverview() {
   const [days, setDays] = useState(30)
@@ -64,6 +72,9 @@ export default function MarketingOverview() {
   if (k?.newLeadsAwaitingContact) opportunities.push({ text: `${k.newLeadsAwaitingContact} new lead${k.newLeadsAwaitingContact === 1 ? '' : 's'} haven't been contacted yet.`, href: '/admin/dashboard/marketing/leads' })
   if (k?.expiringDiscountCodes) opportunities.push({ text: `${k.expiringDiscountCodes} discount code${k.expiringDiscountCodes === 1 ? '' : 's'} expiring within 7 days.`, href: '/admin/dashboard/marketing/discounts' })
   if (k && k.scheduledCampaigns === 0 && k.sentCampaigns === 0) opportunities.push({ text: "No campaigns sent recently — it's been quiet. Draft one?", href: '/admin/dashboard/marketing/campaigns' })
+
+  const hasRevenueSignal = (data?.revenueSeries ?? []).some((p) => p.value > 0)
+  const topCampaigns = [...(data?.campaignPerformance ?? [])].sort((a, b) => b.revenue - a.revenue).slice(0, 6)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -117,6 +128,47 @@ export default function MarketingOverview() {
           </div>
         </div>
       )}
+
+      {!data ? (
+        <Skeleton width="100%" height={250} />
+      ) : (
+        <LineChart
+          title="Attributed revenue trend"
+          subtitle={`Last ${days} days · orders that redeemed a campaign-linked discount code`}
+          categories={data.revenueSeries.map((p) => p.label)}
+          series={[{ label: 'Revenue', values: data.revenueSeries.map((p) => p.value), area: true }]}
+          height={220}
+          format={money}
+          footnote={!hasRevenueSignal ? 'No attributed orders in this period yet — link a discount code to a campaign to start measuring it.' : undefined}
+        />
+      )}
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(340px,1fr))', gap: 16 }}>
+        {!data ? (
+          <Skeleton width="100%" height={220} />
+        ) : (
+          <DonutChart
+            title="Leads by status"
+            subtitle="Every lead on file, right now."
+            slices={data.leadsByStatus}
+            centreLabel="Total leads"
+            format={(n) => String(n)}
+          />
+        )}
+        {!data ? (
+          <Skeleton width="100%" height={220} />
+        ) : (
+          <BarChart
+            title="Top campaigns by revenue"
+            subtitle={`Last ${days} days · linked-discount campaigns only`}
+            categories={topCampaigns.length ? topCampaigns.map((c) => c.name) : ['No data']}
+            series={[{ label: 'Revenue', values: topCampaigns.length ? topCampaigns.map((c) => c.revenue) : [0] }]}
+            horizontal
+            height={Math.max(140, topCampaigns.length * 34)}
+            format={money}
+          />
+        )}
+      </div>
 
       <div style={cardStyle}>
         <h3 style={{ ...h3Style, margin: '0 0 12px' }}>Campaign performance</h3>

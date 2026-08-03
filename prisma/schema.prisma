@@ -893,6 +893,20 @@ enum CampaignChannel {
   SOCIAL
 }
 
+// A reusable subject/body starting point so a recurring campaign (a monthly
+// newsletter, a restock announcement) doesn't get retyped from scratch —
+// saved once from the composer, picked from a list next time.
+model CampaignTemplate {
+  id        String          @id @default(cuid())
+  name      String
+  channel   CampaignChannel @default(EMAIL)
+  category  String?
+  subject   String?
+  body      String?         @db.Text
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+}
+
 enum CampaignStatus {
   DRAFT
   SCHEDULED

@@ -43,6 +43,15 @@ interface DiscountCode {
   code: string
 }
 
+interface Template {
+  id: string
+  name: string
+  channel: Channel
+  category: string | null
+  subject: string | null
+  body: string | null
+}
+
 const CHANNEL_META: Record<Channel, { icon: typeof Mail; tone: 'blue' | 'green' | 'orange' | 'neutral' }> = {
   EMAIL: { icon: Mail, tone: 'blue' },
   SMS: { icon: MessageSquare, tone: 'green' },
@@ -59,12 +68,18 @@ export default function CampaignsCard() {
   const [items, setItems] = useState<Campaign[]>([])
   const [segments, setSegments] = useState<Segment[]>([])
   const [codes, setCodes] = useState<DiscountCode[]>([])
+  const [templates, setTemplates] = useState<Template[]>([])
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [msg, setMsg] = useState('')
   const [copiedId, setCopiedId] = useState<string | null>(null)
+
+  const loadTemplates = useCallback(async () => {
+    const res = await fetch('/api/admin/campaign-templates')
+    if (res.ok) setTemplates((await res.json()).templates)
+  }, [])
 
   const load = useCallback(async () => {
     const res = await fetch('/api/admin/campaigns')
@@ -73,9 +88,10 @@ export default function CampaignsCard() {
 
   useEffect(() => {
     load()
+    loadTemplates()
     fetch('/api/admin/segments').then((r) => (r.ok ? r.json() : null)).then((d) => d && setSegments(d.segments))
     fetch('/api/admin/discount-codes').then((r) => (r.ok ? r.json() : null)).then((d) => d && setCodes(d.codes))
-  }, [load])
+  }, [load, loadTemplates])
 
   const create = async () => {
     setError('')
@@ -116,6 +132,30 @@ export default function CampaignsCard() {
   const remove = async (id: string) => {
     await fetch(`/api/admin/campaigns/${id}`, { method: 'DELETE' })
     load()
+  }
+
+  const applyTemplate = (name: string) => {
+    const t = templates.find((x) => x.name === name)
+    if (!t) return
+    setForm({ ...form, channel: t.channel, category: t.category ?? form.category, subject: t.subject ?? '', body: t.body ?? '' })
+  }
+
+  const saveAsTemplate = async () => {
+    if (!form.name.trim()) { setError('Give the campaign a name first — it\'s used as the template name.'); return }
+    setBusy(true)
+    const res = await fetch('/api/admin/campaign-templates', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: form.name, channel: form.channel, category: form.category, subject: form.subject || undefined, body: form.body || undefined }),
+    })
+    setBusy(false)
+    if (res.ok) { setMsg('Saved as template.'); loadTemplates() }
+    else setError((await res.json().catch(() => ({}))).error ?? 'Could not save template.')
+  }
+
+  const removeTemplate = async (id: string) => {
+    await fetch(`/api/admin/campaign-templates/${id}`, { method: 'DELETE' })
+    loadTemplates()
   }
 
   const copyLink = async (c: Campaign) => {
@@ -192,6 +232,7 @@ export default function CampaignsCard() {
           onClose={() => setOpen(false)}
           footer={
             <>
+              <Button size="sm" variant="outline" onClick={saveAsTemplate}>{busy ? 'Saving…' : 'Save as template'}</Button>
               <Button size="sm" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
               <Button size="sm" variant="primary" onClick={create}>{busy ? 'Saving…' : 'Create'}</Button>
             </>
@@ -199,6 +240,26 @@ export default function CampaignsCard() {
         >
           {error && <div style={{ background: 'var(--color-danger-soft)', color: 'var(--color-danger)', borderRadius: 8, padding: '8px 10px', fontSize: 12, marginBottom: 10 }}>{error}</div>}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {templates.length > 0 && (
+              <div>
+                <TextInput
+                  label="Start from a template (optional)"
+                  value={NONE}
+                  onChange={(v) => v !== NONE && applyTemplate(v)}
+                  options={[NONE, ...templates.map((t) => t.name)]}
+                />
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                  {templates.map((t) => (
+                    <span key={t.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--color-text-subtle)', border: '1px solid var(--color-border)', borderRadius: 999, padding: '2px 4px 2px 8px' }}>
+                      {t.name}
+                      <button type="button" onClick={() => removeTemplate(t.id)} aria-label={`Delete template ${t.name}`} style={{ ...iconBtn, width: 18, height: 18, border: 'none', background: 'transparent' }}>
+                        <Trash2 size={10} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
             <TextInput label="Name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} placeholder="August flash sale blast" />
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               <TextInput label="Channel" value={form.channel} onChange={(v) => setForm({ ...form, channel: v as Channel })} options={['EMAIL', 'SMS', 'PUSH', 'SOCIAL']} />

@@ -39,6 +39,16 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const clearedBalance = round2(rec.beginningBalance + clearedMovement)
   const difference = round2(rec.endingBalance - clearedBalance)
 
+  // Which of these lines an imported bank feed has actually confirmed
+  // (matched to, or posted from, a real statement line) — shown alongside
+  // the tick so "cleared" isn't a pure judgment call when real evidence
+  // exists to check it against.
+  const confirmed = await prisma.bankStatementLine.findMany({
+    where: { journalLineId: { in: lines.map((l) => l.id) }, status: { in: ['MATCHED', 'POSTED'] } },
+    select: { journalLineId: true },
+  })
+  const confirmedIds = new Set(confirmed.map((c) => c.journalLineId))
+
   return NextResponse.json({
     id: rec.id,
     account: rec.account,
@@ -59,6 +69,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       debit: l.debit,
       credit: l.credit,
       cleared: l.reconciliationId === id,
+      onStatement: confirmedIds.has(l.id),
     })),
   })
 }

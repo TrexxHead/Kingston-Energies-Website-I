@@ -24,6 +24,7 @@ export default function BankFeedsTab() {
 }
 
 const d = (iso: string) => new Date(iso).toLocaleDateString('en-JM', { day: 'numeric', month: 'short', year: 'numeric' })
+const ageDays = (iso: string) => Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000)
 
 const th: React.CSSProperties = {
   textAlign: 'left',
@@ -323,8 +324,13 @@ interface StatementLine {
   amount: number
   status: 'UNMATCHED' | 'MATCHED' | 'POSTED' | 'EXCLUDED'
   note: string | null
+  resolvedAt: string | null
+  resolvedBy: string | null
   suggestions: { journalLineId: string; score: number; confident: boolean; reasons: string[]; entryNo: string; date: string; memo: string }[]
 }
+
+/** Excluded items sitting this long without further action are worth a second look. */
+const EXCLUDED_AGING_DAYS = 30
 
 interface LinesData {
   account: { code: string; name: string }
@@ -340,6 +346,7 @@ function Lines({ connectionId, onBack }: { connectionId: string; onBack: () => v
   const [filter, setFilter] = useState<'UNMATCHED' | 'ALL'>('UNMATCHED')
   const [error, setError] = useState('')
   const [categorising, setCategorising] = useState<StatementLine | null>(null)
+  const [excluding, setExcluding] = useState<StatementLine | null>(null)
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/admin/finance/banking/lines?connectionId=${connectionId}&status=${filter}`)
@@ -421,6 +428,21 @@ function Lines({ connectionId, onBack }: { connectionId: string; onBack: () => v
                               : `Looks like ${top.entryNo}${top.memo ? ` · ${top.memo}` : ''}: ${top.reasons.join('; ').toLowerCase()}.`}
                           </div>
                         )}
+                        {l.status !== 'UNMATCHED' && (l.note || l.resolvedBy) && (
+                          <div style={{ fontSize: 11.5, color: 'var(--color-text-subtle)', marginTop: 4, lineHeight: 1.5 }}>
+                            {l.note && <span>&ldquo;{l.note}&rdquo; </span>}
+                            {l.resolvedBy && l.resolvedAt && (
+                              <span>
+                                — {l.resolvedBy} · {d(l.resolvedAt)}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        {l.status === 'EXCLUDED' && l.resolvedAt && ageDays(l.resolvedAt) >= EXCLUDED_AGING_DAYS && (
+                          <div style={{ marginTop: 4 }}>
+                            <Badge tone="orange">Excluded {ageDays(l.resolvedAt)}d ago — needs follow-up</Badge>
+                          </div>
+                        )}
                       </td>
                       <td style={{ ...tdNum, color: l.amount < 0 ? 'var(--color-danger,#dc2626)' : undefined, fontWeight: 600 }}>
                         {l.amount < 0 ? '−' : '+'}
@@ -444,7 +466,7 @@ function Lines({ connectionId, onBack }: { connectionId: string; onBack: () => v
                             <Button size="sm" variant="outline" onClick={() => setCategorising(l)}>
                               Categorise
                             </Button>
-                            <Button size="sm" variant="outline" onClick={() => act({ lineId: l.id, action: 'exclude' })} iconRight={<Ban size={13} />}>
+                            <Button size="sm" variant="outline" onClick={() => setExcluding(l)} iconRight={<Ban size={13} />}>
                               Exclude
                             </Button>
                           </div>
@@ -475,7 +497,60 @@ function Lines({ connectionId, onBack }: { connectionId: string; onBack: () => v
           }}
         />
       )}
+
+      {excluding && (
+        <ExcludeModal
+          line={excluding}
+          onClose={() => setExcluding(null)}
+          onDone={() => {
+            setExcluding(null)
+            load()
+          }}
+        />
+      )}
     </div>
+  )
+}
+
+function ExcludeModal({ line, onClose, onDone }: { line: StatementLine; onClose: () => void; onDone: () => void }) {
+  const [reason, setReason] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  const submit = async () => {
+    if (!reason.trim()) return setError('A reason is required — this becomes part of the audit trail.')
+    setBusy(true)
+    const res = await fetch('/api/admin/finance/banking/lines', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lineId: line.id, action: 'exclude', note: reason.trim() }),
+    })
+    setBusy(false)
+    if (!res.ok) return setError((await res.json().catch(() => ({}))).error || 'Could not exclude this line.')
+    onDone()
+  }
+
+  return (
+    <Modal onClose={onClose} title="Exclude statement line" width={460}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ fontSize: 13.5, lineHeight: 1.6 }}>
+          <strong>{line.description}</strong>
+          <br />
+          <span style={{ color: 'var(--color-text-muted)' }}>
+            {d(line.postedAt)} · {fmt(Math.abs(Math.round(line.amount)))}
+          </span>
+        </div>
+        <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: 0, lineHeight: 1.5 }}>
+          This line hit the real bank account but won't be matched or posted to the books. Say why — duplicate,
+          already recorded another way, pending investigation — so it's not just a checkbox with no record behind it.
+        </p>
+        <TextInput label="Reason (required)" value={reason} onChange={setReason} />
+        {error && <div style={{ color: 'var(--color-danger,#dc2626)', fontSize: 13 }}>{error}</div>}
+        <Button onClick={submit} disabled={busy}>
+          {busy ? 'Excluding…' : 'Exclude'}
+        </Button>
+      </div>
+    </Modal>
   )
 }
 

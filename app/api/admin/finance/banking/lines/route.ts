@@ -83,6 +83,8 @@ export async function GET(request: Request) {
         runningBalance: line.runningBalance,
         status: line.status,
         note: line.note,
+        resolvedAt: line.resolvedAt ? line.resolvedAt.toISOString() : null,
+        resolvedBy: line.resolvedBy,
         journalLineId: line.journalLineId,
         suggestions: suggestions.map((s) => {
           const b = bookById.get(s.journalLineId)
@@ -147,9 +149,15 @@ export async function PATCH(request: Request) {
   }
 
   if (action === 'exclude') {
+    // A real bank line excluded with no reason on record is exactly the kind
+    // of gap an auditor flags — completeness requires knowing why it was
+    // deliberately left out, not just that it was.
+    if (!parsed.data.note?.trim()) {
+      return NextResponse.json({ error: 'Say why this is being excluded (duplicate, already booked elsewhere, etc).' }, { status: 400 })
+    }
     await prisma.bankStatementLine.update({
       where: { id: lineId },
-      data: { status: 'EXCLUDED', note: parsed.data.note || null, resolvedAt: new Date(), resolvedBy: who },
+      data: { status: 'EXCLUDED', note: parsed.data.note.trim(), resolvedAt: new Date(), resolvedBy: who },
     })
     return NextResponse.json({ ok: true })
   }

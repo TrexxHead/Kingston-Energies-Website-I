@@ -30,6 +30,8 @@ interface RecLine {
   debit: number
   credit: number
   cleared: boolean
+  /** A bank feed import has actually matched or posted this line — real evidence, not just a tick. */
+  onStatement: boolean
 }
 interface RecDetail {
   id: string
@@ -253,6 +255,8 @@ function Session({ id, onBack }: { id: string; onBack: () => void }) {
       {!data.balanced && !done && (
         <p style={{ fontSize: 12.5, color: 'var(--ke-sun-600,#b45309)', margin: 0, fontWeight: 600 }}>
           Out by {fmt(Math.round(Math.abs(data.difference)))}. Tick off the transactions that appear on the statement until this reaches zero.
+          {' '}A line tagged &ldquo;On statement&rdquo; has a real match from Bank feeds behind it; one tagged &ldquo;No bank feed match&rdquo; is
+          ticked on judgment alone — worth a second look before finishing.
         </p>
       )}
       {error && <p style={{ fontSize: 12.5, color: 'var(--color-danger)', margin: 0 }}>{error}</p>}
@@ -279,7 +283,14 @@ function Session({ id, onBack }: { id: string; onBack: () => void }) {
               </span>
               <span style={{ minWidth: 0 }}>
                 <span style={{ display: 'block', fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.memo ?? 'N/A'}</span>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-subtle)' }}>{l.entryNo}</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-subtle)' }}>{l.entryNo}</span>
+                  {l.onStatement ? (
+                    <Badge tone="green">On statement</Badge>
+                  ) : l.cleared ? (
+                    <Badge tone="orange">No bank feed match</Badge>
+                  ) : null}
+                </span>
               </span>
               <span style={{ textAlign: 'right', fontSize: 12.5 }}>{l.debit ? fmt(Math.round(l.debit)) : ''}</span>
               <span style={{ textAlign: 'right', fontSize: 12.5, color: 'var(--color-text-muted)' }}>{l.credit ? fmt(Math.round(l.credit)) : ''}</span>

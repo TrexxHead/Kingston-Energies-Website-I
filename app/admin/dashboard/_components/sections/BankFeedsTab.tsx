@@ -135,8 +135,8 @@ function Connections({ onOpen }: { onOpen: (id: string) => void }) {
 
         {data.connections.length === 0 ? (
           <Empty>
-            No bank accounts set up yet. Add one, then import a CSV or OFX statement from your online banking. Every
-            line lands here waiting to be matched against the books.
+            No bank accounts set up yet. Add one, then import a CSV, OFX or MT940 statement from your online banking.
+            Every line lands here waiting to be matched against the books.
           </Empty>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -291,13 +291,15 @@ function ImportModal({ connection, onClose, onDone }: { connection: Connection; 
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: 0, lineHeight: 1.55 }}>
-            Export a CSV or OFX/QFX statement from your online banking and attach it. Importing an overlapping date
-            range is safe. Anything already here is recognised and skipped rather than duplicated.
+            Export a CSV, OFX/QFX, or MT940 statement from your online banking and attach it — whichever your bank
+            offers. A few metadata rows before the real header, or a semicolon/tab-separated CSV, are both handled
+            automatically. Importing an overlapping date range is safe: anything already here is recognised and
+            skipped rather than duplicated.
           </p>
           <input
             ref={inputRef}
             type="file"
-            accept=".csv,.ofx,.qfx,.txt,text/csv"
+            accept=".csv,.ofx,.qfx,.txt,.sta,.940,.mt940,text/csv"
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
             style={{ fontSize: 13 }}
           />

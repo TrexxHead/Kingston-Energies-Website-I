@@ -23,7 +23,7 @@ export interface ParseResult {
   lines: ParsedLine[]
   /** Rows that could not be read, with the reason, so nothing disappears quietly. */
   skipped: { row: number; reason: string }[]
-  format: 'csv' | 'ofx'
+  format: 'csv' | 'ofx' | 'mt940'
 }
 
 /**
@@ -46,8 +46,68 @@ export function fingerprint(parts: { postedAt: Date; description: string; amount
 
 // --- CSV -------------------------------------------------------------------
 
-/** Split a CSV line, honouring quoted fields containing commas. */
-function splitCsv(line: string): string[] {
+const DATE_HEADERS = [
+  'date', 'transaction date', 'txn date', 'trans date', 'posting date', 'posted date', 'post date',
+  'value date', 'entry date', 'effective date',
+]
+const DESC_HEADERS = [
+  'description', 'details', 'narrative', 'narration', 'particulars', 'transaction details',
+  'transaction description', 'memo', 'payee', 'remarks',
+]
+const AMOUNT_HEADERS = ['amount', 'transaction amount', 'value', 'txn amount']
+const DEBIT_HEADERS = ['debit', 'debit amount', 'withdrawal', 'withdrawals', 'money out', 'paid out', 'dr', 'dr amount']
+const CREDIT_HEADERS = ['credit', 'credit amount', 'deposit', 'deposits', 'money in', 'paid in', 'cr', 'cr amount']
+const BALANCE_HEADERS = ['balance', 'running balance', 'closing balance', 'ledger balance', 'available balance', 'avail balance', 'running bal']
+const REF_HEADERS = ['reference', 'ref', 'ref no', 'cheque', 'check', 'cheque no', 'transaction id', 'transaction ref', 'txn ref']
+
+const findColumn = (headers: string[], candidates: string[]) => headers.findIndex((h) => candidates.includes(h))
+
+/** How many of a row's cells match a recognised header name — used to find the real header row among preamble/title rows some banks prepend. */
+function headerScore(headers: string[]): number {
+  const all = [...DATE_HEADERS, ...DESC_HEADERS, ...AMOUNT_HEADERS, ...DEBIT_HEADERS, ...CREDIT_HEADERS, ...BALANCE_HEADERS, ...REF_HEADERS]
+  return headers.filter((h) => all.includes(h)).length
+}
+
+/**
+ * Some banks export a few metadata/title lines ("Account:", the date range,
+ * a blank row) before the real header row. Scan the first handful of rows
+ * and pick whichever looks most like one — needs at least a date-ish column
+ * to count as a candidate at all, rather than assuming row 0 always is it —
+ * preferring rows that also carry an amount-ish column when there's a
+ * choice, but still returning the best date-only candidate otherwise so the
+ * caller can raise the correct ("no amount column", not "no date column")
+ * error.
+ */
+function findHeaderRow(rows: string[], splitter: (line: string) => string[]): number {
+  const scan = Math.min(rows.length, 15)
+  let best = -1
+  let bestScore = -1
+  for (let i = 0; i < scan; i++) {
+    const headers = splitter(rows[i]).map((h) => h.toLowerCase().replace(/[^a-z ]/g, '').trim())
+    if (findColumn(headers, DATE_HEADERS) < 0) continue
+    const hasAmount = findColumn(headers, AMOUNT_HEADERS) >= 0 || findColumn(headers, DEBIT_HEADERS) >= 0 || findColumn(headers, CREDIT_HEADERS) >= 0
+    const score = headerScore(headers) + (hasAmount ? 100 : 0)
+    if (score > bestScore) {
+      bestScore = score
+      best = i
+    }
+  }
+  return best
+}
+
+/** Comma is the default, but some exports use ; or tab — pick whichever splits the header row into the most plausible number of columns. */
+function detectDelimiter(line: string): ',' | ';' | '\t' {
+  const counts: Record<',' | ';' | '\t', number> = {
+    ',': (line.match(/,/g) ?? []).length,
+    ';': (line.match(/;/g) ?? []).length,
+    '\t': (line.match(/\t/g) ?? []).length,
+  }
+  const [best] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]
+  return counts[best as ',' | ';' | '\t'] > 0 ? (best as ',' | ';' | '\t') : ','
+}
+
+/** Split a line on the given delimiter, honouring quoted fields containing the delimiter. */
+function splitDelimited(line: string, delimiter: string): string[] {
   const out: string[] = []
   let cur = ''
   let quoted = false
@@ -61,7 +121,7 @@ function splitCsv(line: string): string[] {
         } else quoted = false
       } else cur += c
     } else if (c === '"') quoted = true
-    else if (c === ',') {
+    else if (c === delimiter) {
       out.push(cur)
       cur = ''
     } else cur += c
@@ -69,16 +129,6 @@ function splitCsv(line: string): string[] {
   out.push(cur)
   return out.map((s) => s.trim())
 }
-
-const DATE_HEADERS = ['date', 'transaction date', 'posting date', 'posted date', 'value date', 'trans date']
-const DESC_HEADERS = ['description', 'details', 'narrative', 'particulars', 'transaction details', 'memo', 'payee']
-const AMOUNT_HEADERS = ['amount', 'transaction amount', 'value']
-const DEBIT_HEADERS = ['debit', 'withdrawal', 'withdrawals', 'money out', 'paid out', 'dr']
-const CREDIT_HEADERS = ['credit', 'deposit', 'deposits', 'money in', 'paid in', 'cr']
-const BALANCE_HEADERS = ['balance', 'running balance', 'closing balance', 'ledger balance']
-const REF_HEADERS = ['reference', 'ref', 'cheque', 'check', 'transaction id', 'transaction ref']
-
-const findColumn = (headers: string[], candidates: string[]) => headers.findIndex((h) => candidates.includes(h))
 
 /** Parse "1,234.56", "(1,234.56)" and "-1,234.56" into a number. */
 function parseAmount(raw: string): number | null {
@@ -121,10 +171,24 @@ function parseDate(raw: string): Date | null {
 }
 
 export function parseCsv(text: string): ParseResult {
-  const rows = text.split(/\r?\n/).filter((r) => r.trim().length > 0)
+  // Excel/online-banking exports often carry a UTF-8 BOM, which would
+  // otherwise glue itself onto the first header cell and break matching.
+  const clean = text.replace(/^﻿/, '')
+  const rows = clean.split(/\r?\n/).filter((r) => r.trim().length > 0)
   if (rows.length < 2) return { lines: [], skipped: [{ row: 0, reason: 'The file has no data rows.' }], format: 'csv' }
 
-  const headers = splitCsv(rows[0]).map((h) => h.toLowerCase().replace(/[^a-z ]/g, '').trim())
+  const delimiter = detectDelimiter(rows[0])
+  const split = (line: string) => splitDelimited(line, delimiter)
+
+  // Some exports prepend a few metadata/title lines (account name, the date
+  // range, a blank row) before the real header — scan for it instead of
+  // assuming row 0 is always it.
+  const headerRow = findHeaderRow(rows, split)
+  if (headerRow < 0) {
+    throw new Error('No date column found. Expected a header like "Date" or "Transaction Date".')
+  }
+
+  const headers = split(rows[headerRow]).map((h) => h.toLowerCase().replace(/[^a-z ]/g, '').trim())
   const iDate = findColumn(headers, DATE_HEADERS)
   const iDesc = findColumn(headers, DESC_HEADERS)
   const iAmount = findColumn(headers, AMOUNT_HEADERS)
@@ -133,7 +197,6 @@ export function parseCsv(text: string): ParseResult {
   const iBalance = findColumn(headers, BALANCE_HEADERS)
   const iRef = findColumn(headers, REF_HEADERS)
 
-  if (iDate < 0) throw new Error('No date column found. Expected a header like "Date" or "Transaction Date".')
   if (iAmount < 0 && iDebit < 0 && iCredit < 0) {
     throw new Error('No amount column found. Expected "Amount", or separate "Debit" and "Credit" columns.')
   }
@@ -141,8 +204,8 @@ export function parseCsv(text: string): ParseResult {
   const lines: ParsedLine[] = []
   const skipped: ParseResult['skipped'] = []
 
-  for (let r = 1; r < rows.length; r++) {
-    const cells = splitCsv(rows[r])
+  for (let r = headerRow + 1; r < rows.length; r++) {
+    const cells = split(rows[r])
     const postedAt = parseDate(cells[iDate] ?? '')
     if (!postedAt) {
       skipped.push({ row: r + 1, reason: `Could not read the date "${cells[iDate] ?? ''}".` })
@@ -229,8 +292,81 @@ export function parseOfx(text: string): ParseResult {
   return { lines, skipped, format: 'ofx' }
 }
 
+// --- MT940 (SWIFT customer statement) ---------------------------------------
+
+/**
+ * A single :61: transaction line, per the SWIFT MT940 field spec:
+ * YYMMDD + optional entry date (MMDD) + C/D (or RC/RD for a reversal) +
+ * optional funds code letter + amount (comma decimal) + the rest (type code,
+ * customer reference, optional //bank reference) which we don't need to
+ * split further — the following :86: line supplies the human description.
+ */
+const MT940_LINE_61 = /^:61:(\d{6})(\d{4})?(RC|RD|C|D)([A-Z])?(\d+,\d*)(.*)$/
+
+function parseMt940Date(yymmdd: string): Date | null {
+  const y = Number(yymmdd.slice(0, 2))
+  const m = Number(yymmdd.slice(2, 4))
+  const d = Number(yymmdd.slice(4, 6))
+  if (!m || !d || m > 12 || d > 31) return null
+  // MT940 has no century digit — treat as 2000s, correct for any statement this app will ever import.
+  return new Date(Date.UTC(2000 + y, m - 1, d))
+}
+
+export function parseMt940(text: string): ParseResult {
+  const rawLines = text.split(/\r?\n/)
+  if (!rawLines.some((l) => l.startsWith(':61:'))) {
+    throw new Error('No transactions found. This does not look like an MT940 statement.')
+  }
+
+  const lines: ParsedLine[] = []
+  const skipped: ParseResult['skipped'] = []
+
+  for (let i = 0; i < rawLines.length; i++) {
+    const raw = rawLines[i]
+    if (!raw.startsWith(':61:')) continue
+
+    const m = MT940_LINE_61.exec(raw.trim())
+    if (!m) {
+      skipped.push({ row: i + 1, reason: `Could not read the transaction line "${raw.trim()}".` })
+      continue
+    }
+    const [, valueDate, , dc, , amountRaw] = m
+    const postedAt = parseMt940Date(valueDate)
+    const amount = parseAmount(amountRaw.replace(',', '.'))
+    if (!postedAt || amount === null || amount === 0) {
+      skipped.push({ row: i + 1, reason: `Could not read the date or amount on "${raw.trim()}".` })
+      continue
+    }
+    const signed = dc.endsWith('D') ? -Math.abs(amount) : Math.abs(amount)
+
+    // :86: (the description) follows on the next line(s), up to the next tag.
+    let description = ''
+    let j = i + 1
+    while (j < rawLines.length && (rawLines[j].startsWith(':86:') || (description && !/^:\w/.test(rawLines[j])))) {
+      description += (description ? ' ' : '') + rawLines[j].replace(/^:86:/, '').trim()
+      j++
+    }
+
+    lines.push({
+      postedAt,
+      description: description || 'Bank transaction',
+      reference: null,
+      amount: Math.round(signed * 100) / 100,
+      runningBalance: null,
+      fingerprint: fingerprint({ postedAt, description: description || 'Bank transaction', amount: signed }),
+    })
+  }
+
+  return { lines, skipped, format: 'mt940' }
+}
+
 /** Pick a parser from the file itself rather than trusting the extension. */
 export function parseStatement(text: string, filename?: string): ParseResult {
   const looksOfx = /<STMTTRN>|<OFX>/i.test(text) || /\.(ofx|qfx)$/i.test(filename ?? '')
-  return looksOfx ? parseOfx(text) : parseCsv(text)
+  if (looksOfx) return parseOfx(text)
+
+  const looksMt940 = /^:61:/m.test(text) || /^:20:/m.test(text) || /\.(sta|940|mt940)$/i.test(filename ?? '')
+  if (looksMt940) return parseMt940(text)
+
+  return parseCsv(text)
 }

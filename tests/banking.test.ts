@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseStatement, parseCsv, fingerprint } from '../lib/banking/parse'
+import { parseStatement, parseCsv, parseMt940, fingerprint } from '../lib/banking/parse'
 import { suggestMatches, scoreMatch, CONFIDENT, type BookLine } from '../lib/banking/match'
 
 describe('parseCsv', () => {
@@ -57,6 +57,64 @@ describe('parseCsv', () => {
 
   it('refuses a file with no recognisable date column', () => {
     expect(() => parseCsv('Details,Amount\nSomething,500')).toThrow(/date column/i)
+  })
+
+  it('finds the header row past bank metadata/title rows', () => {
+    const csv = [
+      'Kingston Energies Ltd',
+      'Account: OP1234567890',
+      'Statement period: 01/07/2026 - 31/07/2026',
+      '',
+      'Date,Description,Amount,Balance',
+      '2026-07-05,NCB TRANSFER IN,15000.00,215000.00',
+    ].join('\n')
+    const { lines, skipped } = parseCsv(csv)
+    expect(skipped).toHaveLength(0)
+    expect(lines).toHaveLength(1)
+    expect(lines[0].amount).toBe(15000)
+  })
+
+  it('strips a UTF-8 BOM before reading the header', () => {
+    const csv = '﻿Date,Description,Amount\n2026-01-05,Fee,-500'
+    const { lines } = parseCsv(csv)
+    expect(lines).toHaveLength(1)
+    expect(lines[0].amount).toBe(-500)
+  })
+
+  it('auto-detects a semicolon-delimited export', () => {
+    const csv = 'Date;Description;Amount\n2026-01-05;POS Purchase;-2500.00'
+    const { lines } = parseCsv(csv)
+    expect(lines).toHaveLength(1)
+    expect(lines[0].amount).toBe(-2500)
+    expect(lines[0].description).toBe('POS Purchase')
+  })
+})
+
+describe('parseMt940', () => {
+  it('reads a credit and a debit transaction with their :86: descriptions', () => {
+    const mt940 = [
+      ':20:STMT0001',
+      ':25:OP1234567890',
+      ':28C:1',
+      ':60F:C260701JMD0,00',
+      ':61:2607050705C15000,00NTRFNONREF',
+      ':86:TRANSFER IN FROM CUSTOMER',
+      ':61:2607060706D4250,75NMSCNONREF',
+      ':86:POS PURCHASE HI-LO',
+      ':62F:C260706JMD10749,25',
+    ].join('\n')
+    const { lines, skipped } = parseMt940(mt940)
+    expect(skipped).toHaveLength(0)
+    expect(lines).toHaveLength(2)
+    expect(lines[0].amount).toBe(15000)
+    expect(lines[0].description).toBe('TRANSFER IN FROM CUSTOMER')
+    expect(lines[0].postedAt.toISOString().slice(0, 10)).toBe('2026-07-05')
+    expect(lines[1].amount).toBe(-4250.75)
+    expect(lines[1].description).toBe('POS PURCHASE HI-LO')
+  })
+
+  it('refuses a file with no :61: transaction lines', () => {
+    expect(() => parseMt940(':20:STMT0001\n:25:OP1234567890')).toThrow(/does not look like/i)
   })
 })
 

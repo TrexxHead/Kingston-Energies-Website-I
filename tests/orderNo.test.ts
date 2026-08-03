@@ -22,6 +22,26 @@ describe('nextOrderNo', () => {
     const { nextOrderNo } = await import('@/lib/orderNo')
     expect(await nextOrderNo()).toBe('KE-2051')
   })
+
+  /**
+   * Regression test for a real production outage: nextOrderNo() used to build
+   * its raw SQL with the '\D' regex shorthand inside a plain template
+   * literal. JS drops a backslash in front of a character with no special
+   * escape meaning, so that string cooked down to a bare 'D' before it ever
+   * reached Postgres — turning "strip every non-digit character" into "strip
+   * the literal letter D", a no-op for any "KE-####" order number. The
+   * regexp_replace call in the query text must not depend on a backslash
+   * escape surviving JS's template literal cooking.
+   */
+  it('builds its SQL without relying on a backslash regex escape (which JS strips)', async () => {
+    queryRawMock.mockResolvedValueOnce([{ max: null }])
+    const { nextOrderNo } = await import('@/lib/orderNo')
+    await nextOrderNo()
+    const sqlParts: string[] = queryRawMock.mock.calls[0][0]
+    const sql = sqlParts.join('')
+    expect(sql).not.toContain("'D'") // what '\D' silently cooks down to
+    expect(sql).toContain('regexp_replace')
+  })
 })
 
 /**

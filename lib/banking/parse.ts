@@ -243,6 +243,88 @@ export function parseCsv(text: string): ParseResult {
   return { lines, skipped, format: 'csv' }
 }
 
+// --- "Op" online-banking portal export --------------------------------------
+
+/**
+ * Some Jamaican online-banking portals (this one's own filename pattern is
+ * "OpTransactionHistory…") export a report-style CSV rather than a plain
+ * table: ~18 rows of "Account Details"/"Balance Details" metadata, a
+ * "Transactions List" title row, then transaction rows with no column
+ * headers at all — position is the only thing that tells you what a field
+ * is. Recognised by that unmistakable shape rather than any header text,
+ * since there isn't any to read.
+ */
+function looksLikeOpPortalExport(text: string): boolean {
+  const firstLine = text.replace(/^﻿/, '').split(/\r?\n/, 1)[0] ?? ''
+  const firstCell = firstLine.split(',')[0]?.trim() ?? ''
+  return /^account details$/i.test(firstCell) && /transactions list/i.test(text)
+}
+
+/** This export's dates are month first (07/28/2026 = 28 July), unlike the day-first convention assumed elsewhere. */
+function parseOpPortalDate(raw: string): Date | null {
+  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(raw.trim())
+  if (!m) return null
+  const month = +m[1]
+  const day = +m[2]
+  const year = +m[3]
+  if (month > 12 || day > 31) return null
+  return new Date(Date.UTC(year, month - 1, day))
+}
+
+/**
+ * Fixed column positions, read off a real export: 0 row number, 3 date,
+ * 7 reference/instrument id, 13 debit, 15 credit, 17 running balance,
+ * 20 description. Quoted amounts ("9,000.00") keep their thousands comma
+ * from shifting these positions, since the delimiter splitter respects quotes.
+ */
+export function parseOpPortalCsv(text: string): ParseResult {
+  const clean = text.replace(/^﻿/, '')
+  const rows = clean.split(/\r?\n/)
+  const titleRow = rows.findIndex((r) => /transactions list/i.test(r))
+  if (titleRow < 0) throw new Error('No transactions found in this statement export.')
+
+  const lines: ParsedLine[] = []
+  const skipped: ParseResult['skipped'] = []
+
+  for (let r = titleRow + 1; r < rows.length; r++) {
+    const row = rows[r]
+    if (!row.trim()) continue
+    const cells = splitDelimited(row, ',')
+    // The footer ("Date and Time: … Page 1 of 1") isn't a transaction — every
+    // real row starts with its own sequence number, so that's where to stop.
+    if (!/^\d+$/.test(cells[0]?.trim() ?? '')) break
+
+    const postedAt = parseOpPortalDate(cells[3] ?? '')
+    if (!postedAt) {
+      skipped.push({ row: r + 1, reason: `Could not read the date "${cells[3] ?? ''}".` })
+      continue
+    }
+
+    const debit = parseAmount(cells[13] ?? '')
+    const credit = parseAmount(cells[15] ?? '')
+    const amount = credit != null ? Math.abs(credit) : debit != null ? -Math.abs(debit) : null
+    if (amount === null || amount === 0) {
+      skipped.push({ row: r + 1, reason: 'No amount on this row.' })
+      continue
+    }
+
+    const runningBalance = parseAmount(cells[17] ?? '')
+    const reference = cells[7]?.trim() || null
+    const description = cells[20]?.trim() || 'Bank transaction'
+
+    lines.push({
+      postedAt,
+      description,
+      reference,
+      amount: Math.round(amount * 100) / 100,
+      runningBalance,
+      fingerprint: fingerprint({ postedAt, description, amount, reference }),
+    })
+  }
+
+  return { lines, skipped, format: 'csv' }
+}
+
 // --- OFX / QFX -------------------------------------------------------------
 
 const ofxTag = (block: string, tag: string): string | null => {
@@ -362,6 +444,8 @@ export function parseMt940(text: string): ParseResult {
 
 /** Pick a parser from the file itself rather than trusting the extension. */
 export function parseStatement(text: string, filename?: string): ParseResult {
+  if (looksLikeOpPortalExport(text)) return parseOpPortalCsv(text)
+
   const looksOfx = /<STMTTRN>|<OFX>/i.test(text) || /\.(ofx|qfx)$/i.test(filename ?? '')
   if (looksOfx) return parseOfx(text)
 

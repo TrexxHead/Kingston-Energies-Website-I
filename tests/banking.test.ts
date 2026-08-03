@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseStatement, parseCsv, parseMt940, fingerprint } from '../lib/banking/parse'
+import { parseStatement, parseCsv, parseMt940, parseOpPortalCsv, fingerprint } from '../lib/banking/parse'
 import { suggestMatches, scoreMatch, CONFIDENT, type BookLine } from '../lib/banking/match'
 
 describe('parseCsv', () => {
@@ -87,6 +87,62 @@ describe('parseCsv', () => {
     expect(lines).toHaveLength(1)
     expect(lines[0].amount).toBe(-2500)
     expect(lines[0].description).toBe('POS Purchase')
+  })
+})
+
+describe('parseOpPortalCsv', () => {
+  // A real (anonymised-in-content, structurally identical) export from a
+  // Jamaican online-banking portal: report-style metadata rows, a
+  // "Transactions List" title, then headerless positional transaction rows.
+  const sample = [
+    'Account Details,,,,,,,,,,,,,,,,,,,,,,,,',
+    ',General Details,,,,,,,,,,,,,,,,,,,,,,,',
+    ',,,,Number:,,,,,,354826836,,,,,,,,Nickname:,,,KINGSTON,,,',
+    ',,,,Currency:,,,,,,JMD,,,,,,,,Open Date:,,,17/07/2024,,,',
+    ',Balance Details,,,,,,,,,,,,,,,,,,,,,,,',
+    ',,,,Available Balance:,,,,,,"JMD 25,764.60",,,,,,,,Total Balance:,,,"JMD 25,764.60",,,',
+    'Transactions List -  SBA - KINGSTON (JMD) - 354826836,,,,,,,,,,,,,,,,,,,,,,,,',
+    '1,,,07/28/2026,,,,S70729455,,,,,,,,"9,000.00",,"25,764.60",,,ACH JMMB,,,,',
+    '2,,,07/27/2026,,,,S70315294,,,,,,,,"8,900.00",,"16,764.60",,,"ACH EWEN,BOSWO",,,,',
+    '3,,,07/27/2026,,,,JM133732,,,,,,27.00,,,,"7,864.60",,,GCT on Service Charge:27-07-2026,,,,',
+    '4,,,07/27/2026,,,,JM133731,,,,,,180.00,,,,"7,891.60",,,RTGS Service Charge:27-07-2026,,,,',
+    'Date and Time: ,,,,,,03/08/2026 12:55 AM,,,,,,,,,,,,,,,,,:Page 1 of, 1',
+    '',
+  ].join('\n')
+
+  it('reads a headerless, positional report export via its structural shape', () => {
+    const { lines, skipped, format } = parseOpPortalCsv(sample)
+    expect(format).toBe('csv')
+    expect(skipped).toHaveLength(0)
+    expect(lines).toHaveLength(4)
+  })
+
+  it('reads dates month-first, as this portal exports them', () => {
+    const { lines } = parseOpPortalCsv(sample)
+    // 07/28/2026 can only be July 28 — day 28 isn't a valid month.
+    expect(lines[0].postedAt.toISOString().slice(0, 10)).toBe('2026-07-28')
+  })
+
+  it('signs credits positive and debits negative from their fixed columns', () => {
+    const { lines } = parseOpPortalCsv(sample)
+    expect(lines[0].amount).toBe(9000) // credit column populated
+    expect(lines[2].amount).toBe(-27) // debit column populated
+  })
+
+  it('keeps a comma inside a quoted description intact', () => {
+    const { lines } = parseOpPortalCsv(sample)
+    expect(lines[1].description).toBe('ACH EWEN,BOSWO')
+  })
+
+  it('stops at the footer row instead of misreading it as a transaction', () => {
+    const { lines, skipped } = parseOpPortalCsv(sample)
+    expect(lines.every((l) => l.description !== undefined)).toBe(true)
+    expect(skipped).toHaveLength(0)
+  })
+
+  it('is auto-detected by parseStatement from its shape, no extension needed', () => {
+    const res = parseStatement(sample, 'export.csv')
+    expect(res.lines).toHaveLength(4)
   })
 })
 

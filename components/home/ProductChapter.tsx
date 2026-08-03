@@ -44,7 +44,7 @@ const FACTS = [
   },
 ]
 
-const IMAGES = ['/images/powerbank-box.jpg', '/images/powerbank-hand.jpg', '/images/charger-cable.jpg']
+const IMAGES = ['/images/powerbank-box.jpg', '/images/powerbank-hand.jpg', '/images/charmast-5.jpg']
 
 export default function ProductChapter({ price, inStock, productId }: { price: number; inStock: boolean; productId: string }) {
   const wrapRef = useRef<HTMLDivElement>(null)

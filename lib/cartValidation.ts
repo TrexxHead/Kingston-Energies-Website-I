@@ -30,13 +30,29 @@ export async function validateCartPrices(items: CartItemInput[]): Promise<{ ok: 
   const names = items.map((i) => i.name.trim())
   const dbProducts = await prisma.product.findMany({
     where: { name: { in: names, mode: 'insensitive' } },
-    select: { name: true, price: true, salePrice: true },
+    select: { name: true, price: true, salePrice: true, createdAt: true },
+    // Oldest row first, so a name collision resolves the same way here as it
+    // does for the storefront listing (lib/products.ts) — otherwise two
+    // differently-shaped queries over the same duplicate-named rows could
+    // pick different "winners" and disagree on the real price.
+    orderBy: { createdAt: 'asc' },
   })
 
   const priceByName = new Map<string, number>()
-  // Static catalog first, DB second — DB (with any admin-set sale price) wins on a name collision.
+  // Static catalog first, DB second — DB (with any admin-set sale price)
+  // always wins over the catalog on a name collision.
   for (const p of CATALOG) priceByName.set(p.name.trim().toLowerCase(), p.price)
-  for (const p of dbProducts) priceByName.set(p.name.trim().toLowerCase(), p.salePrice ?? p.price)
+  // Among multiple DB rows sharing a name (shouldn't happen going forward —
+  // product creation now refuses that — but resolves any that already exist)
+  // only the oldest wins, so this agrees with lib/products.ts's storefront
+  // listing about which duplicate is "the real one".
+  const claimedByDb = new Set<string>()
+  for (const p of dbProducts) {
+    const key = p.name.trim().toLowerCase()
+    if (claimedByDb.has(key)) continue
+    claimedByDb.add(key)
+    priceByName.set(key, p.salePrice ?? p.price)
+  }
 
   for (const item of items) {
     const real = priceByName.get(item.name.trim().toLowerCase())

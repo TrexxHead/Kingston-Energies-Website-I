@@ -109,6 +109,11 @@ export async function getShopProducts(): Promise<ShopProduct[]> {
   let rows: DbProduct[] = []
   try {
     rows = (await prisma.product.findMany({
+      // Explicit order so "first row wins" (name dedup below, price lookups
+      // elsewhere) means the same physical row everywhere — Postgres doesn't
+      // guarantee scan order without one, and two differently-shaped queries
+      // over the same table can otherwise disagree on which row is "first".
+      orderBy: { createdAt: 'asc' },
       select: {
         id: true, catalogId: true, name: true, price: true, salePrice: true, stock: true, archived: true, category: true,
         spec: true, badge: true, description: true, shortDescription: true, brand: true,
@@ -151,9 +156,23 @@ export async function getShopProducts(): Promise<ShopProduct[]> {
     return withRating(overlay(base, db))
   })
 
-  // DB-only products (created in the CMS, no catalog entry) — show unless archived.
+  // DB-only products (created in the CMS, no catalog entry) — show unless
+  // archived. Deduplicated by name: two rows sharing a name would otherwise
+  // both surface here with the exact same generated id (dbId is name-derived),
+  // colliding on the product page and making checkout's price re-check match
+  // whichever duplicate a separate, differently-ordered query happens to
+  // return — a real way for a stale-priced ghost row to break checkout for a
+  // product that looks fine on the shop grid. First one wins; the product
+  // creation endpoint now refuses a name collision so this shouldn't recur.
+  const seenNames = new Set<string>()
   const fromDb: ShopProduct[] = rows
     .filter((r) => !usedIds.has(r.id) && !r.archived)
+    .filter((r) => {
+      const key = normName(r.name)
+      if (seenNames.has(key)) return false
+      seenNames.add(key)
+      return true
+    })
     .map((r) => {
       const base: ShopProduct = {
         id: dbId(r.name),

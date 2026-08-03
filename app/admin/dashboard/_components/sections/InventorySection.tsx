@@ -124,6 +124,19 @@ export default function InventorySection() {
   })
   const inventoryValue = products.reduce((sum, p) => sum + p.price * p.stock, 0)
 
+  // Two active products sharing a name confuse both the storefront (same
+  // generated id) and checkout's price re-check — surfaced here since a new
+  // duplicate can no longer be created, but this catches any that already
+  // exist from before that guard.
+  const duplicateNameGroups = (() => {
+    const byName = new Map<string, Product[]>()
+    for (const p of products) {
+      const key = p.name.trim().toLowerCase()
+      byName.set(key, [...(byName.get(key) ?? []), p])
+    }
+    return Array.from(byName.values()).filter((group) => group.length > 1)
+  })()
+
   const resetEditor = () => {
     setForm(emptyForm)
     setImages([])
@@ -372,6 +385,24 @@ export default function InventorySection() {
           </Button>
         </div>
       </div>
+
+      {duplicateNameGroups.length > 0 && (
+        <div style={{ background: 'var(--color-danger-soft,#fef2f2)', border: '1px solid var(--color-danger,#dc2626)', borderRadius: 12, padding: '12px 16px' }}>
+          <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--color-danger,#dc2626)', marginBottom: 4 }}>
+            {duplicateNameGroups.length} product name{duplicateNameGroups.length === 1 ? '' : 's'} used more than once
+          </div>
+          <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: '0 0 8px', lineHeight: 1.5 }}>
+            The storefront can&apos;t tell these apart, and checkout can fail for them. Rename or archive one of each pair.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {duplicateNameGroups.map((group) => (
+              <div key={group[0].name} style={{ fontSize: 12.5 }}>
+                <strong>{group[0].name}</strong> — {group.map((p) => p.sku ?? p.id.slice(0, 8)).join(', ')}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div style={{ ...cardStyle, padding: 0, overflow: 'hidden' }}>
         <div style={{ display: 'grid', gridTemplateColumns: GRID_COLS, gap: 10, padding: '12px 18px', background: 'var(--ke-gray-50,#f5f7f5)', fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '.1em', color: 'var(--color-text-muted)' }}>

@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { guardAdmin } from '@/lib/requireAdmin'
 import { generateSerials } from '@/lib/serials'
 import { generateSku, generateBarcode } from '@/lib/productCodes'
+import { CATALOG } from '@/lib/catalog'
 
 const specItem = z.object({ label: z.string().max(80), value: z.string().max(200) })
 
@@ -49,6 +50,16 @@ export async function POST(request: Request) {
   if (!parsed.success) return NextResponse.json({ error: 'Invalid product' }, { status: 400 })
 
   const d = parsed.data
+
+  // Two products sharing a name is worse than a rejected save: the
+  // storefront can't tell them apart (same generated id) and checkout's
+  // price re-check can end up validating against a different one than the
+  // customer actually saw, failing every attempt to buy either one.
+  const nameClash = await prisma.product.findFirst({ where: { name: { equals: d.name, mode: 'insensitive' }, archived: false }, select: { id: true } })
+  if (nameClash || CATALOG.some((c) => c.name.toLowerCase() === d.name.toLowerCase())) {
+    return NextResponse.json({ error: `A product named "${d.name}" already exists. Edit that one instead, or use a different name.` }, { status: 409 })
+  }
+
   if (d.sku) {
     const existing = await prisma.product.findUnique({ where: { sku: d.sku } })
     if (existing) return NextResponse.json({ error: 'A product with this SKU already exists' }, { status: 409 })

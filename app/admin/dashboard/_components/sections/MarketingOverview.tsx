@@ -168,6 +168,17 @@ export default function MarketingOverview() {
             format={money}
           />
         )}
+        {!data ? (
+          <Skeleton width="100%" height={220} />
+        ) : (
+          <DonutChart
+            title="Campaigns sent by channel"
+            subtitle={`Last ${days} days`}
+            slices={data.channelBreakdown}
+            centreLabel="Sent"
+            format={(n) => String(n)}
+          />
+        )}
       </div>
 
       <div style={cardStyle}>

@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { guardAdmin } from '@/lib/requireAdmin'
 import { generateSerials } from '@/lib/serials'
+import { generateSku, generateBarcode } from '@/lib/productCodes'
 
 const specItem = z.object({ label: z.string().max(80), value: z.string().max(200) })
 
@@ -58,6 +59,11 @@ export async function POST(request: Request) {
     if (clash) return NextResponse.json({ error: `That barcode is already used by "${clash.name}".` }, { status: 409 })
   }
 
+  // Every product needs a code to scan/reorder by — assign one when the
+  // admin didn't type one in, rather than leaving it "N/A".
+  const sku = d.sku ?? (await generateSku(d.category ?? null))
+  const barcode = d.barcode ?? (await generateBarcode())
+
   const product = await prisma.$transaction(async (tx) => {
     const created = await tx.product.create({
       data: {
@@ -78,8 +84,8 @@ export async function POST(request: Request) {
         stock: d.stock,
         threshold: d.threshold,
         category: d.category ?? null,
-        sku: d.sku ?? null,
-        barcode: d.barcode ?? null,
+        sku,
+        barcode,
         spec: d.spec ?? null,
         badge: d.badge ?? null,
       },

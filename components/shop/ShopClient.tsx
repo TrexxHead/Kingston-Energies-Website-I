@@ -12,8 +12,12 @@ import { fuzzyScore } from '@/lib/search'
 
 export default function ShopClient({ products }: { products: ShopProduct[] }) {
   const searchParams = useSearchParams()
-  const initialCat = (searchParams.get('category') as Category | null) ?? 'all'
-  const [cat, setCat] = useState<'all' | Category>(initialCat)
+  // Usually a single category, but a deep link can name more than one (e.g.
+  // the homepage's "Chargers & cables" card links to chargers,components —
+  // two separate catalog categories shown together there) via a comma-
+  // separated list.
+  const initialCats = (searchParams.get('category')?.split(',').filter(Boolean) as ('all' | Category)[] | undefined) ?? []
+  const [cats, setCats] = useState<('all' | Category)[]>(initialCats.length ? initialCats : ['all'])
   const [query, setQuery] = useState('')
   const [compareOpen, setCompareOpen] = useState(false)
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
@@ -25,7 +29,7 @@ export default function ShopClient({ products }: { products: ShopProduct[] }) {
       .catch(() => {})
   }, [])
 
-  const byCat = products.filter((p) => cat === 'all' || p.cat === cat)
+  const byCat = products.filter((p) => cats.includes('all') || cats.includes(p.cat))
   const q = query.trim()
   const visible = q
     ? byCat
@@ -60,12 +64,12 @@ export default function ShopClient({ products }: { products: ShopProduct[] }) {
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {CATEGORY_PILLS.map((pill) => {
-              const selected = cat === pill.id
+              const selected = cats.includes(pill.id)
               return (
                 <button
                   key={pill.id}
                   type="button"
-                  onClick={() => setCat(pill.id)}
+                  onClick={() => setCats([pill.id])}
                   style={{
                     padding: '9px 16px',
                     borderRadius: 999,

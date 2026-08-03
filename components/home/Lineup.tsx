@@ -31,7 +31,7 @@ export default function Lineup({ minPrices, powerbanksImage, stationsImage }: Li
       title: 'Chargers & cables',
       desc: 'Fast wall chargers. USB-C, Lightning and braided cables.',
       group: 'chargers',
-      href: '/shop?category=chargers',
+      href: '/shop?category=chargers,components',
       image: '/images/charger20-1.jpg',
       objectPosition: 'center 45%',
       hoverBorder: 'rgba(41,171,226,.55)',

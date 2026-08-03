@@ -916,6 +916,17 @@ enum SuppressionReason {
   MANUAL
 }
 
+// Records that a lifecycle automation (welcome series, review request, ...)
+// has already fired for a given trigger, so the cron that runs them can't
+// send the same one twice. `key` encodes both which automation and which
+// trigger instance, e.g. "welcome:<userId>" or "review-request:<orderId>".
+model AutomationSend {
+  id     String   @id @default(cuid())
+  key    String   @unique
+  email  String
+  sentAt DateTime @default(now())
+}
+
 enum OrderStatus {
   PENDING
   PACKED

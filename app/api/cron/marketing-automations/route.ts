@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { dueCampaigns, sendCampaign } from '@/lib/campaigns'
 import { runAbandonedCartRecovery } from '@/lib/abandonedCart'
+import { runWelcomeSeries, runReviewRequests } from '@/lib/lifecycleAutomations'
 
 /**
  * Triggered by Vercel Cron (see vercel.json), same auth pattern as
@@ -12,7 +13,21 @@ import { runAbandonedCartRecovery } from '@/lib/abandonedCart'
  *   "Scheduled" only changed a badge; nothing sent until an admin clicked a
  *   button).
  * - Abandoned-cart recovery emails.
+ * - Welcome series (2 days after a verified signup).
+ * - Review requests (5 days after an order is marked delivered).
+ *
+ * Each job is independent and failure-isolated — one throwing never stops
+ * the others from running.
  */
+async function safely<T>(label: string, job: () => Promise<T>): Promise<T | { error: string }> {
+  try {
+    return await job()
+  } catch (err) {
+    console.error(`[cron/marketing-automations] ${label} failed:`, err)
+    return { error: err instanceof Error ? err.message : 'unknown error' }
+  }
+}
+
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET
   if (!secret) {
@@ -36,13 +51,17 @@ export async function GET(request: Request) {
     }),
   )
 
-  let abandonedCart: { sent: number } | { error: string }
-  try {
-    abandonedCart = await runAbandonedCartRecovery()
-  } catch (err) {
-    console.error('[cron/marketing-automations] abandoned-cart recovery failed:', err)
-    abandonedCart = { error: err instanceof Error ? err.message : 'unknown error' }
-  }
+  const [abandonedCart, welcomeSeries, reviewRequests] = await Promise.all([
+    safely('abandoned-cart recovery', runAbandonedCartRecovery),
+    safely('welcome series', runWelcomeSeries),
+    safely('review requests', runReviewRequests),
+  ])
 
-  return NextResponse.json({ ok: true, campaigns: { processed: campaignResults.length, results: campaignResults }, abandonedCart })
+  return NextResponse.json({
+    ok: true,
+    campaigns: { processed: campaignResults.length, results: campaignResults },
+    abandonedCart,
+    welcomeSeries,
+    reviewRequests,
+  })
 }

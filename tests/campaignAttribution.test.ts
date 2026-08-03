@@ -34,16 +34,43 @@ describe('discountCodeStats', () => {
 })
 
 describe('campaignStats', () => {
-  it('returns null (not a fabricated $0) when the campaign has no linked discount code', async () => {
+  it('returns a real zero (not null) for a campaign with no linked code and no clicks yet', async () => {
     findUniqueMock.mockResolvedValueOnce({ discountCode: null })
+    findManyMock.mockResolvedValueOnce([])
     const { campaignStats } = await import('@/lib/campaignAttribution')
-    expect(await campaignStats('c1')).toBeNull()
+    expect(await campaignStats('c1')).toEqual({ orders: 0, revenue: 0 })
   })
 
-  it('returns real stats when a discount code is linked', async () => {
-    findUniqueMock.mockResolvedValueOnce({ discountCode: { code: 'PROMO10' } })
-    findManyMock.mockResolvedValueOnce([{ total: 500 }])
+  it('queries by click attribution alone when there is no linked discount code', async () => {
+    findUniqueMock.mockResolvedValueOnce({ discountCode: null })
+    findManyMock.mockResolvedValueOnce([{ total: 800 }])
     const { campaignStats } = await import('@/lib/campaignAttribution')
-    expect(await campaignStats('c2')).toEqual({ orders: 1, revenue: 500 })
+    const result = await campaignStats('c1')
+    expect(result).toEqual({ orders: 1, revenue: 800 })
+    expect(findManyMock).toHaveBeenCalledWith({
+      where: { OR: [{ campaignId: 'c1' }], status: { not: 'CANCELLED' } },
+      select: { total: true },
+    })
+  })
+
+  it('combines click attribution and a linked discount code in one query', async () => {
+    findUniqueMock.mockResolvedValueOnce({ discountCode: { code: 'PROMO10' } })
+    findManyMock.mockResolvedValueOnce([{ total: 500 }, { total: 300 }])
+    const { campaignStats } = await import('@/lib/campaignAttribution')
+    const result = await campaignStats('c2')
+    expect(result).toEqual({ orders: 2, revenue: 800 })
+    expect(findManyMock).toHaveBeenCalledWith({
+      where: {
+        OR: [{ campaignId: 'c2' }, { promoCode: { equals: 'PROMO10', mode: 'insensitive' } }],
+        status: { not: 'CANCELLED' },
+      },
+      select: { total: true },
+    })
+  })
+
+  it('returns a real zero for an unknown campaign id', async () => {
+    findUniqueMock.mockResolvedValueOnce(null)
+    const { campaignStats } = await import('@/lib/campaignAttribution')
+    expect(await campaignStats('missing')).toEqual({ orders: 0, revenue: 0 })
   })
 })

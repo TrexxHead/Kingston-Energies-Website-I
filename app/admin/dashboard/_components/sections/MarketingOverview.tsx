@@ -60,7 +60,7 @@ export default function MarketingOverview() {
     {
       label: 'CAMPAIGN-ATTRIBUTED REVENUE',
       value: k ? fmt(k.attributedRevenue) : 'N/A',
-      sub: k ? `${k.attributedOrders} orders · linked-discount campaigns only` : undefined,
+      sub: k ? `${k.attributedOrders} orders · via tracking link or linked discount code` : undefined,
     },
     { label: 'LEADS GENERATED', value: k ? String(k.leadsGenerated) : 'N/A', sub: `last ${days} days` },
     { label: 'SEGMENTS', value: k ? String(k.segments) : 'N/A' },
@@ -134,12 +134,12 @@ export default function MarketingOverview() {
       ) : (
         <LineChart
           title="Attributed revenue trend"
-          subtitle={`Last ${days} days · orders that redeemed a campaign-linked discount code`}
+          subtitle={`Last ${days} days · via a campaign's tracking link or a linked discount code`}
           categories={data.revenueSeries.map((p) => p.label)}
           series={[{ label: 'Revenue', values: data.revenueSeries.map((p) => p.value), area: true }]}
           height={220}
           format={money}
-          footnote={!hasRevenueSignal ? 'No attributed orders in this period yet — link a discount code to a campaign to start measuring it.' : undefined}
+          footnote={!hasRevenueSignal ? 'No attributed orders in this period yet — share a campaign\'s tracking link or link it to a discount code to start measuring it.' : undefined}
         />
       )}
 
@@ -160,7 +160,7 @@ export default function MarketingOverview() {
         ) : (
           <BarChart
             title="Top campaigns by revenue"
-            subtitle={`Last ${days} days · linked-discount campaigns only`}
+            subtitle={`Last ${days} days`}
             categories={topCampaigns.length ? topCampaigns.map((c) => c.name) : ['No data']}
             series={[{ label: 'Revenue', values: topCampaigns.length ? topCampaigns.map((c) => c.revenue) : [0] }]}
             horizontal
@@ -176,7 +176,7 @@ export default function MarketingOverview() {
           <Skeleton width="100%" height={80} />
         ) : data.campaignPerformance.length === 0 ? (
           <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: 0 }}>
-            No sent campaigns with a linked discount code in this period — attribution only works for campaigns tied to a code (set one when creating or editing a campaign).
+            No campaigns sent in this period.
           </p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

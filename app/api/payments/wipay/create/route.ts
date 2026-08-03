@@ -27,6 +27,7 @@ const bodySchema = z.object({
   deliveryMethod: z.enum(['standard', 'express', 'pickup']).optional(),
   promoCode: z.string().max(40).optional(),
   pointsRedeemed: z.number().int().min(0).max(1_000_000).optional(),
+  campaignRef: z.string().max(60).optional(),
   items: z.array(z.object({ name: z.string().min(1).max(160), price: z.number().min(0), qty: z.number().int().min(1) })).min(1),
 })
 
@@ -47,7 +48,8 @@ export async function POST(request: Request) {
 
   const session = await getServerSession(authOptions)
   const userId = session?.user?.id ?? null
-  const { customerName, email, phone, shippingAddress, billingAddress, cartId, parish, deliveryMethod, promoCode, pointsRedeemed, items } = parsed.data
+  const { customerName, email, phone, shippingAddress, billingAddress, cartId, parish, deliveryMethod, promoCode, pointsRedeemed, campaignRef, items } = parsed.data
+  const campaignId = campaignRef ? await prisma.campaign.findUnique({ where: { id: campaignRef }, select: { id: true } }).then((c) => c?.id ?? null) : null
 
   // Item prices come from the request body — confirm every one is a real
   // product at its real current price before a card gets charged for it.
@@ -92,6 +94,7 @@ export async function POST(request: Request) {
           paymentMethod: 'card',
           paid: false,
           promoCode: promo?.valid ? promo.code ?? null : null,
+          campaignId,
           total,
           items: { create: recordedItems.map((i) => ({ name: i.name, qty: i.qty, price: i.price })) },
         },

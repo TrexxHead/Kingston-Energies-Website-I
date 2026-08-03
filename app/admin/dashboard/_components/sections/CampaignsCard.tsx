@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Plus, Trash2, Send, Mail, MessageSquare, Bell, Share2 } from 'lucide-react'
+import { Plus, Trash2, Send, Mail, MessageSquare, Bell, Share2, Link2, Check } from 'lucide-react'
 import { cardStyle, h3Style } from '../ui/card'
 import Badge from '../ui/Badge'
 import Button from '../ui/Button'
@@ -26,8 +26,9 @@ interface Campaign {
   segment: { id: string; name: string } | null
   discountCode: { id: string; code: string } | null
   spend: number | null
-  attributedOrders: number | null
-  attributedRevenue: number | null
+  attributedOrders: number
+  attributedRevenue: number
+  trackingLink: string
 }
 
 interface Segment {
@@ -62,6 +63,7 @@ export default function CampaignsCard() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [msg, setMsg] = useState('')
+  const [copiedId, setCopiedId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     const res = await fetch('/api/admin/campaigns')
@@ -115,6 +117,16 @@ export default function CampaignsCard() {
     load()
   }
 
+  const copyLink = async (c: Campaign) => {
+    try {
+      await navigator.clipboard.writeText(c.trackingLink)
+      setCopiedId(c.id)
+      setTimeout(() => setCopiedId((cur) => (cur === c.id ? null : cur)), 1800)
+    } catch {
+      // clipboard permission denied — nothing to do
+    }
+  }
+
   return (
     <div style={cardStyle}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -146,12 +158,21 @@ export default function CampaignsCard() {
                     {c.status === 'SCHEDULED' && c.scheduledAt ? ` · ${c.scheduledAt.replace('T', ' ')}` : ''}
                   </div>
                   {c.status === 'SENT' && (
-                    <div style={{ fontSize: 11, color: c.attributedRevenue != null ? 'var(--ke-green-700)' : 'var(--color-text-subtle)', marginTop: 2 }}>
-                      {c.attributedRevenue != null ? `${fmt(c.attributedRevenue)} attributed · ${c.attributedOrders} orders` : 'Not tracked (link a discount code to measure results)'}
+                    <div style={{ fontSize: 11, color: c.attributedRevenue > 0 ? 'var(--ke-green-700)' : 'var(--color-text-subtle)', marginTop: 2 }}>
+                      {c.attributedRevenue > 0 ? `${fmt(c.attributedRevenue)} attributed · ${c.attributedOrders} orders` : 'No attributed orders yet'}
                     </div>
                   )}
                 </div>
                 <Badge tone={STATUS_TONE[c.status]}>{c.status[0] + c.status.slice(1).toLowerCase()}</Badge>
+                <button
+                  type="button"
+                  onClick={() => copyLink(c)}
+                  aria-label="Copy tracking link"
+                  title="Copy tracking link (attributes orders to this campaign when clicked)"
+                  style={iconBtn}
+                >
+                  {copiedId === c.id ? <Check size={13} color="var(--ke-green-600)" /> : <Link2 size={13} />}
+                </button>
                 {c.status !== 'SENT' && (
                   <button type="button" onClick={() => send(c)} aria-label="Send" title="Send / action now" style={iconBtn}><Send size={13} /></button>
                 )}
@@ -208,7 +229,7 @@ export default function CampaignsCard() {
               {form.segmentId === NONE
                 ? 'No segment picked — sends to every subscribed customer.'
                 : `Sends to the "${form.segmentId}" segment (${segments.find((s) => s.name === form.segmentId)?.size ?? 0} customers right now).`}
-              {' '}Linking a discount code is what lets this campaign's results be measured — without one, orders from it won't show as attributed.
+              {' '}Every campaign gets its own tracking link (copy it from the list below once created) — orders from anyone who clicks it are attributed automatically. Linking a discount code adds a second way to attribute results, useful when you're sharing outside a trackable link (e.g. reading a code aloud).
             </p>
             <TextInput label="Schedule for (optional)" value={form.scheduledAt} onChange={(v) => setForm({ ...form, scheduledAt: v })} type="datetime-local" />
             <TextInput label="Spend (J$, optional)" value={form.spend} onChange={(v) => setForm({ ...form, spend: v })} type="number" placeholder="For a paid boost — used to judge ROI" />

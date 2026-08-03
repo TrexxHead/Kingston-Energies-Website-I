@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { guardAdmin } from '@/lib/requireAdmin'
-import { discountCodeStats } from '@/lib/campaignAttribution'
+import { campaignStats } from '@/lib/campaignAttribution'
 
 /**
  * The Marketing tab's Overview dashboard. Deliberately shows only what's
@@ -20,13 +20,12 @@ export async function GET(request: Request) {
   const [
     scheduledCount,
     sentThisPeriod,
-    campaignsWithCode,
+    sentCampaigns,
     leadsThisPeriod,
     newLeads,
     leadsByStatusRaw,
     segmentsCount,
     activeDiscountCodes,
-    allDiscountCodes,
     expiringDiscountCodes,
     suppressedCount,
     channelCounts,
@@ -34,7 +33,7 @@ export async function GET(request: Request) {
     prisma.campaign.count({ where: { status: 'SCHEDULED' } }),
     prisma.campaign.count({ where: { status: 'SENT', sentAt: { gte: since } } }),
     prisma.campaign.findMany({
-      where: { discountCodeId: { not: null }, sentAt: { gte: since } },
+      where: { status: 'SENT', sentAt: { gte: since } },
       select: { id: true, name: true, discountCode: { select: { code: true } } },
     }),
     prisma.lead.count({ where: { createdAt: { gte: since } } }),
@@ -42,32 +41,39 @@ export async function GET(request: Request) {
     prisma.lead.groupBy({ by: ['status'], _count: { _all: true } }),
     prisma.segment.count(),
     prisma.discountCode.count({ where: { active: true } }),
-    prisma.discountCode.findMany({ select: { code: true } }),
     prisma.discountCode.count({ where: { active: true, expiresAt: { gte: new Date(), lte: new Date(Date.now() + 7 * 86_400_000) } } }),
     prisma.suppression.count(),
     prisma.campaign.groupBy({ by: ['channel'], where: { status: 'SENT', sentAt: { gte: since } }, _count: { _all: true } }),
   ])
 
-  const campaignStats = await Promise.all(
-    campaignsWithCode.map(async (c) => ({
-      id: c.id,
-      name: c.name,
-      ...(await discountCodeStats(c.discountCode!.code, since)),
-    })),
+  // Attributed (click and/or linked-discount-code) performance per campaign
+  // sent in this period — every campaign has a real number, including a real
+  // zero, since a tracking link exists from the moment a campaign is created.
+  const campaignPerformance = await Promise.all(
+    sentCampaigns.map(async (c) => ({ id: c.id, name: c.name, ...(await campaignStats(c.id, since)) })),
   )
-  const attributedRevenue = campaignStats.reduce((s, c) => s + c.revenue, 0)
-  const attributedOrders = campaignStats.reduce((s, c) => s + c.orders, 0)
+  const attributedRevenue = campaignPerformance.reduce((s, c) => s + c.revenue, 0)
+  const attributedOrders = campaignPerformance.reduce((s, c) => s + c.orders, 0)
 
-  // Daily attributed-revenue trend: every order that redeemed ANY code ever
-  // linked to a campaign, bucketed by day. Same honesty rule as the KPI above
-  // — this is real redemption data, not a projection.
-  const linkedCodes = allDiscountCodes.map((d) => d.code)
-  const attributedOrdersInPeriod = linkedCodes.length
-    ? await prisma.order.findMany({
-        where: { promoCode: { in: linkedCodes, mode: 'insensitive' }, status: { not: 'CANCELLED' }, createdAt: { gte: since } },
-        select: { total: true, createdAt: true },
-      })
-    : []
+  // Daily attributed-revenue trend: every order stamped with one of these
+  // campaigns' click attribution, or that redeemed one of their linked
+  // codes, bucketed by day. Same underlying data as the KPI above.
+  const sentCampaignIds = sentCampaigns.map((c) => c.id)
+  const linkedCodes = sentCampaigns.map((c) => c.discountCode?.code).filter((c): c is string => Boolean(c))
+  const attributedOrdersInPeriod =
+    sentCampaignIds.length || linkedCodes.length
+      ? await prisma.order.findMany({
+          where: {
+            OR: [
+              ...(sentCampaignIds.length ? [{ campaignId: { in: sentCampaignIds } }] : []),
+              ...(linkedCodes.length ? [{ promoCode: { in: linkedCodes, mode: 'insensitive' as const } }] : []),
+            ],
+            status: { not: 'CANCELLED' },
+            createdAt: { gte: since },
+          },
+          select: { total: true, createdAt: true },
+        })
+      : []
   const revenueSeries: { label: string; value: number }[] = []
   for (let i = 0; i < days; i++) {
     const day = new Date(since)
@@ -92,10 +98,8 @@ export async function GET(request: Request) {
     kpis: {
       scheduledCampaigns: scheduledCount,
       sentCampaigns: sentThisPeriod,
-      // Revenue/orders from campaigns with a linked discount code, sent within
-      // the period. Campaigns without a linked code aren't counted here — not
-      // zero, just not trackable, and the campaign table below shows that
-      // distinction per-campaign.
+      // Revenue/orders attributed via click-through or a linked discount
+      // code, across every campaign sent in this period.
       attributedRevenue,
       attributedOrders,
       leadsGenerated: leadsThisPeriod,
@@ -105,7 +109,7 @@ export async function GET(request: Request) {
       expiringDiscountCodes,
       suppressedContacts: suppressedCount,
     },
-    campaignPerformance: campaignStats.sort((a, b) => b.revenue - a.revenue),
+    campaignPerformance: campaignPerformance.sort((a, b) => b.revenue - a.revenue),
     revenueSeries,
     leadsByStatus,
     channelBreakdown,

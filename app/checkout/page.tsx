@@ -13,6 +13,14 @@ import { useToast } from '@/components/cart/ToastContext'
 import { fmt } from '@/lib/catalog'
 import { linkifyText } from '@/lib/linkify'
 import { deliveryFee, deliveryTimeframe, PICKUP_LOCATIONS, type DeliveryMethod } from '@/lib/delivery'
+import { CAMPAIGN_CLICK_COOKIE } from '@/lib/campaignClick'
+
+/** Reads a first-party cookie by name — used for the campaign-click attribution cookie set in CampaignClickCapture. */
+function readCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null
+  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`))
+  return match ? decodeURIComponent(match[1]) : null
+}
 
 const HEADLINES = ['Where to?', "How you'll pay.", 'Review & place order.']
 const DELIVERY_METHODS: { id: DeliveryMethod; label: string }[] = [
@@ -116,6 +124,7 @@ function CheckoutInner() {
     const billingAddress = billingSame ? shippingAddress : (billing.trim() || undefined)
     let cartId: string | undefined
     try { cartId = localStorage.getItem('ke-cart-id') ?? undefined } catch { /* ignore */ }
+    const campaignRef = readCookie(CAMPAIGN_CLICK_COOKIE) || undefined
     const contact = { email: email.trim() || undefined, phone: phone.trim() || undefined, shippingAddress, billingAddress, cartId, parish, deliveryMethod }
 
     // Card → hand off to the WiPay hosted page.
@@ -124,7 +133,7 @@ function CheckoutInner() {
         const res = await fetch('/api/payments/wipay/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ customerName, ...contact, items: payloadItems, promoCode: promoCode ?? undefined, pointsRedeemed: pointsApplied || undefined }),
+          body: JSON.stringify({ customerName, ...contact, items: payloadItems, promoCode: promoCode ?? undefined, pointsRedeemed: pointsApplied || undefined, campaignRef }),
         })
         if (res.ok) {
           const { action, fields } = await res.json()
@@ -149,7 +158,7 @@ function CheckoutInner() {
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customerName, paymentMethod: selected.id, ...contact, items: payloadItems, promoCode: promoCode ?? undefined, pointsRedeemed: pointsApplied || undefined }),
+        body: JSON.stringify({ customerName, paymentMethod: selected.id, ...contact, items: payloadItems, promoCode: promoCode ?? undefined, pointsRedeemed: pointsApplied || undefined, campaignRef }),
       })
       if (res.ok) {
         const data = await res.json()

@@ -308,6 +308,12 @@ model Order {
   // without it there's no way to know which code (or which campaign, via
   // Campaign.discountCodeId) actually drove a sale. See lib/campaignAttribution.ts.
   promoCode     String?
+  // Last-click campaign attribution: set when a customer's most recent
+  // campaign-link click (within the attribution window — see
+  // lib/campaignClick.ts) precedes this order. Covers campaigns that don't
+  // have a linked discount code, which promoCode-based attribution can't see.
+  campaignId    String?
+  campaign      Campaign?   @relation(fields: [campaignId], references: [id], onDelete: SetNull)
   invoicedAt    DateTime?   // when an invoice was issued/sent (prevents dupes)
   cancelReason  String?
   cancelledAt   DateTime?
@@ -332,6 +338,7 @@ model Order {
   @@index([createdAt])
   @@index([email])
   @@index([promoCode])
+  @@index([campaignId])
 }
 
 // Timeline events for an order (cancellations, stage changes, notes). Powers
@@ -864,6 +871,8 @@ model Campaign {
   // Optional manual spend entry (e.g. a paid boost) so ROI can be shown
   // alongside attributed revenue when the admin knows the cost.
   spend          Float?
+
+  orders         Order[]
 
   @@index([createdAt])
   @@index([segmentId])

@@ -2,7 +2,10 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { guardAdmin } from '@/lib/requireAdmin'
-import { discountCodeStats } from '@/lib/campaignAttribution'
+import { campaignStats } from '@/lib/campaignAttribution'
+import { campaignTrackingLink } from '@/lib/campaignClick'
+
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
 const createSchema = z.object({
   name: z.string().min(1).max(120),
@@ -27,7 +30,7 @@ export async function GET() {
 
   const withStats = await Promise.all(
     campaigns.map(async (c) => {
-      const stats = c.discountCode ? await discountCodeStats(c.discountCode.code) : null
+      const stats = await campaignStats(c.id)
       return {
         id: c.id,
         name: c.name,
@@ -42,9 +45,12 @@ export async function GET() {
         segment: c.segment,
         discountCode: c.discountCode,
         spend: c.spend,
-        // null = not tracked (no linked discount code) — never render as a fabricated $0.
-        attributedOrders: stats?.orders ?? null,
-        attributedRevenue: stats?.revenue ?? null,
+        // Always real — every campaign has a tracking link the moment it's
+        // created, so 0 here is a genuine "nothing attributed yet," not "we
+        // can't measure this."
+        attributedOrders: stats.orders,
+        attributedRevenue: stats.revenue,
+        trackingLink: campaignTrackingLink(siteUrl, c.id),
       }
     }),
   )

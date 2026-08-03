@@ -4,6 +4,7 @@ import './_design-system/tokens.css'
 import Providers from '@/components/Providers'
 import Camille from '@/components/camille/DeferredCamille'
 import CookieConsent from '@/components/CookieConsent'
+import CampaignClickCapture from '@/components/CampaignClickCapture'
 import AnnouncementBar from '@/components/AnnouncementBar'
 import JsonLd from '@/components/JsonLd'
 import GoogleAnalytics from '@/components/GoogleAnalytics'
@@ -85,6 +86,7 @@ export default function RootLayout({
           <AnnouncementBar />
           {children}
           <Camille />
+          <CampaignClickCapture />
           <CookieConsent />
           <GoogleAnalytics />
           <WebVitals />

@@ -53,6 +53,14 @@ model Cart {
   itemCount Int      @default(0)
   total     Float    @default(0)
   status    String   @default("ACTIVE") // ACTIVE | CONVERTED
+  // When a recovery email was sent for this abandonment — null means not yet
+  // sent, so the cron can find candidates and never send a second one for the
+  // same abandonment. Reset to null on every /api/cart/sync upsert (any visit
+  // that re-syncs the cart, not only a genuine edit — cheap to accept: worst
+  // case a customer who keeps passively returning without buying can become
+  // eligible for another reminder once the inactivity window re-elapses,
+  // which is normal behavior for this kind of email, not a bug).
+  recoveryEmailSentAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

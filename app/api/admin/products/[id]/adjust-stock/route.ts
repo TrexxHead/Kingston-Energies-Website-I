@@ -6,6 +6,7 @@ import { authOptions } from '@/lib/authOptions'
 import { guardAdmin } from '@/lib/requireAdmin'
 import { postStockAdjustment } from '@/lib/ledger/post'
 import { generateSerials } from '@/lib/serials'
+import { notifyRestockWaitlist } from '@/lib/restockNotify'
 
 const schema = z.object({
   type: z.enum(['SET', 'ADD', 'SUBTRACT']),
@@ -29,7 +30,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const { type, amount, reason } = parsed.data
 
   const { id } = await params
-  const product = await prisma.product.findUnique({ where: { id }, select: { stock: true } })
+  const product = await prisma.product.findUnique({ where: { id }, select: { stock: true, name: true, catalogId: true } })
   if (!product) return NextResponse.json({ error: 'Product not found' }, { status: 404 })
 
   const previousStock = product.stock
@@ -63,6 +64,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   // Revalue inventory in the ledger (Inventory ↔ Shrinkage). Never touches a
   // revenue account, so an adjustment can't move sales or profit.
   void postStockAdjustment(adjustment).catch((err) => console.error('[ledger] stock adjustment posting failed:', err))
+
+  // Receiving inventory (this route) is the more common way stock actually
+  // goes from 0 to positive in practice — not editing the product form,
+  // which used to be the only path that notified the back-in-stock waitlist.
+  if (previousStock === 0 && newStock > 0) {
+    void notifyRestockWaitlist(product.name, newStock, product.catalogId)
+  }
 
   return NextResponse.json({ product: updated })
 }

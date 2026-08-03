@@ -46,6 +46,9 @@ export async function POST(request: Request) {
         items,
         itemCount,
         total,
+        // A real edit means they're active again, not abandoned — clear any
+        // prior recovery-email flag so a later abandonment gets its own email.
+        recoveryEmailSentAt: null,
       },
     })
   } catch {

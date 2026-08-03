@@ -9,11 +9,11 @@
       "schedule": "0 1 * * *"
     },
     {
-      "path": "/api/cron/campaigns-send",
+      "path": "/api/cron/marketing-automations",
       "schedule": "0 13 * * *"
     },
     {
-      "path": "/api/cron/campaigns-send",
+      "path": "/api/cron/marketing-automations",
       "schedule": "0 20 * * *"
     }
   ]

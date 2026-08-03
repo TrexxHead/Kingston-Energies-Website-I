@@ -46,6 +46,7 @@ export async function GET() {
       total: o.total,
       itemCount: o.items.reduce((sum, i) => sum + i.qty, 0),
       date: new Date(o.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+      createdAt: o.createdAt.toISOString(),
       items: o.items.map((i) => ({ name: i.name, qty: i.qty, price: i.price })),
     })),
   })

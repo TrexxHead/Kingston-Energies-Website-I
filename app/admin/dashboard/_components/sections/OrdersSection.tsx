@@ -36,6 +36,7 @@ interface Order {
   total: number
   itemCount: number
   date: string
+  createdAt: string
   items: { name: string; qty: number; price: number }[]
 }
 
@@ -69,6 +70,21 @@ const COLUMNS: { id: OrderStatus; label: string }[] = [
   { id: 'CANCELLED', label: 'Cancelled' },
 ]
 
+// A column only shows this many cards before folding the rest behind
+// "View all" — otherwise a column with hundreds of completed orders grows
+// the whole board instead of staying a fixed-height glance.
+const COLUMN_CARD_LIMIT = 6
+
+function monthKey(iso: string): string {
+  const d = new Date(iso)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+function monthLabel(key: string): string {
+  const [y, m] = key.split('-').map(Number)
+  return new Date(y, m - 1, 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
+}
+
 export default function OrdersSection() {
   const [orders, setOrders] = useState<Order[]>([])
   const [dragId, setDragId] = useState<string | null>(null)
@@ -76,6 +92,10 @@ export default function OrdersSection() {
   const [customerNote, setCustomerNote] = useState('')
   const [internalNote, setInternalNote] = useState('')
   const [stageBusy, setStageBusy] = useState(false)
+  const [expandedColumn, setExpandedColumn] = useState<OrderStatus | null>(null)
+  const [refundMonth, setRefundMonth] = useState<string>('ALL')
+  const [noteDraft, setNoteDraft] = useState('')
+  const [noteBusy, setNoteBusy] = useState(false)
   const [newOpen, setNewOpen] = useState(false)
   const [newBusy, setNewBusy] = useState(false)
   const [newError, setNewError] = useState('')
@@ -231,7 +251,38 @@ export default function OrdersSection() {
     setDragId(null)
   }
 
+  const openDetail = (card: Order) => {
+    setInvoiceMsg('')
+    setCustomerNote('')
+    setInternalNote('')
+    setNoteDraft('')
+    setDetail(card)
+  }
+
+  const addNote = async (id: string) => {
+    const note = noteDraft.trim()
+    if (!note) return
+    setNoteBusy(true)
+    const res = await fetch(`/api/admin/orders/${id}/notes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ note }),
+    })
+    setNoteBusy(false)
+    if (res.ok) {
+      setNoteDraft('')
+      const fresh = await fetch('/api/admin/orders')
+      if (fresh.ok) {
+        const next: Order[] = (await fresh.json()).orders
+        setOrders(next)
+        setDetail((d) => (d ? next.find((o) => o.id === d.id) ?? null : d))
+      }
+    }
+  }
+
   const cancelled = orders.filter((o) => o.status === 'CANCELLED')
+  const cancelledMonths = Array.from(new Set(cancelled.map((o) => monthKey(o.createdAt)))).sort().reverse()
+  const visibleCancelled = refundMonth === 'ALL' ? cancelled : cancelled.filter((o) => monthKey(o.createdAt) === refundMonth)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -247,6 +298,8 @@ export default function OrdersSection() {
       <div className="kad-kanban" style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 14, alignItems: 'start' }}>
         {COLUMNS.map((col) => {
           const cards = orders.filter((o) => o.status === col.id)
+          const visible = cards.slice(0, COLUMN_CARD_LIMIT)
+          const hiddenCount = cards.length - visible.length
           return (
             <div
               key={col.id}
@@ -259,12 +312,12 @@ export default function OrdersSection() {
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-text-muted)' }}>{cards.length}</span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {cards.map((card) => (
+                {visible.map((card) => (
                   <div
                     key={card.id}
                     draggable
                     onDragStart={() => setDragId(card.id)}
-                    onClick={() => { setInvoiceMsg(''); setCustomerNote(''); setInternalNote(''); setDetail(card) }}
+                    onClick={() => openDetail(card)}
                     style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 11, padding: '11px 12px', cursor: 'grab', boxShadow: 'var(--shadow-sm)' }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
@@ -282,6 +335,18 @@ export default function OrdersSection() {
                     </div>
                   </div>
                 ))}
+                {hiddenCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setExpandedColumn(col.id)}
+                    style={{
+                      width: '100%', textAlign: 'center', padding: '9px 10px', borderRadius: 11, border: '1px dashed var(--color-border-strong)',
+                      background: 'transparent', color: 'var(--color-text-muted)', fontSize: 11.5, fontWeight: 600, cursor: 'pointer',
+                    }}
+                  >
+                    View all {cards.length} ({hiddenCount} more)
+                  </button>
+                )}
               </div>
             </div>
           )
@@ -289,15 +354,31 @@ export default function OrdersSection() {
       </div>
 
       <div style={{ ...cardStyle, marginTop: 6 }}>
-        <h3 style={h3Style}>Refunds &amp; returns</h3>
-        {cancelled.length === 0 ? (
-          <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: 0 }}>No cancelled orders right now.</p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <h3 style={{ ...h3Style, margin: 0 }}>Refunds &amp; returns</h3>
+          {cancelledMonths.length > 0 && (
+            <select
+              value={refundMonth}
+              onChange={(e) => setRefundMonth(e.target.value)}
+              style={{ height: 32, padding: '0 10px', border: '1px solid var(--color-border)', borderRadius: 9, fontSize: 12.5, background: 'var(--color-surface)', color: 'var(--color-text)' }}
+            >
+              <option value="ALL">All time ({cancelled.length})</option>
+              {cancelledMonths.map((m) => (
+                <option key={m} value={m}>{monthLabel(m)} ({cancelled.filter((o) => monthKey(o.createdAt) === m).length})</option>
+              ))}
+            </select>
+          )}
+        </div>
+        {visibleCancelled.length === 0 ? (
+          <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: '10px 0 0' }}>
+            {cancelled.length === 0 ? 'No cancelled orders right now.' : 'Nothing cancelled in this month.'}
+          </p>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {cancelled.map((o) => (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 12 }}>
+            {visibleCancelled.map((o) => (
               <div key={o.id} style={{ display: 'flex', alignItems: 'center', gap: 14, fontSize: 13 }}>
                 <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', width: 70 }}>{o.orderNo}</span>
-                <span style={{ flex: 1 }}>{o.customerName} · {fmt(o.total)}</span>
+                <span style={{ flex: 1, cursor: 'pointer' }} onClick={() => openDetail(o)}>{o.customerName} · {fmt(o.total)}</span>
                 <Badge tone="orange">Cancelled</Badge>
                 <Button variant="outline" size="sm" onClick={() => setStatus(o.id, 'PENDING')}>Restore</Button>
               </div>
@@ -305,6 +386,36 @@ export default function OrdersSection() {
           </div>
         )}
       </div>
+
+      {expandedColumn && (
+        <Modal
+          title={`${COLUMNS.find((c) => c.id === expandedColumn)?.label} (${orders.filter((o) => o.status === expandedColumn).length})`}
+          onClose={() => setExpandedColumn(null)}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: '60vh', overflowY: 'auto' }}>
+            {orders.filter((o) => o.status === expandedColumn).map((o) => (
+              <div key={o.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px', border: '1px solid var(--color-border)', borderRadius: 10 }}>
+                <span
+                  style={{ flex: 1, minWidth: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}
+                  onClick={() => { setExpandedColumn(null); openDetail(o) }}
+                >
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--color-text-muted)', width: 68, flexShrink: 0 }}>{o.orderNo}</span>
+                  <span style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.customerName}</span>
+                  <span style={{ fontSize: 11, color: 'var(--color-text-subtle)', flexShrink: 0 }}>{o.date}</span>
+                </span>
+                <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 12.5, flexShrink: 0 }}>{fmt(o.total)}</span>
+                <select
+                  value={o.status}
+                  onChange={(e) => setStatus(o.id, e.target.value as OrderStatus)}
+                  style={{ height: 30, padding: '0 8px', border: '1px solid var(--color-border)', borderRadius: 8, fontSize: 11.5, background: 'var(--color-surface)', flexShrink: 0 }}
+                >
+                  {COLUMNS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+                </select>
+              </div>
+            ))}
+          </div>
+        </Modal>
+      )}
 
       {detail && (
         <Modal title={`Order ${detail.orderNo}`} onClose={() => setDetail(null)}>
@@ -452,25 +563,44 @@ export default function OrdersSection() {
                   </Button>
                 )}
               </div>
-
-              {detail.events.length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
-                  {detail.events.map((e) => (
-                    <div key={e.id} style={{ display: 'flex', gap: 8, fontSize: 11.5, alignItems: 'baseline' }}>
-                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
-                        {new Date(e.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                      </span>
-                      {e.adminOnly && <Badge tone="grey">Internal</Badge>}
-                      <span style={{ color: 'var(--color-text-muted)' }}>
-                        <strong style={{ color: 'var(--color-text)', fontWeight: 600 }}>{e.label}</strong>
-                        {e.note ? `: ${e.note}` : ''}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           )}
+
+          <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13.5 }}>Notes</span>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <textarea
+                value={noteDraft}
+                onChange={(e) => setNoteDraft(e.target.value)}
+                placeholder="Leave a note on this order (admin only — works regardless of status)"
+                rows={2}
+                maxLength={400}
+                style={{ flex: 1, resize: 'vertical', fontSize: 12.5, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--color-border)', fontFamily: 'inherit', background: 'var(--ke-gray-50,#fafafa)' }}
+              />
+            </div>
+            <div>
+              <Button size="sm" variant="outline" onClick={() => addNote(detail.id)} disabled={noteBusy || !noteDraft.trim()}>
+                {noteBusy ? 'Saving…' : 'Add note'}
+              </Button>
+            </div>
+
+            {detail.events.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
+                {[...detail.events].reverse().map((e) => (
+                  <div key={e.id} style={{ display: 'flex', gap: 8, fontSize: 11.5, alignItems: 'baseline' }}>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
+                      {new Date(e.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                    </span>
+                    {e.adminOnly && <Badge tone="grey">Internal</Badge>}
+                    <span style={{ color: 'var(--color-text-muted)' }}>
+                      <strong style={{ color: 'var(--color-text)', fontWeight: 600 }}>{e.label}</strong>
+                      {e.note ? `: ${e.note}` : ''}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 14, display: 'flex', justifyContent: 'flex-end' }}>
             <Button size="sm" variant="outline" onClick={() => deleteOrder(detail.id, detail.orderNo)}>

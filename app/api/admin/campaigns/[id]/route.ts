@@ -25,6 +25,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   const d = parsed.data
   try {
+    const existing = await prisma.campaign.findUnique({ where: { id }, select: { expenseId: true } })
+    if (!existing) return NextResponse.json({ error: 'Campaign not found' }, { status: 404 })
+    // Once spend has been posted as a real Expense (on send), it's locked —
+    // editing it here would desync Marketing's number from what Finance
+    // already recorded, since the posted ledger entry itself never updates.
+    if (d.spend !== undefined && existing.expenseId) {
+      return NextResponse.json({ error: 'Spend is locked once the campaign has sent — it was posted as an expense.' }, { status: 400 })
+    }
     const campaign = await prisma.campaign.update({
       where: { id },
       data: {

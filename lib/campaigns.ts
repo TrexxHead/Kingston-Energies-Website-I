@@ -3,6 +3,7 @@ import { sendPersonalizedBulkEmail, wrapEmailHtml } from '@/lib/email'
 import { filterSuppressed } from '@/lib/suppression'
 import { segmentMembers } from '@/lib/segments'
 import { unsubscribeToken } from '@/lib/unsubscribeToken'
+import { postExpense } from '@/lib/ledger/post'
 import type { SegmentCriteria } from '@/lib/segments'
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://kingstonenergies.com'
@@ -88,6 +89,23 @@ export async function sendCampaign(campaignId: string): Promise<SendResult> {
     where: { id: campaignId },
     data: { status: 'SENT', sentAt: new Date(), recipientCount },
   })
+
+  // A spend figure entered before sending is now a real cost incurred, so
+  // it's logged as an actual Expense and posted to the ledger — Marketing's
+  // ROI number and Finance's P&L then agree, instead of Marketing carrying
+  // a spend nobody else can see. Best-effort: a posting failure must never
+  // block the send itself.
+  if (campaign.spend && campaign.spend > 0 && !campaign.expenseId) {
+    try {
+      const expense = await prisma.expense.create({
+        data: { category: 'Marketing', description: `Campaign: ${campaign.name}`, amount: campaign.spend, spentAt: new Date() },
+      })
+      await postExpense(expense)
+      await prisma.campaign.update({ where: { id: campaignId }, data: { expenseId: expense.id } })
+    } catch (err) {
+      console.error('[campaigns] spend-to-expense posting failed:', err)
+    }
+  }
 
   return { recipientCount, note }
 }

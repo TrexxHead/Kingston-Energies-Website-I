@@ -45,6 +45,7 @@ export async function GET() {
         segment: c.segment,
         discountCode: c.discountCode,
         spend: c.spend,
+        expenseId: c.expenseId,
         // Always real — every campaign has a tracking link the moment it's
         // created, so 0 here is a genuine "nothing attributed yet," not "we
         // can't measure this."

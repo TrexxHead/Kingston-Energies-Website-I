@@ -26,6 +26,7 @@ interface Campaign {
   segment: { id: string; name: string } | null
   discountCode: { id: string; code: string } | null
   spend: number | null
+  expenseId: string | null
   attributedOrders: number
   attributedRevenue: number
   trackingLink: string
@@ -160,6 +161,7 @@ export default function CampaignsCard() {
                   {c.status === 'SENT' && (
                     <div style={{ fontSize: 11, color: c.attributedRevenue > 0 ? 'var(--ke-green-700)' : 'var(--color-text-subtle)', marginTop: 2 }}>
                       {c.attributedRevenue > 0 ? `${fmt(c.attributedRevenue)} attributed · ${c.attributedOrders} orders` : 'No attributed orders yet'}
+                      {c.expenseId ? ` · ${fmt(c.spend ?? 0)} spend logged in Finance` : ''}
                     </div>
                   )}
                 </div>
@@ -235,6 +237,7 @@ export default function CampaignsCard() {
             <TextInput label="Spend (J$, optional)" value={form.spend} onChange={(v) => setForm({ ...form, spend: v })} type="number" placeholder="For a paid boost — used to judge ROI" />
             <p style={{ fontSize: 11.5, color: 'var(--color-text-subtle)', margin: 0 }}>
               Email campaigns send via Resend and check the suppression list automatically. SMS/push/social are tracked here and actioned through your external tooling.
+              {' '}Spend entered here is logged as a real Marketing expense in Finance the moment this campaign sends.
             </p>
           </div>
         </Modal>

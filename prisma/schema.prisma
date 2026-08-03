@@ -809,6 +809,8 @@ model Expense {
 
   // The receipt this expense was raised from, if any.
   document DocumentScan?
+  // The campaign this expense was posted for, if it came from campaign spend.
+  campaign Campaign?
 
   @@index([spentAt])
 }
@@ -869,8 +871,13 @@ model Campaign {
   discountCodeId String?
   discountCode   DiscountCode?   @relation(fields: [discountCodeId], references: [id], onDelete: SetNull)
   // Optional manual spend entry (e.g. a paid boost) so ROI can be shown
-  // alongside attributed revenue when the admin knows the cost.
+  // alongside attributed revenue when the admin knows the cost. Editable
+  // freely while the campaign hasn't sent yet; once it sends with spend > 0
+  // it's posted as a real Expense (see lib/campaigns.ts) and locked, so the
+  // number in Marketing always matches what Finance actually recorded.
   spend          Float?
+  expenseId      String?         @unique
+  expense        Expense?        @relation(fields: [expenseId], references: [id], onDelete: SetNull)
 
   orders         Order[]
 

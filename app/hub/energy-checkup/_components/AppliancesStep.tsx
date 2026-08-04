@@ -14,22 +14,32 @@ function isZeroed(a: ApplianceDef, state: CuState): boolean {
   return false
 }
 
+const FREQUENCY_OPTIONS: { label: string; days: number }[] = [
+  { label: 'Every day', days: 1 },
+  { label: 'Every 2 days', days: 2 },
+  { label: 'Every 3 days', days: 3 },
+  { label: 'A few times a week', days: 4 },
+  { label: 'Weekly', days: 7 },
+  { label: 'A few times a month', days: 14 },
+  { label: 'Monthly', days: 30 },
+]
+
 export default function AppliancesStep({ state, set }: { state: CuState; set: (patch: Partial<CuState>) => void }) {
   const mode = state.mode ?? 'home'
   const library = libraryFor(mode)
   const roomOrder = roomOrderFor(mode)
 
-  function setRow(id: string, patch: Partial<{ count: number; hours: number }>) {
+  function setRow(id: string, patch: Partial<{ count: number; hours: number; intervalDays: number }>) {
     const a = library.find((x) => x.id === id)!
-    const current = state.rows[id] ?? { count: a.defaultCount, hours: a.defaultHoursPerDay }
+    const current = state.rows[id] ?? { count: a.defaultCount, hours: a.defaultHoursPerDay, intervalDays: 1 }
     set({ rows: { ...state.rows, [id]: { ...current, ...patch } } })
   }
 
   const ctx = { acType: state.acType, waterType: state.waterType, lightType: state.lightType, fridgeAgeBand: state.fridgeAgeBand }
   const rowsWithKwh = library.map((a) => {
-    const row = state.rows[a.id] ?? { count: a.defaultCount, hours: a.defaultHoursPerDay }
+    const row = state.rows[a.id] ?? { count: a.defaultCount, hours: a.defaultHoursPerDay, intervalDays: 1 }
     const zeroed = isZeroed(a, state)
-    const kwh = zeroed ? 0 : applianceKwh(a, { applianceId: a.id, count: row.count, hours: row.hours }, ctx)
+    const kwh = zeroed ? 0 : applianceKwh(a, { applianceId: a.id, count: row.count, hours: row.hours, intervalDays: row.intervalDays }, ctx)
     return { a, row, zeroed, kwh }
   })
   const totalKwh = rowsWithKwh.reduce((sum, r) => sum + r.kwh, 0)
@@ -145,7 +155,7 @@ export default function AppliancesStep({ state, set }: { state: CuState; set: (p
                               <Plus size={13} />
                             </button>
                           </div>
-                          <span style={{ fontSize: 12, color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>{row.hours} h/day</span>
+                          <span style={{ fontSize: 12, color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>{row.hours} h per use</span>
                           <input
                             type="range"
                             min={0}
@@ -154,9 +164,40 @@ export default function AppliancesStep({ state, set }: { state: CuState; set: (p
                             value={row.hours}
                             onChange={(e) => setRow(a.id, { hours: Number(e.target.value) })}
                             disabled={zeroed}
-                            style={{ accentColor: 'var(--ke-green-500)', minWidth: 110, flex: 1 }}
-                            aria-label="Hours per day"
+                            style={{ accentColor: 'var(--ke-green-500)', minWidth: 90, flex: 1 }}
+                            aria-label="Hours per use"
                           />
+                        </div>
+
+                        {/* Line 3 — how often */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8, marginLeft: 56, opacity: zeroed ? 0.45 : 1, transition: 'opacity .25s var(--ease-standard)' }}>
+                          <span style={{ fontSize: 12, color: 'var(--color-text-muted)', flexShrink: 0 }}>How often</span>
+                          <select
+                            value={row.intervalDays}
+                            onChange={(e) => setRow(a.id, { intervalDays: Number(e.target.value) })}
+                            disabled={zeroed}
+                            aria-label={`${a.displayName} frequency`}
+                            style={{
+                              padding: '5px 10px',
+                              borderRadius: 8,
+                              border: '1px solid var(--color-border)',
+                              background: '#fff',
+                              fontFamily: 'var(--font-display)',
+                              fontSize: 12.5,
+                              color: 'var(--color-text)',
+                            }}
+                          >
+                            {FREQUENCY_OPTIONS.map((f) => (
+                              <option key={f.days} value={f.days}>
+                                {f.label}
+                              </option>
+                            ))}
+                          </select>
+                          {row.intervalDays > 1 && (
+                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-text-subtle)' }}>
+                              ≈{(row.hours / row.intervalDays).toFixed(2)} h/day average
+                            </span>
+                          )}
                         </div>
                       </div>
                     )

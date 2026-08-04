@@ -5,6 +5,8 @@ export interface ApplianceRow {
   applianceId: string
   count: number
   hours: number
+  /** Days between uses — 1 = every day (the default), 2 = every other day, 7 = weekly, etc. */
+  intervalDays?: number
 }
 
 export interface HouseholdContext {
@@ -26,7 +28,9 @@ export interface HouseholdContext {
 export function applianceKwh(appliance: ApplianceDef, row: ApplianceRow, ctx: HouseholdContext): number {
   const watts = contextWatts(appliance, ctx)
   const mult = ageMultiplier(appliance, ctx.fridgeAgeBand)
-  return (watts * row.hours * row.count * 30) / 1000 * mult
+  const interval = row.intervalDays && row.intervalDays > 0 ? row.intervalDays : 1
+  const avgHoursPerDay = row.hours / interval
+  return (watts * avgHoursPerDay * row.count * 30) / 1000 * mult
 }
 
 export interface ApplianceResult {

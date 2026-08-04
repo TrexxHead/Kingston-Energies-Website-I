@@ -6,6 +6,8 @@ export type FridgeAgeBand = '<5' | '5-10' | '10+'
 export interface RowOverride {
   count: number
   hours: number
+  /** Days between uses — 1 = every day, 2 = every other day, 7 = weekly, etc. */
+  intervalDays: number
 }
 
 export interface CuState {

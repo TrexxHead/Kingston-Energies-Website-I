@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { HOUSEHOLD_LIBRARY } from '@/lib/energyCheckup/applianceLibrary'
 import {
+  applianceKwh,
   allApplianceResults,
   totalEstimatedKwh,
   byCategory,
@@ -77,6 +78,20 @@ describe('applianceKwh / allApplianceResults', () => {
     expect(pct('electronics')).toBe(12) // tv + computers + charging
     expect(pct('refrigeration')).toBe(10)
     expect(pct('lighting')).toBe(2)
+  })
+
+  it('halves the estimate when a row is used every other day instead of daily, same hours and count', () => {
+    const appliance = HOUSEHOLD_LIBRARY.find((a) => a.id === 'iron')!
+    const daily = applianceKwh(appliance, { applianceId: 'iron', count: 1, hours: 1 }, ctx)
+    const everyOtherDay = applianceKwh(appliance, { applianceId: 'iron', count: 1, hours: 1, intervalDays: 2 }, ctx)
+    expect(everyOtherDay).toBeCloseTo(daily / 2, 6)
+  })
+
+  it('defaults to daily use when intervalDays is omitted', () => {
+    const appliance = HOUSEHOLD_LIBRARY.find((a) => a.id === 'iron')!
+    const implicit = applianceKwh(appliance, { applianceId: 'iron', count: 1, hours: 1 }, ctx)
+    const explicit = applianceKwh(appliance, { applianceId: 'iron', count: 1, hours: 1, intervalDays: 1 }, ctx)
+    expect(implicit).toBe(explicit)
   })
 })
 

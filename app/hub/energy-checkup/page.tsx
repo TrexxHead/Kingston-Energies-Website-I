@@ -42,8 +42,8 @@ export default function EnergyCheckupPage() {
   const live = useMemo(() => {
     const rows = new Map<string, ApplianceRow>(
       library.map((a) => {
-        const r = state.rows[a.id] ?? { count: a.defaultCount, hours: a.defaultHoursPerDay }
-        return [a.id, { applianceId: a.id, count: r.count, hours: r.hours }]
+        const r = state.rows[a.id] ?? { count: a.defaultCount, hours: a.defaultHoursPerDay, intervalDays: 1 }
+        return [a.id, { applianceId: a.id, count: r.count, hours: r.hours, intervalDays: r.intervalDays }]
       }),
     )
     const ctx = { acType: state.acType, waterType: state.waterType, lightType: state.lightType, fridgeAgeBand: state.fridgeAgeBand }
@@ -76,7 +76,7 @@ export default function EnergyCheckupPage() {
           backup: state.backup,
           rows: Object.fromEntries(
             library.map((a) => {
-              const r = state.rows[a.id] ?? { count: a.defaultCount, hours: a.defaultHoursPerDay }
+              const r = state.rows[a.id] ?? { count: a.defaultCount, hours: a.defaultHoursPerDay, intervalDays: 1 }
               return [a.id, r]
             }),
           ),
@@ -93,8 +93,8 @@ export default function EnergyCheckupPage() {
 
       const finalRows = new Map<string, ApplianceRow>(
         library.map((a) => {
-          const r = state.rows[a.id] ?? { count: a.defaultCount, hours: a.defaultHoursPerDay }
-          return [a.id, { applianceId: a.id, count: r.count, hours: r.hours }]
+          const r = state.rows[a.id] ?? { count: a.defaultCount, hours: a.defaultHoursPerDay, intervalDays: 1 }
+          return [a.id, { applianceId: a.id, count: r.count, hours: r.hours, intervalDays: r.intervalDays }]
         }),
       )
       const finalCtx = { acType: state.acType, waterType: state.waterType, lightType: state.lightType, fridgeAgeBand: state.fridgeAgeBand }

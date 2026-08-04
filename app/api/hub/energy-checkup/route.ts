@@ -20,7 +20,7 @@ import {
 } from '@/lib/energyCheckup/calc'
 import { assembleTiers, CONTEXTUAL_TIP_BY_LEADING_CATEGORY } from '@/lib/energyCheckup/recommendations'
 
-const rowSchema = z.object({ count: z.number().min(0).max(50), hours: z.number().min(0).max(24) })
+const rowSchema = z.object({ count: z.number().min(0).max(50), hours: z.number().min(0).max(24), intervalDays: z.number().min(1).max(30).optional() })
 
 const schema = z.object({
   mode: z.enum(['home', 'biz']),
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
 
   const library = libraryFor(d.mode)
   const rows = new Map<string, ApplianceRow>(
-    Object.entries(d.rows).map(([id, r]) => [id, { applianceId: id, count: r.count, hours: r.hours }]),
+    Object.entries(d.rows).map(([id, r]) => [id, { applianceId: id, count: r.count, hours: r.hours, intervalDays: r.intervalDays }]),
   )
   const ctx = { acType: d.acType, waterType: d.waterType, lightType: d.lightType, fridgeAgeBand: d.fridgeAgeBand }
 

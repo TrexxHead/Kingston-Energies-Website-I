@@ -57,6 +57,17 @@ export function normName(s: string): string {
   return s.trim().toLowerCase()
 }
 
+// Looser than normName: also collapses punctuation (commas, hyphens, em
+// dashes, extra whitespace) so "USB-C Wall Adapter, White" and "USB-C Wall
+// Adapter — White" are recognised as the same product even though normName
+// treats them as different strings. Used only for the final duplicate pass
+// below — everywhere else (pricing, the checkout join) still needs the
+// exact match normName gives, since collapsing punctuation could otherwise
+// blur two genuinely different products that happen to share wording.
+function looseName(s: string): string {
+  return s.trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+}
+
 /** The stable catalog/shop id for a product — prefer its real catalogId link, fall back to matching its current name. */
 export function productIdForName(name: string, catalogId?: string | null): string {
   if (catalogId) return catalogId
@@ -187,7 +198,26 @@ export async function getShopProducts(): Promise<ShopProduct[]> {
       return overlay(base, r)
     })
 
-  return [...fromCatalog, ...fromDb]
+  // Final pass across catalog + DB together: a legacy static-catalog entry
+  // and a later admin-added product can end up describing the same physical
+  // item under slightly different punctuation ("USB-C Wall Adapter, White"
+  // vs "USB-C Wall Adapter — White") — normName's exact match above won't
+  // catch that, so the storefront shows both. When a loose-name group has
+  // more than one entry, keep the one with a real photo over one showing the
+  // generic category placeholder; among a tie, keep the first.
+  const combined = [...fromCatalog, ...fromDb]
+  const byLooseName = new Map<string, ShopProduct[]>()
+  for (const p of combined) {
+    const key = looseName(p.name)
+    byLooseName.set(key, [...(byLooseName.get(key) ?? []), p])
+  }
+  const keep = new Set<string>()
+  for (const group of byLooseName.values()) {
+    const withImage = group.find((p) => p.image)
+    keep.add((withImage ?? group[0]).id)
+  }
+
+  return combined.filter((p) => keep.has(p.id))
 }
 
 const PRODUCT_SELECT = {

@@ -44,6 +44,31 @@ describe('getShopProducts de-duplicates DB-only rows by name', () => {
   })
 })
 
+describe('getShopProducts prefers the entry with a real photo across a punctuation-only near-duplicate', () => {
+  it('drops the image-less static catalog entry once an admin-added row with a photo covers the same product', async () => {
+    // "USB-C Wall Adapter, White" is a real static catalog entry (lib/catalog.ts,
+    // id cmp-adpt-w) with image: null. An admin separately added "USB-C Wall
+    // Adapter — White" (em dash, not comma) as a DB-only product with a real
+    // photo — different enough punctuation that the exact-name join above
+    // never links them, so both used to show side by side on the shop grid,
+    // one of them a blank placeholder for the exact same physical item.
+    findManyMock.mockResolvedValueOnce([
+      {
+        id: 'db1', catalogId: null, name: 'USB-C Wall Adapter — White', price: 1500, salePrice: null, stock: 5, archived: false,
+        category: 'COMPONENTS', spec: null, badge: null, description: null, shortDescription: null, brand: null, weight: null,
+        dimensions: null, warranty: null, images: ['/uploads/wall-adapter-white.jpg'], features: [], tags: [], specs: null,
+        createdAt: new Date('2026-01-01'),
+      },
+    ])
+    const { getShopProducts } = await import('@/lib/products')
+    const products = await getShopProducts()
+
+    const matches = products.filter((p) => p.name.toLowerCase().includes('wall adapter') && p.name.toLowerCase().includes('white'))
+    expect(matches).toHaveLength(1)
+    expect(matches[0].image).toBe('/uploads/wall-adapter-white.jpg')
+  })
+})
+
 describe('validateCartPrices agrees with the storefront on the same duplicate', () => {
   it('validates against the oldest row’s price, matching what getShopProducts shows', async () => {
     findManyMock.mockResolvedValueOnce(dupRows)

@@ -1,8 +1,9 @@
 'use client'
 
-import { Minus, Plus } from 'lucide-react'
+import { useState } from 'react'
+import { Minus, Plus, ChevronDown, ChevronUp } from 'lucide-react'
 import { applianceKwh } from '@/lib/energyCheckup/calc'
-import { CATEGORY_META, libraryFor, type ApplianceDef } from '@/lib/energyCheckup/applianceLibrary'
+import { CATEGORY_META, ROOM_META, libraryFor, roomOrderFor, type ApplianceDef, type Room } from '@/lib/energyCheckup/applianceLibrary'
 import { iconFor } from './icons'
 import { wizardCard, stepHeading, stepSubhead } from './shared'
 import type { CuState } from './types'
@@ -14,7 +15,9 @@ function isZeroed(a: ApplianceDef, state: CuState): boolean {
 }
 
 export default function AppliancesStep({ state, set }: { state: CuState; set: (patch: Partial<CuState>) => void }) {
-  const library = libraryFor(state.mode ?? 'home')
+  const mode = state.mode ?? 'home'
+  const library = libraryFor(mode)
+  const roomOrder = roomOrderFor(mode)
 
   function setRow(id: string, patch: Partial<{ count: number; hours: number }>) {
     const a = library.find((x) => x.id === id)!
@@ -31,73 +34,135 @@ export default function AppliancesStep({ state, set }: { state: CuState; set: (p
   })
   const totalKwh = rowsWithKwh.reduce((sum, r) => sum + r.kwh, 0)
 
+  const byRoom = new Map<Room, typeof rowsWithKwh>()
+  for (const r of rowsWithKwh) {
+    const list = byRoom.get(r.a.room) ?? []
+    list.push(r)
+    byRoom.set(r.a.room, list)
+  }
+
+  const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
+    const init: Record<string, boolean> = {}
+    for (const room of roomOrder) {
+      const items = byRoom.get(room) ?? []
+      init[room] = items.some((r) => !r.zeroed && r.row.count > 0)
+    }
+    return init
+  })
+
+  function toggleRoom(room: Room) {
+    setExpanded((prev) => ({ ...prev, [room]: !prev[room] }))
+  }
+
   return (
     <div style={wizardCard}>
       <h2 style={stepHeading}>What do you run?</h2>
-      <p style={stepSubhead}>Adjust counts and daily hours — the live estimate on the right updates as you go.</p>
+      <p style={stepSubhead}>Adjust counts and daily hours — the live estimate on the right updates as you go. Fold a section you don&apos;t need.</p>
 
-      <div>
-        {rowsWithKwh.map(({ a, row, zeroed, kwh }, i) => {
-          const Icon = iconFor(a.icon)
-          const meta = CATEGORY_META[a.category]
-          const overQuarter = totalKwh > 0 && kwh / totalKwh > 0.25
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {roomOrder.map((room) => {
+          const items = byRoom.get(room)
+          if (!items || items.length === 0) return null
+          const meta = ROOM_META[room]
+          const RoomIcon = iconFor(meta.icon)
+          const activeCount = items.filter((r) => !r.zeroed && r.row.count > 0).length
+          const roomKwh = items.reduce((s, r) => s + r.kwh, 0)
+          const isOpen = !!expanded[room]
 
           return (
-            <div key={a.id} style={{ padding: '16px 0', borderTop: i === 0 ? 'none' : '1px solid var(--color-border)' }}>
-              {/* Line 1 */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: meta.color, opacity: zeroed ? 0.25 : 1, flexShrink: 0 }} />
-                <Icon size={18} color="var(--color-text-muted)" style={{ flexShrink: 0 }} />
-                <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14.5, flex: 1 }}>{a.displayName}</span>
-                <span
-                  style={{
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: overQuarter ? meta.color : 'var(--color-text-subtle)',
-                  }}
-                >
-                  {Math.round(kwh)} kWh
+            <div key={room} style={{ border: '1px solid var(--color-border)', borderRadius: 14, overflow: 'hidden' }}>
+              <button
+                type="button"
+                onClick={() => toggleRoom(room)}
+                aria-expanded={isOpen}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '13px 16px',
+                  background: isOpen ? 'var(--ke-gray-100)' : '#fff',
+                  border: 'none',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                }}
+              >
+                <RoomIcon size={16} color="var(--color-text-muted)" style={{ flexShrink: 0 }} />
+                <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14, flex: 1 }}>{meta.label}</span>
+                <span style={{ fontSize: 12, color: 'var(--color-text-subtle)', whiteSpace: 'nowrap' }}>
+                  {activeCount} of {items.length} active · <strong style={{ color: 'var(--color-text-muted)' }}>{Math.round(roomKwh)} kWh</strong>
                 </span>
-              </div>
+                {isOpen ? <ChevronUp size={15} color="var(--color-text-muted)" /> : <ChevronDown size={15} color="var(--color-text-muted)" />}
+              </button>
 
-              {/* Line 2 */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10, opacity: zeroed ? 0.45 : 1, transition: 'opacity .25s var(--ease-standard)' }}>
-                <span style={{ fontSize: 12, color: 'var(--color-text-muted)', width: 44, flexShrink: 0 }}>How many</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <button
-                    type="button"
-                    onClick={() => setRow(a.id, { count: Math.max(0, row.count - 1) })}
-                    aria-label={`Fewer ${a.displayName}`}
-                    style={countBtn}
-                    disabled={zeroed}
-                  >
-                    <Minus size={13} />
-                  </button>
-                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, minWidth: 18, textAlign: 'center' }}>{row.count}</span>
-                  <button
-                    type="button"
-                    onClick={() => setRow(a.id, { count: Math.min(20, row.count + 1) })}
-                    aria-label={`More ${a.displayName}`}
-                    style={countBtn}
-                    disabled={zeroed}
-                  >
-                    <Plus size={13} />
-                  </button>
+              {isOpen && (
+                <div style={{ padding: '0 16px' }}>
+                  {items.map(({ a, row, zeroed, kwh }, i) => {
+                    const Icon = iconFor(a.icon)
+                    const catMeta = CATEGORY_META[a.category]
+                    const overQuarter = totalKwh > 0 && kwh / totalKwh > 0.25
+
+                    return (
+                      <div key={a.id} style={{ padding: '14px 0', borderTop: i === 0 ? 'none' : '1px solid var(--color-border)' }}>
+                        {/* Line 1 */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <span style={{ width: 7, height: 7, borderRadius: '50%', background: catMeta.color, opacity: zeroed ? 0.25 : 1, flexShrink: 0 }} />
+                          <Icon size={17} color="var(--color-text-muted)" style={{ flexShrink: 0 }} />
+                          <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14, flex: 1 }}>{a.displayName}</span>
+                          <span
+                            style={{
+                              fontFamily: 'var(--font-mono)',
+                              fontSize: 12,
+                              fontWeight: 600,
+                              color: overQuarter ? catMeta.color : 'var(--color-text-subtle)',
+                            }}
+                          >
+                            {Math.round(kwh)} kWh
+                          </span>
+                        </div>
+
+                        {/* Line 2 */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10, opacity: zeroed ? 0.45 : 1, transition: 'opacity .25s var(--ease-standard)' }}>
+                          <span style={{ fontSize: 12, color: 'var(--color-text-muted)', width: 44, flexShrink: 0 }}>How many</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <button
+                              type="button"
+                              onClick={() => setRow(a.id, { count: Math.max(0, row.count - 1) })}
+                              aria-label={`Fewer ${a.displayName}`}
+                              style={countBtn}
+                              disabled={zeroed}
+                            >
+                              <Minus size={13} />
+                            </button>
+                            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, minWidth: 18, textAlign: 'center' }}>{row.count}</span>
+                            <button
+                              type="button"
+                              onClick={() => setRow(a.id, { count: Math.min(20, row.count + 1) })}
+                              aria-label={`More ${a.displayName}`}
+                              style={countBtn}
+                              disabled={zeroed}
+                            >
+                              <Plus size={13} />
+                            </button>
+                          </div>
+                          <span style={{ fontSize: 12, color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>{row.hours} h/day</span>
+                          <input
+                            type="range"
+                            min={0}
+                            max={a.maxHoursPerDay}
+                            step={0.5}
+                            value={row.hours}
+                            onChange={(e) => setRow(a.id, { hours: Number(e.target.value) })}
+                            disabled={zeroed}
+                            style={{ accentColor: 'var(--ke-green-500)', minWidth: 110, flex: 1 }}
+                            aria-label="Hours per day"
+                          />
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
-                <span style={{ fontSize: 12, color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>{row.hours} h/day</span>
-                <input
-                  type="range"
-                  min={0}
-                  max={a.maxHoursPerDay}
-                  step={0.5}
-                  value={row.hours}
-                  onChange={(e) => setRow(a.id, { hours: Number(e.target.value) })}
-                  disabled={zeroed}
-                  style={{ accentColor: 'var(--ke-green-500)', minWidth: 110, flex: 1 }}
-                  aria-label="Hours per day"
-                />
-              </div>
+              )}
             </div>
           )
         })}

@@ -1,7 +1,8 @@
 import {
-  Wind, Refrigerator, Droplets, Fan, Lightbulb, Tv, Laptop, Smartphone, Waves, Shirt,
+  Wind, Refrigerator, Droplets, Droplet, Fan, Lightbulb, Tv, Laptop, Smartphone, Waves, Shirt,
   CookingPot, WashingMachine, Snowflake, Wifi, Package, Thermometer, Power, Zap, Plug,
-  BatteryCharging, Moon, Sun, Percent, Calendar,
+  BatteryCharging, Moon, Sun, Percent, Calendar, Microwave, CupSoda, Sandwich, Blend, ChefHat,
+  Coffee, Flame, Speaker, Gamepad2, DoorOpen, Router, Camera,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -9,6 +10,7 @@ export const ICONS: Record<string, LucideIcon> = {
   wind: Wind,
   refrigerator: Refrigerator,
   droplets: Droplets,
+  droplet: Droplet,
   fan: Fan,
   lightbulb: Lightbulb,
   tv: Tv,
@@ -30,6 +32,18 @@ export const ICONS: Record<string, LucideIcon> = {
   sun: Sun,
   percent: Percent,
   calendar: Calendar,
+  microwave: Microwave,
+  'cup-soda': CupSoda,
+  sandwich: Sandwich,
+  blend: Blend,
+  'chef-hat': ChefHat,
+  coffee: Coffee,
+  flame: Flame,
+  speaker: Speaker,
+  'gamepad-2': Gamepad2,
+  'door-open': DoorOpen,
+  router: Router,
+  camera: Camera,
 }
 
 export function iconFor(id: string): LucideIcon {

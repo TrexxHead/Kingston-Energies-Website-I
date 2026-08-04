@@ -4,7 +4,11 @@ import { CATALOG } from '@/lib/catalog'
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const staticRoutes = ['', '/shop', '/services', '/about', '/contact', '/track', '/legal/privacy', '/legal/terms', '/legal/returns', '/legal/warranty']
+  const staticRoutes = [
+    '', '/shop', '/services', '/about', '/contact', '/track',
+    '/find-my-power', '/business-power-continuity', '/bulk-corporate', '/back-in-stock', '/guides/what-will-this-power',
+    '/legal/privacy', '/legal/terms', '/legal/returns', '/legal/warranty',
+  ]
 
   const staticEntries: MetadataRoute.Sitemap = staticRoutes.map((path) => ({
     url: `${siteUrl}${path}`,

@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight, BatteryCharging, Plug, Package, ShieldCheck, Building2, Sun } from 'lucide-react'
+import { ArrowRight, BatteryCharging, Plug, Package, ShieldCheck, Building2, Sun, ZapOff } from 'lucide-react'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import Reveal from '@/app/_design-system/Reveal'
@@ -62,8 +62,15 @@ const SERVICES: Service[] = [
     icon: Building2,
     title: 'Business & bulk orders',
     body: 'Kitting out a team, an event or a storefront? Tell us what you need and we’ll put together a bulk quote, Kingston-wide delivery included.',
-    href: '/contact',
-    cta: 'Request a quote',
+    href: '/bulk-corporate',
+    cta: 'Bulk & corporate orders',
+  },
+  {
+    icon: ZapOff,
+    title: 'Business power continuity',
+    body: 'Know what an outage actually costs your business, then build a backup power plan around real numbers — not a guess.',
+    href: '/business-power-continuity',
+    cta: 'Estimate your outage cost',
   },
   {
     icon: Sun,

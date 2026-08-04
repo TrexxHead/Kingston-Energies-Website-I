@@ -51,6 +51,15 @@ export default function Footer() {
           <Link href="/services" style={{ fontSize: 13, color: 'rgba(234,242,236,.55)' }}>
             Services
           </Link>
+          <Link href="/find-my-power" style={{ fontSize: 13, color: 'rgba(234,242,236,.55)' }}>
+            Find my power
+          </Link>
+          <Link href="/bulk-corporate" style={{ fontSize: 13, color: 'rgba(234,242,236,.55)' }}>
+            Bulk &amp; corporate
+          </Link>
+          <Link href="/back-in-stock" style={{ fontSize: 13, color: 'rgba(234,242,236,.55)' }}>
+            Back in stock
+          </Link>
           <Link href="/about" style={{ fontSize: 13, color: 'rgba(234,242,236,.55)' }}>
             About
           </Link>

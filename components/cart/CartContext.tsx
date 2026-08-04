@@ -17,6 +17,8 @@ interface CartContextValue {
   count: number
   subtotal: number
   delivery: number
+  deliveryOptIn: boolean
+  setDeliveryOptIn: (optIn: boolean) => void
   discount: number
   bulkDiscount: number
   bulkRate: number
@@ -52,12 +54,17 @@ const STORAGE_KEY = 'ke-cart'
 const PROMO_KEY = 'ke-promo'
 const POINTS_KEY = 'ke-points-applied'
 const CART_ID_KEY = 'ke-cart-id'
+const DELIVERY_OPT_IN_KEY = 'ke-delivery-opt-in'
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([])
   const [promo, setPromo] = useState<AppliedPromo | null>(null)
   const [pointsApplied, setPointsApplied] = useState(0)
   const [firstOrderEligible, setFirstOrderEligible] = useState(false)
+  // Delivery is never charged until the customer confirms they want it —
+  // unset (false) leaves it off the cart total; the real fee (by parish and
+  // method) and the delivery address are still collected at checkout.
+  const [deliveryOptIn, setDeliveryOptIn] = useState(false)
   const [hydrated, setHydrated] = useState(false)
 
   useEffect(() => {
@@ -68,11 +75,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (p) setPromo(JSON.parse(p))
       const pts = localStorage.getItem(POINTS_KEY)
       if (pts) setPointsApplied(Number(pts) || 0)
+      const d = localStorage.getItem(DELIVERY_OPT_IN_KEY)
+      if (d) setDeliveryOptIn(d === '1')
     } catch {
       // ignore malformed storage
     }
     setHydrated(true)
   }, [])
+
+  useEffect(() => {
+    if (!hydrated) return
+    localStorage.setItem(DELIVERY_OPT_IN_KEY, deliveryOptIn ? '1' : '0')
+  }, [deliveryOptIn, hydrated])
 
   useEffect(() => {
     if (!hydrated) return
@@ -167,7 +181,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     const count = items.reduce((a, c) => a + c.qty, 0)
     const subtotal = subtotalNow
-    const delivery = subtotal === 0 || subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE
+    // Only counted once the customer has confirmed they want delivery — the
+    // exact fee (by parish and method) is still finalized at checkout.
+    const delivery = !deliveryOptIn || subtotal === 0 || subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE
     const bulkDiscount = bulkDiscountForLines(items)
     const bulkRate = subtotal > 0 ? bulkDiscount / subtotal : 0
     const firstOrderDiscountAmt = firstOrderDiscount(items, firstOrderEligible)
@@ -182,12 +198,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const total = Math.max(0, subtotal + delivery - discount - bulkDiscount - firstOrderDiscountAmt - pointsDiscount)
 
     return {
-      items, count, subtotal, delivery, discount, bulkDiscount, bulkRate, firstOrderEligible, firstOrderDiscountAmt, total,
+      items, count, subtotal, delivery, deliveryOptIn, setDeliveryOptIn, discount, bulkDiscount, bulkRate, firstOrderEligible, firstOrderDiscountAmt, total,
       promoOn: Boolean(promo), promoCode: promo?.code ?? null,
       pointsApplied, pointsDiscount,
       hydrated, addItem, inc, dec, remove, clear, applyPromo, removePromo, applyPoints, removePoints, setFirstOrderEligible,
     }
-  }, [items, promo, pointsApplied, firstOrderEligible, hydrated])
+  }, [items, promo, pointsApplied, firstOrderEligible, deliveryOptIn, hydrated])
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>
 }

@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ShoppingBag, Zap, X, ArrowRight, Gem } from 'lucide-react'
+import { ShoppingBag, Zap, X, ArrowRight, Gem, Truck, Store } from 'lucide-react'
 import CommerceShell from '@/components/shop/CommerceShell'
 import { Button, FeatureIcon, inputStyle } from '@/components/shop/ui'
 import { useCart } from '@/components/cart/CartContext'
@@ -27,7 +27,7 @@ const RECO_IDS = ['chcab', 'ch20']
 export default function CartPage() {
   const router = useRouter()
   const {
-    items, subtotal, delivery, discount, bulkDiscount, bulkRate, firstOrderDiscountAmt, total,
+    items, subtotal, delivery, deliveryOptIn, setDeliveryOptIn, discount, bulkDiscount, bulkRate, firstOrderDiscountAmt, total,
     promoOn, promoCode, pointsApplied, pointsDiscount,
     inc, dec, remove, addItem, applyPromo, applyPoints, removePoints, setFirstOrderEligible,
   } = useCart()
@@ -143,9 +143,49 @@ export default function CartPage() {
 
             <div style={{ background: '#fff', border: '1px solid var(--color-border)', borderRadius: 20, padding: 26, boxShadow: 'var(--shadow-md)', position: 'sticky', top: 88 }}>
               <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: 'var(--color-text)' }}>Summary</div>
+
+              <div style={{ marginTop: 16 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: 8 }}>Getting this to you</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <button
+                    type="button"
+                    onClick={() => setDeliveryOptIn(false)}
+                    style={{
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px 8px', borderRadius: 12,
+                      border: !deliveryOptIn ? '1.5px solid var(--ke-green-500)' : '1.5px solid var(--color-border)',
+                      background: !deliveryOptIn ? 'var(--ke-green-50)' : '#fff', cursor: 'pointer',
+                    }}
+                  >
+                    <Store size={17} color={!deliveryOptIn ? 'var(--ke-green-700)' : 'var(--color-text-muted)'} />
+                    <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12.5, color: !deliveryOptIn ? 'var(--ke-green-700)' : 'var(--color-text-muted)' }}>
+                      I&apos;ll pick it up
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDeliveryOptIn(true)}
+                    style={{
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px 8px', borderRadius: 12,
+                      border: deliveryOptIn ? '1.5px solid var(--ke-green-500)' : '1.5px solid var(--color-border)',
+                      background: deliveryOptIn ? 'var(--ke-green-50)' : '#fff', cursor: 'pointer',
+                    }}
+                  >
+                    <Truck size={17} color={deliveryOptIn ? 'var(--ke-green-700)' : 'var(--color-text-muted)'} />
+                    <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12.5, color: deliveryOptIn ? 'var(--ke-green-700)' : 'var(--color-text-muted)' }}>
+                      Deliver to me
+                    </span>
+                  </button>
+                </div>
+                <p style={{ fontSize: 11.5, color: 'var(--color-text-subtle)', margin: '8px 0 0', lineHeight: 1.5 }}>
+                  {deliveryOptIn
+                    ? 'Estimated below — your exact fee and address are confirmed at checkout.'
+                    : 'Pick a location at checkout, or switch to delivery for an estimate here.'}
+                </p>
+              </div>
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 18, fontSize: 14.5 }}>
                 <Row label="Subtotal" value={fmt(subtotal)} />
-                <Row label="Delivery" value={delivery === 0 ? 'Free' : fmt(delivery)} valueColor="var(--ke-green-700)" />
+                {deliveryOptIn && <Row label="Delivery (estimate)" value={delivery === 0 ? 'Free' : fmt(delivery)} valueColor="var(--ke-green-700)" />}
                 {bulkDiscount > 0 && <Row label={`Bulk discount (3+ of the same item): ${Math.round(bulkRate * 100)}% off`} value={'−' + fmt(bulkDiscount)} labelColor="var(--ke-green-700)" valueColor="var(--ke-green-700)" />}
                 {firstOrderDiscountAmt > 0 && <Row label="First order: 10% off your first item" value={'−' + fmt(firstOrderDiscountAmt)} labelColor="var(--ke-green-700)" valueColor="var(--ke-green-700)" />}
                 {promoOn && <Row label={`Promo: ${promoCode}`} value={'−' + fmt(discount)} labelColor="var(--ke-green-700)" valueColor="var(--ke-green-700)" />}

@@ -193,6 +193,66 @@ export async function sendProofOfPaymentAlert(input: { orderNo: string; customer
   }
 }
 
+/**
+ * Alert admins the moment someone submits the Energy Checkup's "Talk to us"
+ * consultation request (solar / bigger-investment tier). Carries the
+ * customer's own checkup numbers (estimated kWh, effective rate, indicative
+ * solar range) alongside what they told us in the form, so a rep can call
+ * prepared instead of starting from zero.
+ */
+export async function sendConsultationRequestAlert(input: {
+  name: string
+  email: string
+  phone: string
+  interest: string
+  contactMethod: string
+  bestTime: string
+  timeline: string
+  notes: string | null
+  mode: 'HOME' | 'BUSINESS'
+  estimatedKwh: number
+  effectiveRate: number
+  solarKw: number | null
+  solarCostLow: number | null
+  solarCostHigh: number | null
+}): Promise<void> {
+  if (!isEmailConfigured()) {
+    console.info(`[email] skipped consultation-request alert for ${input.email} (no provider configured)`)
+    return
+  }
+
+  const recipients = await adminRecipients()
+  if (recipients.length === 0) return
+
+  const site = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://kingstonenergies.com'
+  const solarLine =
+    input.solarKw !== null
+      ? `<tr><td style="padding:5px 0;color:#556059">Indicative solar size</td><td style="padding:5px 0;text-align:right;color:#1c2a25">~${input.solarKw.toFixed(1)} kW (${fmt(input.solarCostLow ?? 0)}–${fmt(input.solarCostHigh ?? 0)})</td></tr>`
+      : ''
+
+  const html = wrapEmailHtml(
+    'New consultation request — Energy Checkup',
+    `<p><strong>${escapeHtml(input.name)}</strong> asked to talk to a rep from their Energy Checkup results.</p>` +
+      `<table style="width:100%;border-collapse:collapse;margin-top:10px;font-size:13.5px">
+        <tr><td style="padding:5px 0;color:#556059">Interested in</td><td style="padding:5px 0;text-align:right;color:#1c2a25">${escapeHtml(input.interest)}</td></tr>
+        <tr><td style="padding:5px 0;color:#556059">Prefers</td><td style="padding:5px 0;text-align:right;color:#1c2a25">${escapeHtml(input.contactMethod)} · ${escapeHtml(input.bestTime)}</td></tr>
+        <tr><td style="padding:5px 0;color:#556059">Timeline</td><td style="padding:5px 0;text-align:right;color:#1c2a25">${escapeHtml(input.timeline)}</td></tr>
+        <tr><td style="padding:5px 0;color:#556059">Checkup type</td><td style="padding:5px 0;text-align:right;color:#1c2a25">${input.mode === 'HOME' ? 'Household' : 'Business'}</td></tr>
+        <tr><td style="padding:5px 0;color:#556059">Estimated usage</td><td style="padding:5px 0;text-align:right;color:#1c2a25">${Math.round(input.estimatedKwh)} kWh/month at J$${input.effectiveRate.toFixed(1)}/kWh</td></tr>
+        ${solarLine}
+      </table>` +
+      (input.notes ? `<p style="font-size:13px;color:#1c2a25;margin-top:12px"><strong>Notes:</strong> ${escapeHtml(input.notes)}</p>` : '') +
+      `<p style="font-size:13px;color:#556059;margin-top:14px">Contact: <a href="mailto:${escapeHtml(input.email)}">${escapeHtml(input.email)}</a>${input.phone ? ` · ${escapeHtml(input.phone)}` : ''}</p>` +
+      `<a href="${site}/admin/dashboard/customers" style="display:inline-block;margin-top:12px;background:#1f6b45;color:#fff;text-decoration:none;padding:10px 20px;border-radius:999px;font-weight:600;font-size:13px">Open in CRM</a>`,
+  )
+
+  try {
+    await Promise.all(recipients.map((to) => deliver({ to, subject: `Consultation request: ${input.name} (${input.interest})`, html })))
+  } catch (err) {
+    console.error('[email] failed to send consultation-request alert:', err)
+  }
+}
+
 export async function sendVerificationEmail(input: VerificationEmailInput): Promise<void> {
   const subject = 'Confirm your Kingston Energies account'
   const html = renderVerificationHtml(input)

@@ -12,8 +12,27 @@ import { CATEGORY_META, libraryFor } from '@/lib/energyCheckup/applianceLibrary'
 import { iconFor } from './icons'
 import { wizardCard } from './shared'
 import FixListSimulator from './FixListSimulator'
+import ConsultForm from './ConsultForm'
 import type { CheckupResults, Mode } from './types'
 import type { FixAction } from '@/lib/energyCheckup/fixList'
+
+function tierCtaStyle(accent: string, variant: 'primary' | 'outline'): CSSProperties {
+  return {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 16,
+    height: 42,
+    borderRadius: 10,
+    width: '100%',
+    fontFamily: 'var(--font-display)',
+    fontWeight: 700,
+    fontSize: 13.5,
+    background: variant === 'primary' ? accent : 'transparent',
+    color: variant === 'primary' ? '#fff' : accent,
+    border: variant === 'outline' ? `1.5px solid ${accent}` : 'none',
+  }
+}
 
 const cardStyle: CSSProperties = { ...wizardCard, marginBottom: 18 }
 const sectionTitle: CSSProperties = { fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 17, margin: '0 0 4px' }
@@ -37,13 +56,13 @@ interface TierMeta {
   timing: string
   accent: string
   soft: string
-  cta?: { label: string; href: string; variant: 'primary' | 'outline' }
+  cta?: { label: string; variant: 'primary' | 'outline' } & ({ href: string; action?: undefined } | { href?: undefined; action: 'consult' })
 }
 
 const TIERS_META: TierMeta[] = [
   { title: 'Free, this week', timing: 'Habit changes only', accent: 'var(--ke-green-600)', soft: 'var(--ke-green-50)' },
   { title: 'Small purchase', timing: 'Near-term, low cost', accent: 'var(--ke-blue-600)', soft: 'var(--ke-blue-50)', cta: { label: 'Browse the shop', href: '/shop', variant: 'primary' } },
-  { title: 'Bigger investment', timing: 'Roadmap-aligned', accent: '#c0821c', soft: 'var(--ke-sun-50)', cta: { label: 'Talk to us', href: '/contact', variant: 'outline' } },
+  { title: 'Bigger investment', timing: 'Roadmap-aligned', accent: '#c0821c', soft: 'var(--ke-sun-50)', cta: { label: 'Talk to us', action: 'consult', variant: 'outline' } },
 ]
 
 const SOURCES: { tag: string; claim: string; href: string }[] = [
@@ -52,8 +71,9 @@ const SOURCES: { tag: string; claim: string; href: string }[] = [
   { tag: 'JPS', claim: 'Bill = Energy + Fuel + IPP + Customer charges + FX Adjustment + GCT (7% residential / 15% business).', href: 'https://www.jpsco.com/understanding-your-jps-bill/' },
   { tag: 'GlobalPetrolPrices', claim: 'Residential J$45.78/kWh all-in; business J$37.53/kWh (Sept 2025).', href: 'https://www.globalpetrolprices.com/Jamaica/electricity_prices/' },
   { tag: 'Dosolar', claim: 'Typical household 250–300 kWh/month ⇒ J$12,000–15,000.', href: 'https://dosolar.io/free-guide-to-transition-to-solar-power-in-jamaica/' },
-  { tag: 'Ecopower JA', claim: 'Residential systems J$1.2M–1.5M for a 6–8kW inverter with 8–12 panels, installed.', href: 'https://ecopowerja.com/' },
+  { tag: 'Ecopower JA', claim: 'Residential systems J$1.2M–1.5M for a 6–8kW inverter with 8–12 panels, installed — works with Deye, LuxPower, SRNE & Schneider inverters.', href: 'https://ecopowerja.com/' },
   { tag: 'Sunchees', claim: '30% tax credit capped J$1.2M; GCT exemption; NHT loans to J$2.5M.', href: 'https://www.sunchees.com/news/Industry-News/solar-power-grants-for-homeowners-in-jamaica-guide-to-incentives-and-system-choices.html' },
+  { tag: 'NHT', claim: 'Solar loans up to J$2.5M — 0% interest for the first 12 months, then 4–7% for up to 10 years.', href: 'https://www.sunchees.com/caribbean/jamaica/' },
   { tag: 'Forbes', claim: 'Hurricane Melissa cut power to ~550,000 JPS customers — >70% dark at peak (Nov 2025).', href: 'https://www.forbes.com/sites/dianneplummer/2025/11/21/hurricane-melissa-shows-why-electricity-access-is-not-grid-resilience/' },
 ]
 
@@ -78,6 +98,7 @@ export default function ResultsScreen({
   onSubmitContact: (contact: string) => Promise<void>
   onStartOver: () => void
 }) {
+  const [showConsult, setShowConsult] = useState(false)
   const monthlyCostJmd = Math.round(results.totalKwh * results.rate.rate)
   const contextLine =
     mode === 'home'
@@ -202,10 +223,22 @@ export default function ResultsScreen({
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 18 }}>
           <IncentiveLine text="30% renewable-energy tax credit, capped at J$1.2M." />
-          <IncentiveLine text="NHT solar loans up to J$2.5M." />
+          <IncentiveLine text="NHT solar loans up to J$2.5M — 0% for the first 12 months, then 4–7% for up to 10 years." />
           <IncentiveLine text="GCT exemption and reduced import duty on solar equipment." />
           <IncentiveLine text="Self-consumption beats export under current net-billing terms." />
         </div>
+
+        <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 16, marginBottom: 18 }}>
+          <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, marginBottom: 10 }}>
+            What a solid quote usually includes
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <IncentiveLine text="A grid-tied system (no battery) typically runs J$180,000–260,000 per kW installed — a battery-backed / hybrid system usually costs meaningfully more, since the battery bank is priced separately from the panels and inverter." />
+            <IncentiveLine text="Ask which inverter brand is quoted — Deye, LuxPower, SRNE and Schneider are commonly installed in Jamaica and have a local service track record." />
+            <IncentiveLine text="Get at least two quotes. Licensed Jamaican installers with an island-wide track record include Ecopower Jamaica, SolarBuzz Jamaica and Premier Energy Solution — none of these are Kingston Energies partners, they're a starting point for your own comparison." />
+          </div>
+        </div>
+
         <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', background: 'var(--ke-sun-50)', border: '1px solid rgba(247,148,30,.3)', borderRadius: 12, padding: '12px 16px' }}>
           <TriangleAlert size={15} color="var(--ke-sun-500)" style={{ flexShrink: 0, marginTop: 2 }} />
           <span style={{ fontSize: 12.5, color: 'var(--ke-sun-700, #8a5a00)', lineHeight: 1.55 }}>
@@ -254,31 +287,33 @@ export default function ResultsScreen({
                   })}
                 </div>
                 {meta.cta && (
-                  <Link
-                    href={meta.cta.href}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      marginTop: 16,
-                      height: 42,
-                      borderRadius: 10,
-                      fontFamily: 'var(--font-display)',
-                      fontWeight: 700,
-                      fontSize: 13.5,
-                      textDecoration: 'none',
-                      background: meta.cta.variant === 'primary' ? meta.accent : 'transparent',
-                      color: meta.cta.variant === 'primary' ? '#fff' : meta.accent,
-                      border: meta.cta.variant === 'outline' ? `1.5px solid ${meta.accent}` : 'none',
-                    }}
-                  >
-                    {meta.cta.label}
-                  </Link>
+                  meta.cta.href ? (
+                    <Link
+                      href={meta.cta.href}
+                      style={{ ...tierCtaStyle(meta.accent, meta.cta.variant), textDecoration: 'none' }}
+                    >
+                      {meta.cta.label}
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setShowConsult(true)}
+                      style={{ ...tierCtaStyle(meta.accent, meta.cta.variant), cursor: 'pointer' }}
+                    >
+                      {meta.cta.label}
+                    </button>
+                  )
                 )}
               </div>
             )
           })}
         </div>
+
+        {showConsult && (
+          <div style={{ marginTop: 16 }}>
+            <ConsultForm checkupId={results.id} onClose={() => setShowConsult(false)} />
+          </div>
+        )}
       </div>
 
       {/* 3.12 — Report gate */}

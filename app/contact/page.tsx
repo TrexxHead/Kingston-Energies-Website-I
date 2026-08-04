@@ -2,13 +2,14 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowRight, Check } from 'lucide-react'
+import { ArrowRight, Check, Plus, Minus, ChevronDown, ChevronUp } from 'lucide-react'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import { Button, Field, Checkbox, inputStyle } from '@/components/shop/ui'
 import { analytics } from '@/lib/analytics'
 import JsonLd from '@/components/JsonLd'
 import { buildBreadcrumbs } from '@/lib/structuredData'
+import { CATALOG, CATEGORY_PILLS, fmt } from '@/lib/catalog'
 
 const breadcrumbs = buildBreadcrumbs([{ name: 'Home', path: '/' }, { name: 'Contact' }])
 
@@ -16,6 +17,7 @@ const SHOPPING_FOR = ['Myself', 'My business', 'A bulk order', 'Solar (early acc
 const INTERESTS = ['Power banks', 'Chargers & cables', 'Accessories', 'Solar: join the waitlist']
 const TIMEFRAMES = ['This week', 'This month', 'Just browsing']
 const STEP_LABELS = ['Step 1 of 3: What you need', 'Step 2 of 3: Where & when', 'Step 3 of 3: Your details']
+const PRODUCT_PILLS = CATEGORY_PILLS.filter((c) => c.id !== 'all')
 
 export default function ContactPage() {
   const router = useRouter()
@@ -31,15 +33,34 @@ export default function ContactPage() {
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [solarOptIn, setSolarOptIn] = useState(false)
+  const [showProducts, setShowProducts] = useState(false)
+  const [productCat, setProductCat] = useState(PRODUCT_PILLS[0].id)
+  const [quoteQty, setQuoteQty] = useState<Record<string, number>>({})
 
   const toggleInterest = (item: string) =>
     setInterests((prev) => (prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item]))
+
+  const setQty = (id: string, qty: number) =>
+    setQuoteQty((prev) => {
+      const next = { ...prev }
+      if (qty <= 0) delete next[id]
+      else next[id] = qty
+      return next
+    })
+
+  const quoteItems = Object.entries(quoteQty)
+    .map(([id, qty]) => ({ id, qty, product: CATALOG.find((p) => p.id === id)! }))
+    .filter((i) => i.product)
+  const quoteTotal = quoteItems.reduce((s, i) => s + i.product.price * i.qty, 0)
 
   const submit = async () => {
     setSubmitting(true)
     const message = [
       `Shopping for: ${shoppingFor}`,
       `Interested in: ${interests.join(', ') || 'N/A'}`,
+      quoteItems.length > 0
+        ? `Specific products requested: ${quoteItems.map((i) => `${i.product.name} × ${i.qty}`).join(', ')} (indicative total ${fmt(quoteTotal)})`
+        : '',
       `Area: ${area || 'N/A'}`,
       `Timeframe: ${timeframe}`,
       solarOptIn ? 'Wants solar-launch updates.' : '',
@@ -52,7 +73,11 @@ export default function ContactPage() {
       const res = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, phone, message }),
+        body: JSON.stringify({
+          name, email, phone, message,
+          shoppingFor, interests, area, timeframe,
+          items: quoteItems.map((i) => ({ id: i.id, qty: i.qty })),
+        }),
       })
       ok = res.ok
     } catch {
@@ -106,6 +131,75 @@ export default function ContactPage() {
                       <Checkbox key={item} label={item} checked={interests.includes(item)} onChange={() => toggleInterest(item)} />
                     ))}
                   </div>
+                </div>
+
+                <div style={{ border: '1px solid var(--color-border)', borderRadius: 14, overflow: 'hidden' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowProducts((v) => !v)}
+                    style={{
+                      width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px',
+                      background: showProducts ? 'var(--ke-gray-100)' : '#fff', border: 'none', cursor: 'pointer', textAlign: 'left',
+                    }}
+                  >
+                    <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, flex: 1, color: 'var(--color-text)' }}>
+                      Add specific products to your quote (optional)
+                    </span>
+                    {quoteItems.length > 0 && (
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--ke-green-700)' }}>
+                        {quoteItems.reduce((s, i) => s + i.qty, 0)} item{quoteItems.reduce((s, i) => s + i.qty, 0) === 1 ? '' : 's'} · {fmt(quoteTotal)}
+                      </span>
+                    )}
+                    {showProducts ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                  </button>
+
+                  {showProducts && (
+                    <div style={{ padding: '14px' }}>
+                      <p style={{ fontSize: 12, color: 'var(--color-text-muted)', margin: '0 0 12px' }}>
+                        Tell us exactly what you want instead of a general category — we&apos;ll confirm final pricing and stock.
+                      </p>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
+                        {PRODUCT_PILLS.map((c) => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => setProductCat(c.id)}
+                            style={{
+                              padding: '6px 12px', borderRadius: 999, fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12, cursor: 'pointer',
+                              border: productCat === c.id ? '1.5px solid var(--ke-green-500)' : '1.5px solid var(--color-border)',
+                              background: productCat === c.id ? 'var(--ke-green-50)' : '#fff',
+                              color: productCat === c.id ? 'var(--ke-green-700)' : 'var(--color-text-muted)',
+                            }}
+                          >
+                            {c.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 280, overflowY: 'auto' }}>
+                        {CATALOG.filter((p) => p.cat === productCat).map((p) => {
+                          const qty = quoteQty[p.id] ?? 0
+                          return (
+                            <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 4px', borderTop: '1px solid var(--color-border)' }}>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, color: 'var(--color-text)' }}>{p.name}</div>
+                                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-text-muted)' }}>{fmt(p.price)}</div>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <button type="button" aria-label={`Fewer ${p.name}`} onClick={() => setQty(p.id, qty - 1)} style={qtyBtn} disabled={qty === 0}>
+                                  <Minus size={12} />
+                                </button>
+                                <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, minWidth: 16, textAlign: 'center' }}>{qty}</span>
+                                <button type="button" aria-label={`More ${p.name}`} onClick={() => setQty(p.id, qty + 1)} style={qtyBtn}>
+                                  <Plus size={12} />
+                                </button>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -172,4 +266,17 @@ export default function ContactPage() {
       <Footer />
     </div>
   )
+}
+
+const qtyBtn: import('react').CSSProperties = {
+  width: 22,
+  height: 22,
+  borderRadius: '50%',
+  border: '1px solid var(--color-border)',
+  background: '#fff',
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  lineHeight: 1,
 }

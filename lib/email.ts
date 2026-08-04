@@ -253,6 +253,88 @@ export async function sendConsultationRequestAlert(input: {
   }
 }
 
+interface QuoteRequestItem {
+  name: string
+  qty: number
+  price: number
+}
+
+/**
+ * The /contact "quote request" flow's automatic follow-up: a branded quote
+ * confirmation to the customer's own inbox the moment they submit (with the
+ * specific products they asked for, if any, and an indicative total — a real
+ * rep still confirms final pricing and availability), plus the same detail
+ * to admins so it can be actioned without waiting on the CRM.
+ */
+export async function sendQuoteRequestEmails(input: {
+  toCustomer: string
+  customerName: string
+  shoppingFor: string
+  interests: string[]
+  items: QuoteRequestItem[]
+  area: string | null
+  timeframe: string
+}): Promise<void> {
+  if (!isEmailConfigured()) {
+    console.info(`[email] skipped quote-request emails for ${input.toCustomer} (no provider configured)`)
+    return
+  }
+
+  const itemTotal = input.items.reduce((s, i) => s + i.price * i.qty, 0)
+  const itemRows = input.items
+    .map(
+      (i) =>
+        `<tr><td style="padding:5px 0;color:#1c2a25">${escapeHtml(i.name)} × ${i.qty}</td><td style="padding:5px 0;text-align:right;color:#1c2a25">${fmt(i.price * i.qty)}</td></tr>`,
+    )
+    .join('')
+  const itemsTable = input.items.length
+    ? `<table style="width:100%;border-collapse:collapse;margin-top:10px;font-size:13.5px">${itemRows}
+        <tr><td style="padding:8px 0 0;border-top:1px solid #e2e8e4;font-weight:700">Indicative total</td>
+        <td style="padding:8px 0 0;border-top:1px solid #e2e8e4;text-align:right;font-weight:700">${fmt(itemTotal)}</td></tr>
+      </table>`
+    : ''
+
+  const detailRows = `
+    <tr><td style="padding:5px 0;color:#556059">Shopping for</td><td style="padding:5px 0;text-align:right;color:#1c2a25">${escapeHtml(input.shoppingFor)}</td></tr>
+    ${input.interests.length ? `<tr><td style="padding:5px 0;color:#556059">Interested in</td><td style="padding:5px 0;text-align:right;color:#1c2a25">${escapeHtml(input.interests.join(', '))}</td></tr>` : ''}
+    ${input.area ? `<tr><td style="padding:5px 0;color:#556059">Area</td><td style="padding:5px 0;text-align:right;color:#1c2a25">${escapeHtml(input.area)}</td></tr>` : ''}
+    <tr><td style="padding:5px 0;color:#556059">Timeframe</td><td style="padding:5px 0;text-align:right;color:#1c2a25">${escapeHtml(input.timeframe)}</td></tr>
+  `
+
+  const site = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://kingstonenergies.com'
+
+  const customerHtml = wrapEmailHtml(
+    'Your quote request',
+    `<p>Hi ${escapeHtml(input.customerName)}, thanks for reaching out — here&apos;s what we received.</p>` +
+      (itemsTable ||
+        `<p style="font-size:13px;color:#556059">No specific products yet — a rep will follow up to scope exactly what you need.</p>`) +
+      `<table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:13.5px">${detailRows}</table>` +
+      `<p style="font-size:12.5px;color:#556059;margin-top:14px">${input.items.length ? 'This total is indicative — final pricing, stock and delivery are confirmed by a real person.' : ''} A Kingston Energies rep will reach out within one working day.</p>` +
+      `<a href="${site}/shop" style="display:inline-block;margin-top:12px;background:#1f6b45;color:#fff;text-decoration:none;padding:10px 20px;border-radius:999px;font-weight:600;font-size:13px">Keep browsing</a>`,
+  )
+
+  const adminHtml = wrapEmailHtml(
+    'New quote request',
+    `<p><strong>${escapeHtml(input.customerName)}</strong> (${escapeHtml(input.toCustomer)}) requested a quote.</p>` +
+      itemsTable +
+      `<table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:13.5px">${detailRows}</table>` +
+      `<a href="${site}/admin/dashboard/customers" style="display:inline-block;margin-top:12px;background:#1f6b45;color:#fff;text-decoration:none;padding:10px 20px;border-radius:999px;font-weight:600;font-size:13px">Open in CRM</a>`,
+  )
+
+  try {
+    await deliver({ to: input.toCustomer, subject: 'Your Kingston Energies quote request', html: customerHtml })
+  } catch (err) {
+    console.error('[email] failed to send quote confirmation to customer:', err)
+  }
+
+  try {
+    const recipients = await adminRecipients()
+    await Promise.all(recipients.map((to) => deliver({ to, subject: `Quote request: ${input.customerName}`, html: adminHtml })))
+  } catch (err) {
+    console.error('[email] failed to send quote-request admin alert:', err)
+  }
+}
+
 export async function sendVerificationEmail(input: VerificationEmailInput): Promise<void> {
   const subject = 'Confirm your Kingston Energies account'
   const html = renderVerificationHtml(input)

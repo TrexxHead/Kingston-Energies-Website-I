@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, type CSSProperties } from 'react'
-import { CheckCircle2, AlertTriangle, Sun, Send } from 'lucide-react'
+import { CheckCircle2, AlertTriangle, Sun, Send, ZapOff } from 'lucide-react'
 import { fmt } from '@/lib/catalog'
 import { CATEGORY_META } from '@/lib/energyCheckup/applianceLibrary'
 import { iconFor } from './icons'
@@ -109,18 +109,41 @@ export default function ResultsScreen({
         </div>
       </div>
 
-      {/* Benchmark comparison */}
-      <div style={cardStyle}>
-        <h3 style={sectionTitle}>How you compare</h3>
-        <p style={sectionSub}>Against a typical Jamaican home (250–300 kWh/month).</p>
-        <BenchmarkBar totalKwh={results.totalKwh} />
-        <div style={{ marginTop: 14, fontSize: 14, fontWeight: 600, color: BENCHMARK_LABEL[results.benchmark.verdict].color }}>
-          {BENCHMARK_LABEL[results.benchmark.verdict].label}
+      {/* Benchmark comparison — household only; a business's typical load has no single-family reference */}
+      {mode === 'home' && (
+        <div style={cardStyle}>
+          <h3 style={sectionTitle}>How you compare</h3>
+          <p style={sectionSub}>Against a typical Jamaican home (250–300 kWh/month).</p>
+          <BenchmarkBar totalKwh={results.totalKwh} />
+          <div style={{ marginTop: 14, fontSize: 14, fontWeight: 600, color: BENCHMARK_LABEL[results.benchmark.verdict].color }}>
+            {BENCHMARK_LABEL[results.benchmark.verdict].label}
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4 }}>
+            At this rate, that's roughly {fmt(results.benchmark.annualCost)} over a year.
+          </div>
         </div>
-        <div style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4 }}>
-          At this rate, that's roughly {fmt(results.benchmark.annualCost)} over a year.
+      )}
+
+      {/* Outage cost — business only, and only once revenue/hour was supplied */}
+      {mode === 'biz' && results.outage && (
+        <div style={cardStyle}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <ZapOff size={18} color="#d84a3a" />
+            <h3 style={{ ...sectionTitle, margin: 0 }}>What an outage costs you</h3>
+          </div>
+          <p style={sectionSub}>Estimated from the revenue and systems you told us stop during a cut — not a guarantee.</p>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 28 }}>
+              {fmt(results.outage.low)}–{fmt(results.outage.high)}
+            </span>
+            <span style={{ fontSize: 13.5, color: 'var(--color-text-muted)' }}>per hour of downtime</span>
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 10 }}>
+            A single 4-hour outage lands around {fmt(results.outage.low * 4)}–{fmt(results.outage.high * 4)} in lost revenue at
+            this rate — before counting spoiled stock or a lost customer.
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Solar readiness */}
       <div style={cardStyle}>

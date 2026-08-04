@@ -18,10 +18,10 @@ import {
   ExternalLink,
   Menu,
   X,
-  Zap,
+  Gauge,
 } from 'lucide-react'
 import { formatCo2 } from '@/lib/impact'
-import { HUB_MAIN_NAV, HUB_FOOTER_NAV, type HubNavItem } from './hubNav'
+import { HUB_MAIN_NAV, HUB_TOOLS_NAV, HUB_FOOTER_NAV, type HubNavItem } from './hubNav'
 
 const ICONS: Record<string, typeof LayoutDashboard> = {
   'layout-dashboard': LayoutDashboard,
@@ -34,7 +34,7 @@ const ICONS: Record<string, typeof LayoutDashboard> = {
   'user-round': UserRound,
   'life-buoy': LifeBuoy,
   settings: Settings,
-  zap: Zap,
+  gauge: Gauge,
 }
 
 export default function Sidebar() {
@@ -134,6 +134,24 @@ export default function Sidebar() {
       <nav style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         {HUB_MAIN_NAV.map((item) => (
           <NavRow key={item.href} item={item} pathname={pathname} badge={item.href === '/hub/notifications' ? unread : 0} />
+        ))}
+      </nav>
+
+      <div
+        style={{
+          fontFamily: 'var(--font-mono)',
+          fontSize: 10,
+          letterSpacing: '.26em',
+          color: 'rgba(255,255,255,.35)',
+          textTransform: 'uppercase',
+          padding: '16px 12px 6px',
+        }}
+      >
+        Tools
+      </div>
+      <nav style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+        {HUB_TOOLS_NAV.map((item) => (
+          <NavRow key={item.href} item={item} pathname={pathname} />
         ))}
       </nav>
 

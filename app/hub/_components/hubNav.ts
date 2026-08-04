@@ -8,13 +8,17 @@ export interface HubNavItem {
 export const HUB_MAIN_NAV: HubNavItem[] = [
   { icon: 'layout-dashboard', label: 'Overview', href: '/hub' },
   { icon: 'package', label: 'Orders', href: '/hub/orders' },
-  { icon: 'zap', label: 'Energy checkup', href: '/hub/energy-checkup' },
   { icon: 'bell', label: 'Notifications', href: '/hub/notifications' },
   { icon: 'battery-charging', label: 'My devices', href: '/hub/devices' },
   { icon: 'heart', label: 'Saved', href: '/hub/saved' },
   { icon: 'map-pin', label: 'Addresses', href: '/hub/addresses' },
   { icon: 'gift', label: 'Rewards', href: '/hub/rewards' },
   { icon: 'user-round', label: 'Profile', href: '/hub/profile' },
+]
+
+// Tools group — sits below the main account nav, per the Energy Checkup spec.
+export const HUB_TOOLS_NAV: HubNavItem[] = [
+  { icon: 'gauge', label: 'Energy checkup', href: '/hub/energy-checkup' },
 ]
 
 // Footer utilities.

@@ -121,6 +121,7 @@ export async function POST(request: Request) {
     id: checkup.id,
     totalKwh,
     categories: categories.map((c) => ({ ...c, pct: totalKwh > 0 ? Math.round((c.kwh / totalKwh) * 100) : 0 })),
+    appliances: [...results].sort((a, b) => b.kwh - a.kwh).map((r) => ({ id: r.applianceId, category: r.category, kwh: r.kwh })),
     rate,
     calibration: cal,
     savings,

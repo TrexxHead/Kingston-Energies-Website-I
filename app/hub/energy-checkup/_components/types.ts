@@ -69,10 +69,17 @@ export interface RateResult {
   source: 'bill' | 'reference'
 }
 
+export interface ApplianceResultDTO {
+  id: string
+  category: string
+  kwh: number
+}
+
 export interface CheckupResults {
   id: string
   totalKwh: number
   categories: CategoryResult[]
+  appliances: ApplianceResultDTO[]
   rate: RateResult
   calibration: { variance: number; withinBand: boolean } | null
   savings: { lowPct: number; highPct: number; lowJmd: number; highJmd: number }

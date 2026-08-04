@@ -18,6 +18,7 @@ import {
   ExternalLink,
   Menu,
   X,
+  Zap,
 } from 'lucide-react'
 import { formatCo2 } from '@/lib/impact'
 import { HUB_MAIN_NAV, HUB_FOOTER_NAV, type HubNavItem } from './hubNav'
@@ -33,6 +34,7 @@ const ICONS: Record<string, typeof LayoutDashboard> = {
   'user-round': UserRound,
   'life-buoy': LifeBuoy,
   settings: Settings,
+  zap: Zap,
 }
 
 export default function Sidebar() {

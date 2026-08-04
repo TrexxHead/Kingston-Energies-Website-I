@@ -40,6 +40,7 @@ model User {
   notifications Notification[]
   addresses     Address[]
   registeredUnits ProductUnit[]
+  energyCheckups  EnergyCheckup[]
 }
 
 // Server-side cart snapshots — powers abandoned-cart tracking and conversion
@@ -287,6 +288,81 @@ model Lead {
   updatedAt DateTime @updatedAt
 
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  energyCheckups EnergyCheckup[]
+}
+
+enum CheckupMode {
+  HOME
+  BUSINESS
+}
+
+// An Energy Usage Checkup session — a customer-dashboard tool, not a
+// marketing-site form. Deliberately named "Checkup", never "audit": that
+// word implies a credentialed assessment Kingston Energies does not hold.
+// Every submitted session is stored (with consent, at the report gate) so
+// v2's expanded appliance library and trend charts have real data to build
+// from instead of guesses — see the build spec's data-model guidance.
+model EnergyCheckup {
+  id     String      @id @default(cuid())
+  userId String?
+  mode   CheckupMode
+
+  // Household context
+  parish       String?
+  occupants    Int?
+  homeType     String?
+  acType       String?
+  fridgeAge    String?
+  waterHeating String?
+  lightType    String?
+
+  // Business context
+  bizType String?
+  backup  Boolean?
+
+  // Appliance overrides, keyed by appliance id — { [id]: { count, hours } }.
+  // Sparse and structured (never free text): unset entries fall back to the
+  // library default, so extending the library later never breaks a stored
+  // session's replay.
+  rows Json
+
+  // The one field that turns a generic guess into a real number.
+  billKwh Float?
+  billJmd Float?
+  month   String?
+
+  // Business-only outage-cost inputs.
+  revHour Float?
+  stops   Json?
+
+  // What was actually computed and shown — stored as a snapshot so a
+  // reopened report, or a future trend chart, doesn't depend on recomputing
+  // against a wattage table that may have since changed.
+  estimatedKwh  Float
+  effectiveRate Float
+  rateSource    String // "bill" | "reference"
+
+  // Lead capture (the report gate) — the same customer/lead system used
+  // everywhere else in the business, never a parallel list.
+  leadContact  String?
+  leadChannel  String? // "email" | "whatsapp"
+  reportSentAt DateTime?
+  leadId       String?
+  lead         Lead?   @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  // Attribution, so Checkup completions can be tied back to the content or
+  // channel that drove them.
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([createdAt])
 }
 
 model Order {

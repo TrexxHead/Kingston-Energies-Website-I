@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AlertTriangle } from 'lucide-react'
-import { cardStyle, h3Style } from '../ui/card'
+import { cardStyle, cardStyleHero, h3Style } from '../ui/card'
 import StatTile from '../charts/StatTile'
+import GaugeRing from '../charts/GaugeRing'
 import LineChart from '../charts/LineChart'
 import BarChart from '../charts/BarChart'
 import DonutChart from '../charts/DonutChart'
@@ -97,10 +98,37 @@ export default function FinanceOverview() {
 
   const F = '/admin/dashboard/finance'
 
+  const totalBalance = k.cash.value + k.bank.value
+  const ratio = data.ratios.currentRatio
+  // A 3.0 current ratio reads as fully healthy on the dial; 1.0 is the
+  // textbook "can just cover short-term liabilities" line.
+  const ratioPct = ratio !== null ? Math.max(0, Math.min(100, (ratio / 3) * 100)) : 0
+  const ratioTone = ratio === null ? 'warning' : ratio >= 1.5 ? 'good' : ratio >= 1 ? 'warning' : 'critical'
+  const ratioLabel = ratio === null ? 'No data' : ratio >= 1.5 ? 'Healthy' : ratio >= 1 ? 'Tight' : 'At risk'
+
   return (
     // While a reload is in flight the previous render is held at reduced
     // opacity — no skeleton, no layout jump.
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, opacity: loading ? 0.6 : 1, transition: 'opacity .15s ease' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px,1.1fr) minmax(260px,0.8fr)', gap: 16, alignItems: 'stretch' }} className="kp-2col">
+        <div style={{ ...cardStyleHero, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 6 }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--ke-dark-text-muted)' }}>
+            Total balance
+          </div>
+          <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 34, color: 'var(--color-text-on-ink)', letterSpacing: '-.02em' }}>
+            {money(totalBalance)}
+          </div>
+          <div style={{ fontSize: 12.5, color: 'var(--ke-dark-text-muted)' }}>Cash on hand + bank balance, as of {data.period}</div>
+        </div>
+        <div style={{ ...cardStyleHero, display: 'flex', alignItems: 'center', gap: 16 }}>
+          <GaugeRing value={ratioPct} centreValue={ratio !== null ? `${ratio.toFixed(2)}×` : 'N/A'} statusLabel={ratioLabel} tone={ratioTone} size={104} onDark />
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, color: 'var(--color-text-on-ink)' }}>Current ratio</div>
+            <div style={{ fontSize: 11.5, color: 'var(--ke-dark-text-muted)', marginTop: 3, lineHeight: 1.5, maxWidth: 180 }}>Current assets ÷ current liabilities</div>
+          </div>
+        </div>
+      </div>
+
       {/* Filters sit in one row above everything they scope. */}
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
         <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '.1em', textTransform: 'uppercase', color: CHROME.textMuted }}>

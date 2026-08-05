@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { TriangleAlert, ArrowUpRight } from 'lucide-react'
-import { cardStyle, h3Style } from '../ui/card'
+import { cardStyle, cardStyleHero, h3Style } from '../ui/card'
 import Badge from '../ui/Badge'
+import GaugeRing from '../charts/GaugeRing'
 import LineChart from '../charts/LineChart'
 import BarChart from '../charts/BarChart'
 import DonutChart from '../charts/DonutChart'
@@ -76,8 +77,34 @@ export default function MarketingOverview() {
   const hasRevenueSignal = (data?.revenueSeries ?? []).some((p) => p.value > 0)
   const topCampaigns = [...(data?.campaignPerformance ?? [])].sort((a, b) => b.revenue - a.revenue).slice(0, 6)
 
+  const sendable = (k?.scheduledCampaigns ?? 0) + (k?.sentCampaigns ?? 0)
+  const sentPct = sendable > 0 ? Math.round(((k?.sentCampaigns ?? 0) / sendable) * 100) : 0
+  const sentTone = sendable === 0 ? 'warning' : sentPct >= 70 ? 'good' : sentPct >= 30 ? 'warning' : 'critical'
+  const sentLabel = sendable === 0 ? 'Nothing queued' : sentPct >= 70 ? 'On track' : sentPct >= 30 ? 'Building' : 'Just started'
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px,1.1fr) minmax(260px,0.8fr)', gap: 16, alignItems: 'stretch' }} className="kp-2col">
+        <div style={{ ...cardStyleHero, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 6 }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--ke-dark-text-muted)' }}>
+            Attributed revenue
+          </div>
+          <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 34, color: 'var(--color-text-on-ink)', letterSpacing: '-.02em' }}>
+            {k ? money(k.attributedRevenue) : '—'}
+          </div>
+          <div style={{ fontSize: 12.5, color: 'var(--ke-dark-text-muted)' }}>
+            {k ? `${k.attributedOrders} orders in the last ${days} days` : `Last ${days} days`}
+          </div>
+        </div>
+        <div style={{ ...cardStyleHero, display: 'flex', alignItems: 'center', gap: 16 }}>
+          <GaugeRing value={sentPct} centreValue={`${sentPct}%`} statusLabel={sentLabel} tone={sentTone} size={104} onDark />
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, color: 'var(--color-text-on-ink)' }}>Campaign queue sent</div>
+            <div style={{ fontSize: 11.5, color: 'var(--ke-dark-text-muted)', marginTop: 3, lineHeight: 1.5, maxWidth: 180 }}>Share of scheduled + sent campaigns that have gone out</div>
+          </div>
+        </div>
+      </div>
+
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
         {RANGES.map((r) => (
           <button

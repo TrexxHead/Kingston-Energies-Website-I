@@ -27,6 +27,8 @@ interface TrackDto {
   cancelled: boolean
   stage: number
   lastStage: number
+  delayed: boolean
+  delayReason: string | null
   estimatedDelivery: string | null
   placedAt: string
   items: { name: string; qty: number }[]
@@ -147,6 +149,38 @@ function TrackInner() {
               <p style={{ fontSize: 13, color: 'var(--ke-green-700)', margin: '8px 0 0', fontWeight: 600 }}>
                 Estimated delivery: {fmtTime(data.estimatedDelivery)}
               </p>
+            )}
+            {data.delayed && (
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 10,
+                  alignItems: 'flex-start',
+                  background: 'var(--ke-sun-50)',
+                  border: '1px solid rgba(247,148,30,.3)',
+                  borderRadius: 12,
+                  padding: '12px 14px',
+                  marginTop: 16,
+                  maxWidth: 480,
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: 'var(--font-display)',
+                    fontWeight: 700,
+                    fontSize: 11.5,
+                    color: 'var(--ke-sun-700, #8a5a00)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '.04em',
+                    flexShrink: 0,
+                  }}
+                >
+                  Delayed
+                </span>
+                <span style={{ fontSize: 13, color: 'var(--ke-sun-700, #8a5a00)', lineHeight: 1.5 }}>
+                  {data.delayReason || 'This order has been delayed — we\'ll update you as soon as it moves.'}
+                </span>
+              </div>
             )}
           </>
         )}

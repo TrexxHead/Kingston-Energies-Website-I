@@ -65,6 +65,8 @@ export async function GET(request: Request) {
     cancelled,
     stage,
     lastStage: PIPELINE.length - 1,
+    delayed: order.delayed,
+    delayReason: order.delayReason,
     estimatedDelivery: order.estimatedDelivery ? order.estimatedDelivery.toISOString() : null,
     placedAt: order.createdAt.toISOString(),
     total: order.total,

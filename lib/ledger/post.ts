@@ -305,24 +305,30 @@ export async function postStockAdjustment(adj: {
   })
 }
 
-/** Reverse an entry by posting its mirror image. Never deletes — audit trails are append-only. */
-export async function reverseEntry(entryId: string, createdBy?: string | null): Promise<void> {
+/**
+ * Reverse an entry by posting its mirror image. Never deletes or edits the
+ * original — audit trails are append-only, so a wrong figure is always fixed
+ * by two new, visible entries (a reversal and, separately, a correction)
+ * rather than a silent change to what's already on the books.
+ */
+export async function reverseEntry(entryId: string, createdBy?: string | null, reason?: string | null): Promise<{ id: string; entryNo: string } | null> {
   const entry = await prisma.journalEntry.findUnique({
     where: { id: entryId },
     include: { lines: { include: { account: { select: { code: true } } } } },
   })
-  if (!entry || entry.reversedById) return
+  if (!entry || entry.reversedById) return null
 
   const reversal = await postEntry({
     date: new Date(),
     source: 'MANUAL',
-    memo: `Reversal of ${entry.entryNo}${entry.memo ? `: ${entry.memo}` : ''}`,
+    memo: `Reversal of ${entry.entryNo}${entry.memo ? `: ${entry.memo}` : ''}${reason ? ` — ${reason}` : ''}`,
     createdBy,
     lines: entry.lines.map((l) => ({ code: l.account.code, debit: l.credit, credit: l.debit })),
   })
   if (reversal) {
     await prisma.journalEntry.update({ where: { id: entryId }, data: { reversedById: reversal.id } })
   }
+  return reversal
 }
 
 /**

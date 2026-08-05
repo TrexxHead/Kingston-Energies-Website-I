@@ -28,6 +28,9 @@ interface Order {
   cancelReason: string | null
   stage: number
   estimatedDelivery: string | null
+  delayed: boolean
+  delayReason: string | null
+  delayedAt: string | null
   events: { id: string; type: string; label: string | null; note: string | null; adminOnly: boolean; at: string }[]
   paymentMethod: string | null
   paid: boolean
@@ -37,7 +40,7 @@ interface Order {
   itemCount: number
   date: string
   createdAt: string
-  items: { name: string; qty: number; price: number }[]
+  items: { id: string; productId: string | null; name: string; qty: number; price: number }[]
 }
 
 const PAYMENT_LABEL: Record<string, string> = {
@@ -106,6 +109,12 @@ export default function OrdersSection() {
   const [newItems, setNewItems] = useState([{ name: '', price: '', qty: '1' }])
   const [products, setProducts] = useState<{ id: string; name: string; price: number; salePrice: number | null }[]>([])
   const [suggestFor, setSuggestFor] = useState<number | null>(null)
+  const [delayBusy, setDelayBusy] = useState(false)
+  const [delayReasonDraft, setDelayReasonDraft] = useState('')
+  const [showDelayForm, setShowDelayForm] = useState(false)
+  const [swapForItem, setSwapForItem] = useState<string | null>(null)
+  const [swapQuery, setSwapQuery] = useState('')
+  const [swapBusy, setSwapBusy] = useState(false)
 
   const load = useCallback(async () => {
     const res = await fetch('/api/admin/orders')
@@ -129,6 +138,55 @@ export default function OrdersSection() {
   useEffect(() => {
     if (newOpen) loadProducts()
   }, [newOpen, loadProducts])
+
+  useEffect(() => {
+    if (detail) loadProducts()
+    setShowDelayForm(false)
+    setDelayReasonDraft('')
+    setSwapForItem(null)
+    setSwapQuery('')
+  }, [detail, loadProducts])
+
+  const refreshDetail = useCallback(async (id: string) => {
+    const res = await fetch('/api/admin/orders')
+    if (!res.ok) return
+    const d = await res.json()
+    setOrders(d.orders)
+    setDetail(d.orders.find((o: Order) => o.id === id) ?? null)
+  }, [])
+
+  const setDelay = async (id: string, delayed: boolean, reason?: string) => {
+    setDelayBusy(true)
+    const res = await fetch(`/api/admin/orders/${id}/delay`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ delayed, reason }),
+    })
+    setDelayBusy(false)
+    if (res.ok) {
+      setShowDelayForm(false)
+      setDelayReasonDraft('')
+      refreshDetail(id)
+    }
+  }
+
+  const swapItem = async (orderId: string, itemId: string, productId: string) => {
+    setSwapBusy(true)
+    const res = await fetch(`/api/admin/orders/${orderId}/items/${itemId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ productId }),
+    })
+    setSwapBusy(false)
+    if (res.ok) {
+      setSwapForItem(null)
+      setSwapQuery('')
+      refreshDetail(orderId)
+    } else {
+      const d = await res.json().catch(() => ({}))
+      window.alert(d.error ?? 'Could not swap that item.')
+    }
+  }
 
   const setStatus = async (id: string, status: OrderStatus) => {
     // optimistic update
@@ -457,6 +515,43 @@ export default function OrdersSection() {
               <span style={{ fontWeight: 600, textAlign: 'right' }}>{detail.shippingAddress}</span>
             </div>
           )}
+          {detail.delayed && (
+            <div style={{ background: 'var(--ke-sun-50,#fff7e6)', border: '1px solid var(--ke-sun-300,#fdb813)', borderRadius: 10, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, color: 'var(--ke-sun-700,#8a5a00)' }}>
+                <Badge tone="orange" dot>Delayed</Badge>
+                {detail.delayReason}
+              </span>
+              <div>
+                <Button size="sm" variant="outline" onClick={() => setDelay(detail.id, false)} disabled={delayBusy}>
+                  {delayBusy ? 'Saving…' : 'Mark delay resolved'}
+                </Button>
+              </div>
+            </div>
+          )}
+          {!detail.delayed && detail.status !== 'CANCELLED' && (
+            <div>
+              {showDelayForm ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <textarea
+                    value={delayReasonDraft}
+                    onChange={(e) => setDelayReasonDraft(e.target.value)}
+                    placeholder="Reason for the delay — shown to the customer (e.g. out of stock, awaiting supplier)"
+                    rows={2}
+                    maxLength={400}
+                    style={{ width: '100%', resize: 'vertical', fontSize: 12.5, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--color-border)', fontFamily: 'inherit' }}
+                  />
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <Button size="sm" onClick={() => setDelay(detail.id, true, delayReasonDraft.trim())} disabled={delayBusy || !delayReasonDraft.trim()}>
+                      {delayBusy ? 'Saving…' : 'Confirm delay'}
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setShowDelayForm(false)}>Cancel</Button>
+                  </div>
+                </div>
+              ) : (
+                <Button size="sm" variant="outline" onClick={() => setShowDelayForm(true)}>Defer this order</Button>
+              )}
+            </div>
+          )}
           {detail.status === 'CANCELLED' && detail.cancelReason && (
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13 }}>
               <span style={{ color: 'var(--color-text-muted)' }}>Cancel reason</span>
@@ -492,12 +587,58 @@ export default function OrdersSection() {
             <div style={{ fontSize: 12, color: 'var(--color-text-muted)', textAlign: 'right' }}>{invoiceMsg}</div>
           )}
           <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {detail.items.map((it, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                <span>{it.name}{it.qty > 1 ? ` × ${it.qty}` : ''}</span>
-                <span style={{ fontWeight: 600 }}>{fmt(it.price * it.qty)}</span>
-              </div>
-            ))}
+            {detail.items.map((it) => {
+              const matches = swapForItem === it.id && swapQuery.trim()
+                ? products.filter((p) => p.name.toLowerCase().includes(swapQuery.trim().toLowerCase()) && p.id !== it.productId).slice(0, 6)
+                : []
+              return (
+                <div key={it.id}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, gap: 8 }}>
+                    <span>{it.name}{it.qty > 1 ? ` × ${it.qty}` : ''}</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontWeight: 600 }}>{fmt(it.price * it.qty)}</span>
+                      {detail.status !== 'CANCELLED' && (
+                        <button
+                          type="button"
+                          onClick={() => { setSwapForItem(swapForItem === it.id ? null : it.id); setSwapQuery('') }}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: 'var(--ke-green-700,#15803d)', padding: 0 }}
+                        >
+                          Swap
+                        </button>
+                      )}
+                    </span>
+                  </div>
+                  {swapForItem === it.id && (
+                    <div style={{ position: 'relative', marginTop: 6 }}>
+                      <input
+                        autoFocus
+                        value={swapQuery}
+                        onChange={(e) => setSwapQuery(e.target.value)}
+                        placeholder="Type a product name to swap to…"
+                        disabled={swapBusy}
+                        style={{ width: '100%', height: 32, padding: '0 10px', border: '1px solid var(--color-border)', borderRadius: 8, fontSize: 12 }}
+                      />
+                      {matches.length > 0 && (
+                        <div style={{ marginTop: 4, border: '1px solid var(--color-border)', borderRadius: 10, overflow: 'hidden' }}>
+                          {matches.map((p) => (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => swapItem(detail.id, it.id, p.id)}
+                              disabled={swapBusy}
+                              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, width: '100%', padding: '8px 10px', border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left', fontSize: 12 }}
+                            >
+                              <span>{p.name}</span>
+                              <span style={{ color: 'var(--color-text-muted)', flexShrink: 0 }}>{fmt(p.salePrice ?? p.price)}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--color-border)', paddingTop: 12 }}>
             <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700 }}>Total</span>

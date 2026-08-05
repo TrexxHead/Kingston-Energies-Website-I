@@ -42,6 +42,38 @@ export default async function HubOrderDetailPage({ params }: { params: Promise<{
             </span>
           </div>
 
+          {order.delayed && (
+            <div
+              style={{
+                display: 'flex',
+                gap: 10,
+                alignItems: 'flex-start',
+                background: 'var(--ke-sun-50)',
+                border: '1px solid rgba(247,148,30,.3)',
+                borderRadius: 12,
+                padding: '12px 14px',
+                marginBottom: 14,
+              }}
+            >
+              <span
+                style={{
+                  fontFamily: 'var(--font-display)',
+                  fontWeight: 700,
+                  fontSize: 11.5,
+                  color: 'var(--ke-sun-700, #8a5a00)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '.04em',
+                  flexShrink: 0,
+                }}
+              >
+                Delayed
+              </span>
+              <span style={{ fontSize: 13, color: 'var(--ke-sun-700, #8a5a00)', lineHeight: 1.5 }}>
+                {order.delayReason || 'This order has been delayed — we\'ll update you as soon as it moves.'}
+              </span>
+            </div>
+          )}
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid var(--color-border)', paddingTop: 14 }}>
             {order.items.map((i) => (
               <div key={i.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13.5 }}>

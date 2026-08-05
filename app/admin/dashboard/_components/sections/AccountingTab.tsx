@@ -330,6 +330,7 @@ interface JournalEntryRow {
   memo: string | null
   source: string
   totalDebit: number
+  reversed: boolean
   lines: { id: string; code: string; name: string; debit: number; credit: number }[]
 }
 
@@ -343,6 +344,7 @@ function Journal() {
   const [total, setTotal] = useState(0)
   const [offset, setOffset] = useState(0)
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [adjusting, setAdjusting] = useState<JournalEntryRow | null>(null)
   const PAGE = 25
 
   const load = useCallback(async (off: number) => {
@@ -389,6 +391,7 @@ function Journal() {
                 </span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                   <Badge tone="grey">{SOURCE_LABEL[e.source] ?? e.source}</Badge>
+                  {e.reversed && <Badge tone="orange">Reversed</Badge>}
                   <span style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.memo ?? 'N/A'}</span>
                 </span>
                 <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13 }}>{fmt(Math.round(e.totalDebit))}</span>
@@ -403,6 +406,11 @@ function Journal() {
                       <span style={{ textAlign: 'right', color: 'var(--color-text-muted)' }}>{l.credit ? fmt(Math.round(l.credit)) : ''}</span>
                     </div>
                   ))}
+                  {!e.reversed && (
+                    <div style={{ marginTop: 10 }}>
+                      <Button size="sm" variant="outline" onClick={() => setAdjusting(e)}>Adjust this entry</Button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -420,7 +428,130 @@ function Journal() {
           )}
         </>
       )}
+
+      {adjusting && (
+        <AdjustEntryModal
+          entry={adjusting}
+          onClose={() => setAdjusting(null)}
+          onDone={() => {
+            setAdjusting(null)
+            load(offset)
+          }}
+        />
+      )}
     </div>
+  )
+}
+
+function AdjustEntryModal({ entry, onClose, onDone }: { entry: JournalEntryRow; onClose: () => void; onDone: () => void }) {
+  const [reason, setReason] = useState('')
+  const [lines, setLines] = useState(entry.lines.map((l) => ({ code: l.code, name: l.name, debit: l.debit, credit: l.credit })))
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const totalDebit = Math.round(lines.reduce((s, l) => s + (l.debit || 0), 0) * 100) / 100
+  const totalCredit = Math.round(lines.reduce((s, l) => s + (l.credit || 0), 0) * 100) / 100
+  const balanced = Math.abs(totalDebit - totalCredit) < 0.01
+
+  const setLine = (i: number, patch: Partial<{ debit: number; credit: number }>) =>
+    setLines((prev) => prev.map((l, idx) => (idx === i ? { ...l, ...patch } : l)))
+
+  const submit = async () => {
+    if (!reason.trim()) {
+      setError('Enter a reason for this adjustment.')
+      return
+    }
+    if (!balanced) {
+      setError('Debits must equal credits before this can be posted.')
+      return
+    }
+    setSaving(true)
+    setError(null)
+    try {
+      const rev = await fetch(`/api/admin/finance/ledger/journal/${entry.id}/reverse`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason }),
+      })
+      if (!rev.ok) {
+        const d = await rev.json().catch(() => ({}))
+        throw new Error(d.error ?? 'Could not reverse the original entry.')
+      }
+      const post = await fetch('/api/admin/finance/ledger/journal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: new Date().toISOString(),
+          memo: `Correction of ${entry.entryNo}: ${reason}`,
+          lines: lines.map((l) => ({ code: l.code, debit: l.debit || undefined, credit: l.credit || undefined })),
+        }),
+      })
+      if (!post.ok) {
+        const d = await post.json().catch(() => ({}))
+        throw new Error(d.error ?? `${entry.entryNo} was reversed, but the correcting entry failed to post — post it manually.`)
+      }
+      onDone()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Modal
+      title={`Adjust ${entry.entryNo}`}
+      onClose={onClose}
+      width={520}
+      footer={
+        <>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={submit} disabled={saving}>{saving ? 'Posting…' : 'Reverse & post correction'}</Button>
+        </>
+      }
+    >
+      <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: '0 0 16px' }}>
+        This reverses {entry.entryNo} with a mirror-image entry, then posts the figures below as a new correcting
+        entry — the original stays on the books, untouched.
+      </p>
+
+      <div style={{ marginBottom: 14 }}>
+        <TextInput label="Reason for this adjustment" value={reason} onChange={setReason} placeholder="e.g. Amount was entered wrong — should be J$4,200" />
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {lines.map((l, i) => (
+          <div key={l.code} style={{ display: 'grid', gridTemplateColumns: '1fr 90px 90px', gap: 8, alignItems: 'center' }}>
+            <span style={{ fontSize: 12.5 }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--color-text-muted)', marginRight: 6 }}>{l.code}</span>
+              {l.name}
+            </span>
+            <input
+              type="number"
+              value={l.debit || ''}
+              onChange={(e) => setLine(i, { debit: Number(e.target.value) || 0 })}
+              placeholder="Debit"
+              style={{ height: 36, borderRadius: 8, border: '1.5px solid var(--color-border)', padding: '0 8px', fontSize: 12.5, textAlign: 'right' }}
+            />
+            <input
+              type="number"
+              value={l.credit || ''}
+              onChange={(e) => setLine(i, { credit: Number(e.target.value) || 0 })}
+              placeholder="Credit"
+              style={{ height: 36, borderRadius: 8, border: '1.5px solid var(--color-border)', padding: '0 8px', fontSize: 12.5, textAlign: 'right' }}
+            />
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 14, paddingTop: 10, borderTop: '1px solid var(--color-border)', fontSize: 12.5 }}>
+        <span style={{ color: balanced ? 'var(--color-text-muted)' : 'var(--color-danger)' }}>
+          Debits {fmt(totalDebit)} · Credits {fmt(totalCredit)}{!balanced && ' — must match'}
+        </span>
+      </div>
+
+      {error && <p style={{ fontSize: 12.5, color: 'var(--color-danger)', marginTop: 10 }}>{error}</p>}
+    </Modal>
   )
 }
 

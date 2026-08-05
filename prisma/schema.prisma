@@ -395,6 +395,12 @@ model Order {
   cancelledAt   DateTime?
   stage         Int         @default(0) // 0-7 position in the 8-stage delivery pipeline
   estimatedDelivery DateTime? // admin-set / auto ETA shown to the customer
+  // Set when an admin defers the order (stock-out, supplier delay, etc.) —
+  // independent of `status`/`stage` so a delayed order still shows where it
+  // actually is in the pipeline, just with a visible reason attached.
+  delayed       Boolean     @default(false)
+  delayReason   String?     @db.Text
+  delayedAt     DateTime?
   total         Float       @default(0)
   proofOfPaymentPath String? // private storage path — customer-uploaded receipt/screenshot
   proofOfPaymentAt   DateTime?
@@ -887,8 +893,38 @@ model Expense {
   document DocumentScan?
   // The campaign this expense was posted for, if it came from campaign spend.
   campaign Campaign?
+  // Every correction made after this expense was first logged — append-only,
+  // never overwritten, so a figure can be fixed without the original ever
+  // being silently lost.
+  edits ExpenseEdit[]
 
   @@index([spentAt])
+}
+
+// One correction to an already-logged expense. Written alongside — never
+// instead of — reversing and reposting the expense's ledger entry, so the
+// journal and this log always agree on what changed and why.
+model ExpenseEdit {
+  id          String   @id @default(cuid())
+  expenseId   String
+
+  beforeCategory    String
+  beforeDescription String?
+  beforeAmount      Float
+  beforeSpentAt     DateTime
+
+  afterCategory    String
+  afterDescription String?
+  afterAmount      Float
+  afterSpentAt     DateTime
+
+  reason    String  @db.Text
+  editedBy  String?
+  createdAt DateTime @default(now())
+
+  expense Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+
+  @@index([expenseId])
 }
 
 // A recurring monthly budget target per expense category.

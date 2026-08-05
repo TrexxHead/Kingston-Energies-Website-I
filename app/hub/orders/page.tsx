@@ -194,6 +194,21 @@ export default async function HubOrdersPage({
                       >
                         {meta.label}
                       </span>
+                      {o.delayed && (
+                        <span
+                          style={{
+                            fontFamily: 'var(--font-display)',
+                            fontWeight: 600,
+                            fontSize: 11,
+                            padding: '2px 9px',
+                            borderRadius: 999,
+                            background: 'var(--ke-sun-50)',
+                            color: 'var(--ke-sun-500)',
+                          }}
+                        >
+                          Delayed
+                        </span>
+                      )}
                     </div>
                     <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--color-text-muted)' }}>
                       {new Date(o.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}

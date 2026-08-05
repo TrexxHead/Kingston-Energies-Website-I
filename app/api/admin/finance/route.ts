@@ -14,7 +14,12 @@ export async function GET() {
 
   const [orders, expenses, budgets] = await Promise.all([
     safe(() => prisma.order.findMany({ select: { total: true, createdAt: true, status: true, paid: true } })),
-    safe(() => prisma.expense.findMany({ orderBy: { spentAt: 'desc' }, include: { document: { select: { id: true } } } })),
+    safe(() =>
+      prisma.expense.findMany({
+        orderBy: { spentAt: 'desc' },
+        include: { document: { select: { id: true } }, _count: { select: { edits: true } } },
+      }),
+    ),
     safe(() => prisma.budget.findMany()),
   ])
 
@@ -77,7 +82,9 @@ export async function GET() {
     description: e.description,
     amount: Math.round(e.amount),
     date: new Date(e.spentAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+    spentAtIso: new Date(e.spentAt).toISOString().slice(0, 10),
     documentId: e.document?.id ?? null,
+    editCount: e._count.edits,
   }))
 
   return NextResponse.json({

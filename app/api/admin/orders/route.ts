@@ -31,6 +31,9 @@ export async function GET() {
       cancelReason: o.cancelReason,
       stage: o.stage,
       estimatedDelivery: o.estimatedDelivery ? o.estimatedDelivery.toISOString() : null,
+      delayed: o.delayed,
+      delayReason: o.delayReason,
+      delayedAt: o.delayedAt ? o.delayedAt.toISOString() : null,
       events: o.events.map((e) => ({
         id: e.id,
         type: e.type,
@@ -47,7 +50,7 @@ export async function GET() {
       itemCount: o.items.reduce((sum, i) => sum + i.qty, 0),
       date: new Date(o.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
       createdAt: o.createdAt.toISOString(),
-      items: o.items.map((i) => ({ name: i.name, qty: i.qty, price: i.price })),
+      items: o.items.map((i) => ({ id: i.id, productId: i.productId, name: i.name, qty: i.qty, price: i.price })),
     })),
   })
 }

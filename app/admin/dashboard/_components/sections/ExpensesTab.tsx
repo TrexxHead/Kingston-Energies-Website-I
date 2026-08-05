@@ -1,14 +1,14 @@
 'use client'
 
-import { useState } from 'react'
-import { Plus, Trash2, Paperclip, X } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { Plus, Trash2, Paperclip, X, Pencil, History } from 'lucide-react'
 import { cardStyle, h3Style } from '../ui/card'
 import Button from '../ui/Button'
 import Modal from '../ui/Modal'
 import TextInput from '../ui/TextInput'
 import { fmt } from '../mockData'
 import { EXPENSE_CATEGORIES } from '@/lib/finance'
-import { useFinanceData, useExpenseCategories } from './useFinanceData'
+import { useFinanceData, useExpenseCategories, type FinanceExpenseRow } from './useFinanceData'
 
 /** Budgets against actuals, and the log of what was actually spent. */
 export default function ExpensesTab() {
@@ -22,7 +22,31 @@ export default function ExpensesTab() {
   const [busy, setBusy] = useState(false)
   const [addingCategory, setAddingCategory] = useState(false)
   const [newCategoryName, setNewCategoryName] = useState('')
+  const [editing, setEditing] = useState<FinanceExpenseRow | null>(null)
+  const [attachTargetId, setAttachTargetId] = useState<string | null>(null)
+  const [attaching, setAttaching] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
   const categoryOptions = categories.length ? categories : [...EXPENSE_CATEGORIES]
+
+  const startAttach = (expenseId: string) => {
+    setAttachTargetId(expenseId)
+    fileInputRef.current?.click()
+  }
+
+  const onFileChosen = async (file: File | null) => {
+    if (!file || !attachTargetId) return
+    setAttaching(true)
+    const body = new FormData()
+    body.append('file', file)
+    const res = await fetch(`/api/admin/expenses/${attachTargetId}/receipt`, { method: 'POST', body })
+    setAttaching(false)
+    setAttachTargetId(null)
+    if (res.ok) reload()
+    else {
+      const d = await res.json().catch(() => ({}))
+      window.alert(d.error ?? 'Could not attach that receipt.')
+    }
+  }
 
   const saveNewCategory = async () => {
     const name = newCategoryName.trim()
@@ -186,10 +210,15 @@ export default function ExpensesTab() {
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13.5 }}>{e.category}</span>
                   {e.description && <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}> · {e.description}</span>}
+                  {e.editCount > 0 && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10.5, color: 'var(--ke-sun-500)', marginLeft: 6 }}>
+                      <History size={10} /> edited ×{e.editCount}
+                    </span>
+                  )}
                   <span style={{ display: 'block', fontSize: 11, color: 'var(--color-text-subtle)' }}>{e.date}</span>
                 </span>
                 <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14 }}>{fmt(e.amount)}</span>
-                {e.documentId && (
+                {e.documentId ? (
                   <button
                     type="button"
                     onClick={() => openReceipt(e.documentId as string)}
@@ -199,7 +228,27 @@ export default function ExpensesTab() {
                   >
                     <Paperclip size={15} />
                   </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => startAttach(e.id)}
+                    aria-label="Attach receipt"
+                    title="Attach receipt"
+                    disabled={attaching && attachTargetId === e.id}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-subtle)', display: 'flex' }}
+                  >
+                    <Paperclip size={15} />
+                  </button>
                 )}
+                <button
+                  type="button"
+                  onClick={() => setEditing(e)}
+                  aria-label="Edit expense"
+                  title="Edit expense"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-subtle)', display: 'flex' }}
+                >
+                  <Pencil size={15} />
+                </button>
                 <button
                   type="button"
                   onClick={() => removeExpense(e.id)}
@@ -213,6 +262,30 @@ export default function ExpensesTab() {
           </div>
         )}
       </div>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*,application/pdf"
+        style={{ display: 'none' }}
+        onChange={(ev) => {
+          const f = ev.target.files?.[0] ?? null
+          ev.target.value = ''
+          onFileChosen(f)
+        }}
+      />
+
+      {editing && (
+        <EditExpenseModal
+          expense={editing}
+          categoryOptions={categoryOptions}
+          onClose={() => setEditing(null)}
+          onSaved={() => {
+            setEditing(null)
+            reload()
+          }}
+        />
+      )}
 
       {expenseOpen && (
         <Modal
@@ -316,5 +389,78 @@ export default function ExpensesTab() {
         </Modal>
       )}
     </div>
+  )
+}
+
+function EditExpenseModal({
+  expense,
+  categoryOptions,
+  onClose,
+  onSaved,
+}: {
+  expense: FinanceExpenseRow
+  categoryOptions: string[]
+  onClose: () => void
+  onSaved: () => void
+}) {
+  const [category, setCategory] = useState(expense.category)
+  const [description, setDescription] = useState(expense.description ?? '')
+  const [amount, setAmount] = useState(String(expense.amount))
+  const [spentAt, setSpentAt] = useState(expense.spentAtIso)
+  const [reason, setReason] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const save = async () => {
+    if (!amount || Number(amount) <= 0) {
+      setError('Enter a positive amount.')
+      return
+    }
+    if (!reason.trim()) {
+      setError('Enter a reason for this correction.')
+      return
+    }
+    setSaving(true)
+    setError(null)
+    const res = await fetch(`/api/admin/expenses/${expense.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ category, description: description || undefined, amount: Number(amount), spentAt, reason }),
+    })
+    setSaving(false)
+    if (res.ok) {
+      onSaved()
+    } else {
+      const d = await res.json().catch(() => ({}))
+      setError(d.error ?? 'Could not save that change.')
+    }
+  }
+
+  return (
+    <Modal
+      title="Correct this expense"
+      onClose={onClose}
+      footer={
+        <>
+          <Button size="sm" variant="outline" onClick={onClose}>Cancel</Button>
+          <Button size="sm" variant="primary" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save correction'}</Button>
+        </>
+      }
+    >
+      <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: '0 0 14px' }}>
+        If this expense already posted to the ledger, that entry is reversed and a new one posted for the corrected
+        figures — nothing here is changed quietly.
+      </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <TextInput label="Category" value={category} onChange={setCategory} options={categoryOptions} />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <TextInput label="Amount (J$)" value={amount} onChange={setAmount} type="number" />
+          <TextInput label="Date" value={spentAt} onChange={setSpentAt} type="date" />
+        </div>
+        <TextInput label="Note (optional)" value={description} onChange={setDescription} placeholder="e.g. Facebook ads, June rent" />
+        <TextInput label="Reason for this change" value={reason} onChange={setReason} placeholder="e.g. Amount was a typo — should be J$4,200" />
+      </div>
+      {error && <p style={{ fontSize: 12.5, color: 'var(--color-danger)', marginTop: 10 }}>{error}</p>}
+    </Modal>
   )
 }

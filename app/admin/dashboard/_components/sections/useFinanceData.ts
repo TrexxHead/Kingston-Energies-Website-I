@@ -7,13 +7,24 @@ export interface Kpi {
   change: number | null
 }
 
+export interface FinanceExpenseRow {
+  id: string
+  category: string
+  description: string | null
+  amount: number
+  date: string
+  spentAtIso: string
+  documentId: string | null
+  editCount: number
+}
+
 export interface FinanceData {
   kpis: { revenue: Kpi; expenses: Kpi; profit: Kpi; outstanding: Kpi }
   series: { month: string; revenue: number; expenses: number; profit: number }[]
   byCategory: { category: string; amount: number }[]
   budgets: { category: string; budget: number; actual: number }[]
   budgetMap: Record<string, number>
-  recentExpenses: { id: string; category: string; description: string | null; amount: number; date: string; documentId: string | null }[]
+  recentExpenses: FinanceExpenseRow[]
   currentMonth: string
 }
 

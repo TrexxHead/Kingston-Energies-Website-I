@@ -26,11 +26,34 @@ export default function AuthShell({ title, subtitle, children, footer }: AuthShe
         alignItems: 'center',
         justifyContent: 'center',
         padding: 24,
+        position: 'relative',
+        overflow: 'hidden',
       }}
     >
+      {/* Ambient glow — same brand-green/blue radial used behind the homepage
+          hero, so the auth pages read as the same site rather than a
+          generic dark-mode template. */}
+      <div
+        aria-hidden
+        style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          width: 640,
+          height: 640,
+          transform: 'translate(-50%,-50%)',
+          background: 'radial-gradient(circle, rgba(147,201,63,.16) 0%, rgba(41,171,226,.07) 40%, transparent 68%)',
+          filter: 'blur(46px)',
+          pointerEvents: 'none',
+        }}
+      />
+
       <div
         style={{
-          background: 'var(--ke-dark-card)',
+          position: 'relative',
+          background: 'linear-gradient(155deg, rgba(255,255,255,.06), var(--ke-dark-card))',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
           border: '1px solid var(--ke-dark-hairline)',
           borderRadius: 24,
           boxShadow: 'var(--shadow-xl)',

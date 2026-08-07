@@ -37,3 +37,56 @@ body {
     @apply px-6 py-3 border-2 border-primary text-primary font-semibold rounded-lg hover:bg-primary hover:text-dark transition-colors;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Horizontal FAQ scroller (components/ui/habit-faq-scroller.tsx).
+
+   Tailwind 3 project — no "@import tailwindcss"/"tw-animate-css" needed, the
+   @tailwind directives above already cover that. Plain keyframes + utility
+   classes instead of a tailwind.config.js animation extension, since that's
+   simpler for a one-off marquee and keeps the config file untouched.
+   Neutralised automatically on prefers-reduced-motion by the sitewide
+   `.ke-root *` rule below.
+   --------------------------------------------------------------------------- */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scroll-horizontal {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes scroll-horizontal-reverse {
+  0% {
+    transform: translateX(-50%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.animate-scroll-horizontal {
+  animation: scroll-horizontal var(--scroll-duration, 40s) linear infinite;
+}
+
+.animate-scroll-horizontal-reverse {
+  animation: scroll-horizontal-reverse var(--scroll-duration, 40s) linear infinite;
+}
+
+/* Fades the row's edges to transparent instead of a hard clip. */
+.scroller-mask {
+  mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent);
+}

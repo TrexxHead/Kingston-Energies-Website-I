@@ -6,6 +6,7 @@ import { ArrowRight, Check, Plus, Minus, ChevronDown, ChevronUp } from 'lucide-r
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import { Button, Field, Checkbox, inputStyle } from '@/components/shop/ui'
+import FaqSection, { type FaqSectionData } from '@/components/ui/habit-faq-scroller'
 import { analytics } from '@/lib/analytics'
 import JsonLd from '@/components/JsonLd'
 import { buildBreadcrumbs } from '@/lib/structuredData'
@@ -262,10 +263,78 @@ export default function ContactPage() {
             </div>
           </div>
         </section>
+
+        <section style={{ display: 'flex', justifyContent: 'center', padding: '0 0 100px' }}>
+          <FaqSection data={CONTACT_FAQ} />
+        </section>
       </main>
       <Footer />
     </div>
   )
+}
+
+const CONTACT_FAQ: FaqSectionData = {
+  mainTitle: 'Frequently asked questions',
+  mainSubtitle: "Can't find what you need above? Send the form and we'll get back to you directly.",
+  rows: [
+    {
+      id: 'orders',
+      speed: '55s',
+      direction: 'left',
+      faqItems: [
+        {
+          id: 'delivery',
+          question: 'How do I get my order?',
+          answer:
+            'Every order can be delivered by our own courier, shipped islandwide via Knutsford Express, or collected free at one of our pickup locations — whichever suits you at checkout.',
+        },
+        {
+          id: 'payment',
+          question: 'How can I pay?',
+          answer:
+            "Pay by card through our secure checkout, or choose bank transfer and upload your proof of payment afterwards from your order — either way, you'll see it confirmed in your account.",
+        },
+      ],
+    },
+    {
+      id: 'coverage',
+      speed: '65s',
+      direction: 'right',
+      faqItems: [
+        {
+          id: 'warranty',
+          question: "What if my device arrives faulty?",
+          answer:
+            "We'll replace it or refund you in full at no cost within 14 days of delivery — on top of that, every device carries the manufacturer's own warranty, which varies by brand.",
+        },
+        {
+          id: 'returns',
+          question: 'Can I return something I changed my mind about?',
+          answer:
+            'Yes — most items can be returned within 14 days of delivery for a refund or exchange, provided they’re unused and in their original packaging.',
+        },
+      ],
+    },
+    {
+      id: 'business',
+      speed: '75s',
+      direction: 'left',
+      faqItems: [
+        {
+          id: 'bulk',
+          question: 'Do you offer pricing for bulk or business orders?',
+          answer:
+            "Yes — discounts scale with the quantity you order on each item, not a blanket cart-wide markdown, so the math stays transparent. Request a bulk quote and we'll put one together.",
+        },
+        {
+          id: 'unsure',
+          question: "Not sure what I actually need?",
+          answer:
+            "Try Find My Power — a short energy checkup that estimates the setup that actually covers your appliances, instead of guessing at a power bank size.",
+        },
+      ],
+    },
+  ],
 }
 
 const qtyBtn: import('react').CSSProperties = {

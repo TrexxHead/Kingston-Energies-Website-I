@@ -1264,8 +1264,11 @@ model TeamMember {
   employeeId String?  @unique
   employee   Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
 
-  // Free-text terms for anyone not on statutory payroll.
-  compensationNote String? @db.Text
+  // Free-text terms, plus a structured rate Payroll can list/sum — for
+  // anyone not on statutory payroll (contractors, partners).
+  compensationNote String?       @db.Text
+  rateAmount       Float?
+  rateFrequency    PayFrequency?
 
   address                String?
   emergencyContactName   String?

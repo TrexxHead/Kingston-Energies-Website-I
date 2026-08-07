@@ -10,9 +10,8 @@ import Lineup from '@/components/home/Lineup'
 import Roadmap from '@/components/home/Roadmap'
 import Stats from '@/components/home/Stats'
 import Reviews from '@/components/home/Reviews'
+import FaqTeaser from '@/components/home/FaqTeaser'
 import CTA from '@/components/home/CTA'
-import FaqSection from '@/components/ui/habit-faq-scroller'
-import { SITE_FAQ } from '@/lib/faqContent'
 import { getShopProducts } from '@/lib/products'
 
 // Re-render at most every 2 minutes so newly submitted reviews surface and the
@@ -63,11 +62,7 @@ export default async function Home() {
         <Reveal><Roadmap /></Reveal>
         <Reveal><Stats /></Reveal>
         <Reveal><Reviews /></Reveal>
-        <Reveal>
-          <section style={{ padding: 'clamp(56px,8vw,120px) var(--page-pad)', background: '#0d1714' }}>
-            <FaqSection data={SITE_FAQ} />
-          </section>
-        </Reveal>
+        <Reveal><FaqTeaser /></Reveal>
         <Reveal><CTA /></Reveal>
       </main>
       <Footer />

@@ -180,7 +180,7 @@ export default function WhatWillThisPowerGuide() {
           </div>
         </section>
       </main>
-      <Footer />
+      <Footer showCta={false} />
     </div>
   )
 }

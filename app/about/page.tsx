@@ -175,7 +175,7 @@ export default function About() {
           </div>
         </section>
       </main>
-      <Footer />
+      <Footer showCta={false} />
     </div>
   )
 }

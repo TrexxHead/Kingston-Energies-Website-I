@@ -29,6 +29,7 @@ export async function GET(request: Request) {
     expiringDiscountCodes,
     suppressedCount,
     channelCounts,
+    newsletterSubscribers,
   ] = await Promise.all([
     prisma.campaign.count({ where: { status: 'SCHEDULED' } }),
     prisma.campaign.count({ where: { status: 'SENT', sentAt: { gte: since } } }),
@@ -44,6 +45,7 @@ export async function GET(request: Request) {
     prisma.discountCode.count({ where: { active: true, expiresAt: { gte: new Date(), lte: new Date(Date.now() + 7 * 86_400_000) } } }),
     prisma.suppression.count(),
     prisma.campaign.groupBy({ by: ['channel'], where: { status: 'SENT', sentAt: { gte: since } }, _count: { _all: true } }),
+    prisma.newsletterSubscriber.count(),
   ])
 
   // Attributed (click and/or linked-discount-code) performance per campaign
@@ -108,6 +110,7 @@ export async function GET(request: Request) {
       activeDiscountCodes,
       expiringDiscountCodes,
       suppressedContacts: suppressedCount,
+      newsletterSubscribers,
     },
     campaignPerformance: campaignPerformance.sort((a, b) => b.revenue - a.revenue),
     revenueSeries,

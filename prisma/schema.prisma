@@ -1058,6 +1058,15 @@ enum SuppressionReason {
   MANUAL
 }
 
+// Footer/site newsletter opt-ins — distinct from Lead (which always carries a
+// name + message from a contact-style form). A bare email address here is
+// honest about what was actually collected.
+model NewsletterSubscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+}
+
 // Records that a lifecycle automation (welcome series, review request, ...)
 // has already fired for a given trigger, so the cron that runs them can't
 // send the same one twice. `key` encodes both which automation and which
@@ -1147,7 +1156,8 @@ model Employee {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
-  payslips Payslip[]
+  payslips   Payslip[]
+  teamMember TeamMember?
 
   @@index([status])
 }
@@ -1208,6 +1218,106 @@ model Payslip {
 
   @@unique([runId, employeeId])
   @@index([employeeId])
+}
+
+// ---------------------------------------------------------------------------
+// HR: people, not just payroll.
+//
+// Employee (above) is a payroll register — statutory pay fields for whoever
+// is on statutory payroll. TeamMember is broader: it's the human — employee,
+// contractor or partner — and optionally *links to* an Employee row rather
+// than being one, since contractors and partners are engaged on terms
+// (a rate, a scope) rather than enrolled in statutory deductions.
+// ---------------------------------------------------------------------------
+
+enum TeamMemberType {
+  EMPLOYEE
+  CONTRACTOR
+  PARTNER
+}
+
+enum TeamMemberStatus {
+  ACTIVE
+  ON_LEAVE
+  INACTIVE
+}
+
+model TeamMember {
+  id         String            @id @default(cuid())
+  memberNo   String            @unique
+  firstName  String
+  lastName   String
+  email      String?
+  phone      String?
+  photoPath  String?           // Supabase Storage key, admin-files bucket
+  type       TeamMemberType
+  role       String?           // job title / engagement title
+  department String?
+  status     TeamMemberStatus  @default(ACTIVE)
+
+  managerId String?
+  manager   TeamMember?  @relation("Reports", fields: [managerId], references: [id], onDelete: SetNull)
+  reports   TeamMember[] @relation("Reports")
+
+  // Payroll link — EMPLOYEE type only, and optional even then (not everyone
+  // who works here needs to be on a pay run to have an HR profile).
+  employeeId String?  @unique
+  employee   Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+
+  // Free-text terms for anyone not on statutory payroll.
+  compensationNote String? @db.Text
+
+  address                String?
+  emergencyContactName   String?
+  emergencyContactPhone  String?
+
+  startedAt DateTime
+  endedAt   DateTime?
+  notes     String?   @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sharedFolders HrFolder[]   @relation("FolderShares")
+  documents     HrDocument[]
+
+  @@index([type])
+  @@index([status])
+  @@index([managerId])
+}
+
+model HrFolder {
+  id       String     @id @default(cuid())
+  name     String
+  parentId String?
+  parent   HrFolder?  @relation("FolderTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children HrFolder[] @relation("FolderTree")
+
+  sharedWith TeamMember[] @relation("FolderShares")
+  documents  HrDocument[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([parentId])
+}
+
+model HrDocument {
+  id          String    @id @default(cuid())
+  folderId    String?
+  folder      HrFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  name        String
+  storagePath String
+  fileName    String
+  contentType String
+  sizeBytes   Int
+  uploadedBy  String?
+  ownerId     String?
+  owner       TeamMember? @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([folderId])
 }
 
 // ---------------------------------------------------------------------------

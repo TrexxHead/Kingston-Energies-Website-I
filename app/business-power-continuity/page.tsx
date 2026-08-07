@@ -136,7 +136,7 @@ export default function BusinessPowerContinuityPage() {
           </div>
         </section>
       </main>
-      <Footer />
+      <Footer showCta={false} />
     </div>
   )
 }

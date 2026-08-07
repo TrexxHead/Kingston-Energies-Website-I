@@ -100,11 +100,11 @@ export default function StatTile({
 
   const style: React.CSSProperties = {
     ...cardStyle,
-    borderRadius: 14,
-    padding: 15,
+    borderRadius: 16,
+    padding: 16,
     display: 'block',
     textDecoration: 'none',
-    transition: 'border-color .15s ease',
+    transition: 'border-color .15s ease, box-shadow .18s ease, transform .18s ease',
   }
 
   return href ? (

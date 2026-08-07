@@ -17,10 +17,10 @@ const controlStyle: CSSProperties = {
   height: 42,
   padding: '0 13px',
   border: '1.5px solid var(--color-border)',
-  borderRadius: 11,
+  borderRadius: 12,
   fontFamily: 'var(--font-body)',
   fontSize: 13.5,
-  background: '#fbfcfb',
+  background: 'var(--color-surface-sunk)',
   color: 'var(--color-text)',
   outline: 'none',
   transition: 'border-color .15s ease, box-shadow .15s ease, background .15s ease',
@@ -30,12 +30,12 @@ const controlStyle: CSSProperties = {
 const onFocus = (e: FocusEvent<HTMLInputElement | HTMLSelectElement>) => {
   e.currentTarget.style.borderColor = 'var(--ke-green-500)'
   e.currentTarget.style.boxShadow = '0 0 0 3px rgba(147,201,63,.18)'
-  e.currentTarget.style.background = '#fff'
+  e.currentTarget.style.background = 'var(--color-surface)'
 }
 const onBlur = (e: FocusEvent<HTMLInputElement | HTMLSelectElement>) => {
   e.currentTarget.style.borderColor = 'var(--color-border)'
   e.currentTarget.style.boxShadow = 'none'
-  e.currentTarget.style.background = '#fbfcfb'
+  e.currentTarget.style.background = 'var(--color-surface-sunk)'
 }
 
 export default function TextInput({ label, value, onChange, type = 'text', placeholder, options, multiline }: TextInputProps) {

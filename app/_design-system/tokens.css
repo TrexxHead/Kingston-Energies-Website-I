@@ -24,7 +24,8 @@
   --ke-ink:#14201c; --ke-gray-900:#1c2a25; --ke-gray-800:#2a3a33;
   --ke-gray-700:#3d4a44; --ke-gray-600:#556059; --ke-gray-500:#6b7873;
   --ke-gray-400:#93a099; --ke-gray-300:#c3cdc7; --ke-gray-200:#e2e8e4;
-  --ke-gray-100:#f1f5f2; --ke-mist:#f4f8f3; --ke-blue-mist:#eef4f8; --ke-white:#ffffff;
+  --ke-gray-100:#f1f5f2; --ke-gray-50:#f6f9f6;
+  --ke-mist:#f4f8f3; --ke-blue-mist:#eef4f8; --ke-white:#ffffff;
 
   /* Marketing dark surfaces (customer site, per design handoff) */
   --ke-dark-bg:#0d1714; --ke-dark-card:#111e1a;
@@ -73,6 +74,11 @@
   --gradient-sun:linear-gradient(135deg,var(--ke-sun-300) 0%,var(--ke-sun-400) 100%);
   --gradient-ink:linear-gradient(150deg,var(--ke-teal-700) 0%,var(--ke-ink) 100%);
   --gradient-deep:linear-gradient(135deg,var(--ke-blue-600) 0%,var(--ke-teal-700) 100%);
+  /* Premium dark "wallet card" hero — the sidebar's own ink, lifted with a
+     brand-green sheen, so a hero KPI panel reads as an extension of the
+     console's identity rather than a generic dark card. */
+  --gradient-hero:radial-gradient(120% 140% at 100% 0%,rgba(147,201,63,.22) 0%,rgba(147,201,63,0) 46%),linear-gradient(150deg,#16241f 0%,#0d1714 72%);
+  --glass-surface:rgba(255,255,255,.72);
 
   /* Typography tokens (font family values injected by next/font per-page) */
   --font-display:var(--font-montserrat),'Gotham','Century Gothic',system-ui,sans-serif;
@@ -117,6 +123,11 @@
   --shadow-green:0 12px 30px rgba(92,138,30,.28);
   --shadow-blue:0 12px 30px rgba(4,84,124,.26);
   --ring-focus:0 0 0 3px rgba(41,171,226,.40);
+  /* Admin card kit — a softer double-layer lift than --shadow-*, tuned for
+     the console's cards specifically (card.ts) rather than marketing chrome. */
+  --shadow-card:0 1px 2px rgba(16,24,20,.05), 0 16px 32px -18px rgba(16,24,20,.16);
+  --shadow-card-hover:0 1px 2px rgba(16,24,20,.06), 0 22px 44px -18px rgba(16,24,20,.22);
+  --shadow-hero:0 1px 2px rgba(0,0,0,.3), 0 24px 48px -16px rgba(0,0,0,.45);
 
   --ease-standard:cubic-bezier(.4,0,.2,1);
   --ease-out:cubic-bezier(.16,1,.3,1);
@@ -187,6 +198,11 @@
   --shadow-sm:0 1px 2px rgba(0,0,0,.45);
   --shadow-md:0 4px 12px rgba(0,0,0,.5);
   --shadow-xl:0 18px 44px rgba(0,0,0,.55);
+
+  --shadow-card:0 1px 2px rgba(0,0,0,.35), 0 16px 32px -18px rgba(0,0,0,.5);
+  --shadow-card-hover:0 1px 2px rgba(0,0,0,.4), 0 22px 44px -18px rgba(0,0,0,.6);
+  --shadow-hero:0 1px 2px rgba(0,0,0,.5), 0 24px 48px -16px rgba(0,0,0,.7);
+  --glass-surface:rgba(19,31,27,.72);
 }
 
 /* Respect the OS preference until the user picks explicitly — this only ever
@@ -282,6 +298,11 @@
 
 @media (max-width:1100px){
   .kp-4col{ grid-template-columns:repeat(2,1fr) !important; }
+  .ke-footer-grid{ grid-template-columns:repeat(2,1fr) !important; gap:32px !important; }
+  .ke-footer-grid > :first-child{ grid-column:1 / -1; }
+}
+@media (max-width:520px){
+  .ke-footer-grid{ grid-template-columns:1fr !important; }
 }
 @media (max-width:900px){
   .kp-2col{ grid-template-columns:1fr !important; }

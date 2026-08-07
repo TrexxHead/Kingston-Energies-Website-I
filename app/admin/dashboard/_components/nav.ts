@@ -61,6 +61,28 @@ export const NAV: NavGroup[] = [
     description: 'Profiles, segments, lifetime value, support',
   },
   {
+    id: 'hr',
+    label: 'HR',
+    icon: 'user-cog',
+    href: `${BASE}/hr`,
+    description: 'Employees, contractors, partners and shared documents',
+    children: [
+      { href: `${BASE}/hr`, label: 'Overview', description: 'Headcount, engagement mix and what needs attention' },
+      {
+        href: `${BASE}/hr/people`,
+        label: 'People',
+        description: 'Employees, contractors and partners, with reporting lines',
+        keywords: 'staff team org chart contractor partner employee directory',
+      },
+      {
+        href: `${BASE}/hr/documents`,
+        label: 'Documents',
+        description: 'A shared drive for contracts, policies and personnel files',
+        keywords: 'files drive folders storage shared contracts policies',
+      },
+    ],
+  },
+  {
     id: 'marketing',
     label: 'Marketing',
     icon: 'megaphone',

@@ -125,7 +125,7 @@ export default function Sidebar() {
       <div className={`kad-sidebar-backdrop${mobileOpen ? ' kad-sidebar-open' : ''}`} onClick={() => setMobileOpen(false)} />
 
       <aside
-        className={`kad-sidebar${mobileOpen ? ' kad-sidebar-open' : ''}`}
+        className={`kad-sidebar kad-hide-scrollbar${mobileOpen ? ' kad-sidebar-open' : ''}`}
         style={{
           width: collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH,
           flex: 'none',
@@ -171,9 +171,10 @@ export default function Sidebar() {
           onClick={toggleCollapsed}
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          className="kad-hub-toggle-btn"
           style={{
             display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start', gap: 8,
-            width: '100%', border: 'none', background: 'none', color: 'rgba(255,255,255,.4)', cursor: 'pointer',
+            width: '100%', border: 'none', background: 'none', cursor: 'pointer',
             padding: '4px 8px', marginBottom: 12, fontSize: 11.5, fontFamily: 'var(--font-display)', fontWeight: 600,
           }}
         >
@@ -241,7 +242,10 @@ export default function Sidebar() {
           <Link
             href="/"
             title="Back to site"
-            style={{ ...rowBase, color: 'rgba(255,255,255,.6)', justifyContent: collapsed ? 'center' : 'flex-start', padding: collapsed ? '10px 0' : rowBase.padding }}
+            className="kad-hub-nav-row"
+            data-active={false}
+            data-collapsed={collapsed}
+            style={{ ...rowBase, justifyContent: collapsed ? 'center' : 'flex-start', padding: collapsed ? '10px 0' : rowBase.padding }}
           >
             <ExternalLink size={17} />
             {!collapsed && 'Back to site'}
@@ -274,14 +278,15 @@ function NavRow({ item, pathname, badge = 0, collapsed = false }: { item: HubNav
       href={item.href}
       title={collapsed ? item.label : undefined}
       aria-label={item.label}
+      aria-current={active ? 'page' : undefined}
+      className="kad-hub-nav-row"
+      data-active={active}
+      data-collapsed={collapsed}
       style={{
         ...rowBase,
         position: 'relative',
         justifyContent: collapsed ? 'center' : 'flex-start',
         padding: collapsed ? '10px 0' : rowBase.padding,
-        color: active ? '#fff' : 'rgba(255,255,255,.65)',
-        background: active ? 'rgba(147,201,63,.16)' : 'transparent',
-        boxShadow: active && !collapsed ? 'inset 3px 0 0 var(--ke-green-400)' : 'none',
       }}
     >
       <Icon size={18} />

@@ -17,6 +17,7 @@ import {
 
 const OAUTH_ERROR_MESSAGE =
   'Google sign-in isn\'t configured yet. Please use email and password, or try again later.'
+const ACCOUNT_DELETED_MESSAGE = 'This account has been deleted. Contact us if you\'d like it reinstated.'
 
 const VERIFY_BANNERS: Record<string, { tone: 'ok' | 'err'; text: string }> = {
   success: { tone: 'ok', text: 'Email confirmed. You can sign in now.' },
@@ -37,7 +38,11 @@ function LoginForm() {
   const [password, setPassword] = useState('')
   const searchParams = useSearchParams()
   const verifyBanner = searchParams.get('verify')
-  const [error, setError] = useState(() => (searchParams.get('error') ? OAUTH_ERROR_MESSAGE : ''))
+  const [error, setError] = useState(() => {
+    const err = searchParams.get('error')
+    if (!err) return ''
+    return err === 'ACCOUNT_DELETED' ? ACCOUNT_DELETED_MESSAGE : OAUTH_ERROR_MESSAGE
+  })
   const [unverified, setUnverified] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const router = useRouter()
@@ -52,6 +57,9 @@ function LoginForm() {
 
     if (result?.error === 'EMAIL_NOT_VERIFIED') {
       setUnverified(true)
+      setSubmitting(false)
+    } else if (result?.error === 'ACCOUNT_DELETED') {
+      setError(ACCOUNT_DELETED_MESSAGE)
       setSubmitting(false)
     } else if (result?.error) {
       setError('Invalid email or password')

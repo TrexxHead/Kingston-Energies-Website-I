@@ -3,9 +3,11 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { guardAdmin } from '@/lib/requireAdmin'
 import { buildPath, isStorageConfigured, signedUrl, uploadAdminFile } from '@/lib/storage'
+import { validateEmployeeLink } from '@/lib/employeeLink'
 
 const TYPES = ['EMPLOYEE', 'CONTRACTOR', 'PARTNER'] as const
 const STATUSES = ['ACTIVE', 'ON_LEAVE', 'INACTIVE'] as const
+const FREQUENCIES = ['MONTHLY', 'FORTNIGHTLY', 'WEEKLY'] as const
 
 const createSchema = z.object({
   firstName: z.string().min(1).max(80),
@@ -19,6 +21,8 @@ const createSchema = z.object({
   managerId: z.string().optional().or(z.literal('')),
   employeeId: z.string().optional().or(z.literal('')),
   compensationNote: z.string().max(2000).optional().or(z.literal('')),
+  rateAmount: z.coerce.number().positive().optional().or(z.literal('')),
+  rateFrequency: z.enum(FREQUENCIES).optional().or(z.literal('')),
   address: z.string().max(240).optional().or(z.literal('')),
   emergencyContactName: z.string().max(120).optional().or(z.literal('')),
   emergencyContactPhone: z.string().max(40).optional().or(z.literal('')),
@@ -86,6 +90,7 @@ export async function GET(request: Request) {
       department: m.department,
       status: m.status,
       managerId: m.managerId,
+      employeeId: m.employeeId,
       managerName: m.manager ? `${m.manager.firstName} ${m.manager.lastName}` : null,
       reportCount: m._count.reports,
       documentCount: m._count.documents,
@@ -113,7 +118,7 @@ export async function POST(request: Request) {
     fields = {}
     for (const key of [
       'firstName', 'lastName', 'email', 'phone', 'type', 'role', 'department', 'status',
-      'managerId', 'employeeId', 'compensationNote', 'address', 'emergencyContactName',
+      'managerId', 'employeeId', 'compensationNote', 'rateAmount', 'rateFrequency', 'address', 'emergencyContactName',
       'emergencyContactPhone', 'startedAt', 'notes',
     ]) {
       fields[key] = String(form.get(key) ?? '')
@@ -130,6 +135,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Check the required fields — first/last name, type and start date.' }, { status: 400 })
   }
   const d = parsed.data
+
+  const linkedEmployeeId = d.type === 'EMPLOYEE' && d.employeeId ? d.employeeId : null
+  if (linkedEmployeeId) {
+    const err = await validateEmployeeLink(linkedEmployeeId)
+    if (err) return NextResponse.json({ error: err }, { status: 409 })
+  }
 
   if (photo) {
     if (photo.size > MAX_PHOTO_BYTES) return NextResponse.json({ error: 'Photo is over the 5 MB limit.' }, { status: 400 })
@@ -161,8 +172,10 @@ export async function POST(request: Request) {
       department: d.department || null,
       status: d.status ?? 'ACTIVE',
       managerId: d.managerId || null,
-      employeeId: d.type === 'EMPLOYEE' && d.employeeId ? d.employeeId : null,
+      employeeId: linkedEmployeeId,
       compensationNote: d.compensationNote || null,
+      rateAmount: d.rateAmount ? Number(d.rateAmount) : null,
+      rateFrequency: d.rateFrequency || null,
       address: d.address || null,
       emergencyContactName: d.emergencyContactName || null,
       emergencyContactPhone: d.emergencyContactPhone || null,

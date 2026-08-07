@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import Link from 'next/link'
 import { Users, CalendarDays, SlidersHorizontal, Plus, AlertTriangle, Trash2, ArrowLeft } from 'lucide-react'
 import { cardStyle, h3Style } from '../ui/card'
 import Badge from '../ui/Badge'
@@ -9,6 +10,9 @@ import Modal from '../ui/Modal'
 import Pill from '../ui/Pill'
 import TextInput from '../ui/TextInput'
 import { fmt } from '../mockData'
+
+type PayFrequency = 'MONTHLY' | 'FORTNIGHTLY' | 'WEEKLY'
+const FREQ_LABEL: Record<PayFrequency, string> = { MONTHLY: 'Monthly', FORTNIGHTLY: 'Fortnightly', WEEKLY: 'Weekly' }
 
 type View = 'employees' | 'runs' | 'rates'
 
@@ -138,6 +142,14 @@ interface EmployeeRow {
   status: 'ACTIVE' | 'ON_LEAVE' | 'TERMINATED'
   startedAt: string
   preview: { net: number; deductions: number; employerCost: number }
+  linkedPerson: { id: string; name: string; photoUrl: string | null } | null
+}
+
+interface UnlinkedPerson {
+  id: string
+  firstName: string
+  lastName: string
+  email: string | null
 }
 
 const BLANK_EMPLOYEE = {
@@ -151,6 +163,7 @@ const BLANK_EMPLOYEE = {
   grossPerPeriod: '',
   frequency: 'MONTHLY' as EmployeeRow['frequency'],
   startedAt: '',
+  teamMemberId: '',
 }
 
 function Employees() {
@@ -159,6 +172,7 @@ function Employees() {
   const [form, setForm] = useState({ ...BLANK_EMPLOYEE })
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [unlinkedPeople, setUnlinkedPeople] = useState<UnlinkedPerson[]>([])
 
   const load = useCallback(async () => {
     const res = await fetch('/api/admin/payroll/employees')
@@ -167,6 +181,29 @@ function Employees() {
   useEffect(() => {
     load()
   }, [load])
+
+  const openAdd = async () => {
+    setForm({ ...BLANK_EMPLOYEE })
+    setError('')
+    setOpen(true)
+    const res = await fetch('/api/admin/hr/people?type=EMPLOYEE')
+    if (res.ok) {
+      const data = await res.json()
+      const people = (data.people ?? []) as { id: string; firstName: string; lastName: string; email: string | null; employeeId: string | null }[]
+      setUnlinkedPeople(people.filter((p) => !p.employeeId))
+    }
+  }
+
+  const pickLinkedPerson = (id: string) => {
+    const person = unlinkedPeople.find((p) => p.id === id)
+    setForm({
+      ...form,
+      teamMemberId: id,
+      firstName: person?.firstName ?? form.firstName,
+      lastName: person?.lastName ?? form.lastName,
+      email: person?.email ?? form.email,
+    })
+  }
 
   const create = async () => {
     setError('')
@@ -177,7 +214,7 @@ function Employees() {
     const res = await fetch('/api/admin/payroll/employees', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, grossPerPeriod: Number(form.grossPerPeriod) }),
+      body: JSON.stringify({ ...form, grossPerPeriod: Number(form.grossPerPeriod), teamMemberId: form.teamMemberId || undefined }),
     })
     setBusy(false)
     if (!res.ok) return setError((await res.json().catch(() => ({}))).error || 'Could not add this employee.')
@@ -219,7 +256,7 @@ function Employees() {
       <div style={cardStyle}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <h3 style={{ ...h3Style, margin: 0 }}>Employee register</h3>
-          <Button size="sm" onClick={() => setOpen(true)} iconRight={<Plus size={14} />}>
+          <Button size="sm" onClick={openAdd} iconRight={<Plus size={14} />}>
             Add employee
           </Button>
         </div>
@@ -247,7 +284,13 @@ function Employees() {
                 {rows.map((r) => (
                   <tr key={r.id}>
                     <td style={td}>
-                      <div style={{ fontWeight: 600 }}>{r.name}</div>
+                      {r.linkedPerson ? (
+                        <Link href={`/admin/dashboard/hr/people/${r.linkedPerson.id}`} style={{ fontWeight: 600, color: 'var(--ke-green-700)', textDecoration: 'none' }}>
+                          {r.name}
+                        </Link>
+                      ) : (
+                        <div style={{ fontWeight: 600 }}>{r.name}</div>
+                      )}
                       <div style={{ fontSize: 11.5, color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)' }}>{r.employeeNo}</div>
                     </td>
                     <td style={{ ...td, color: 'var(--color-text-muted)' }}>{r.jobTitle || 'N/A'}</td>
@@ -280,9 +323,22 @@ function Employees() {
         )}
       </div>
 
+      <ContractorsCard />
+
       {open && (
       <Modal onClose={() => setOpen(false)} title="Add employee">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {unlinkedPeople.length > 0 && (
+            <TextInput
+              label="Link to an existing HR profile (optional)"
+              value={unlinkedPeople.find((p) => p.id === form.teamMemberId) ? `${unlinkedPeople.find((p) => p.id === form.teamMemberId)!.firstName} ${unlinkedPeople.find((p) => p.id === form.teamMemberId)!.lastName}` : ''}
+              options={['', ...unlinkedPeople.map((p) => `${p.firstName} ${p.lastName}`)]}
+              onChange={(v) => {
+                const person = unlinkedPeople.find((p) => `${p.firstName} ${p.lastName}` === v)
+                pickLinkedPerson(person?.id ?? '')
+              }}
+            />
+          )}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <TextInput label="First name" value={form.firstName} onChange={(v) => setForm({ ...form, firstName: v })} />
             <TextInput label="Last name" value={form.lastName} onChange={(v) => setForm({ ...form, lastName: v })} />
@@ -316,6 +372,130 @@ function Employees() {
           </Button>
         </div>
       </Modal>
+      )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Contractors & partners
+// ---------------------------------------------------------------------------
+
+interface ContractorRow {
+  id: string
+  firstName: string
+  lastName: string
+  type: 'CONTRACTOR' | 'PARTNER'
+  role: string | null
+  rateAmount: number | null
+  rateFrequency: PayFrequency | null
+}
+
+function ContractorsCard() {
+  const [rows, setRows] = useState<ContractorRow[] | null>(null)
+  const [editing, setEditing] = useState<Record<string, { rateAmount: string; rateFrequency: PayFrequency }>>({})
+  const [busyId, setBusyId] = useState<string | null>(null)
+
+  const load = useCallback(async () => {
+    const res = await fetch('/api/admin/hr/people')
+    if (res.ok) {
+      const data = await res.json()
+      const people = (data.people ?? []) as ContractorRow[]
+      setRows(people.filter((p) => p.type === 'CONTRACTOR' || p.type === 'PARTNER'))
+    }
+  }, [])
+  useEffect(() => {
+    load()
+  }, [load])
+
+  const startEdit = (row: ContractorRow) => {
+    setEditing({ ...editing, [row.id]: { rateAmount: row.rateAmount != null ? String(row.rateAmount) : '', rateFrequency: row.rateFrequency ?? 'MONTHLY' } })
+  }
+
+  const saveRate = async (id: string) => {
+    const draft = editing[id]
+    if (!draft) return
+    setBusyId(id)
+    await fetch(`/api/admin/hr/people/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rateAmount: draft.rateAmount, rateFrequency: draft.rateFrequency }),
+    })
+    setBusyId(null)
+    setEditing((e) => { const next = { ...e }; delete next[id]; return next })
+    load()
+  }
+
+  return (
+    <div style={cardStyle}>
+      <h3 style={{ ...h3Style, margin: '0 0 12px' }}>Contractors &amp; partners</h3>
+      {rows === null ? (
+        <Empty>Loading…</Empty>
+      ) : rows.length === 0 ? (
+        <Empty>No contractors or partners on file yet — add them from HR People.</Empty>
+      ) : (
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 620 }}>
+            <thead>
+              <tr>
+                <th style={th}>Name</th>
+                <th style={th}>Type</th>
+                <th style={{ ...th, textAlign: 'right' }}>Rate</th>
+                <th style={th} />
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => {
+                const draft = editing[r.id]
+                return (
+                  <tr key={r.id}>
+                    <td style={td}>
+                      <Link href={`/admin/dashboard/hr/people/${r.id}`} style={{ fontWeight: 600, color: 'var(--ke-green-700)', textDecoration: 'none' }}>
+                        {r.firstName} {r.lastName}
+                      </Link>
+                      {r.role && <div style={{ fontSize: 11.5, color: 'var(--color-text-muted)' }}>{r.role}</div>}
+                    </td>
+                    <td style={{ ...td, color: 'var(--color-text-muted)' }}>{r.type === 'CONTRACTOR' ? 'Contractor' : 'Partner'}</td>
+                    <td style={{ ...tdNum }}>
+                      {draft ? (
+                        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
+                          <input
+                            type="number"
+                            value={draft.rateAmount}
+                            onChange={(e) => setEditing({ ...editing, [r.id]: { ...draft, rateAmount: e.target.value } })}
+                            style={{ width: 100, height: 32, padding: '0 8px', border: '1.5px solid var(--color-border)', borderRadius: 8, fontSize: 13 }}
+                          />
+                          <select
+                            value={draft.rateFrequency}
+                            onChange={(e) => setEditing({ ...editing, [r.id]: { ...draft, rateFrequency: e.target.value as PayFrequency } })}
+                            style={{ height: 32, padding: '0 6px', border: '1.5px solid var(--color-border)', borderRadius: 8, fontSize: 13 }}
+                          >
+                            {Object.entries(FREQ_LABEL).map(([k, v]) => (
+                              <option key={k} value={k}>{v}</option>
+                            ))}
+                          </select>
+                        </div>
+                      ) : r.rateAmount != null && r.rateFrequency ? (
+                        `${fmt(r.rateAmount)} / ${FREQ_LABEL[r.rateFrequency].toLowerCase()}`
+                      ) : (
+                        'Not set'
+                      )}
+                    </td>
+                    <td style={{ ...td, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      {draft ? (
+                        <Button size="sm" onClick={() => saveRate(r.id)} disabled={busyId === r.id}>
+                          {busyId === r.id ? 'Saving…' : 'Save'}
+                        </Button>
+                      ) : (
+                        <Button size="sm" variant="outline" onClick={() => startEdit(r)}>Edit rate</Button>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   )

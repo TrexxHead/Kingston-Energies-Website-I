@@ -3,9 +3,12 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { guardAdmin } from '@/lib/requireAdmin'
 import { buildPath, deleteAdminFile, isStorageConfigured, signedUrl, uploadAdminFile } from '@/lib/storage'
+import { validateEmployeeLink } from '@/lib/employeeLink'
+import { calculatePayslip, getPayrollRates, type PayFrequency } from '@/lib/payroll'
 
 const TYPES = ['EMPLOYEE', 'CONTRACTOR', 'PARTNER'] as const
 const STATUSES = ['ACTIVE', 'ON_LEAVE', 'INACTIVE'] as const
+const FREQUENCIES = ['MONTHLY', 'FORTNIGHTLY', 'WEEKLY'] as const
 
 const patchSchema = z.object({
   firstName: z.string().min(1).max(80).optional(),
@@ -19,6 +22,8 @@ const patchSchema = z.object({
   managerId: z.string().nullable().optional(),
   employeeId: z.string().nullable().optional(),
   compensationNote: z.string().max(2000).optional().or(z.literal('')),
+  rateAmount: z.coerce.number().positive().optional().or(z.literal('')),
+  rateFrequency: z.enum(FREQUENCIES).optional().or(z.literal('')),
   address: z.string().max(240).optional().or(z.literal('')),
   emergencyContactName: z.string().max(120).optional().or(z.literal('')),
   emergencyContactPhone: z.string().max(40).optional().or(z.literal('')),
@@ -39,11 +44,18 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     include: {
       manager: { select: { id: true, firstName: true, lastName: true, role: true } },
       reports: { select: { id: true, firstName: true, lastName: true, role: true, status: true } },
-      employee: { select: { id: true, employeeNo: true, jobTitle: true } },
+      employee: { select: { id: true, employeeNo: true, jobTitle: true, grossPerPeriod: true, frequency: true, status: true } },
       documents: { orderBy: { createdAt: 'desc' }, take: 20 },
     },
   })
   if (!m) return NextResponse.json({ error: 'Not found.' }, { status: 404 })
+
+  const employee = m.employee
+    ? {
+        ...m.employee,
+        netPerPeriod: calculatePayslip(m.employee.grossPerPeriod, m.employee.frequency as PayFrequency, await getPayrollRates()).net,
+      }
+    : null
 
   const documents = await Promise.all(
     m.documents.map(async (doc) => ({
@@ -71,8 +83,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     status: m.status,
     manager: m.manager,
     reports: m.reports,
-    employee: m.employee,
+    employee,
     compensationNote: m.compensationNote,
+    rateAmount: m.rateAmount,
+    rateFrequency: m.rateFrequency,
     address: m.address,
     emergencyContactName: m.emergencyContactName,
     emergencyContactPhone: m.emergencyContactPhone,
@@ -117,6 +131,15 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ error: 'A person cannot be their own manager.' }, { status: 400 })
   }
 
+  if (d.employeeId !== undefined && d.employeeId) {
+    const effectiveType = d.type ?? existing.type
+    if (effectiveType !== 'EMPLOYEE') {
+      return NextResponse.json({ error: 'Only employees can be linked to a payroll record.' }, { status: 400 })
+    }
+    const err = await validateEmployeeLink(d.employeeId, id)
+    if (err) return NextResponse.json({ error: err }, { status: 409 })
+  }
+
   let photoPath = existing.photoPath
   if (photo) {
     if (photo.size > MAX_PHOTO_BYTES) return NextResponse.json({ error: 'Photo is over the 5 MB limit.' }, { status: 400 })
@@ -146,6 +169,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       ...(d.managerId !== undefined ? { managerId: d.managerId || null } : {}),
       ...(d.employeeId !== undefined ? { employeeId: d.employeeId || null } : {}),
       ...(d.compensationNote !== undefined ? { compensationNote: d.compensationNote || null } : {}),
+      ...(d.rateAmount !== undefined ? { rateAmount: d.rateAmount ? Number(d.rateAmount) : null } : {}),
+      ...(d.rateFrequency !== undefined ? { rateFrequency: d.rateFrequency || null } : {}),
       ...(d.address !== undefined ? { address: d.address || null } : {}),
       ...(d.emergencyContactName !== undefined ? { emergencyContactName: d.emergencyContactName || null } : {}),
       ...(d.emergencyContactPhone !== undefined ? { emergencyContactPhone: d.emergencyContactPhone || null } : {}),

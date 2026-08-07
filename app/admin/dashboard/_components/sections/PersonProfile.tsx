@@ -10,9 +10,14 @@ import Button from '../ui/Button'
 import Modal from '../ui/Modal'
 import TextInput from '../ui/TextInput'
 import { initials } from '@/lib/initials'
+import { fmt } from '../mockData'
 
 type PersonType = 'EMPLOYEE' | 'CONTRACTOR' | 'PARTNER'
 type PersonStatus = 'ACTIVE' | 'ON_LEAVE' | 'INACTIVE'
+type PayFrequency = 'MONTHLY' | 'FORTNIGHTLY' | 'WEEKLY'
+
+const FREQ_LABEL: Record<PayFrequency, string> = { MONTHLY: 'Monthly', FORTNIGHTLY: 'Fortnightly', WEEKLY: 'Weekly' }
+const EMP_STATUS_TONE: Record<string, 'green' | 'orange' | 'grey'> = { ACTIVE: 'green', ON_LEAVE: 'orange', TERMINATED: 'grey' }
 
 interface Detail {
   id: string
@@ -28,8 +33,10 @@ interface Detail {
   status: PersonStatus
   manager: { id: string; firstName: string; lastName: string; role: string | null } | null
   reports: { id: string; firstName: string; lastName: string; role: string | null; status: PersonStatus }[]
-  employee: { id: string; employeeNo: string; jobTitle: string | null } | null
+  employee: { id: string; employeeNo: string; jobTitle: string | null; grossPerPeriod: number; frequency: PayFrequency; status: string; netPerPeriod: number } | null
   compensationNote: string | null
+  rateAmount: number | null
+  rateFrequency: PayFrequency | null
   address: string | null
   emergencyContactName: string | null
   emergencyContactPhone: string | null
@@ -70,6 +77,13 @@ export default function PersonProfile({ id }: { id: string }) {
   const photoInputRef = useRef<HTMLInputElement>(null)
   const docInputRef = useRef<HTMLInputElement>(null)
 
+  const [payrollOpen, setPayrollOpen] = useState(false)
+  const [unlinkedEmployees, setUnlinkedEmployees] = useState<{ id: string; name: string }[]>([])
+  const [payrollMode, setPayrollMode] = useState<'link' | 'create'>('link')
+  const [payrollForm, setPayrollForm] = useState<Record<string, string>>({})
+  const [payrollError, setPayrollError] = useState('')
+  const [payrollBusy, setPayrollBusy] = useState(false)
+
   const load = useCallback(async () => {
     const res = await fetch(`/api/admin/hr/people/${id}`)
     if (res.status === 404) { setNotFound(true); return }
@@ -84,11 +98,63 @@ export default function PersonProfile({ id }: { id: string }) {
       firstName: person.firstName, lastName: person.lastName, email: person.email ?? '', phone: person.phone ?? '',
       role: person.role ?? '', department: person.department ?? '', status: person.status,
       compensationNote: person.compensationNote ?? '', address: person.address ?? '',
+      rateAmount: person.rateAmount != null ? String(person.rateAmount) : '', rateFrequency: person.rateFrequency ?? 'MONTHLY',
       emergencyContactName: person.emergencyContactName ?? '', emergencyContactPhone: person.emergencyContactPhone ?? '',
       notes: person.notes ?? '',
     })
     setError('')
     setEditOpen(true)
+  }
+
+  const openPayroll = async () => {
+    setPayrollError('')
+    setPayrollMode('link')
+    setPayrollForm({ grossPerPeriod: '', frequency: 'MONTHLY', startedAt: person?.startedAt.slice(0, 10) ?? '', employeeId: '' })
+    const res = await fetch('/api/admin/payroll/employees')
+    if (res.ok) {
+      const data = await res.json()
+      const rows = (data.employees ?? []) as { id: string; name: string; linkedPerson: unknown }[]
+      setUnlinkedEmployees(rows.filter((e) => !e.linkedPerson).map((e) => ({ id: e.id, name: e.name })))
+    }
+    setPayrollOpen(true)
+  }
+
+  const savePayroll = async () => {
+    if (!person) return
+    setPayrollBusy(true)
+    setPayrollError('')
+    let res: Response
+    if (payrollMode === 'link') {
+      if (!payrollForm.employeeId) {
+        setPayrollError('Choose a payroll record to link.')
+        setPayrollBusy(false)
+        return
+      }
+      res = await fetch(`/api/admin/payroll/employees/${payrollForm.employeeId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ teamMemberId: person.id }),
+      })
+    } else {
+      res = await fetch('/api/admin/payroll/employees', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName: person.firstName,
+          lastName: person.lastName,
+          email: person.email || undefined,
+          jobTitle: person.role || undefined,
+          department: person.department || undefined,
+          grossPerPeriod: Number(payrollForm.grossPerPeriod),
+          frequency: payrollForm.frequency,
+          startedAt: payrollForm.startedAt,
+          teamMemberId: person.id,
+        }),
+      })
+    }
+    setPayrollBusy(false)
+    if (res.ok) { setPayrollOpen(false); load() }
+    else setPayrollError((await res.json().catch(() => ({}))).error ?? 'Could not set up payroll.')
   }
 
   const saveEdit = async () => {
@@ -206,8 +272,34 @@ export default function PersonProfile({ id }: { id: string }) {
             <Row label="Address" value={person.address ?? '—'} />
             <Row label="Emergency contact" value={person.emergencyContactName ? `${person.emergencyContactName}${person.emergencyContactPhone ? ` · ${person.emergencyContactPhone}` : ''}` : '—'} />
             {person.type !== 'EMPLOYEE' && <Row label="Engagement terms" value={person.compensationNote ?? 'Not set'} />}
-            {person.employee && <Row label="Payroll record" value={person.employee.employeeNo} />}
+            {person.type !== 'EMPLOYEE' && (
+              <Row
+                label="Rate"
+                value={person.rateAmount != null && person.rateFrequency ? `${fmt(person.rateAmount)} / ${FREQ_LABEL[person.rateFrequency].toLowerCase()}` : 'Not set'}
+              />
+            )}
           </div>
+
+          {person.type === 'EMPLOYEE' && (
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--color-border)' }}>
+              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12, marginBottom: 8 }}>Payroll</div>
+              {person.employee ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 13 }}>
+                  <Row label="Record" value={person.employee.employeeNo} />
+                  <Row label="Gross" value={`${fmt(person.employee.grossPerPeriod)} / ${FREQ_LABEL[person.employee.frequency].toLowerCase()}`} />
+                  <Row label="Net" value={fmt(person.employee.netPerPeriod)} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                    <span style={{ color: 'var(--color-text-subtle)' }}>Status</span>
+                    <Badge tone={EMP_STATUS_TONE[person.employee.status] ?? 'grey'}>{person.employee.status}</Badge>
+                  </div>
+                  <Link href="/admin/dashboard/finance/payroll" style={{ fontSize: 12, color: 'var(--ke-green-700)', marginTop: 2 }}>View in Payroll →</Link>
+                </div>
+              ) : (
+                <Button size="sm" variant="outline" onClick={openPayroll}>Set up payroll</Button>
+              )}
+            </div>
+          )}
+
           {person.notes && (
             <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--color-border)' }}>
               <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12, marginBottom: 4 }}>Notes</div>
@@ -297,9 +389,67 @@ export default function PersonProfile({ id }: { id: string }) {
               <TextInput label="Emergency contact phone" value={form.emergencyContactPhone ?? ''} onChange={(v) => setForm({ ...form, emergencyContactPhone: v })} />
             </div>
             {person.type !== 'EMPLOYEE' && (
-              <TextInput label="Engagement terms" value={form.compensationNote ?? ''} onChange={(v) => setForm({ ...form, compensationNote: v })} multiline />
+              <>
+                <TextInput label="Engagement terms" value={form.compensationNote ?? ''} onChange={(v) => setForm({ ...form, compensationNote: v })} multiline />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <TextInput label="Rate (J$)" type="number" value={form.rateAmount ?? ''} onChange={(v) => setForm({ ...form, rateAmount: v })} />
+                  <TextInput
+                    label="Frequency"
+                    value={FREQ_LABEL[(form.rateFrequency as PayFrequency) ?? 'MONTHLY']}
+                    onChange={(v) => setForm({ ...form, rateFrequency: (Object.keys(FREQ_LABEL) as PayFrequency[]).find((k) => FREQ_LABEL[k] === v) ?? 'MONTHLY' })}
+                    options={Object.values(FREQ_LABEL)}
+                  />
+                </div>
+              </>
             )}
             <TextInput label="Notes" value={form.notes ?? ''} onChange={(v) => setForm({ ...form, notes: v })} multiline />
+          </div>
+        </Modal>
+      )}
+
+      {payrollOpen && (
+        <Modal
+          title="Set up payroll"
+          onClose={() => setPayrollOpen(false)}
+          footer={
+            <>
+              <Button size="sm" variant="outline" onClick={() => setPayrollOpen(false)}>Cancel</Button>
+              <Button size="sm" variant="primary" onClick={savePayroll}>{payrollBusy ? 'Saving…' : 'Save'}</Button>
+            </>
+          }
+        >
+          {payrollError && <div style={{ background: 'var(--color-danger-soft)', color: 'var(--color-danger)', borderRadius: 8, padding: '8px 10px', fontSize: 12, marginBottom: 10 }}>{payrollError}</div>}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Button size="sm" variant={payrollMode === 'link' ? 'primary' : 'outline'} onClick={() => setPayrollMode('link')}>Link existing record</Button>
+              <Button size="sm" variant={payrollMode === 'create' ? 'primary' : 'outline'} onClick={() => setPayrollMode('create')}>Create new record</Button>
+            </div>
+
+            {payrollMode === 'link' ? (
+              unlinkedEmployees.length === 0 ? (
+                <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: 0 }}>No unlinked payroll records available — create a new one instead.</p>
+              ) : (
+                <TextInput
+                  label="Payroll record"
+                  value={unlinkedEmployees.find((e) => e.id === payrollForm.employeeId)?.name ?? ''}
+                  onChange={(v) => setPayrollForm({ ...payrollForm, employeeId: unlinkedEmployees.find((e) => e.name === v)?.id ?? '' })}
+                  options={['', ...unlinkedEmployees.map((e) => e.name)]}
+                />
+              )
+            ) : (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <TextInput label="Gross per period (J$)" type="number" value={payrollForm.grossPerPeriod ?? ''} onChange={(v) => setPayrollForm({ ...payrollForm, grossPerPeriod: v })} />
+                  <TextInput
+                    label="Frequency"
+                    value={FREQ_LABEL[(payrollForm.frequency as PayFrequency) ?? 'MONTHLY']}
+                    onChange={(v) => setPayrollForm({ ...payrollForm, frequency: (Object.keys(FREQ_LABEL) as PayFrequency[]).find((k) => FREQ_LABEL[k] === v) ?? 'MONTHLY' })}
+                    options={Object.values(FREQ_LABEL)}
+                  />
+                </div>
+                <TextInput label="Start date" type="date" value={payrollForm.startedAt ?? ''} onChange={(v) => setPayrollForm({ ...payrollForm, startedAt: v })} />
+              </>
+            )}
           </div>
         </Modal>
       )}

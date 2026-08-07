@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
@@ -113,6 +114,7 @@ export default function Sidebar() {
       >
         {/* Icon rail — always visible, one button per top-level section. */}
         <div
+          className="kad-hide-scrollbar"
           style={{
             width: RAIL_WIDTH,
             flexShrink: 0,
@@ -126,20 +128,16 @@ export default function Sidebar() {
             overflowY: 'auto',
           }}
         >
-          <Link href="/admin/dashboard" aria-label="Kingston Energies admin" style={{ marginBottom: 12 }}>
-            <svg viewBox="0 0 200 200" width={26} height={26} style={{ display: 'block' }}>
-              <rect width="200" height="200" rx="44" fill="#0d1714" />
-              <path d="M100 52 l38 16 v34 c0 26 -17 42 -38 50 c-21 -8 -38 -24 -38 -50 v-34 z" fill="none" stroke="#93c93f" strokeWidth={7} />
-              <path d="M104 82 l-16 26 h12 l-4 22 l20 -30 h-13 z" fill="#f7941e" />
-            </svg>
+          <Link href="/admin/dashboard" aria-label="Kingston Energies admin" className="kad-rail-logo" style={{ marginBottom: 12 }}>
+            <Image src="/images/logo-mark.png" alt="" width={26} height={26} style={{ objectFit: 'contain', display: 'block' }} />
           </Link>
 
           <button
             type="button"
-            className="kad-mobile-toggle"
+            className="kad-mobile-toggle kad-rail-util-btn"
             onClick={() => setMobileOpen(false)}
             aria-label="Close menu"
-            style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.7)', cursor: 'pointer', marginBottom: 8 }}
+            style={{ marginBottom: 8 }}
           >
             <X size={18} />
           </button>
@@ -154,18 +152,8 @@ export default function Sidebar() {
                 title={g.label}
                 aria-label={g.label}
                 aria-current={active ? 'page' : undefined}
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 11,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  background: active ? 'rgba(147,201,63,.18)' : 'transparent',
-                  color: active ? 'var(--ke-green-400)' : 'rgba(255,255,255,.62)',
-                  transition: 'background .16s ease, color .16s ease',
-                }}
+                className="kad-rail-icon"
+                data-active={active}
               >
                 <Icon size={18} />
               </Link>
@@ -179,7 +167,7 @@ export default function Sidebar() {
             onClick={openCommandPalette}
             title="Search (⌘K)"
             aria-label="Open command palette"
-            style={{ width: 40, height: 40, borderRadius: 11, border: 'none', background: 'none', color: 'rgba(255,255,255,.5)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+            className="kad-rail-util-btn"
           >
             <Command size={17} />
           </button>
@@ -189,17 +177,12 @@ export default function Sidebar() {
             onClick={toggleCollapsed}
             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            style={{ width: 40, height: 40, borderRadius: 11, border: 'none', background: 'none', color: 'rgba(255,255,255,.5)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+            className="kad-rail-util-btn"
           >
             {collapsed ? <ChevronRight size={17} /> : <ChevronLeft size={17} />}
           </button>
 
-          <Link
-            href="/"
-            title="Back to site"
-            aria-label="Back to site"
-            style={{ width: 40, height: 40, borderRadius: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.5)', flexShrink: 0 }}
-          >
+          <Link href="/" title="Back to site" aria-label="Back to site" className="kad-rail-util-btn">
             <ExternalLink size={17} />
           </Link>
         </div>
@@ -207,6 +190,7 @@ export default function Sidebar() {
         {/* Detail panel — the active section's subpages. Hidden when collapsed. */}
         {!collapsed && (
           <div
+            className="kad-hide-scrollbar"
             style={{
               width: PANEL_WIDTH,
               flexShrink: 0,
@@ -219,14 +203,17 @@ export default function Sidebar() {
               overflowY: 'auto',
             }}
           >
-            <div style={{ padding: '2px 8px 20px' }}>
-              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 12.5, letterSpacing: '.1em', color: '#fff' }}>
-                KINGSTON
+            <Link href="/admin/dashboard" className="kad-panel-brand" style={{ marginBottom: 18 }}>
+              <Image src="/images/logo-mark.png" alt="" width={28} height={28} style={{ objectFit: 'contain', flexShrink: 0 }} />
+              <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.3 }}>
+                <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 13, color: '#fff' }}>
+                  Kingston Energies
+                </span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '.2em', color: 'var(--ke-green-400)' }}>
+                  ADMIN&nbsp;CONSOLE
+                </span>
               </div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '.2em', color: 'var(--ke-green-400)' }}>
-                ADMIN&nbsp;CONSOLE
-              </div>
-            </div>
+            </Link>
 
             {activeGroup ? (
               <>
@@ -245,21 +232,7 @@ export default function Sidebar() {
                   {(activeGroup.children ?? [{ href: activeGroup.href, label: 'Overview', description: activeGroup.description }]).map((c) => {
                     const on = (pathname.replace(/\/+$/, '') || activeGroup.href) === c.href
                     return (
-                      <Link
-                        key={c.href}
-                        href={c.href}
-                        style={{
-                          padding: '9px 12px',
-                          borderRadius: 10,
-                          fontFamily: 'var(--font-display)',
-                          fontWeight: on ? 700 : 500,
-                          fontSize: 13,
-                          color: on ? '#fff' : 'rgba(255,255,255,.62)',
-                          background: on ? 'rgba(147,201,63,.16)' : 'transparent',
-                          boxShadow: on ? 'inset 3px 0 0 var(--ke-green-400)' : 'none',
-                          transition: 'background .16s ease, color .16s ease',
-                        }}
-                      >
+                      <Link key={c.href} href={c.href} className="kad-panel-nav-row" data-active={on}>
                         {c.label}
                       </Link>
                     )

@@ -26,13 +26,36 @@ interface Metrics {
  */
 export default function AnalyticsSection() {
   const [m, setM] = useState<Metrics | null>(null)
+  const [purging, setPurging] = useState(false)
+  const [purgeResult, setPurgeResult] = useState<string | null>(null)
 
-  useEffect(() => {
+  const load = () => {
     fetch('/api/admin/metrics')
       .then((r) => (r.ok ? r.json() : null))
       .then(setM)
       .catch(() => {})
-  }, [])
+  }
+
+  useEffect(load, [])
+
+  const purgeTestCarts = async () => {
+    if (!confirm('Remove carts from before launch (1 Aug 2026) and carts tied to admin accounts? This deletes them permanently.')) return
+    setPurging(true)
+    setPurgeResult(null)
+    try {
+      const res = await fetch('/api/admin/carts/purge-test-data', { method: 'POST' })
+      const data = await res.json().catch(() => null)
+      if (res.ok && data) {
+        setPurgeResult(`Removed ${data.deleted} test cart${data.deleted === 1 ? '' : 's'}.`)
+        load()
+      } else {
+        setPurgeResult('Could not clean up test carts.')
+      }
+    } catch {
+      setPurgeResult('Could not clean up test carts.')
+    }
+    setPurging(false)
+  }
 
   const k = m?.kpis
   const channels = m?.channelBreakdown ?? []
@@ -56,7 +79,30 @@ export default function AnalyticsSection() {
               Abandoned carts: <strong>{k ? k.abandonedCarts : 'N/A'}</strong> · potential recovery{' '}
               <strong style={{ color: 'var(--ke-green-700)' }}>{k ? fmt(k.abandonedValue) : 'N/A'}</strong>
               <span style={{ display: 'block', fontSize: 11, marginTop: 2, color: 'var(--color-text-subtle)' }}>
-                Same figure as the Executive Dashboard: carts idle 60+ minutes with items in them.
+                Carts idle 60+ minutes with items in them, since launch (1 Aug 2026) and excluding admin accounts —
+                same figure as the Executive Dashboard.
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+                <button
+                  type="button"
+                  onClick={purgeTestCarts}
+                  disabled={purging}
+                  style={{
+                    border: '1px solid var(--color-border)',
+                    background: 'var(--color-surface)',
+                    color: 'var(--color-text-muted)',
+                    borderRadius: 8,
+                    padding: '5px 10px',
+                    fontSize: 11,
+                    fontFamily: 'var(--font-display)',
+                    fontWeight: 600,
+                    cursor: purging ? 'default' : 'pointer',
+                    opacity: purging ? 0.6 : 1,
+                  }}
+                >
+                  {purging ? 'Cleaning up…' : 'Clean up pre-launch/admin test carts'}
+                </button>
+                {purgeResult && <span style={{ fontSize: 11, color: 'var(--color-text-subtle)' }}>{purgeResult}</span>}
               </span>
             </>
           }

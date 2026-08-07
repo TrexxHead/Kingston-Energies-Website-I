@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { guardAdmin } from '@/lib/requireAdmin'
 import { isProductLine } from '@/lib/orderLineItems'
+import { realCartWhere } from '@/lib/carts'
 
 // This computes every headline number from a full, unbounded order history
 // (revenue, repeat rate, day-of-week/channel breakdowns, ...) — correct, but
@@ -38,10 +39,14 @@ export async function GET() {
   let abandonedCarts = 0
   let abandonedValue = 0
   try {
+    // Excludes pre-launch and admin-account activity — see lib/carts.ts —
+    // so QA/testing sessions never inflate a number meant to describe
+    // customer behavior.
+    const real = await realCartWhere()
     const [cc, ac, av] = await Promise.all([
-      prisma.cart.count({ where: { status: 'CONVERTED' } }),
-      prisma.cart.count({ where: { status: 'ACTIVE', itemCount: { gt: 0 }, updatedAt: { lt: abandonThreshold } } }),
-      prisma.cart.aggregate({ _sum: { total: true }, where: { status: 'ACTIVE', itemCount: { gt: 0 }, updatedAt: { lt: abandonThreshold } } }),
+      prisma.cart.count({ where: { ...real, status: 'CONVERTED' } }),
+      prisma.cart.count({ where: { ...real, status: 'ACTIVE', itemCount: { gt: 0 }, updatedAt: { lt: abandonThreshold } } }),
+      prisma.cart.aggregate({ _sum: { total: true }, where: { ...real, status: 'ACTIVE', itemCount: { gt: 0 }, updatedAt: { lt: abandonThreshold } } }),
     ])
     convertedCarts = cc
     abandonedCarts = ac

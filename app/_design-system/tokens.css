@@ -296,6 +296,73 @@
   }
 }
 
+/* Admin console + hub sidebar: scroll stays functional, the track/thumb
+   ("slider") that used to sit between the icon rail and the panel and break
+   their blend is just never painted. */
+.kad-hide-scrollbar{ scrollbar-width:none; -ms-overflow-style:none; }
+.kad-hide-scrollbar::-webkit-scrollbar{ width:0; height:0; display:none; }
+
+/* Icon-rail buttons (admin console). Background/color live entirely in this
+   stylesheet — driven by data-active — rather than inline styles, because an
+   inline style always wins over a stylesheet rule and would silently
+   swallow :hover/:active. */
+.kad-rail-icon{
+  width:40px; height:40px; border-radius:11px;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  color:rgba(255,255,255,.62); background:transparent; text-decoration:none;
+  transition:background .16s ease, color .16s ease, transform .12s cubic-bezier(.34,1.56,.64,1);
+}
+.kad-rail-icon:hover{ background:rgba(255,255,255,.09); color:rgba(255,255,255,.92); transform:translateY(-1px); }
+.kad-rail-icon:active{ transform:scale(.88); }
+.kad-rail-icon[data-active="true"]{ background:rgba(147,201,63,.18); color:var(--ke-green-400); }
+.kad-rail-icon[data-active="true"]:hover{ background:rgba(147,201,63,.27); transform:translateY(-1px); }
+
+.kad-rail-util-btn{
+  width:40px; height:40px; border-radius:11px; border:none; background:none;
+  color:rgba(255,255,255,.5); cursor:pointer; text-decoration:none;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  transition:background .16s ease, color .16s ease, transform .12s cubic-bezier(.34,1.56,.64,1);
+}
+.kad-rail-util-btn:hover{ background:rgba(255,255,255,.08); color:rgba(255,255,255,.85); transform:translateY(-1px); }
+.kad-rail-util-btn:active{ transform:scale(.88); }
+
+.kad-rail-logo{ display:flex; transition:transform .15s cubic-bezier(.34,1.56,.64,1); }
+.kad-rail-logo:hover{ transform:scale(1.08); }
+.kad-rail-logo:active{ transform:scale(.9); }
+
+.kad-panel-brand{
+  display:flex; align-items:center; gap:10px; padding:8px; border-radius:12px; text-decoration:none;
+  transition:background .16s ease, transform .12s ease;
+}
+.kad-panel-brand:hover{ background:rgba(255,255,255,.06); }
+.kad-panel-brand:active{ transform:scale(.98); }
+
+.kad-panel-nav-row{
+  display:block; padding:9px 12px; border-radius:10px;
+  font-family:var(--font-display); font-size:13px; font-weight:500;
+  color:rgba(255,255,255,.62); background:transparent; box-shadow:none; text-decoration:none;
+  transition:background .16s ease, color .16s ease, transform .1s ease;
+}
+.kad-panel-nav-row:hover{ background:rgba(255,255,255,.06); color:#fff; transform:translateX(2px); }
+.kad-panel-nav-row:active{ transform:translateX(2px) scale(.98); }
+.kad-panel-nav-row[data-active="true"]{ font-weight:700; color:#fff; background:rgba(147,201,63,.16); box-shadow:inset 3px 0 0 var(--ke-green-400); }
+.kad-panel-nav-row[data-active="true"]:hover{ background:rgba(147,201,63,.22); }
+
+/* Hub sidebar nav rows — same hover/press language as the admin rail. */
+.kad-hub-nav-row{
+  color:rgba(255,255,255,.65); background:transparent; box-shadow:none; text-decoration:none;
+  transition:background .16s ease, color .16s ease, transform .12s ease;
+}
+.kad-hub-nav-row:hover{ background:rgba(255,255,255,.07); color:#fff; }
+.kad-hub-nav-row:active{ transform:scale(.97); }
+.kad-hub-nav-row[data-active="true"]{ color:#fff; background:rgba(147,201,63,.16); }
+.kad-hub-nav-row[data-active="true"][data-collapsed="false"]{ box-shadow:inset 3px 0 0 var(--ke-green-400); }
+.kad-hub-nav-row[data-active="true"]:hover{ background:rgba(147,201,63,.22); }
+
+.kad-hub-toggle-btn{ color:rgba(255,255,255,.4); transition:color .16s ease, transform .12s ease; }
+.kad-hub-toggle-btn:hover{ color:rgba(255,255,255,.8); }
+.kad-hub-toggle-btn:active{ transform:scale(.95); }
+
 @media (max-width:1100px){
   .kp-4col{ grid-template-columns:repeat(2,1fr) !important; }
   .ke-footer-grid{ grid-template-columns:repeat(2,1fr) !important; gap:32px !important; }

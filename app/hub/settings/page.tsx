@@ -7,6 +7,7 @@ import { useSession } from 'next-auth/react'
 import Topbar from '../_components/Topbar'
 import SignOutButton from '../profile/_components/SignOutButton'
 import ChangePassword from './_components/ChangePassword'
+import DeleteAccount from './_components/DeleteAccount'
 import { hubScreen, hubCard, hubH3 } from '../_components/ui'
 
 interface Pref {
@@ -93,6 +94,14 @@ export default function SettingsPage() {
           <div style={{ marginTop: 20, paddingTop: 18, borderTop: '1px solid var(--color-border)' }}>
             <h3 style={{ ...hubH3, fontSize: 14 }}>Change password</h3>
             <ChangePassword />
+          </div>
+
+          <div style={{ marginTop: 20, paddingTop: 18, borderTop: '1px solid var(--color-border)' }}>
+            <h3 style={{ ...hubH3, fontSize: 14 }}>Delete account</h3>
+            <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: '0 0 12px', lineHeight: 1.6 }}>
+              Permanently lose access to your login. Your order history and account records stay with us.
+            </p>
+            <DeleteAccount />
           </div>
         </div>
       </div>

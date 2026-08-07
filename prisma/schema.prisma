@@ -25,6 +25,11 @@ model User {
   referralCode  String?   @unique // personal share code, e.g. KEG-24-JFEARON
   pointsRedeemed Int      @default(0) // lifetime points spent at checkout — available balance is loyaltyPoints() minus this
   lastActiveAt  DateTime? // last time the user engaged (drives admin online status)
+  // Set when the customer deletes their own account from Settings. Login is
+  // blocked and the address is suppressed from every automated send, but
+  // nothing else about the account (orders, points, reviews) is touched —
+  // this is a deactivation, not an erasure of their history with us.
+  deletedAt     DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -1056,6 +1061,7 @@ enum SuppressionReason {
   UNSUBSCRIBED
   BOUNCED
   MANUAL
+  DELETED
 }
 
 // Footer/site newsletter opt-ins — distinct from Lead (which always carries a

@@ -38,6 +38,10 @@ export const authOptions: NextAuthOptions = {
           return null
         }
 
+        if (user.deletedAt) {
+          throw new Error('ACCOUNT_DELETED')
+        }
+
         if (!user.emailVerified) {
           throw new Error('EMAIL_NOT_VERIFIED')
         }
@@ -78,6 +82,10 @@ export const authOptions: NextAuthOptions = {
             emailVerified: new Date(),
           },
         })
+
+        if (dbUser.deletedAt) {
+          return '/login?error=ACCOUNT_DELETED'
+        }
 
         // Google already verifies the email — mark existing unverified accounts verified too.
         if (!dbUser.emailVerified) {

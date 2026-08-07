@@ -84,7 +84,7 @@ export function HorizontalScroller({
  */
 export default function FaqSection({ data }: { data: FaqSectionData }) {
   return (
-    <div className="relative flex w-full max-w-6xl flex-col items-center gap-10 p-4 sm:p-10">
+    <div className="relative mx-auto flex w-full max-w-6xl flex-col items-center gap-10 p-4 sm:p-10">
       <div className="z-10 flex max-w-2xl flex-col items-center gap-4 text-center">
         <h2
           style={{

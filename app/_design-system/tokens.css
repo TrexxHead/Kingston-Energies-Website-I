@@ -298,6 +298,11 @@
 
 @media (max-width:1100px){
   .kp-4col{ grid-template-columns:repeat(2,1fr) !important; }
+  .ke-footer-grid{ grid-template-columns:repeat(2,1fr) !important; gap:32px !important; }
+  .ke-footer-grid > :first-child{ grid-column:1 / -1; }
+}
+@media (max-width:520px){
+  .ke-footer-grid{ grid-template-columns:1fr !important; }
 }
 @media (max-width:900px){
   .kp-2col{ grid-template-columns:1fr !important; }

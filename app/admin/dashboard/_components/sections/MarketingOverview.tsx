@@ -26,6 +26,7 @@ interface Overview {
     activeDiscountCodes: number
     expiringDiscountCodes: number
     suppressedContacts: number
+    newsletterSubscribers: number
   }
   campaignPerformance: { id: string; name: string; orders: number; revenue: number }[]
   revenueSeries: { label: string; value: number }[]
@@ -66,6 +67,7 @@ export default function MarketingOverview() {
     { label: 'LEADS GENERATED', value: k ? String(k.leadsGenerated) : 'N/A', sub: `last ${days} days` },
     { label: 'SEGMENTS', value: k ? String(k.segments) : 'N/A' },
     { label: 'ACTIVE DISCOUNT CODES', value: k ? String(k.activeDiscountCodes) : 'N/A' },
+    { label: 'NEWSLETTER SUBSCRIBERS', value: k ? String(k.newsletterSubscribers) : 'N/A', sub: 'footer sign-ups' },
     { label: 'SUPPRESSED CONTACTS', value: k ? String(k.suppressedContacts) : 'N/A', sub: 'unsubscribed / bounced / blocked' },
   ]
 

@@ -1058,6 +1058,15 @@ enum SuppressionReason {
   MANUAL
 }
 
+// Footer/site newsletter opt-ins — distinct from Lead (which always carries a
+// name + message from a contact-style form). A bare email address here is
+// honest about what was actually collected.
+model NewsletterSubscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+}
+
 // Records that a lifecycle automation (welcome series, review request, ...)
 // has already fired for a given trigger, so the cron that runs them can't
 // send the same one twice. `key` encodes both which automation and which

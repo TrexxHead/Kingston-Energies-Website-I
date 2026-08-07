@@ -145,7 +145,7 @@ export default function BulkCorporatePage() {
           </div>
         </section>
       </main>
-      <Footer />
+      <Footer showCta={false} />
     </div>
   )
 }

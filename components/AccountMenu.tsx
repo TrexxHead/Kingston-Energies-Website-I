@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
-import { LogOut, LayoutDashboard, Package, Bell, ShieldCheck } from 'lucide-react'
+import { LogOut, LayoutDashboard, Package, Bell, ShieldCheck, Settings } from 'lucide-react'
 import { initials } from '@/lib/initials'
 
 // Just the essentials — everything else lives one click away in the Hub's own
@@ -83,24 +83,49 @@ export default function AccountMenu({ size = 34 }: { size?: number }) {
             position: 'absolute',
             top: 'calc(100% + 10px)',
             right: 0,
-            width: 218,
-            background: 'var(--ke-dark-bg, #0d1714)',
+            width: 236,
+            background: '#141f1b',
             borderRadius: 16,
             border: '1px solid rgba(255,255,255,.08)',
-            boxShadow: '0 16px 40px rgba(0,0,0,.35)',
+            boxShadow: '0 20px 48px rgba(0,0,0,.45)',
             padding: 8,
             zIndex: 60,
             overflow: 'hidden',
           }}
         >
-          <div style={{ background: 'var(--gradient-brand)', margin: -8, marginBottom: 8, padding: '14px 16px' }}>
-            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13.5, color: '#0d1714', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {session.user?.name ?? 'My account'}
+          {/* Profile row — plain surface, not a bright colour strip, so the
+              menu reads as one muted dark object rather than two stacked
+              blocks. */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 8px 12px' }}>
+            <div
+              style={{
+                width: 32, height: 32, borderRadius: 999, flex: 'none',
+                background: 'var(--gradient-brand)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#0d1714', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 11.5,
+              }}
+            >
+              {initials(session.user?.name ?? session.user?.email ?? 'U')}
             </div>
-            <div style={{ fontSize: 11, color: 'rgba(13,23,20,.68)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {session.user?.email}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13.5, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {session.user?.name ?? 'My account'}
+              </div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,.45)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {session.user?.email}
+              </div>
             </div>
+            <Link
+              href="/hub/settings"
+              role="menuitem"
+              aria-label="Account settings"
+              onClick={() => setOpen(false)}
+              style={{ width: 28, height: 28, borderRadius: 8, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,.5)' }}
+            >
+              <Settings size={15} />
+            </Link>
           </div>
+
+          <div style={{ borderTop: '1px solid rgba(255,255,255,.08)', margin: '0 0 6px' }} />
 
           {/* Shown only to signed-in admins — the public site still carries no
               admin entry point, so this reveals nothing to a normal visitor. */}
@@ -109,7 +134,7 @@ export default function AccountMenu({ size = 34 }: { size?: number }) {
               href="/admin/dashboard"
               role="menuitem"
               onClick={() => setOpen(false)}
-              style={{ ...rowStyle, color: 'var(--ke-green-400, #93c93f)', background: 'rgba(147,201,63,.12)', marginBottom: 4 }}
+              style={{ ...rowStyle, color: 'var(--ke-green-400, #93c93f)' }}
             >
               <ShieldCheck size={16} />
               Admin dashboard
@@ -123,35 +148,35 @@ export default function AccountMenu({ size = 34 }: { size?: number }) {
             </Link>
           ))}
 
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              setOpen(false)
-              signOut({ callbackUrl: '/' })
-            }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 9,
-              width: '100%',
-              marginTop: 4,
-              padding: '10px 10px 8px',
-              borderTop: '1px solid rgba(255,255,255,.08)',
-              background: 'none',
-              border: 'none',
-              borderRadius: 9,
-              cursor: 'pointer',
-              fontFamily: 'var(--font-display)',
-              fontWeight: 600,
-              fontSize: 13.5,
-              color: '#e88585',
-              textAlign: 'left',
-            }}
-          >
-            <LogOut size={16} />
-            Sign out
-          </button>
+          <div style={{ borderTop: '1px solid rgba(255,255,255,.08)', margin: '6px 0 6px' }} />
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '2px 2px 0' }}>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false)
+                signOut({ callbackUrl: '/' })
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 7,
+                padding: '8px 10px',
+                background: 'none',
+                border: 'none',
+                borderRadius: 9,
+                cursor: 'pointer',
+                fontFamily: 'var(--font-display)',
+                fontWeight: 600,
+                fontSize: 13,
+                color: '#e88585',
+              }}
+            >
+              <LogOut size={15} />
+              Log out
+            </button>
+          </div>
         </div>
       )}
     </div>

@@ -140,68 +140,72 @@ function NewsletterBox() {
   )
 }
 
-export default function Footer() {
+export default function Footer({ showCta = true }: { showCta?: boolean }) {
   return (
     <footer style={{ background: '#0a120f', position: 'relative', overflow: 'hidden' }}>
-      {/* Ambient glow — same brand gradient used behind the homepage hero and
-          the auth pages, so the footer's CTA band reads as the same site. */}
-      <div
-        aria-hidden
-        style={{
-          position: 'absolute',
-          top: -120,
-          left: '50%',
-          width: 720,
-          height: 480,
-          transform: 'translateX(-50%)',
-          background: 'radial-gradient(circle, rgba(147,201,63,.14) 0%, rgba(41,171,226,.06) 40%, transparent 68%)',
-          filter: 'blur(50px)',
-          pointerEvents: 'none',
-        }}
-      />
+      {showCta && (
+        <>
+          {/* Ambient glow — same brand gradient used behind the homepage hero
+              and the auth pages, so the footer's CTA band reads as the same
+              site. */}
+          <div
+            aria-hidden
+            style={{
+              position: 'absolute',
+              top: -120,
+              left: '50%',
+              width: 720,
+              height: 480,
+              transform: 'translateX(-50%)',
+              background: 'radial-gradient(circle, rgba(147,201,63,.14) 0%, rgba(41,171,226,.06) 40%, transparent 68%)',
+              filter: 'blur(50px)',
+              pointerEvents: 'none',
+            }}
+          />
 
-      {/* CTA band */}
-      <div style={{ position: 'relative', maxWidth: 760, margin: '0 auto', padding: 'clamp(64px,9vw,110px) 32px 56px', textAlign: 'center' }}>
-        <h2
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontWeight: 800,
-            fontSize: 'clamp(30px,4.5vw,48px)',
-            letterSpacing: '-.025em',
-            lineHeight: 1.05,
-            color: '#fff',
-            margin: 0,
-          }}
-        >
-          The future charges here.
-        </h2>
-        <p style={{ fontSize: 16, lineHeight: 1.6, color: 'rgba(234,242,236,.7)', maxWidth: 420, margin: '18px auto 0' }}>
-          Questions, bulk orders, or first dibs on solar: talk to a real person in Kingston.
-        </p>
-        <Link
-          href="/contact"
-          style={{
-            height: 54,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '0 26px',
-            borderRadius: 999,
-            background: 'var(--color-primary)',
-            color: '#fff',
-            fontFamily: 'var(--font-display)',
-            fontWeight: 600,
-            fontSize: 15,
-            boxShadow: 'var(--shadow-green)',
-            marginTop: 32,
-          }}
-        >
-          Get in touch
-          <ArrowRight size={17} />
-        </Link>
-      </div>
+          <div style={{ position: 'relative', maxWidth: 760, margin: '0 auto', padding: 'clamp(64px,9vw,110px) 32px 56px', textAlign: 'center' }}>
+            <h2
+              style={{
+                fontFamily: 'var(--font-display)',
+                fontWeight: 800,
+                fontSize: 'clamp(30px,4.5vw,48px)',
+                letterSpacing: '-.025em',
+                lineHeight: 1.05,
+                color: '#fff',
+                margin: 0,
+              }}
+            >
+              The future charges here.
+            </h2>
+            <p style={{ fontSize: 16, lineHeight: 1.6, color: 'rgba(234,242,236,.7)', maxWidth: 420, margin: '18px auto 0' }}>
+              Questions, bulk orders, or first dibs on solar: talk to a real person in Kingston.
+            </p>
+            <Link
+              href="/contact"
+              style={{
+                height: 54,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '0 26px',
+                borderRadius: 999,
+                background: 'var(--color-primary)',
+                color: '#fff',
+                fontFamily: 'var(--font-display)',
+                fontWeight: 600,
+                fontSize: 15,
+                boxShadow: 'var(--shadow-green)',
+                marginTop: 32,
+              }}
+            >
+              Get in touch
+              <ArrowRight size={17} />
+            </Link>
+          </div>
+        </>
+      )}
 
-      <div style={{ maxWidth: 1240, margin: '0 auto', borderTop: '1px dashed rgba(255,255,255,.14)' }} />
+      {showCta && <div style={{ maxWidth: 1240, margin: '0 auto', borderTop: '1px dashed rgba(255,255,255,.14)' }} />}
 
       {/* Columns */}
       <div
@@ -209,7 +213,7 @@ export default function Footer() {
           position: 'relative',
           maxWidth: 1240,
           margin: '0 auto',
-          padding: '48px 32px 40px',
+          padding: showCta ? '48px 32px 40px' : 'clamp(56px,8vw,88px) 32px 40px',
           display: 'grid',
           gridTemplateColumns: '1.4fr 1fr 1fr 1fr',
           gap: 40,

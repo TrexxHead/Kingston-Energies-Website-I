@@ -5,7 +5,7 @@ import Footer from '@/components/Footer'
 import Reveal from '@/app/_design-system/Reveal'
 import JsonLd from '@/components/JsonLd'
 import { buildBreadcrumbs } from '@/lib/structuredData'
-import FaqSection from '@/components/ui/habit-faq-scroller'
+import FaqBrowser from '@/components/ui/faq-browser'
 import { SITE_FAQ } from '@/lib/faqContent'
 
 export const metadata = {
@@ -55,7 +55,7 @@ export default function FaqPage() {
 
         <Reveal>
           <section style={{ padding: 'clamp(40px,6vw,80px) var(--page-pad) clamp(56px,8vw,120px)' }}>
-            <FaqSection data={SITE_FAQ} />
+            <FaqBrowser data={SITE_FAQ} />
           </section>
         </Reveal>
 
@@ -82,7 +82,7 @@ export default function FaqPage() {
           </Link>
         </section>
       </main>
-      <Footer />
+      <Footer showCta={false} />
     </div>
   )
 }

@@ -17,6 +17,8 @@ export interface FaqRow {
 }
 
 export interface FaqSectionData {
+  /** Empty string suppresses the title block — for callers whose own page
+   * hero already carries the heading, so it isn't said twice on one page. */
   mainTitle: string
   mainSubtitle: string
   rows: FaqRow[]
@@ -85,35 +87,37 @@ export function HorizontalScroller({
 export default function FaqSection({ data }: { data: FaqSectionData }) {
   return (
     <div className="relative mx-auto flex w-full max-w-6xl flex-col items-center gap-10 p-4 sm:p-10">
-      <div className="z-10 flex max-w-2xl flex-col items-center gap-4 text-center">
-        <h2
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontWeight: 800,
-            fontSize: 'clamp(28px,4vw,40px)',
-            lineHeight: 1.1,
-            color: 'var(--ke-dark-text)',
-            margin: 0,
-            opacity: 0,
-            animation: 'fadeInUp 0.7s ease-out 0.2s forwards',
-          }}
-        >
-          {data.mainTitle}
-        </h2>
-        <p
-          style={{
-            fontFamily: 'var(--font-body)',
-            fontSize: 15,
-            lineHeight: 1.6,
-            color: 'var(--ke-dark-text-muted)',
-            margin: 0,
-            opacity: 0,
-            animation: 'fadeInUp 0.7s ease-out 0.4s forwards',
-          }}
-        >
-          {data.mainSubtitle}
-        </p>
-      </div>
+      {data.mainTitle && (
+        <div className="z-10 flex max-w-2xl flex-col items-center gap-4 text-center">
+          <h2
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontWeight: 800,
+              fontSize: 'clamp(28px,4vw,40px)',
+              lineHeight: 1.1,
+              color: 'var(--ke-dark-text)',
+              margin: 0,
+              opacity: 0,
+              animation: 'fadeInUp 0.7s ease-out 0.2s forwards',
+            }}
+          >
+            {data.mainTitle}
+          </h2>
+          <p
+            style={{
+              fontFamily: 'var(--font-body)',
+              fontSize: 15,
+              lineHeight: 1.6,
+              color: 'var(--ke-dark-text-muted)',
+              margin: 0,
+              opacity: 0,
+              animation: 'fadeInUp 0.7s ease-out 0.4s forwards',
+            }}
+          >
+            {data.mainSubtitle}
+          </p>
+        </div>
+      )}
 
       <div className="z-10 flex w-full flex-col gap-6">
         {data.rows.map((row) => (

@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
+import { motion, AnimatePresence } from 'framer-motion'
+import { SidebarMotionProvider, useSidebarMotionValue, sidebarPointerHandlers, MagnifyIcon } from '@/app/_design-system/sidebarMotion'
 import {
   LayoutDashboard,
   Package,
@@ -43,6 +46,12 @@ const COLLAPSE_KEY = 'ke-hub-sidebar-collapsed'
 const EXPANDED_WIDTH = 248
 const COLLAPSED_WIDTH = 64
 
+const MotionLink = motion.create(Link)
+const TAP = { scale: 0.86 }
+const HOVER_LIFT = { y: -1 }
+const WIDTH_SPRING = { type: 'spring', mass: 0.4, stiffness: 300, damping: 30 } as const
+const PILL_SPRING = { type: 'spring', stiffness: 500, damping: 34 } as const
+
 /**
  * Hub's nav is genuinely flat — eleven items, no subsections — so unlike the
  * admin console this doesn't get a second rail; it just gets a collapse
@@ -54,6 +63,7 @@ export default function Sidebar() {
   const [unread, setUnread] = useState(0)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
+  const railMotion = useSidebarMotionValue()
 
   // Close the drawer automatically whenever the route changes.
   useEffect(() => setMobileOpen(false), [pathname])
@@ -107,11 +117,13 @@ export default function Sidebar() {
   return (
     <>
       {/* Mobile-only hamburger — the sidebar itself is off-canvas below 1000px. */}
-      <button
+      <motion.button
         type="button"
         className="kad-mobile-toggle"
         onClick={() => setMobileOpen(true)}
         aria-label="Open menu"
+        whileHover={HOVER_LIFT}
+        whileTap={TAP}
         style={{
           position: 'fixed', top: 14, left: 14, zIndex: 70,
           width: 40, height: 40, borderRadius: 10, border: 'none',
@@ -121,67 +133,73 @@ export default function Sidebar() {
         }}
       >
         <Menu size={19} />
-      </button>
-      <div className={`kad-sidebar-backdrop${mobileOpen ? ' kad-sidebar-open' : ''}`} onClick={() => setMobileOpen(false)} />
-
-      <aside
-        className={`kad-sidebar kad-hide-scrollbar${mobileOpen ? ' kad-sidebar-open' : ''}`}
-        style={{
-          width: collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH,
-          flex: 'none',
-          background: 'var(--ke-dark-bg)',
-          color: '#fff',
-          display: 'flex',
-          flexDirection: 'column',
-          padding: collapsed ? '20px 10px' : '20px 14px',
-          overflowY: 'auto',
-          transition: 'width .2s var(--ease-standard, ease)',
-        }}
-      >
-        {/* Wordmark + collapse toggle */}
-        <div style={{ padding: collapsed ? '6px 0 18px' : '6px 8px 18px', display: 'flex', gap: 9, alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start' }}>
-          <svg viewBox="0 0 200 200" width={26} height={26} style={{ flexShrink: 0 }}>
-            <rect width="200" height="200" rx="44" fill="#0d1714" />
-            <path
-              d="M100 52 l38 16 v34 c0 26 -17 42 -38 50 c-21 -8 -38 -24 -38 -50 v-34 z"
-              fill="none"
-              stroke="#93c93f"
-              strokeWidth={7}
-            />
-            <path d="M104 82 l-16 26 h12 l-4 22 l20 -30 h-13 z" fill="#f7941e" />
-          </svg>
-          {!collapsed && (
-            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 15, letterSpacing: '.02em', flex: 1 }}>
-              KINGSTON <span style={{ color: 'var(--ke-green-400)' }}>ENERGIES</span>
-            </span>
-          )}
-          <button
-            type="button"
-            className="kad-mobile-toggle"
+      </motion.button>
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            className="kad-sidebar-backdrop-motion"
             onClick={() => setMobileOpen(false)}
-            aria-label="Close menu"
-            style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.7)', cursor: 'pointer', alignItems: 'center', justifyContent: 'center' }}
-          >
-            <X size={20} />
-          </button>
-        </div>
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          />
+        )}
+      </AnimatePresence>
 
-        <button
-          type="button"
-          onClick={toggleCollapsed}
-          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className="kad-hub-toggle-btn"
+      <SidebarMotionProvider value={railMotion}>
+        <motion.aside
+          className={`kad-sidebar kad-hide-scrollbar${mobileOpen ? ' kad-sidebar-open' : ''}`}
+          animate={{ width: collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH }}
+          transition={WIDTH_SPRING}
+          {...sidebarPointerHandlers(railMotion.mouseY)}
           style={{
-            display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start', gap: 8,
-            width: '100%', border: 'none', background: 'none', cursor: 'pointer',
-            padding: '4px 8px', marginBottom: 12, fontSize: 11.5, fontFamily: 'var(--font-display)', fontWeight: 600,
+            flex: 'none',
+            background: 'var(--ke-dark-bg)',
+            color: '#fff',
+            display: 'flex',
+            flexDirection: 'column',
+            padding: collapsed ? '20px 10px' : '20px 14px',
+            overflowY: 'auto',
           }}
         >
-          {collapsed ? <ChevronRight size={15} /> : <><ChevronLeft size={15} /> Collapse</>}
-        </button>
+          {/* Wordmark + collapse toggle */}
+          <div style={{ padding: collapsed ? '6px 0 18px' : '6px 8px 18px', display: 'flex', gap: 9, alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start' }}>
+            <Image src="/images/logo-mark.png" alt="" width={26} height={26} style={{ objectFit: 'contain', flexShrink: 0 }} />
+            {!collapsed && (
+              <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 15, letterSpacing: '.02em', flex: 1 }}>
+                KINGSTON <span style={{ color: 'var(--ke-green-400)' }}>ENERGIES</span>
+              </span>
+            )}
+            <motion.button
+              type="button"
+              className="kad-mobile-toggle"
+              onClick={() => setMobileOpen(false)}
+              aria-label="Close menu"
+              whileTap={TAP}
+              style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.7)', cursor: 'pointer', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <X size={20} />
+            </motion.button>
+          </div>
 
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <motion.button
+            type="button"
+            onClick={toggleCollapsed}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className="kad-hub-toggle-btn"
+            whileTap={TAP}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start', gap: 8,
+              width: '100%', border: 'none', background: 'none', cursor: 'pointer',
+              padding: '4px 8px', marginBottom: 12, fontSize: 11.5, fontFamily: 'var(--font-display)', fontWeight: 600,
+            }}
+          >
+            {collapsed ? <ChevronRight size={15} /> : <><ChevronLeft size={15} /> Collapse</>}
+          </motion.button>
+
+          <nav style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
           {HUB_MAIN_NAV.map((item) => (
             <NavRow key={item.href} item={item} pathname={pathname} badge={item.href === '/hub/notifications' ? unread : 0} collapsed={collapsed} />
           ))}
@@ -239,19 +257,22 @@ export default function Sidebar() {
         </nav>
 
         <div style={{ marginTop: 'auto', paddingTop: 12 }}>
-          <Link
+          <MotionLink
             href="/"
             title="Back to site"
             className="kad-hub-nav-row"
             data-active={false}
             data-collapsed={collapsed}
+            whileHover={HOVER_LIFT}
+            whileTap={TAP}
             style={{ ...rowBase, justifyContent: collapsed ? 'center' : 'flex-start', padding: collapsed ? '10px 0' : rowBase.padding }}
           >
             <ExternalLink size={17} />
             {!collapsed && 'Back to site'}
-          </Link>
+          </MotionLink>
         </div>
-      </aside>
+        </motion.aside>
+      </SidebarMotionProvider>
     </>
   )
 }
@@ -274,7 +295,7 @@ function NavRow({ item, pathname, badge = 0, collapsed = false }: { item: HubNav
   const active = item.href === '/hub' ? pathname === '/hub' : pathname.startsWith(item.href)
 
   return (
-    <Link
+    <MotionLink
       href={item.href}
       title={collapsed ? item.label : undefined}
       aria-label={item.label}
@@ -282,6 +303,7 @@ function NavRow({ item, pathname, badge = 0, collapsed = false }: { item: HubNav
       className="kad-hub-nav-row"
       data-active={active}
       data-collapsed={collapsed}
+      whileTap={TAP}
       style={{
         ...rowBase,
         position: 'relative',
@@ -289,16 +311,21 @@ function NavRow({ item, pathname, badge = 0, collapsed = false }: { item: HubNav
         padding: collapsed ? '10px 0' : rowBase.padding,
       }}
     >
-      <Icon size={18} />
-      {!collapsed && <span style={{ flex: 1 }}>{item.label}</span>}
-      {badge > 0 && collapsed && (
-        <span style={{ position: 'absolute', top: 4, right: 12, width: 8, height: 8, borderRadius: '50%', background: 'var(--ke-green-500,#4bab6b)' }} aria-hidden />
-      )}
-      {badge > 0 && !collapsed && (
-        <span style={{ minWidth: 18, height: 18, padding: '0 5px', borderRadius: 999, background: 'var(--ke-green-500,#4bab6b)', color: '#0d1714', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 10.5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {badge > 99 ? '99+' : badge}
-        </span>
-      )}
-    </Link>
+      {active && <motion.span layoutId="hub-nav-pill" className="kad-hub-pill" transition={PILL_SPRING} />}
+      <span style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: 11, width: '100%' }}>
+        <MagnifyIcon>
+          <Icon size={18} />
+        </MagnifyIcon>
+        {!collapsed && <span style={{ flex: 1 }}>{item.label}</span>}
+        {badge > 0 && collapsed && (
+          <span style={{ position: 'absolute', top: 4, right: 12, width: 8, height: 8, borderRadius: '50%', background: 'var(--ke-green-500,#4bab6b)' }} aria-hidden />
+        )}
+        {badge > 0 && !collapsed && (
+          <span style={{ minWidth: 18, height: 18, padding: '0 5px', borderRadius: 999, background: 'var(--ke-green-500,#4bab6b)', color: '#0d1714', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 10.5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {badge > 99 ? '99+' : badge}
+          </span>
+        )}
+      </span>
+    </MotionLink>
   )
 }

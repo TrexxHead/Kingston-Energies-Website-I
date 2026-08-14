@@ -24,7 +24,7 @@ export interface ProfileNavigationMenuProps {
   sections: ProfileNavigationSection[]
   /** Current pathname, used to mark the active link (`aria-current="page"`). */
   activePathname: string
-  /** Display-only shortcut hint shown on the collapsed pill, e.g. "⌘K". */
+  /** Display-only shortcut hint shown in the panel header, e.g. "⌘K". */
   shortcutLabel?: string
   /** Optional keyboard key (without modifier) that opens the panel — checked
    *  against Meta on Mac / Ctrl elsewhere. Omit if the site already owns
@@ -32,17 +32,26 @@ export interface ProfileNavigationMenuProps {
   shortcutKey?: string
   footer?: ReactNode
   className?: string
+  /** Panel width in px — kept fixed regardless of trigger width. */
+  panelWidth?: number
 }
 
 const isActive = (href: string, pathname: string, exact?: boolean) =>
   exact ? pathname === href : href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(`${href}/`)
 
+// One consistent spring for everything — the trigger's press feedback and
+// the panel's open/close both settle on the same physical curve, rather
+// than mixing a spring here with a duration-based ease there.
+const SPRING = { type: 'spring' as const, stiffness: 380, damping: 32, mass: 0.6 }
+
 /**
- * A disclosure — not an ARIA menu/listbox — that unfolds a compact identity
- * pill into a short list of real navigation links. Trigger is a plain
- * button; destinations are plain links inside a labelled <nav>, so Tab moves
- * through them naturally and nothing traps focus. See the W3C disclosure
- * pattern: https://www.w3.org/WAI/ARIA/apg/patterns/disclosure/
+ * A disclosure — not an ARIA menu/listbox — anchored to its trigger like a
+ * standard dropdown: a compact pill in the navbar unfolds a panel beneath
+ * it, without pushing surrounding layout around (the panel is positioned
+ * absolute, off the document flow). Trigger is a plain button; destinations
+ * are plain links inside a labelled <nav>, so Tab moves through them
+ * naturally and nothing traps focus. See the W3C disclosure pattern:
+ * https://www.w3.org/WAI/ARIA/apg/patterns/disclosure/
  */
 export default function ProfileNavigationMenu({
   name,
@@ -54,6 +63,7 @@ export default function ProfileNavigationMenu({
   shortcutKey,
   footer,
   className,
+  panelWidth = 264,
 }: ProfileNavigationMenuProps) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
@@ -102,116 +112,133 @@ export default function ProfileNavigationMenu({
     return () => window.removeEventListener('keydown', onKey)
   }, [shortcutKey])
 
-  const collapseTransition = reduceMotion ? { duration: 0.15 } : { type: 'spring' as const, stiffness: 420, damping: 36, mass: 0.6 }
-  const contentTransition = reduceMotion ? { duration: 0.15 } : { duration: 0.2, ease: [0.16, 1, 0.3, 1] as const }
+  const panelTransition = reduceMotion ? { duration: 0.15 } : SPRING
 
   return (
-    <div ref={rootRef} className={className} style={{ position: 'relative', width: '100%' }}>
-      <motion.div
-        layout={!reduceMotion}
-        transition={collapseTransition}
+    <div ref={rootRef} className={className} style={{ position: 'relative', display: 'inline-flex' }}>
+      <motion.button
+        ref={triggerRef}
+        type="button"
+        className="ke-pnav-trigger"
+        id={`${panelId}-trigger`}
+        aria-expanded={open}
+        aria-controls={panelId}
+        aria-label={open ? 'Close profile navigation' : 'Open profile navigation'}
+        onClick={() => setOpen((v) => !v)}
+        whileTap={reduceMotion ? undefined : { scale: 0.94 }}
+        transition={SPRING}
         style={{
-          width: '100%',
-          borderRadius: open ? 22 : 999,
-          background: 'rgba(20,31,27,.74)',
-          backdropFilter: 'blur(18px)',
-          WebkitBackdropFilter: 'blur(18px)',
-          border: '1px solid rgba(255,255,255,.1)',
-          boxShadow: open ? '0 24px 56px rgba(0,0,0,.4)' : '0 8px 24px rgba(0,0,0,.25)',
-          overflow: 'hidden',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          height: 36,
+          padding: '0 6px 0 4px',
+          borderRadius: 999,
+          border: '1px solid rgba(255,255,255,.14)',
+          background: open ? 'rgba(255,255,255,.1)' : 'rgba(255,255,255,.05)',
+          cursor: 'pointer',
+          maxWidth: 160,
         }}
       >
-        <button
-          ref={triggerRef}
-          type="button"
-          className="ke-pnav-trigger"
-          id={`${panelId}-trigger`}
-          aria-expanded={open}
-          aria-controls={panelId}
-          aria-label={open ? 'Close profile navigation' : 'Open profile navigation'}
-          onClick={() => setOpen((v) => !v)}
+        <span style={{ flex: 'none', width: 28, height: 28, borderRadius: '50%', overflow: 'hidden' }} aria-hidden="true">
+          {avatar}
+        </span>
+        <span
           style={{
-            width: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            padding: '10px 14px',
-            border: 'none',
-            background: 'none',
-            cursor: 'pointer',
-            textAlign: 'left',
-            minHeight: 64,
+            fontFamily: 'var(--font-display)',
+            fontWeight: 600,
+            fontSize: 12.5,
+            color: '#fff',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
           }}
         >
-          <span style={{ flex: 'none', width: 40, height: 40, borderRadius: '50%', overflow: 'hidden' }} aria-hidden="true">
-            {avatar}
-          </span>
-          <span style={{ flex: 1, minWidth: 0 }}>
-            <span
-              style={{
-                display: 'block',
-                fontFamily: 'var(--font-display)',
-                fontWeight: 700,
-                fontSize: 14,
-                color: '#fff',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {name}
-            </span>
-            <span
-              style={{
-                display: 'block',
-                fontSize: 12,
-                color: 'rgba(255,255,255,.55)',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {subtitle}
-            </span>
-          </span>
-          {shortcutLabel && (
-            <span
-              style={{
-                flex: 'none',
-                fontFamily: 'var(--font-mono)',
-                fontSize: 11,
-                color: 'rgba(255,255,255,.4)',
-                border: '1px solid rgba(255,255,255,.14)',
-                borderRadius: 7,
-                padding: '3px 7px',
-              }}
-            >
-              {shortcutLabel}
-            </span>
-          )}
-        </button>
+          {name}
+        </span>
+      </motion.button>
 
-        <AnimatePresence initial={false}>
-          {open && (
-            <motion.div
-              key="panel"
-              id={panelId}
-              role="region"
-              aria-labelledby={`${panelId}-trigger`}
-              initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
-              transition={contentTransition}
-              style={{
-                borderTop: '1px solid rgba(255,255,255,.08)',
-                padding: '6px 8px 10px',
-                maxHeight: 'min(70dvh, 36rem)',
-                overflowY: 'auto',
-                overscrollBehavior: 'contain',
-              }}
-            >
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            key="panel"
+            id={panelId}
+            role="region"
+            aria-labelledby={`${panelId}-trigger`}
+            initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: -6 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: -6 }}
+            transition={panelTransition}
+            style={{
+              position: 'absolute',
+              top: 'calc(100% + 10px)',
+              right: 0,
+              width: panelWidth,
+              transformOrigin: 'top right',
+              background: 'rgba(20,31,27,.92)',
+              backdropFilter: 'blur(18px)',
+              WebkitBackdropFilter: 'blur(18px)',
+              border: '1px solid rgba(255,255,255,.1)',
+              borderRadius: 18,
+              boxShadow: '0 24px 56px rgba(0,0,0,.45)',
+              overflow: 'hidden',
+              zIndex: 60,
+            }}
+          >
+            {/* Identity header — repeats name + subtitle in full, since the
+                collapsed trigger truncates the name to fit the navbar. */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 12px 10px' }}>
+              <span style={{ flex: 'none', width: 34, height: 34, borderRadius: '50%', overflow: 'hidden' }} aria-hidden="true">
+                {avatar}
+              </span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span
+                  style={{
+                    display: 'block',
+                    fontFamily: 'var(--font-display)',
+                    fontWeight: 700,
+                    fontSize: 13.5,
+                    color: '#fff',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {name}
+                </span>
+                <span
+                  style={{
+                    display: 'block',
+                    fontSize: 11,
+                    color: 'rgba(255,255,255,.5)',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {subtitle}
+                </span>
+              </span>
+              {shortcutLabel && (
+                <span
+                  style={{
+                    flex: 'none',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 10.5,
+                    color: 'rgba(255,255,255,.4)',
+                    border: '1px solid rgba(255,255,255,.14)',
+                    borderRadius: 6,
+                    padding: '2px 6px',
+                  }}
+                >
+                  {shortcutLabel}
+                </span>
+              )}
+            </div>
+
+            <div style={{ borderTop: '1px solid rgba(255,255,255,.08)', padding: '6px 8px 8px', maxHeight: 'min(60dvh, 30rem)', overflowY: 'auto', overscrollBehavior: 'contain' }}>
               {sections.map((section, i) => (
-                <nav key={section.label ?? i} aria-label={section.label ?? 'Profile navigation'} style={{ padding: '6px 0' }}>
+                <nav key={section.label ?? i} aria-label={section.label ?? 'Profile navigation'} style={{ padding: '4px 0' }}>
                   {section.label && (
                     <div
                       style={{
@@ -220,7 +247,7 @@ export default function ProfileNavigationMenu({
                         letterSpacing: '.18em',
                         textTransform: 'uppercase',
                         color: 'rgba(255,255,255,.35)',
-                        padding: '2px 8px 6px',
+                        padding: '2px 6px 6px',
                       }}
                     >
                       {section.label}
@@ -240,12 +267,12 @@ export default function ProfileNavigationMenu({
                               display: 'flex',
                               alignItems: 'center',
                               gap: 10,
-                              minHeight: 44,
-                              padding: '9px 10px',
-                              borderRadius: 12,
+                              minHeight: 40,
+                              padding: '8px 8px',
+                              borderRadius: 10,
                               fontFamily: 'var(--font-display)',
                               fontWeight: 600,
-                              fontSize: 13.5,
+                              fontSize: 13,
                               textDecoration: 'none',
                               color: active ? '#fff' : 'rgba(255,255,255,.78)',
                               background: active ? 'rgba(147,201,63,.18)' : 'transparent',
@@ -259,7 +286,7 @@ export default function ProfileNavigationMenu({
                             <span style={{ flex: 1, minWidth: 0 }}>
                               {item.label}
                               {item.description && (
-                                <span style={{ display: 'block', fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,.4)' }}>{item.description}</span>
+                                <span style={{ display: 'block', fontSize: 10.5, fontWeight: 500, color: 'rgba(255,255,255,.4)' }}>{item.description}</span>
                               )}
                             </span>
                           </Link>
@@ -270,11 +297,11 @@ export default function ProfileNavigationMenu({
                 </nav>
               ))}
 
-              {footer && <div style={{ borderTop: '1px solid rgba(255,255,255,.08)', marginTop: 6, paddingTop: 8 }}>{footer}</div>}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
+              {footer && <div style={{ borderTop: '1px solid rgba(255,255,255,.08)', marginTop: 4, paddingTop: 6 }}>{footer}</div>}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

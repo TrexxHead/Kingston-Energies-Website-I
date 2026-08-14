@@ -26,7 +26,6 @@ export default function Navbar() {
   }, [])
 
   return (
-    <>
     <nav
       style={{
         position: 'fixed',
@@ -181,21 +180,15 @@ export default function Navbar() {
             )}
           </Link>
 
-          {status !== 'authenticated' && (
+          {status !== 'authenticated' ? (
             <Link href="/login" style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12.5, color: '#fff' }}>
               Sign in
             </Link>
+          ) : (
+            <ProfileNav />
           )}
         </div>
       </div>
-
     </nav>
-
-    {/* Foldable profile identity + nav — fixed, top-center, replaces the old
-        top-right AccountMenu dropdown. Rendered as a sibling (not a nav
-        child) so its own `position: fixed` is anchored to the viewport, not
-        to nav's fixed positioning. Renders nothing when signed out. */}
-    <ProfileNav />
-    </>
   )
 }

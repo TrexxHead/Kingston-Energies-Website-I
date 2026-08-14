@@ -9,10 +9,11 @@ import ProfileNavigationMenu, { type ProfileNavigationSection } from '@/componen
 
 /**
  * Replaces the old top-right AccountMenu on the public marketing site with a
- * foldable, top-center identity control. Real destinations only — the same
- * ones AccountMenu used to link to, since the Hub's own sidebar remains the
- * full nav; this stays a fast way in from any public page, plus sign out.
- * Hidden entirely for signed-out visitors — there's no profile to show yet.
+ * foldable identity control in the same top-right spot. Real destinations
+ * only — the same ones AccountMenu used to link to, since the Hub's own
+ * sidebar remains the full nav; this stays a fast way in from any public
+ * page, plus sign out. Hidden entirely for signed-out visitors — there's no
+ * profile to show yet.
  */
 export default function ProfileNav() {
   const { data: session, status } = useSession()
@@ -50,68 +51,57 @@ export default function ProfileNav() {
   }
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        top: 'calc(var(--ke-ann-h, 0px) + 76px)',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        zIndex: 55,
-        width: 'min(calc(100vw - 24px), 22rem)',
-      }}
-    >
-      <ProfileNavigationMenu
-        name={name}
-        subtitle={session.user.email ?? ''}
-        avatar={
-          <span
-            style={{
-              width: '100%',
-              height: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'var(--gradient-brand)',
-              color: '#0d1714',
-              fontFamily: 'var(--font-display)',
-              fontWeight: 700,
-              fontSize: 13,
-            }}
-          >
-            {initials(session.user.name ?? session.user.email ?? 'U')}
-          </span>
-        }
-        sections={sections}
-        activePathname={pathname}
-        shortcutKey="k"
-        shortcutLabel={shortcutLabel}
-        footer={
-          <button
-            type="button"
-            className="ke-pnav-link"
-            onClick={() => signOut({ callbackUrl: '/' })}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              width: '100%',
-              minHeight: 44,
-              padding: '9px 10px',
-              background: 'none',
-              border: 'none',
-              borderRadius: 12,
-              cursor: 'pointer',
-              fontFamily: 'var(--font-display)',
-              fontWeight: 600,
-              fontSize: 13.5,
-              color: '#e88585',
-            }}
-          >
-            <LogOut size={16} />
-            Log out
-          </button>
-        }
-      />
-    </div>
+    <ProfileNavigationMenu
+      name={name}
+      subtitle={session.user.email ?? ''}
+      avatar={
+        <span
+          style={{
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'var(--gradient-brand)',
+            color: '#0d1714',
+            fontFamily: 'var(--font-display)',
+            fontWeight: 700,
+            fontSize: 12,
+          }}
+        >
+          {initials(session.user.name ?? session.user.email ?? 'U')}
+        </span>
+      }
+      sections={sections}
+      activePathname={pathname}
+      shortcutKey="k"
+      shortcutLabel={shortcutLabel}
+      footer={
+        <button
+          type="button"
+          className="ke-pnav-link"
+          onClick={() => signOut({ callbackUrl: '/' })}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            width: '100%',
+            minHeight: 40,
+            padding: '8px 8px',
+            background: 'none',
+            border: 'none',
+            borderRadius: 10,
+            cursor: 'pointer',
+            fontFamily: 'var(--font-display)',
+            fontWeight: 600,
+            fontSize: 13,
+            color: '#e88585',
+          }}
+        >
+          <LogOut size={16} />
+          Log out
+        </button>
+      }
+    />
   )
 }

@@ -374,6 +374,16 @@
 .kad-hub-toggle-btn:hover{ color:rgba(255,255,255,.8); }
 .kad-hub-toggle-btn:active{ transform:scale(.95); }
 
+/* Homepage profile-navigation disclosure — explicit focus ring, since its
+   interactive elements are plain inline-styled buttons/links with no other
+   site-wide :focus-visible rule to fall back on. */
+.ke-pnav-trigger:focus-visible,
+.ke-pnav-link:focus-visible{
+  outline:2px solid var(--ke-green-400,#93c93f);
+  outline-offset:2px;
+  border-radius:inherit;
+}
+
 @media (max-width:1100px){
   .kp-4col{ grid-template-columns:repeat(2,1fr) !important; }
   .ke-footer-grid{ grid-template-columns:repeat(2,1fr) !important; gap:32px !important; }

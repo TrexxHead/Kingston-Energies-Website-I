@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
+import { motion, AnimatePresence } from 'framer-motion'
+import { SidebarMotionProvider, useSidebarMotionValue, sidebarPointerHandlers, MagnifyIcon } from '@/app/_design-system/sidebarMotion'
 import {
   LayoutDashboard,
   KanbanSquare,
@@ -41,6 +43,12 @@ const COLLAPSE_KEY = 'ke-admin-sidebar-collapsed'
 const RAIL_WIDTH = 64
 const PANEL_WIDTH = 226
 
+const MotionLink = motion.create(Link)
+const TAP = { scale: 0.86 }
+const HOVER_LIFT = { y: -1 }
+const WIDTH_SPRING = { type: 'spring', mass: 0.4, stiffness: 300, damping: 30 } as const
+const PILL_SPRING = { type: 'spring', stiffness: 500, damping: 34 } as const
+
 /**
  * Two-level console navigation: an icon-only rail for switching between the
  * ten top-level sections, and a detail panel listing the active section's
@@ -54,6 +62,7 @@ export default function Sidebar() {
   const { group: activeGroup } = resolve(pathname)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
+  const railMotion = useSidebarMotionValue()
 
   useEffect(() => setMobileOpen(false), [pathname])
 
@@ -85,11 +94,13 @@ export default function Sidebar() {
 
   return (
     <>
-      <button
+      <motion.button
         type="button"
         className="kad-mobile-toggle"
         onClick={() => setMobileOpen(true)}
         aria-label="Open menu"
+        whileHover={HOVER_LIFT}
+        whileTap={TAP}
         style={{
           position: 'fixed', top: 14, left: 14, zIndex: 70,
           width: 40, height: 40, borderRadius: 10, border: 'none',
@@ -99,93 +110,126 @@ export default function Sidebar() {
         }}
       >
         <Menu size={19} />
-      </button>
-      <div className={`kad-sidebar-backdrop${mobileOpen ? ' kad-sidebar-open' : ''}`} onClick={() => setMobileOpen(false)} />
+      </motion.button>
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            className="kad-sidebar-backdrop-motion"
+            onClick={() => setMobileOpen(false)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          />
+        )}
+      </AnimatePresence>
 
-      <aside
-        className={`kad-sidebar${mobileOpen ? ' kad-sidebar-open' : ''}`}
-        style={{
-          width: collapsed ? RAIL_WIDTH : RAIL_WIDTH + PANEL_WIDTH,
-          flex: 'none',
-          display: 'flex',
-          overflow: 'hidden',
-          transition: 'width .2s var(--ease-standard, ease)',
-        }}
-      >
-        {/* Icon rail — always visible, one button per top-level section. */}
-        <div
-          className="kad-hide-scrollbar"
+      <SidebarMotionProvider value={railMotion}>
+        <motion.aside
+          className={`kad-sidebar${mobileOpen ? ' kad-sidebar-open' : ''}`}
+          animate={{ width: collapsed ? RAIL_WIDTH : RAIL_WIDTH + PANEL_WIDTH }}
+          transition={WIDTH_SPRING}
           style={{
-            width: RAIL_WIDTH,
-            flexShrink: 0,
-            background: '#0d1714',
-            color: '#fff',
+            flex: 'none',
             display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            padding: '16px 0',
-            gap: 4,
-            overflowY: 'auto',
+            overflow: 'hidden',
           }}
         >
-          <Link href="/admin/dashboard" aria-label="Kingston Energies admin" className="kad-rail-logo" style={{ marginBottom: 12 }}>
-            <Image src="/images/logo-mark.png" alt="" width={26} height={26} style={{ objectFit: 'contain', display: 'block' }} />
-          </Link>
-
-          <button
-            type="button"
-            className="kad-mobile-toggle kad-rail-util-btn"
-            onClick={() => setMobileOpen(false)}
-            aria-label="Close menu"
-            style={{ marginBottom: 8 }}
+          {/* Icon rail — always visible, one button per top-level section. */}
+          <div
+            className="kad-hide-scrollbar"
+            {...sidebarPointerHandlers(railMotion.mouseY)}
+            style={{
+              width: RAIL_WIDTH,
+              flexShrink: 0,
+              background: '#0d1714',
+              color: '#fff',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              padding: '16px 0',
+              gap: 4,
+              overflowY: 'auto',
+            }}
           >
-            <X size={18} />
-          </button>
+            <MotionLink
+              href="/admin/dashboard"
+              aria-label="Kingston Energies admin"
+              whileHover={{ scale: 1.08 }}
+              whileTap={TAP}
+              style={{ display: 'flex', marginBottom: 12 }}
+            >
+              <Image src="/images/logo-mark.png" alt="" width={26} height={26} style={{ objectFit: 'contain', display: 'block' }} />
+            </MotionLink>
 
-          {NAV.map((g) => {
-            const Icon = ICONS[g.icon]
-            const active = g.id === activeGroup?.id
-            return (
-              <Link
-                key={g.id}
-                href={g.href}
-                title={g.label}
-                aria-label={g.label}
-                aria-current={active ? 'page' : undefined}
-                className="kad-rail-icon"
-                data-active={active}
-              >
-                <Icon size={18} />
-              </Link>
-            )
-          })}
+            <motion.button
+              type="button"
+              className="kad-mobile-toggle kad-rail-util-btn"
+              onClick={() => setMobileOpen(false)}
+              aria-label="Close menu"
+              whileHover={HOVER_LIFT}
+              whileTap={TAP}
+              style={{ marginBottom: 8 }}
+            >
+              <X size={18} />
+            </motion.button>
 
-          <div style={{ flex: 1 }} />
+            {NAV.map((g) => {
+              const Icon = ICONS[g.icon]
+              const active = g.id === activeGroup?.id
+              return (
+                <MotionLink
+                  key={g.id}
+                  href={g.href}
+                  title={g.label}
+                  aria-label={g.label}
+                  aria-current={active ? 'page' : undefined}
+                  className="kad-rail-icon"
+                  data-active={active}
+                  whileHover={HOVER_LIFT}
+                  whileTap={TAP}
+                  style={{ position: 'relative' }}
+                >
+                  {active && <motion.span layoutId="admin-rail-pill" className="kad-rail-pill" transition={PILL_SPRING} />}
+                  <span style={{ position: 'relative', zIndex: 1, display: 'inline-flex' }}>
+                    <MagnifyIcon>
+                      <Icon size={18} />
+                    </MagnifyIcon>
+                  </span>
+                </MotionLink>
+              )
+            })}
 
-          <button
-            type="button"
-            onClick={openCommandPalette}
-            title="Search (⌘K)"
-            aria-label="Open command palette"
-            className="kad-rail-util-btn"
-          >
-            <Command size={17} />
-          </button>
+            <div style={{ flex: 1 }} />
 
-          <button
-            type="button"
-            onClick={toggleCollapsed}
-            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className="kad-rail-util-btn"
-          >
-            {collapsed ? <ChevronRight size={17} /> : <ChevronLeft size={17} />}
-          </button>
+            <motion.button
+              type="button"
+              onClick={openCommandPalette}
+              title="Search (⌘K)"
+              aria-label="Open command palette"
+              className="kad-rail-util-btn"
+              whileHover={HOVER_LIFT}
+              whileTap={TAP}
+            >
+              <Command size={17} />
+            </motion.button>
 
-          <Link href="/" title="Back to site" aria-label="Back to site" className="kad-rail-util-btn">
-            <ExternalLink size={17} />
-          </Link>
-        </div>
+            <motion.button
+              type="button"
+              onClick={toggleCollapsed}
+              title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              className="kad-rail-util-btn"
+              whileHover={HOVER_LIFT}
+              whileTap={TAP}
+            >
+              {collapsed ? <ChevronRight size={17} /> : <ChevronLeft size={17} />}
+            </motion.button>
+
+            <MotionLink href="/" title="Back to site" aria-label="Back to site" className="kad-rail-util-btn" whileHover={HOVER_LIFT} whileTap={TAP}>
+              <ExternalLink size={17} />
+            </MotionLink>
+          </div>
 
         {/* Detail panel — the active section's subpages. Hidden when collapsed. */}
         {!collapsed && (
@@ -203,7 +247,7 @@ export default function Sidebar() {
               overflowY: 'auto',
             }}
           >
-            <Link href="/admin/dashboard" className="kad-panel-brand" style={{ marginBottom: 18 }}>
+            <MotionLink href="/admin/dashboard" className="kad-panel-brand" whileHover={HOVER_LIFT} whileTap={TAP} style={{ marginBottom: 18 }}>
               <Image src="/images/logo-mark.png" alt="" width={28} height={28} style={{ objectFit: 'contain', flexShrink: 0 }} />
               <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.3 }}>
                 <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 13, color: '#fff' }}>
@@ -213,7 +257,7 @@ export default function Sidebar() {
                   ADMIN&nbsp;CONSOLE
                 </span>
               </div>
-            </Link>
+            </MotionLink>
 
             {activeGroup ? (
               <>
@@ -232,9 +276,17 @@ export default function Sidebar() {
                   {(activeGroup.children ?? [{ href: activeGroup.href, label: 'Overview', description: activeGroup.description }]).map((c) => {
                     const on = (pathname.replace(/\/+$/, '') || activeGroup.href) === c.href
                     return (
-                      <Link key={c.href} href={c.href} className="kad-panel-nav-row" data-active={on}>
-                        {c.label}
-                      </Link>
+                      <MotionLink
+                        key={c.href}
+                        href={c.href}
+                        className="kad-panel-nav-row"
+                        data-active={on}
+                        whileTap={TAP}
+                        style={{ position: 'relative' }}
+                      >
+                        {on && <motion.span layoutId="admin-panel-pill" className="kad-panel-pill" transition={PILL_SPRING} />}
+                        <span style={{ position: 'relative', zIndex: 1 }}>{c.label}</span>
+                      </MotionLink>
                     )
                   })}
                 </nav>
@@ -246,7 +298,8 @@ export default function Sidebar() {
             )}
           </div>
         )}
-      </aside>
+        </motion.aside>
+      </SidebarMotionProvider>
     </>
   )
 }

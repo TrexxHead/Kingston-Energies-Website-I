@@ -23,6 +23,7 @@
     "@supabase/supabase-js": "^2.110.2",
     "@upstash/redis": "^1.38.1",
     "bcryptjs": "^3.0.3",
+    "framer-motion": "^13.0.0",
     "google-auth-library": "^10.9.0",
     "google-spreadsheet": "^5.3.0",
     "lucide-react": "^1.23.0",

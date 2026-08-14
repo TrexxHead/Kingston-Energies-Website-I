@@ -27,6 +27,9 @@ interface ChartFrameProps {
   isEmpty?: boolean
   /** Actions for the card header — a range picker, an export. */
   actions?: React.ReactNode
+  /** Headline KPI row — current value, change, high/low — between the title
+   *  and the plot. Stays inside this one card rather than a second nested one. */
+  kpi?: React.ReactNode
   /** Explains what the reader is looking at, under the plot. */
   footnote?: React.ReactNode
   children: React.ReactNode
@@ -48,6 +51,7 @@ export default function ChartFrame({
   empty = 'Nothing to chart yet.',
   isEmpty,
   actions,
+  kpi,
   footnote,
   children,
 }: ChartFrameProps) {
@@ -90,6 +94,8 @@ export default function ChartFrame({
           )}
         </div>
       </div>
+
+      {kpi && <div style={{ margin: '10px 0 6px' }}>{kpi}</div>}
 
       {legend && legend.length > 1 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, margin: '10px 0 6px' }}>

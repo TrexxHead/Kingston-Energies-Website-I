@@ -4,15 +4,17 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { useSession } from 'next-auth/react'
 import { ChevronLeft, ShoppingBag } from 'lucide-react'
 import { useCart } from '@/components/cart/CartContext'
-import AccountMenu from '@/components/AccountMenu'
+import ProfileNav from '@/components/ProfileNav'
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
   const { count } = useCart()
+  const { status } = useSession()
   const isHome = pathname === '/'
   const navSolid = !isHome || scrolled
 
@@ -178,7 +180,13 @@ export default function Navbar() {
             )}
           </Link>
 
-          <AccountMenu />
+          {status !== 'authenticated' ? (
+            <Link href="/login" style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12.5, color: '#fff' }}>
+              Sign in
+            </Link>
+          ) : (
+            <ProfileNav />
+          )}
         </div>
       </div>
     </nav>

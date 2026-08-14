@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import ChartFrame, { type LegendItem } from './ChartFrame'
 import Tooltip from './Tooltip'
-import { CHROME, MARKS, compactMoney, money, niceTicks, seriesColor } from './palette'
+import { CHROME, MARKS, compactMoney, money, niceTicksRange, seriesColor } from './palette'
 
 export interface Series {
   label: string
@@ -12,6 +12,13 @@ export interface Series {
   area?: boolean
   /** Marks a projection rather than a recorded figure. */
   dashed?: boolean
+}
+
+export interface ConfidenceBand {
+  /** One label per x position — same length/alignment as `categories`. */
+  low: (number | null)[]
+  high: (number | null)[]
+  label?: string
 }
 
 interface LineChartProps {
@@ -26,6 +33,10 @@ interface LineChartProps {
   onSelect?: (index: number, category: string) => void
   footnote?: React.ReactNode
   actions?: React.ReactNode
+  /** Shaded low–high range behind the lines — a forecast's error band, say. */
+  band?: ConfidenceBand
+  /** Headline KPI row between the title and the plot — current value, change, high/low. */
+  kpi?: React.ReactNode
 }
 
 const PAD = { top: 14, right: 16, bottom: 26, left: 54 }
@@ -47,6 +58,8 @@ export default function LineChart({
   onSelect,
   footnote,
   actions,
+  band,
+  kpi,
 }: LineChartProps) {
   const wrapRef = useRef<HTMLDivElement | null>(null)
   const [width, setWidth] = useState(640)
@@ -63,15 +76,21 @@ export default function LineChart({
 
   const visible = series.filter((s) => !hidden.has(s.label))
   const flat = visible.flatMap((s) => s.values).filter((v): v is number => v !== null)
-  const maxValue = flat.length ? Math.max(...flat, 0) : 0
-  const ticks = niceTicks(maxValue)
-  const top = ticks[ticks.length - 1] || 1
+  const bandFlat = band ? [...band.low, ...band.high].filter((v): v is number => v !== null) : []
+  const allValues = [...flat, ...bandFlat]
+  const minValue = allValues.length ? Math.min(...allValues, 0) : 0
+  const maxValue = allValues.length ? Math.max(...allValues, 0) : 0
+  const ticks = niceTicksRange(minValue, maxValue)
+  const domTop = ticks[ticks.length - 1] ?? 1
+  const domBottom = ticks[0] ?? 0
+  const domSpan = domTop - domBottom || 1
+  const crossesZero = domBottom < 0 && domTop > 0
 
   const plotW = Math.max(80, width - PAD.left - PAD.right)
   const plotH = height - PAD.top - PAD.bottom
   const stepX = categories.length > 1 ? plotW / (categories.length - 1) : 0
   const xAt = (i: number) => PAD.left + (categories.length > 1 ? i * stepX : plotW / 2)
-  const yAt = (v: number) => PAD.top + plotH - (v / top) * plotH
+  const yAt = (v: number) => PAD.top + plotH - ((v - domBottom) / domSpan) * plotH
 
   const paths = useMemo(
     () =>
@@ -90,8 +109,40 @@ export default function LineChart({
         return { series: s, d: d.trim(), points }
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [visible, width, height, top, categories.length],
+    [visible, width, height, domTop, domBottom, categories.length],
   )
+
+  // Confidence band — a filled ribbon between low/high, drawn behind the
+  // lines. Only contiguous defined stretches are filled; a gap in the band
+  // breaks the ribbon rather than bridging it with an invented shape.
+  const bandPath = useMemo(() => {
+    if (!band) return null
+    const segments: string[] = []
+    let lowPts: { x: number; y: number }[] = []
+    let highPts: { x: number; y: number }[] = []
+    const flush = () => {
+      if (lowPts.length >= 2) {
+        const top = highPts.map((p) => `${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' L')
+        const bottom = [...lowPts].reverse().map((p) => `${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' L')
+        segments.push(`M${top} L${bottom} Z`)
+      }
+      lowPts = []
+      highPts = []
+    }
+    for (let i = 0; i < categories.length; i++) {
+      const lo = band.low[i]
+      const hi = band.high[i]
+      if (lo === null || lo === undefined || hi === null || hi === undefined) {
+        flush()
+        continue
+      }
+      lowPts.push({ x: xAt(i), y: yAt(lo) })
+      highPts.push({ x: xAt(i), y: yAt(hi) })
+    }
+    flush()
+    return segments
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [band, width, height, domTop, domBottom, categories.length])
 
   const nearest = (clientX: number) => {
     const rect = wrapRef.current?.getBoundingClientRect()
@@ -110,8 +161,12 @@ export default function LineChart({
   }))
 
   const table = {
-    columns: ['Period', ...series.map((s) => s.label)],
-    rows: categories.map((c, i) => [c, ...series.map((s) => (s.values[i] === null ? 'N/A' : format(s.values[i] as number)))]),
+    columns: ['Period', ...series.map((s) => s.label), ...(band ? [`${band.label ?? 'Range'} low`, `${band.label ?? 'Range'} high`] : [])],
+    rows: categories.map((c, i) => [
+      c,
+      ...series.map((s) => (s.values[i] === null ? 'N/A' : format(s.values[i] as number))),
+      ...(band ? [band.low[i] == null ? 'N/A' : format(band.low[i] as number), band.high[i] == null ? 'N/A' : format(band.high[i] as number)] : []),
+    ]),
   }
 
   const isEmpty = flat.length === 0
@@ -135,6 +190,7 @@ export default function LineChart({
       empty="No figures recorded for this period yet."
       footnote={footnote}
       actions={actions}
+      kpi={kpi}
     >
       <div
         ref={(n) => {
@@ -167,15 +223,27 @@ export default function LineChart({
             </g>
           ))}
 
-          {/* Area washes sit under every line. */}
-          {paths.map(({ series: s, points }, si) => {
+          {/* Confidence band, behind everything else. */}
+          {bandPath?.map((d, i) => <path key={`band-${i}`} d={d} fill={CHROME.axis} opacity={0.12} />)}
+
+          {/* Area washes sit under every line, filled to zero — not to the
+              bottom of the plot, which would be wrong once the domain dips
+              negative. */}
+          {paths.map(({ series: s, points }) => {
             if (!s.area) return null
             const pts = points.filter((p): p is { x: number; y: number } => p !== null)
             if (pts.length < 2) return null
-            const base = PAD.top + plotH
+            const base = yAt(0)
             const d = `M${pts[0].x} ${base} ` + pts.map((p) => `L${p.x} ${p.y}`).join(' ') + ` L${pts[pts.length - 1].x} ${base} Z`
             return <path key={`a-${s.label}`} d={d} fill={seriesColor(series.indexOf(s))} opacity={MARKS.areaOpacity} />
           })}
+
+          {/* Zero reference line — heavier than a gridline, only drawn when
+              the domain actually crosses zero, so a positive-only chart
+              never gets a redundant second baseline. */}
+          {crossesZero && (
+            <line x1={PAD.left} x2={PAD.left + plotW} y1={yAt(0)} y2={yAt(0)} stroke={CHROME.axis} strokeWidth={1.25} />
+          )}
 
           {paths.map(({ series: s, d }) => (
             <path
@@ -251,7 +319,7 @@ export default function LineChart({
               onFocus={() => setHover(i)}
               onBlur={() => setHover(null)}
               onClick={() => onSelect?.(i, c)}
-              aria-label={`${c}: ${series.map((s) => `${s.label} ${s.values[i] === null ? 'no data' : format(s.values[i] as number)}`).join(', ')}`}
+              aria-label={`${c}: ${series.map((s) => `${s.label} ${s.values[i] === null ? 'no data' : format(s.values[i] as number)}`).join(', ')}${band && band.low[i] != null && band.high[i] != null ? `, ${band.label ?? 'likely range'} ${format(band.low[i] as number)} to ${format(band.high[i] as number)}` : ''}`}
               style={{ flex: 1, background: 'none', border: 'none', padding: 0, cursor: onSelect ? 'pointer' : 'default' }}
             />
           ))}
@@ -260,13 +328,22 @@ export default function LineChart({
         {hover !== null && (
           <Tooltip
             x={xAt(hover)}
-            y={Math.min(...visible.map((s) => (s.values[hover] === null ? Infinity : yAt(s.values[hover] as number))).filter(Number.isFinite), PAD.top + plotH)}
+            y={Math.min(
+              ...visible.map((s) => (s.values[hover] === null ? Infinity : yAt(s.values[hover] as number))),
+              ...(band && band.high[hover] != null ? [yAt(band.high[hover] as number)] : []),
+              PAD.top + plotH,
+            )}
             title={categories[hover]}
-            rows={visible.map((s) => ({
-              label: s.label,
-              value: s.values[hover] === null ? 'N/A' : format(s.values[hover] as number),
-              color: seriesColor(series.indexOf(s)),
-            }))}
+            rows={[
+              ...visible.map((s) => ({
+                label: s.label,
+                value: s.values[hover] === null ? 'N/A' : format(s.values[hover] as number),
+                color: seriesColor(series.indexOf(s)),
+              })),
+              ...(band && band.low[hover] != null && band.high[hover] != null
+                ? [{ label: band.label ?? 'Likely range', value: `${format(band.low[hover] as number)} – ${format(band.high[hover] as number)}` }]
+                : []),
+            ]}
           />
         )}
       </div>

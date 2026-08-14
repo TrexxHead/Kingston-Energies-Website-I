@@ -277,24 +277,27 @@
 }
 
 /* Off-canvas drawer sidebars (admin console + customer hub) on mobile —
-   the sidebar stays reachable via a hamburger toggle instead of vanishing. */
+   the sidebar stays reachable via a hamburger toggle instead of vanishing.
+   The slide uses a "back out" cubic-bezier rather than a linear ease so it
+   overshoots and settles like a spring, without needing framer-motion to
+   drive the transform (the drawer's mount/unmount is CSS-class-toggled, not
+   React-conditional, so it stays simple and has no viewport-detection risk). */
 .kad-mobile-toggle{ display:none; }
-.kad-sidebar-backdrop{ display:none; }
 @media (max-width:1000px){
   .kad-mobile-toggle{ display:flex !important; }
   .kad-sidebar{
     position:fixed; top:0; left:0; bottom:0; z-index:80;
     transform:translateX(-105%);
-    transition:transform .26s var(--ease-standard, ease);
+    transition:transform .36s cubic-bezier(.34,1.56,.64,1);
     box-shadow:0 0 48px rgba(0,0,0,.45);
   }
   .kad-sidebar.kad-sidebar-open{ transform:translateX(0); }
   .kad-header{ padding-left:64px !important; }
-  .kad-sidebar-backdrop.kad-sidebar-open{
-    display:block; position:fixed; inset:0; z-index:75;
-    background:rgba(0,0,0,.5);
-  }
 }
+
+/* Mobile backdrop — mounted/unmounted via AnimatePresence, so visibility is
+   the React tree, not a CSS class toggle; this just supplies its look. */
+.kad-sidebar-backdrop-motion{ position:fixed; inset:0; z-index:75; background:rgba(0,0,0,.5); }
 
 /* Admin console + hub sidebar: scroll stays functional, the track/thumb
    ("slider") that used to sit between the icon rail and the panel and break
@@ -314,8 +317,16 @@
 }
 .kad-rail-icon:hover{ background:rgba(255,255,255,.09); color:rgba(255,255,255,.92); transform:translateY(-1px); }
 .kad-rail-icon:active{ transform:scale(.88); }
-.kad-rail-icon[data-active="true"]{ background:rgba(147,201,63,.18); color:var(--ke-green-400); }
-.kad-rail-icon[data-active="true"]:hover{ background:rgba(147,201,63,.27); transform:translateY(-1px); }
+/* Active state: white icon, the sliding pill behind it (kad-rail-pill)
+   carries the brand-green accent instead of a flat green icon+background. */
+.kad-rail-icon[data-active="true"]{ background:transparent; color:#fff; }
+.kad-rail-icon[data-active="true"]:hover{ background:rgba(255,255,255,.08); transform:translateY(-1px); }
+
+/* The magnify-on-hover / sliding-pill highlight (see sidebarMotion.tsx and
+   the layoutId="admin-rail-pill" span) — driven by framer-motion, this just
+   supplies the pill's look. Sits behind the icon (which gets its own
+   position:relative + z-index wrapper) via normal DOM order. */
+.kad-rail-pill{ position:absolute; inset:0; border-radius:11px; background:rgba(147,201,63,.24); }
 
 .kad-rail-util-btn{
   width:40px; height:40px; border-radius:11px; border:none; background:none;
@@ -325,10 +336,6 @@
 }
 .kad-rail-util-btn:hover{ background:rgba(255,255,255,.08); color:rgba(255,255,255,.85); transform:translateY(-1px); }
 .kad-rail-util-btn:active{ transform:scale(.88); }
-
-.kad-rail-logo{ display:flex; transition:transform .15s cubic-bezier(.34,1.56,.64,1); }
-.kad-rail-logo:hover{ transform:scale(1.08); }
-.kad-rail-logo:active{ transform:scale(.9); }
 
 .kad-panel-brand{
   display:flex; align-items:center; gap:10px; padding:8px; border-radius:12px; text-decoration:none;
@@ -345,8 +352,11 @@
 }
 .kad-panel-nav-row:hover{ background:rgba(255,255,255,.06); color:#fff; transform:translateX(2px); }
 .kad-panel-nav-row:active{ transform:translateX(2px) scale(.98); }
-.kad-panel-nav-row[data-active="true"]{ font-weight:700; color:#fff; background:rgba(147,201,63,.16); box-shadow:inset 3px 0 0 var(--ke-green-400); }
-.kad-panel-nav-row[data-active="true"]:hover{ background:rgba(147,201,63,.22); }
+/* Active state: the sliding pill (kad-panel-pill) carries the background +
+   accent bar; the row itself only needs the text weight/color bump. */
+.kad-panel-nav-row[data-active="true"]{ font-weight:700; color:#fff; }
+.kad-panel-nav-row[data-active="true"]:hover{ background:rgba(255,255,255,.05); }
+.kad-panel-pill{ position:absolute; inset:0; border-radius:10px; background:rgba(147,201,63,.18); box-shadow:inset 3px 0 0 var(--ke-green-400); }
 
 /* Hub sidebar nav rows — same hover/press language as the admin rail. */
 .kad-hub-nav-row{
@@ -355,13 +365,24 @@
 }
 .kad-hub-nav-row:hover{ background:rgba(255,255,255,.07); color:#fff; }
 .kad-hub-nav-row:active{ transform:scale(.97); }
-.kad-hub-nav-row[data-active="true"]{ color:#fff; background:rgba(147,201,63,.16); }
-.kad-hub-nav-row[data-active="true"][data-collapsed="false"]{ box-shadow:inset 3px 0 0 var(--ke-green-400); }
-.kad-hub-nav-row[data-active="true"]:hover{ background:rgba(147,201,63,.22); }
+.kad-hub-nav-row[data-active="true"]{ color:#fff; }
+.kad-hub-nav-row[data-active="true"]:hover{ background:rgba(255,255,255,.05); }
+.kad-hub-pill{ position:absolute; inset:0; border-radius:10px; background:rgba(147,201,63,.18); }
+.kad-hub-nav-row[data-collapsed="false"] .kad-hub-pill{ box-shadow:inset 3px 0 0 var(--ke-green-400); }
 
 .kad-hub-toggle-btn{ color:rgba(255,255,255,.4); transition:color .16s ease, transform .12s ease; }
 .kad-hub-toggle-btn:hover{ color:rgba(255,255,255,.8); }
 .kad-hub-toggle-btn:active{ transform:scale(.95); }
+
+/* Homepage profile-navigation disclosure — explicit focus ring, since its
+   interactive elements are plain inline-styled buttons/links with no other
+   site-wide :focus-visible rule to fall back on. */
+.ke-pnav-trigger:focus-visible,
+.ke-pnav-link:focus-visible{
+  outline:2px solid var(--ke-green-400,#93c93f);
+  outline-offset:2px;
+  border-radius:inherit;
+}
 
 @media (max-width:1100px){
   .kp-4col{ grid-template-columns:repeat(2,1fr) !important; }

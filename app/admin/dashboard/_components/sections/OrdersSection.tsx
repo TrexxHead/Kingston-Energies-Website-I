@@ -88,6 +88,15 @@ function monthLabel(key: string): string {
   return new Date(y, m - 1, 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
 }
 
+/** Groups the order-detail modal into named sections instead of one long stack of rows. */
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--color-text-subtle)' }}>
+      {children}
+    </span>
+  )
+}
+
 export default function OrdersSection() {
   const [orders, setOrders] = useState<Order[]>([])
   const [dragId, setDragId] = useState<string | null>(null)
@@ -200,6 +209,7 @@ export default function OrdersSection() {
   }
 
   const [invoiceMsg, setInvoiceMsg] = useState('')
+  const [paidBusy, setPaidBusy] = useState(false)
 
   const sendInvoice = async (id: string) => {
     setInvoiceMsg('Sending…')
@@ -215,6 +225,13 @@ export default function OrdersSection() {
   }
 
   const setPaid = async (id: string, paid: boolean) => {
+    // Payment state is high-impact — marking paid emails the customer an
+    // invoice, and unmarking it reopens a closed payment. Confirm both ways,
+    // and guard against a double-click firing the mutation twice.
+    if (paidBusy) return
+    const verb = paid ? 'Mark this order as paid? This emails the customer an invoice.' : 'Mark this order as unpaid?'
+    if (!confirm(verb)) return
+    setPaidBusy(true)
     setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, paid } : o)))
     setDetail((d) => (d && d.id === id ? { ...d, paid } : d))
     const res = await fetch(`/api/admin/orders/${id}`, {
@@ -228,6 +245,7 @@ export default function OrdersSection() {
       if (invoice?.sent) setInvoiceMsg(`Paid: invoice emailed to ${invoice.to}`)
       else if (invoice) setInvoiceMsg('Paid: invoice ready (View invoice to share)')
     }
+    setPaidBusy(false)
     load()
   }
 
@@ -477,50 +495,53 @@ export default function OrdersSection() {
 
       {detail && (
         <Modal title={`Order ${detail.orderNo}`} onClose={() => setDetail(null)}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-            <span style={{ color: 'var(--color-text-muted)' }}>Customer</span>
-            <span style={{ fontWeight: 600 }}>{detail.customerName}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-            <span style={{ color: 'var(--color-text-muted)' }}>Placed</span>
-            <span style={{ fontWeight: 600 }}>{detail.date}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-            <span style={{ color: 'var(--color-text-muted)' }}>Status</span>
-            <span style={{ fontWeight: 600 }}>{COLUMNS.find((c) => c.id === detail.status)?.label}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-            <span style={{ color: 'var(--color-text-muted)' }}>Source</span>
-            <span style={{ fontWeight: 600 }}>{CHANNEL[detail.source]?.label ?? 'Website'}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-            <span style={{ color: 'var(--color-text-muted)' }}>Customer</span>
-            <Badge tone={detail.registered ? 'blue' : 'grey'} dot>{detail.registered ? 'Registered' : 'Guest'}</Badge>
-          </div>
-          {detail.email && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13 }}>
-              <span style={{ color: 'var(--color-text-muted)' }}>Email</span>
-              <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{detail.email}</span>
-            </div>
-          )}
-          {(detail.phone || detail.contact) && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <SectionLabel>Order</SectionLabel>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-              <span style={{ color: 'var(--color-text-muted)' }}>Phone</span>
-              <span style={{ fontWeight: 600 }}>{detail.phone ?? detail.contact}</span>
+              <span style={{ color: 'var(--color-text-muted)' }}>Placed</span>
+              <span style={{ fontWeight: 600 }}>{detail.date}</span>
             </div>
-          )}
-          {detail.shippingAddress && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13 }}>
-              <span style={{ color: 'var(--color-text-muted)' }}>Ship to</span>
-              <span style={{ fontWeight: 600, textAlign: 'right' }}>{detail.shippingAddress}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+              <span style={{ color: 'var(--color-text-muted)' }}>Status</span>
+              <span style={{ fontWeight: 600 }}>{COLUMNS.find((c) => c.id === detail.status)?.label}</span>
             </div>
-          )}
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+              <span style={{ color: 'var(--color-text-muted)' }}>Source</span>
+              <span style={{ fontWeight: 600 }}>{CHANNEL[detail.source]?.label ?? 'Website'}</span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid var(--color-border)', paddingTop: 12 }}>
+            <SectionLabel>Customer</SectionLabel>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13 }}>
+              <span style={{ fontWeight: 600 }}>{detail.customerName}</span>
+              <Badge tone={detail.registered ? 'blue' : 'grey'} dot>{detail.registered ? 'Registered' : 'Guest'}</Badge>
+            </div>
+            {detail.email && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13 }}>
+                <span style={{ color: 'var(--color-text-muted)' }}>Email</span>
+                <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{detail.email}</span>
+              </div>
+            )}
+            {(detail.phone || detail.contact) && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                <span style={{ color: 'var(--color-text-muted)' }}>Phone</span>
+                <span style={{ fontWeight: 600 }}>{detail.phone ?? detail.contact}</span>
+              </div>
+            )}
+            {detail.shippingAddress && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13 }}>
+                <span style={{ color: 'var(--color-text-muted)' }}>Ship to</span>
+                <span style={{ fontWeight: 600, textAlign: 'right' }}>{detail.shippingAddress}</span>
+              </div>
+            )}
+          </div>
           {detail.delayed && (
             <div style={{ background: 'var(--ke-sun-50,#fff7e6)', border: '1px solid var(--ke-sun-300,#fdb813)', borderRadius: 10, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, color: 'var(--ke-sun-700,#8a5a00)' }}>
-                <Badge tone="orange" dot>Delayed</Badge>
-                {detail.delayReason}
+                <Badge tone="orange" dot>Exception · Delayed</Badge>
               </span>
+              <p style={{ margin: 0, fontSize: 12.5, color: 'var(--ke-sun-700,#8a5a00)' }}>{detail.delayReason}</p>
               <div>
                 <Button size="sm" variant="outline" onClick={() => setDelay(detail.id, false)} disabled={delayBusy}>
                   {delayBusy ? 'Saving…' : 'Mark delay resolved'}
@@ -553,40 +574,42 @@ export default function OrdersSection() {
             </div>
           )}
           {detail.status === 'CANCELLED' && detail.cancelReason && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13 }}>
-              <span style={{ color: 'var(--color-text-muted)' }}>Cancel reason</span>
-              <span style={{ fontWeight: 600, textAlign: 'right', color: 'var(--color-danger)' }}>{detail.cancelReason}</span>
+            <div style={{ background: 'var(--color-danger-bg, #fdf1f0)', border: '1px solid var(--color-danger)', borderRadius: 10, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <Badge tone="grey" dot>Exception · Cancelled</Badge>
+              <p style={{ margin: 0, fontSize: 12.5, color: 'var(--color-danger)' }}>{detail.cancelReason}</p>
             </div>
           )}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13 }}>
-            <span style={{ color: 'var(--color-text-muted)' }}>Payment</span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid var(--color-border)', paddingTop: 12 }}>
+            <SectionLabel>Payment</SectionLabel>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13 }}>
               <span style={{ fontWeight: 600 }}>{detail.paymentMethod ? PAYMENT_LABEL[detail.paymentMethod] ?? detail.paymentMethod : 'N/A'}</span>
               {detail.paid ? <Badge tone="green" dot>Paid</Badge> : <Badge tone="orange" dot>Unpaid</Badge>}
-            </span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <a href={`/api/admin/orders/${detail.id}/invoice`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
-                <Button size="sm" variant="outline">View invoice</Button>
-              </a>
-              <Button size="sm" variant="outline" onClick={() => sendInvoice(detail.id)}>
-                {detail.invoiced ? 'Resend invoice' : 'Send invoice'}
-              </Button>
-              {detail.hasProofOfPayment && (
-                <a href={`/api/admin/orders/${detail.id}/proof`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
-                  <Button size="sm" variant="outline">View proof of payment</Button>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <a href={`/api/admin/orders/${detail.id}/invoice`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+                  <Button size="sm" variant="outline">View invoice</Button>
                 </a>
-              )}
-            </span>
-            <Button size="sm" variant={detail.paid ? 'outline' : 'primary'} onClick={() => setPaid(detail.id, !detail.paid)}>
-              {detail.paid ? 'Mark as unpaid' : 'Mark as paid'}
-            </Button>
+                <Button size="sm" variant="outline" onClick={() => sendInvoice(detail.id)}>
+                  {detail.invoiced ? 'Resend invoice' : 'Send invoice'}
+                </Button>
+                {detail.hasProofOfPayment && (
+                  <a href={`/api/admin/orders/${detail.id}/proof`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+                    <Button size="sm" variant="outline">View proof of payment</Button>
+                  </a>
+                )}
+              </span>
+              <Button size="sm" variant={detail.paid ? 'outline' : 'primary'} onClick={() => setPaid(detail.id, !detail.paid)} disabled={paidBusy}>
+                {paidBusy ? 'Saving…' : detail.paid ? 'Mark as unpaid' : 'Mark as paid'}
+              </Button>
+            </div>
+            {invoiceMsg && (
+              <div style={{ fontSize: 12, color: 'var(--color-text-muted)', textAlign: 'right' }}>{invoiceMsg}</div>
+            )}
           </div>
-          {invoiceMsg && (
-            <div style={{ fontSize: 12, color: 'var(--color-text-muted)', textAlign: 'right' }}>{invoiceMsg}</div>
-          )}
           <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <SectionLabel>Items</SectionLabel>
             {detail.items.map((it) => {
               const matches = swapForItem === it.id && swapQuery.trim()
                 ? products.filter((p) => p.name.toLowerCase().includes(swapQuery.trim().toLowerCase()) && p.id !== it.productId).slice(0, 6)

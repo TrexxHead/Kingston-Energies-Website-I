@@ -5,6 +5,7 @@ import { TrendingUp, Info } from 'lucide-react'
 import { cardStyle, h3Style } from '../ui/card'
 import Badge from '../ui/Badge'
 import Pill from '../ui/Pill'
+import LineChart from '../charts/LineChart'
 import { fmt } from '../mockData'
 
 type Confidence = 'none' | 'indicative' | 'low' | 'moderate' | 'good'
@@ -51,11 +52,27 @@ export default function ForecastTab() {
 
   if (!data) return <div style={cardStyle}><p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>Loading…</p></div>
 
-  const allValues = [
-    ...data.history.map((h) => h.cashIn - h.cashOut),
-    ...data.forecast.flatMap((f) => [f.low, f.high]),
-  ]
-  const max = Math.max(1, ...allValues.map(Math.abs))
+  // Actual (solid) bridges into projected (dashed) at the last real month, so
+  // the two lines read as one continuous trend rather than a visible gap.
+  const historyLen = data.history.length
+  const categories = [...data.history.map((h) => h.periodLabel), ...data.forecast.map((f) => f.periodLabel)]
+  const lastActual = historyLen > 0 ? data.history[historyLen - 1].cashIn - data.history[historyLen - 1].cashOut : null
+  const actualValues = categories.map((_, i) => (i < historyLen ? data.history[i].cashIn - data.history[i].cashOut : null))
+  const projectedValues = categories.map((_, i) => {
+    if (i < historyLen - 1) return null
+    if (i === historyLen - 1) return lastActual
+    return data.forecast[i - historyLen].projected
+  })
+  const bandLow = categories.map((_, i) => {
+    if (i < historyLen - 1) return null
+    if (i === historyLen - 1) return lastActual
+    return data.forecast[i - historyLen].low
+  })
+  const bandHigh = categories.map((_, i) => {
+    if (i < historyLen - 1) return null
+    if (i === historyLen - 1) return lastActual
+    return data.forecast[i - historyLen].high
+  })
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -108,48 +125,24 @@ export default function ForecastTab() {
             </p>
           )}
 
-          <div style={cardStyle}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
-              <h3 style={{ ...h3Style, margin: 0 }}>Net cash: history and projection</h3>
+          <LineChart
+            title="Net cash: history and projection"
+            subtitle="Actual month-by-month net cash from the ledger, plus a projection with a likely range."
+            categories={categories}
+            series={[
+              { label: 'Actual', values: actualValues },
+              { label: 'Projected', values: projectedValues, dashed: true },
+            ]}
+            band={{ low: bandLow, high: bandHigh, label: 'Likely range' }}
+            height={240}
+            actions={
               <div style={{ display: 'flex', gap: 6 }}>
                 {[3, 6, 12].map((m) => (
                   <Pill key={m} label={`${m} mo`} selected={months === m} onClick={() => setMonths(m)} />
                 ))}
               </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 5, height: 190, overflowX: 'auto', paddingBottom: 4 }}>
-              {data.history.map((h) => {
-                const v = h.cashIn - h.cashOut
-                return (
-                  <Bar key={h.periodLabel} label={h.periodLabel} value={v} max={max} tone="actual" title={`Actual · in ${fmt(Math.round(h.cashIn))} / out ${fmt(Math.round(h.cashOut))}`} />
-                )
-              })}
-              {data.forecast.map((f) => (
-                <Bar
-                  key={f.periodLabel}
-                  label={f.periodLabel}
-                  value={f.projected}
-                  max={max}
-                  tone="forecast"
-                  band={{ low: f.low, high: f.high }}
-                  title={`Projected ${fmt(Math.round(f.projected))} (range ${fmt(Math.round(f.low))}–${fmt(Math.round(f.high))})`}
-                />
-              ))}
-            </div>
-
-            <div style={{ display: 'flex', gap: 16, marginTop: 14, fontSize: 11.5, color: 'var(--color-text-muted)' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ width: 10, height: 10, borderRadius: 3, background: 'var(--ke-green-500)' }} /> Actual
-              </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ width: 10, height: 10, borderRadius: 3, background: 'var(--ke-blue-400)', opacity: 0.55 }} /> Projected
-              </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ width: 10, height: 10, borderRadius: 3, border: '1px dashed var(--ke-blue-400)' }} /> Likely range
-              </span>
-            </div>
-          </div>
+            }
+          />
 
           <div style={{ ...cardStyle, padding: 0, overflow: 'hidden' }}>
             <div style={{ padding: '14px 18px' }}>
@@ -173,32 +166,6 @@ export default function ForecastTab() {
           </div>
         </>
       )}
-    </div>
-  )
-}
-
-function Bar({ label, value, max, tone, band, title }: { label: string; value: number; max: number; tone: 'actual' | 'forecast'; band?: { low: number; high: number }; title: string }) {
-  const h = Math.max(2, (Math.abs(value) / max) * 130)
-  const bandH = band ? Math.max(2, ((Math.abs(band.high) - Math.abs(band.low)) / max) * 130) : 0
-  return (
-    <div style={{ flex: '1 0 42px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, minWidth: 42 }} title={title}>
-      <div style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'flex-end', height: 140 }}>
-        {band && (
-          <div style={{ position: 'absolute', bottom: Math.max(0, h - bandH / 2), width: '70%', height: bandH, border: '1px dashed var(--ke-blue-400)', borderRadius: 3, opacity: 0.7 }} />
-        )}
-        <div
-          style={{
-            width: '70%',
-            height: h,
-            borderRadius: '4px 4px 2px 2px',
-            background: tone === 'actual' ? (value < 0 ? 'var(--ke-sun-400)' : 'var(--ke-green-500)') : 'var(--ke-blue-400)',
-            opacity: tone === 'forecast' ? 0.55 : 1,
-          }}
-        />
-      </div>
-      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8.5, color: 'var(--color-text-subtle)', whiteSpace: 'nowrap' }}>
-        {label.split(' ')[0]}
-      </span>
     </div>
   )
 }

@@ -112,3 +112,28 @@ export function niceTicks(max: number, count = 4): number[] {
   }
   return ticks
 }
+
+/**
+ * Axis ticks for a domain that may dip negative — a net-cash-flow series,
+ * for instance, can be genuinely below zero some months. Always includes 0
+ * when the domain crosses it, so the zero reference line has a real tick to
+ * sit on rather than being drawn at an arbitrary y.
+ */
+export function niceTicksRange(min: number, max: number, count = 4): number[] {
+  const lo = Math.min(0, Number.isFinite(min) ? min : 0)
+  const hi = Math.max(0, Number.isFinite(max) ? max : 0)
+  if (lo === 0 && hi === 0) return [0]
+
+  const span = hi - lo
+  const rough = span / count
+  const magnitude = 10 ** Math.floor(Math.log10(rough))
+  const step = [1, 2, 2.5, 5, 10].map((m) => m * magnitude).find((s) => s >= rough) ?? 10 * magnitude
+
+  const ticks: number[] = []
+  const start = Math.floor(lo / step) * step
+  for (let v = start; v <= hi + step / 2 && ticks.length <= 40; v += step) {
+    ticks.push(Math.round(v * 1e6) / 1e6)
+  }
+  if (!ticks.some((t) => Math.abs(t) < 1e-9) && lo < 0 && hi > 0) ticks.push(0)
+  return ticks.sort((a, b) => a - b)
+}

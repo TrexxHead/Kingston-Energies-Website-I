@@ -58,6 +58,20 @@ const RANGES = [
   { months: 24, label: '24 months' },
 ]
 
+type TrendMetric = 'all' | 'revenue' | 'expenses' | 'profit'
+const METRICS: { id: TrendMetric; label: string }[] = [
+  { id: 'all', label: 'Comparison' },
+  { id: 'revenue', label: 'Revenue' },
+  { id: 'expenses', label: 'Expenses' },
+  { id: 'profit', label: 'Profit' },
+]
+
+/** Same rule the ledger's own KPI tiles use — no Infinity/NaN off a zero or missing prior month. */
+function changeBetween(current: number, previous: number): number | null {
+  if (!Number.isFinite(previous) || previous === 0) return null
+  return Math.round(((current - previous) / Math.abs(previous)) * 100)
+}
+
 /**
  * The finance command centre.
  *
@@ -71,6 +85,7 @@ export default function FinanceOverview() {
   const [data, setData] = useState<HealthData | null>(null)
   const [months, setMonths] = useState(6)
   const [loading, setLoading] = useState(false)
+  const [trendMetric, setTrendMetric] = useState<TrendMetric>('all')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -97,6 +112,24 @@ export default function FinanceOverview() {
   const expenseTrend = data.series.map((s) => s.expenses)
 
   const F = '/admin/dashboard/finance'
+
+  // Single-metric Trend view — same monthlySeries data the Comparison chart
+  // plots, just read as one continuous line instead of three side by side.
+  // KPI, high/low and the tooltip all come from this one array, so they can
+  // never disagree with each other or with what's on the chart.
+  const trendValues: Record<Exclude<TrendMetric, 'all'>, number[]> = {
+    revenue: revenueTrend,
+    expenses: expenseTrend,
+    profit: profitTrend,
+  }
+  const trendColorIndex: Record<Exclude<TrendMetric, 'all'>, number> = { revenue: 0, expenses: 1, profit: 2 }
+  const trendGoodWhenUp: Record<Exclude<TrendMetric, 'all'>, boolean> = { revenue: true, expenses: false, profit: true }
+  const selectedTrend = trendMetric === 'all' ? null : trendValues[trendMetric]
+  const trendCurrent = selectedTrend && selectedTrend.length ? selectedTrend[selectedTrend.length - 1] : null
+  const trendPrevious = selectedTrend && selectedTrend.length >= 2 ? selectedTrend[selectedTrend.length - 2] : null
+  const trendChange = trendCurrent !== null && trendPrevious !== null ? changeBetween(trendCurrent, trendPrevious) : null
+  const trendHigh = selectedTrend && selectedTrend.length ? Math.max(...selectedTrend) : null
+  const trendLow = selectedTrend && selectedTrend.length ? Math.min(...selectedTrend) : null
 
   const totalBalance = k.cash.value + k.bank.value
   const ratio = data.ratios.currentRatio
@@ -208,18 +241,87 @@ export default function FinanceOverview() {
         </div>
       )}
 
-      <LineChart
-        title="Revenue, expenses and profit"
-        subtitle={`Last ${months} months, from the ledger. Click a month to open its transactions.`}
-        categories={data.series.map((s) => s.month)}
-        series={[
-          { label: 'Revenue', values: data.series.map((s) => s.revenue) },
-          { label: 'Expenses', values: data.series.map((s) => s.expenses) },
-          { label: 'Profit', values: data.series.map((s) => s.profit) },
-        ]}
-        height={250}
-        onSelect={() => router.push(`${F}/transactions`)}
-      />
+      {(() => {
+        const metricToggle = (
+          <div style={{ display: 'flex', gap: 6 }}>
+            {METRICS.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => setTrendMetric(m.id)}
+                aria-pressed={trendMetric === m.id}
+                style={{
+                  border: '1px solid var(--color-border)',
+                  background: trendMetric === m.id ? 'var(--color-primary-soft)' : 'var(--color-surface)',
+                  color: trendMetric === m.id ? 'var(--color-primary)' : CHROME.textMuted,
+                  borderRadius: 999,
+                  padding: '5px 12px',
+                  fontSize: 12,
+                  fontWeight: trendMetric === m.id ? 700 : 500,
+                  cursor: 'pointer',
+                }}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+        )
+
+        if (trendMetric === 'all') {
+          return (
+            <LineChart
+              title="Revenue, expenses and profit"
+              subtitle={`Last ${months} months, from the ledger. Click a month to open its transactions.`}
+              categories={data.series.map((s) => s.month)}
+              series={[
+                { label: 'Revenue', values: data.series.map((s) => s.revenue) },
+                { label: 'Expenses', values: data.series.map((s) => s.expenses) },
+                { label: 'Profit', values: data.series.map((s) => s.profit) },
+              ]}
+              height={250}
+              onSelect={() => router.push(`${F}/transactions`)}
+              actions={metricToggle}
+            />
+          )
+        }
+
+        const label = METRICS.find((m) => m.id === trendMetric)!.label
+        return (
+          <LineChart
+            title={`${label} trend`}
+            subtitle={`Last ${months} months, from the ledger. Click a month to open its transactions.`}
+            categories={data.series.map((s) => s.month)}
+            series={[{ label, values: selectedTrend as number[], area: true }]}
+            height={220}
+            onSelect={() => router.push(`${F}/transactions`)}
+            actions={metricToggle}
+            kpi={
+              trendCurrent !== null && (
+                <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'baseline' }}>
+                  <div>
+                    <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 28, letterSpacing: '-.02em' }}>{money(trendCurrent)}</div>
+                    <div style={{ fontSize: 12, color: CHROME.textMuted, marginTop: 2 }}>
+                      {data.series[data.series.length - 1]?.month ?? 'This month'}
+                      {trendChange !== null && (
+                        <span style={{ marginLeft: 8, fontWeight: 700, color: (trendChange >= 0) === trendGoodWhenUp[trendMetric] ? 'var(--viz-good)' : 'var(--viz-critical)' }}>
+                          {trendChange >= 0 ? '+' : ''}
+                          {trendChange}% vs previous month
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {trendHigh !== null && trendLow !== null && (
+                    <div style={{ fontSize: 12, color: CHROME.textMuted }}>
+                      High {money(trendHigh)} · Low {money(trendLow)}
+                      <span style={{ display: 'block', fontSize: 11, color: CHROME.textSubtle }}>over the last {months} months</span>
+                    </div>
+                  )}
+                </div>
+              )
+            }
+          />
+        )
+      })()}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(340px,1fr))', gap: 16 }}>
         <DonutChart

@@ -34,6 +34,10 @@ export interface ProfileNavigationMenuProps {
   className?: string
   /** Panel width in px — kept fixed regardless of trigger width. */
   panelWidth?: number
+  /** 'dark' fits a dark surface (the public navbar); 'light' fits a light
+   *  one (the Hub's white top bar). The panel itself always stays dark —
+   *  it's a floating overlay, not part of the surface it opens from. */
+  tone?: 'dark' | 'light'
 }
 
 const isActive = (href: string, pathname: string, exact?: boolean) =>
@@ -64,6 +68,7 @@ export default function ProfileNavigationMenu({
   footer,
   className,
   panelWidth = 264,
+  tone = 'dark',
 }: ProfileNavigationMenuProps) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
@@ -113,6 +118,9 @@ export default function ProfileNavigationMenu({
   }, [shortcutKey])
 
   const panelTransition = reduceMotion ? { duration: 0.15 } : SPRING
+  const triggerBorder = tone === 'light' ? 'rgba(13,23,20,.14)' : 'rgba(255,255,255,.14)'
+  const triggerBg = tone === 'light' ? (open ? 'rgba(13,23,20,.08)' : 'rgba(13,23,20,.04)') : open ? 'rgba(255,255,255,.1)' : 'rgba(255,255,255,.05)'
+  const triggerText = tone === 'light' ? 'var(--color-text, #0d1714)' : '#fff'
 
   return (
     <div ref={rootRef} className={className} style={{ position: 'relative', display: 'inline-flex' }}>
@@ -134,8 +142,8 @@ export default function ProfileNavigationMenu({
           height: 36,
           padding: '0 6px 0 4px',
           borderRadius: 999,
-          border: '1px solid rgba(255,255,255,.14)',
-          background: open ? 'rgba(255,255,255,.1)' : 'rgba(255,255,255,.05)',
+          border: `1px solid ${triggerBorder}`,
+          background: triggerBg,
           cursor: 'pointer',
           maxWidth: 160,
         }}
@@ -148,7 +156,7 @@ export default function ProfileNavigationMenu({
             fontFamily: 'var(--font-display)',
             fontWeight: 600,
             fontSize: 12.5,
-            color: '#fff',
+            color: triggerText,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',

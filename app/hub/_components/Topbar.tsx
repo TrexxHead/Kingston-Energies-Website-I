@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { Bell, ChevronLeft } from 'lucide-react'
-import AccountMenu from '@/components/AccountMenu'
+import ProfileNav from '@/components/ProfileNav'
 
 interface TopbarProps {
   title: string
@@ -89,7 +89,7 @@ export default function Topbar({ title, subtitle }: TopbarProps) {
           <Bell size={17} />
         </button>
 
-        <AccountMenu size={36} />
+        <ProfileNav tone="light" />
       </div>
     </div>
   )

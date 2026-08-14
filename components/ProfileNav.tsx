@@ -15,7 +15,12 @@ import ProfileNavigationMenu, { type ProfileNavigationSection } from '@/componen
  * page, plus sign out. Hidden entirely for signed-out visitors — there's no
  * profile to show yet.
  */
-export default function ProfileNav() {
+interface ProfileNavProps {
+  /** 'dark' fits the public navbar (default); 'light' fits the Hub's white top bar. */
+  tone?: 'dark' | 'light'
+}
+
+export default function ProfileNav({ tone = 'dark' }: ProfileNavProps) {
   const { data: session, status } = useSession()
   const pathname = usePathname()
   // navigator.platform is browser-only — resolved after mount, rather than
@@ -76,6 +81,7 @@ export default function ProfileNav() {
       activePathname={pathname}
       shortcutKey="k"
       shortcutLabel={shortcutLabel}
+      tone={tone}
       footer={
         <button
           type="button"

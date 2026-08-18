@@ -127,7 +127,17 @@ export default function OrdersSection() {
   const [swapQuery, setSwapQuery] = useState('')
   const [swapBusy, setSwapBusy] = useState(false)
   const [editQty, setEditQty] = useState('')
+  const [editName, setEditName] = useState('')
+  const [editPrice, setEditPrice] = useState('')
   const [removeBusy, setRemoveBusy] = useState(false)
+  const [addOpen, setAddOpen] = useState(false)
+  const [addMode, setAddMode] = useState<'product' | 'manual'>('product')
+  const [addQuery, setAddQuery] = useState('')
+  const [addProductId, setAddProductId] = useState<string | null>(null)
+  const [addQty, setAddQty] = useState('1')
+  const [addName, setAddName] = useState('')
+  const [addPrice, setAddPrice] = useState('')
+  const [addBusy, setAddBusy] = useState(false)
 
   const load = useCallback(async () => {
     const res = await fetch('/api/admin/orders')
@@ -214,6 +224,49 @@ export default function OrdersSection() {
     } else {
       const d = await res.json().catch(() => ({}))
       window.alert(d.error ?? 'Could not remove that item.')
+    }
+  }
+
+  const editManualLine = async (orderId: string, itemId: string, name: string, price: number) => {
+    setSwapBusy(true)
+    const res = await fetch(`/api/admin/orders/${orderId}/items/${itemId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, price }),
+    })
+    setSwapBusy(false)
+    if (res.ok) {
+      setSwapForItem(null)
+      refreshDetail(orderId)
+    } else {
+      const d = await res.json().catch(() => ({}))
+      window.alert(d.error ?? 'Could not update that line.')
+    }
+  }
+
+  const addOrderLine = async (orderId: string) => {
+    setAddBusy(true)
+    const body =
+      addMode === 'product' && addProductId
+        ? { productId: addProductId, qty: Math.max(1, Number(addQty) || 1) }
+        : { name: addName.trim(), price: Number(addPrice) || 0, qty: Math.max(1, Number(addQty) || 1) }
+    const res = await fetch(`/api/admin/orders/${orderId}/items`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    setAddBusy(false)
+    if (res.ok) {
+      setAddOpen(false)
+      setAddQuery('')
+      setAddProductId(null)
+      setAddQty('1')
+      setAddName('')
+      setAddPrice('')
+      refreshDetail(orderId)
+    } else {
+      const d = await res.json().catch(() => ({}))
+      window.alert(d.error ?? 'Could not add that line.')
     }
   }
 
@@ -690,11 +743,27 @@ export default function OrdersSection() {
             )}
           </div>
           <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <SectionLabel>Items</SectionLabel>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <SectionLabel>Items</SectionLabel>
+              {detail.status !== 'CANCELLED' && (
+                <button
+                  type="button"
+                  onClick={() => { setAddOpen((v) => !v); setAddQuery(''); setAddProductId(null); setAddQty('1'); setAddName(''); setAddPrice('') }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: 'var(--ke-green-700,#15803d)', padding: 0 }}
+                >
+                  + Add line
+                </button>
+              )}
+            </div>
             {detail.items.map((it) => {
               const editing = swapForItem === it.id
+              // Card orders that never cleared payment never ran fulfillment,
+              // so productId isn't backfilled yet — match by name too, or a
+              // perfectly real product line looks like a stray fee.
+              const matchedProduct = products.find((p) => p.name.trim().toLowerCase() === it.name.trim().toLowerCase())
+              const effectiveProductId = it.productId ?? matchedProduct?.id ?? null
               const matches = editing && swapQuery.trim()
-                ? products.filter((p) => p.name.toLowerCase().includes(swapQuery.trim().toLowerCase()) && p.id !== it.productId).slice(0, 6)
+                ? products.filter((p) => p.name.toLowerCase().includes(swapQuery.trim().toLowerCase()) && p.id !== effectiveProductId).slice(0, 6)
                 : []
               return (
                 <div key={it.id}>
@@ -709,6 +778,8 @@ export default function OrdersSection() {
                             setSwapForItem(editing ? null : it.id)
                             setSwapQuery('')
                             setEditQty(String(it.qty))
+                            setEditName(it.name)
+                            setEditPrice(String(it.price))
                           }}
                           style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: 'var(--ke-green-700,#15803d)', padding: 0 }}
                         >
@@ -719,7 +790,7 @@ export default function OrdersSection() {
                   </div>
                   {editing && (
                     <div style={{ marginTop: 6, padding: 10, border: '1px solid var(--color-border)', borderRadius: 10, background: 'var(--ke-gray-50,#fafafa)', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      {it.productId ? (
+                      {effectiveProductId ? (
                         <>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>Quantity</span>
@@ -735,7 +806,7 @@ export default function OrdersSection() {
                               label="Hold to confirm"
                               holdingLabel="Confirming…"
                               disabled={swapBusy || !editQty.trim() || Number(editQty) < 1 || Number(editQty) === it.qty}
-                              onConfirm={() => swapItem(detail.id, it.id, it.productId!, Number(editQty))}
+                              onConfirm={() => swapItem(detail.id, it.id, effectiveProductId, Number(editQty))}
                             />
                           </div>
                           <div style={{ position: 'relative' }}>
@@ -766,9 +837,34 @@ export default function OrdersSection() {
                           </div>
                         </>
                       ) : (
-                        <p style={{ fontSize: 11.5, color: 'var(--color-text-muted)', margin: 0 }}>
-                          This line isn&rsquo;t a catalog product (a fee, discount, or points redemption) — it can only be removed, not edited.
-                        </p>
+                        <>
+                          <p style={{ fontSize: 11, color: 'var(--color-text-muted)', margin: 0 }}>
+                            Not a catalog product — a fee, discount, or points redemption. Edit its label and amount directly (a negative amount is a discount).
+                          </p>
+                          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                            <input
+                              value={editName}
+                              onChange={(e) => setEditName(e.target.value)}
+                              placeholder="Label"
+                              disabled={swapBusy}
+                              style={{ flex: 1, minWidth: 140, height: 30, padding: '0 8px', border: '1px solid var(--color-border)', borderRadius: 8, fontSize: 12.5 }}
+                            />
+                            <input
+                              type="number"
+                              value={editPrice}
+                              onChange={(e) => setEditPrice(e.target.value)}
+                              placeholder="Amount"
+                              disabled={swapBusy}
+                              style={{ width: 90, height: 30, padding: '0 8px', border: '1px solid var(--color-border)', borderRadius: 8, fontSize: 12.5 }}
+                            />
+                            <HoldToConfirm
+                              label="Hold to confirm"
+                              holdingLabel="Confirming…"
+                              disabled={swapBusy || !editName.trim() || editPrice.trim() === '' || (editName.trim() === it.name && Number(editPrice) === it.price)}
+                              onConfirm={() => editManualLine(detail.id, it.id, editName.trim(), Number(editPrice))}
+                            />
+                          </div>
+                        </>
                       )}
                       <HoldToConfirm
                         tone="danger"
@@ -782,6 +878,108 @@ export default function OrdersSection() {
                 </div>
               )
             })}
+            {addOpen && (
+              <div style={{ padding: 10, border: '1px solid var(--color-border)', borderRadius: 10, background: 'var(--ke-gray-50,#fafafa)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div role="group" aria-label="Line type" style={{ display: 'flex', gap: 6 }}>
+                  {(['product', 'manual'] as const).map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setAddMode(m)}
+                      style={{
+                        height: 28, padding: '0 12px', borderRadius: 999, fontSize: 11.5, fontWeight: 600, cursor: 'pointer',
+                        border: `1.5px solid ${addMode === m ? '#0d1714' : 'var(--color-border)'}`,
+                        background: addMode === m ? '#0d1714' : 'var(--color-surface)',
+                        color: addMode === m ? '#fff' : 'var(--color-text)',
+                      }}
+                    >
+                      {m === 'product' ? 'Catalog product' : 'Discount or fee'}
+                    </button>
+                  ))}
+                </div>
+                {addMode === 'product' ? (
+                  <div style={{ position: 'relative' }}>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <input
+                        value={addQuery}
+                        onChange={(e) => { setAddQuery(e.target.value); setAddProductId(null) }}
+                        placeholder="Type a product name…"
+                        disabled={addBusy}
+                        style={{ flex: 1, height: 32, padding: '0 10px', border: '1px solid var(--color-border)', borderRadius: 8, fontSize: 12 }}
+                      />
+                      <input
+                        type="number"
+                        min={1}
+                        value={addQty}
+                        onChange={(e) => setAddQty(e.target.value)}
+                        disabled={addBusy}
+                        style={{ width: 60, height: 32, padding: '0 8px', border: '1px solid var(--color-border)', borderRadius: 8, fontSize: 12.5 }}
+                      />
+                    </div>
+                    {addQuery.trim() && !addProductId && (
+                      <div style={{ marginTop: 4, border: '1px solid var(--color-border)', borderRadius: 10, overflow: 'hidden', background: 'var(--color-surface)' }}>
+                        {products.filter((p) => p.name.toLowerCase().includes(addQuery.trim().toLowerCase())).slice(0, 6).map((p) => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => { setAddProductId(p.id); setAddQuery(p.name) }}
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, width: '100%', padding: '7px 10px', border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left', fontSize: 12 }}
+                          >
+                            <span>{p.name}</span>
+                            <span style={{ color: 'var(--color-text-muted)', flexShrink: 0 }}>{fmt(p.salePrice ?? p.price)}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <div style={{ marginTop: 8 }}>
+                      <HoldToConfirm
+                        label="Hold to add"
+                        holdingLabel="Adding…"
+                        disabled={addBusy || !addProductId || !addQty.trim() || Number(addQty) < 1}
+                        onConfirm={() => addOrderLine(detail.id)}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      <input
+                        value={addName}
+                        onChange={(e) => setAddName(e.target.value)}
+                        placeholder="Label (e.g. Loyalty discount)"
+                        disabled={addBusy}
+                        style={{ flex: 1, minWidth: 140, height: 32, padding: '0 10px', border: '1px solid var(--color-border)', borderRadius: 8, fontSize: 12.5 }}
+                      />
+                      <input
+                        type="number"
+                        value={addPrice}
+                        onChange={(e) => setAddPrice(e.target.value)}
+                        placeholder="Amount"
+                        disabled={addBusy}
+                        style={{ width: 90, height: 32, padding: '0 10px', border: '1px solid var(--color-border)', borderRadius: 8, fontSize: 12.5 }}
+                      />
+                      <input
+                        type="number"
+                        min={1}
+                        value={addQty}
+                        onChange={(e) => setAddQty(e.target.value)}
+                        disabled={addBusy}
+                        style={{ width: 60, height: 32, padding: '0 8px', border: '1px solid var(--color-border)', borderRadius: 8, fontSize: 12.5 }}
+                      />
+                    </div>
+                    <p style={{ fontSize: 10.5, color: 'var(--color-text-subtle)', margin: 0 }}>A negative amount is a discount; a positive amount is a fee.</p>
+                    <div>
+                      <HoldToConfirm
+                        label="Hold to add"
+                        holdingLabel="Adding…"
+                        disabled={addBusy || !addName.trim() || addPrice.trim() === ''}
+                        onConfirm={() => addOrderLine(detail.id)}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--color-border)', paddingTop: 12 }}>
             <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700 }}>Total</span>

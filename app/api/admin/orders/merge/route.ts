@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { guardAdmin } from '@/lib/requireAdmin'
+import { consolidateOrderItems } from '@/lib/orderFulfillment'
 
 const schema = z.object({
   keepId: z.string().min(1),
@@ -61,6 +62,8 @@ export async function POST(request: Request) {
           data: { orderId: keepId, type: 'NOTE', label: `Merged in ${source.orderNo}`, adminOnly: true },
         })
       }
+
+      await consolidateOrderItems(tx, keepId)
 
       const items = await tx.orderItem.findMany({ where: { orderId: keepId } })
       const total = items.reduce((sum, i) => sum + i.price * i.qty, 0)

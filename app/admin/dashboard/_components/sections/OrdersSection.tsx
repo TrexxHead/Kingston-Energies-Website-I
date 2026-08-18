@@ -6,6 +6,7 @@ import Badge from '../ui/Badge'
 import Button from '../ui/Button'
 import Modal from '../ui/Modal'
 import TextInput from '../ui/TextInput'
+import HoldToConfirm from '../ui/HoldToConfirm'
 import { cardStyle, h3Style } from '../ui/card'
 import { fmt } from '../mockData'
 import { PIPELINE, stageEmailsOnMove } from '@/lib/pipeline'
@@ -125,6 +126,8 @@ export default function OrdersSection() {
   const [swapForItem, setSwapForItem] = useState<string | null>(null)
   const [swapQuery, setSwapQuery] = useState('')
   const [swapBusy, setSwapBusy] = useState(false)
+  const [editQty, setEditQty] = useState('')
+  const [removeBusy, setRemoveBusy] = useState(false)
 
   const load = useCallback(async () => {
     const res = await fetch('/api/admin/orders')
@@ -180,17 +183,18 @@ export default function OrdersSection() {
     }
   }
 
-  const swapItem = async (orderId: string, itemId: string, productId: string) => {
+  const swapItem = async (orderId: string, itemId: string, productId: string, qty?: number) => {
     setSwapBusy(true)
     const res = await fetch(`/api/admin/orders/${orderId}/items/${itemId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ productId }),
+      body: JSON.stringify({ productId, ...(qty ? { qty } : {}) }),
     })
     setSwapBusy(false)
     if (res.ok) {
       setSwapForItem(null)
       setSwapQuery('')
+      setEditQty('')
       refreshDetail(orderId)
     } else {
       const d = await res.json().catch(() => ({}))
@@ -198,10 +202,25 @@ export default function OrdersSection() {
     }
   }
 
+  const removeItem = async (orderId: string, itemId: string) => {
+    setRemoveBusy(true)
+    const res = await fetch(`/api/admin/orders/${orderId}/items/${itemId}`, { method: 'DELETE' })
+    setRemoveBusy(false)
+    if (res.ok) {
+      setSwapForItem(null)
+      setSwapQuery('')
+      setEditQty('')
+      refreshDetail(orderId)
+    } else {
+      const d = await res.json().catch(() => ({}))
+      window.alert(d.error ?? 'Could not remove that item.')
+    }
+  }
+
   const [mergeBusy, setMergeBusy] = useState(false)
 
-  const mergeOrder = async (keepId: string, mergeId: string, mergeOrderNo: string) => {
-    if (!confirm(`Combine ${mergeOrderNo} into this order? Its items move here and it's marked as merged — this can't be undone.`)) return
+  const mergeOrder = async (keepId: string, mergeId: string) => {
+    // Confirmation is the hold gesture at the call site, not a dialog here.
     setMergeBusy(true)
     const res = await fetch('/api/admin/orders/merge', {
       method: 'POST',
@@ -310,8 +329,8 @@ export default function OrdersSection() {
     load()
   }
 
-  const deleteOrder = async (id: string, orderNo: string) => {
-    if (!confirm(`Permanently delete order ${orderNo}? This removes it from all reports. Prefer cancelling (drag to Cancelled) unless this is an erroneous or duplicate entry.`)) return
+  const deleteOrder = async (id: string) => {
+    // Confirmation is the hold gesture itself at the call site, not a dialog here.
     const res = await fetch(`/api/admin/orders/${id}`, { method: 'DELETE' })
     if (res.ok) {
       setOrders((prev) => prev.filter((o) => o.id !== id))
@@ -562,9 +581,12 @@ export default function OrdersSection() {
               {possibleDuplicates.map((dup) => (
                 <div key={dup.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 12.5 }}>
                   <span>{dup.orderNo} · {dup.itemCount} item{dup.itemCount === 1 ? '' : 's'} · {fmt(dup.total)}{!dup.paid && ' · Unpaid'}</span>
-                  <Button size="sm" variant="outline" onClick={() => mergeOrder(detail.id, dup.id, dup.orderNo)} disabled={mergeBusy}>
-                    {mergeBusy ? 'Merging…' : 'Combine here'}
-                  </Button>
+                  <HoldToConfirm
+                    label="Hold to combine"
+                    holdingLabel="Combining…"
+                    disabled={mergeBusy}
+                    onConfirm={() => mergeOrder(detail.id, dup.id)}
+                  />
                 </div>
               ))}
             </div>
@@ -670,7 +692,8 @@ export default function OrdersSection() {
           <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
             <SectionLabel>Items</SectionLabel>
             {detail.items.map((it) => {
-              const matches = swapForItem === it.id && swapQuery.trim()
+              const editing = swapForItem === it.id
+              const matches = editing && swapQuery.trim()
                 ? products.filter((p) => p.name.toLowerCase().includes(swapQuery.trim().toLowerCase()) && p.id !== it.productId).slice(0, 6)
                 : []
               return (
@@ -682,40 +705,78 @@ export default function OrdersSection() {
                       {detail.status !== 'CANCELLED' && (
                         <button
                           type="button"
-                          onClick={() => { setSwapForItem(swapForItem === it.id ? null : it.id); setSwapQuery('') }}
+                          onClick={() => {
+                            setSwapForItem(editing ? null : it.id)
+                            setSwapQuery('')
+                            setEditQty(String(it.qty))
+                          }}
                           style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: 'var(--ke-green-700,#15803d)', padding: 0 }}
                         >
-                          Swap
+                          Edit
                         </button>
                       )}
                     </span>
                   </div>
-                  {swapForItem === it.id && (
-                    <div style={{ position: 'relative', marginTop: 6 }}>
-                      <input
-                        autoFocus
-                        value={swapQuery}
-                        onChange={(e) => setSwapQuery(e.target.value)}
-                        placeholder="Type a product name to swap to…"
-                        disabled={swapBusy}
-                        style={{ width: '100%', height: 32, padding: '0 10px', border: '1px solid var(--color-border)', borderRadius: 8, fontSize: 12 }}
-                      />
-                      {matches.length > 0 && (
-                        <div style={{ marginTop: 4, border: '1px solid var(--color-border)', borderRadius: 10, overflow: 'hidden' }}>
-                          {matches.map((p) => (
-                            <button
-                              key={p.id}
-                              type="button"
-                              onClick={() => swapItem(detail.id, it.id, p.id)}
+                  {editing && (
+                    <div style={{ marginTop: 6, padding: 10, border: '1px solid var(--color-border)', borderRadius: 10, background: 'var(--ke-gray-50,#fafafa)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {it.productId ? (
+                        <>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>Quantity</span>
+                            <input
+                              type="number"
+                              min={1}
+                              value={editQty}
+                              onChange={(e) => setEditQty(e.target.value)}
                               disabled={swapBusy}
-                              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, width: '100%', padding: '8px 10px', border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left', fontSize: 12 }}
-                            >
-                              <span>{p.name}</span>
-                              <span style={{ color: 'var(--color-text-muted)', flexShrink: 0 }}>{fmt(p.salePrice ?? p.price)}</span>
-                            </button>
-                          ))}
-                        </div>
+                              style={{ width: 64, height: 30, padding: '0 8px', border: '1px solid var(--color-border)', borderRadius: 8, fontSize: 12.5 }}
+                            />
+                            <HoldToConfirm
+                              label="Hold to confirm"
+                              holdingLabel="Confirming…"
+                              disabled={swapBusy || !editQty.trim() || Number(editQty) < 1 || Number(editQty) === it.qty}
+                              onConfirm={() => swapItem(detail.id, it.id, it.productId!, Number(editQty))}
+                            />
+                          </div>
+                          <div style={{ position: 'relative' }}>
+                            <span style={{ fontSize: 11, color: 'var(--color-text-muted)', display: 'block', marginBottom: 4 }}>Swap to a different product</span>
+                            <input
+                              value={swapQuery}
+                              onChange={(e) => setSwapQuery(e.target.value)}
+                              placeholder="Type a product name…"
+                              disabled={swapBusy}
+                              style={{ width: '100%', height: 32, padding: '0 10px', border: '1px solid var(--color-border)', borderRadius: 8, fontSize: 12 }}
+                            />
+                            {matches.length > 0 && (
+                              <div style={{ marginTop: 4, border: '1px solid var(--color-border)', borderRadius: 10, overflow: 'hidden', background: 'var(--color-surface)' }}>
+                                {matches.map((p) => (
+                                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '7px 10px', fontSize: 12 }}>
+                                    <span>{p.name} <span style={{ color: 'var(--color-text-muted)' }}>({fmt(p.salePrice ?? p.price)})</span></span>
+                                    <HoldToConfirm
+                                      size="sm"
+                                      label="Hold to confirm"
+                                      holdingLabel="Confirming…"
+                                      disabled={swapBusy}
+                                      onConfirm={() => swapItem(detail.id, it.id, p.id, editQty.trim() ? Number(editQty) : undefined)}
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      ) : (
+                        <p style={{ fontSize: 11.5, color: 'var(--color-text-muted)', margin: 0 }}>
+                          This line isn&rsquo;t a catalog product (a fee, discount, or points redemption) — it can only be removed, not edited.
+                        </p>
                       )}
+                      <HoldToConfirm
+                        tone="danger"
+                        label="Hold to remove"
+                        holdingLabel="Removing…"
+                        disabled={removeBusy || detail.items.length <= 1}
+                        onConfirm={() => removeItem(detail.id, it.id)}
+                      />
                     </div>
                   )}
                 </div>
@@ -825,10 +886,17 @@ export default function OrdersSection() {
             )}
           </div>
 
-          <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 14, display: 'flex', justifyContent: 'flex-end' }}>
-            <Button size="sm" variant="outline" onClick={() => deleteOrder(detail.id, detail.orderNo)}>
-              Delete order permanently
-            </Button>
+          <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 14, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+            <p style={{ fontSize: 11, color: 'var(--color-text-subtle)', margin: 0 }}>
+              Removes it from all reports. Prefer cancelling (drag to Cancelled) unless this is erroneous or a duplicate.
+            </p>
+            <HoldToConfirm
+              tone="danger"
+              label="Hold to delete"
+              holdingLabel="Deleting…"
+              durationMs={1100}
+              onConfirm={() => deleteOrder(detail.id)}
+            />
           </div>
         </Modal>
         )

@@ -73,3 +73,52 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   return NextResponse.json({ ok: true })
 }
+
+/**
+ * Remove a single line from an order — restocking and freeing its serials
+ * first if it was a real product line. Refuses to remove an order's only
+ * item; cancel the order instead of leaving it with nothing in it.
+ */
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string; itemId: string }> }) {
+  const denied = await guardAdmin()
+  if (denied) return denied
+  const session = await getServerSession(authOptions)
+
+  const { id, itemId } = await params
+  const item = await prisma.orderItem.findUnique({ where: { id: itemId } })
+  if (!item || item.orderId !== id) return NextResponse.json({ error: 'Order item not found' }, { status: 404 })
+
+  const siblingCount = await prisma.orderItem.count({ where: { orderId: id } })
+  if (siblingCount <= 1) {
+    return NextResponse.json({ error: "This is the order's only item — cancel the order instead of emptying it." }, { status: 409 })
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      if (item.productId) {
+        await tx.product.updateMany({ where: { id: item.productId }, data: { stock: { increment: item.qty } } })
+        await releaseOrderItems(tx, [{ orderItemId: item.id }])
+      }
+      await tx.orderItem.delete({ where: { id: item.id } })
+
+      const items = await tx.orderItem.findMany({ where: { orderId: id } })
+      const total = items.reduce((s, i) => s + i.price * i.qty, 0)
+      await tx.order.update({ where: { id }, data: { total } })
+
+      await tx.orderEvent.create({
+        data: {
+          orderId: id,
+          type: 'NOTE',
+          label: 'Order item removed',
+          note: `${item.name} × ${item.qty}${session?.user?.email ? ` (by ${session.user.email})` : ''}`,
+          adminOnly: false,
+        },
+      })
+    })
+  } catch (err) {
+    console.error('[orders] item removal failed:', err)
+    return NextResponse.json({ error: 'Could not remove that item.' }, { status: 400 })
+  }
+
+  return NextResponse.json({ ok: true })
+}

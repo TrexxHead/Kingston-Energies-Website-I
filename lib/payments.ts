@@ -1,14 +1,16 @@
 import { prisma } from '@/lib/prisma'
+import { fygaroConfigured } from '@/lib/fygaro'
 
 /**
  * Payment methods are admin-configurable and stored as a single JSON blob in
  * SiteSetting (key "payments"). The direct methods (bank/lynk/paypal/cod) need
  * no gateway — the customer pays out-of-band using the details shown, quoting
- * their order number, and an admin marks the order paid. "card" is the WiPay
- * gateway and is only truly available when its env vars are set.
+ * their order number, and an admin marks the order paid. "card" (WiPay) and
+ * "fygaro" are real gateways, each only truly available when its own env
+ * vars are set.
  */
 
-export type PaymentMethodId = 'bank' | 'lynk' | 'paypal' | 'cod' | 'card'
+export type PaymentMethodId = 'bank' | 'lynk' | 'paypal' | 'cod' | 'card' | 'fygaro'
 
 export interface PaymentConfig {
   bank: {
@@ -24,6 +26,7 @@ export interface PaymentConfig {
   paypal: { enabled: boolean; link: string; email: string; instructions: string }
   cod: { enabled: boolean; instructions: string }
   card: { enabled: boolean } // WiPay — also gated on WIPAY_* env being present
+  fygaro: { enabled: boolean } // also gated on FYGARO_* env being present
 }
 
 const SETTING_KEY = 'payments'
@@ -34,6 +37,7 @@ export const DEFAULT_PAYMENT_CONFIG: PaymentConfig = {
   paypal: { enabled: false, link: '', email: '', instructions: '' },
   cod: { enabled: true, instructions: 'Pay with cash when your order is delivered, Kingston-wide.' },
   card: { enabled: false },
+  fygaro: { enabled: false },
 }
 
 /** Deep-merge stored config over the defaults so new fields always exist. */
@@ -46,6 +50,7 @@ function merge(stored: Partial<PaymentConfig> | null): PaymentConfig {
     paypal: { ...d.paypal, ...stored.paypal },
     cod: { ...d.cod, ...stored.cod },
     card: { ...d.card, ...stored.card },
+    fygaro: { ...d.fygaro, ...stored.fygaro },
   }
 }
 
@@ -117,6 +122,10 @@ export function toPublicMethods(cfg: PaymentConfig): PublicPaymentMethod[] {
 
   if (cfg.card.enabled && isWiPayConfigured()) {
     out.push({ id: 'card', label: 'Debit / credit card', sub: 'Visa or Mastercard, paid securely online', details: [], needsReference: false, gateway: true })
+  }
+
+  if (cfg.fygaro.enabled && fygaroConfigured()) {
+    out.push({ id: 'fygaro', label: 'Fygaro', sub: 'Pay securely online in JMD', details: [], needsReference: false, gateway: true })
   }
 
   if (cfg.cod.enabled) {

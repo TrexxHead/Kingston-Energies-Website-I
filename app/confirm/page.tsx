@@ -53,10 +53,11 @@ function ConfirmInner() {
       token = tokenFromQuery || sessionStorage.getItem('ke-last-order-token') || ''
       setOrderToken(token)
       method = sessionStorage.getItem('ke-last-method') ?? ''
-      // This checkout attempt is resolved one way or another — clear the
-      // pending-card-retry marker so a later, unrelated card purchase never
+      // This checkout attempt is resolved one way or another — clear any
+      // pending-gateway-retry marker so a later, unrelated purchase never
       // tries to reuse this order.
       sessionStorage.removeItem('ke-wipay-pending')
+      sessionStorage.removeItem('ke-fygaro-pending')
     } catch {
       // ignore
     }

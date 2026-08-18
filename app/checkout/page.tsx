@@ -127,38 +127,50 @@ function CheckoutInner() {
     const campaignRef = readCookie(CAMPAIGN_CLICK_COOKIE) || undefined
     const contact = { email: email.trim() || undefined, phone: phone.trim() || undefined, shippingAddress, billingAddress, cartId, parish, deliveryMethod }
 
-    // Card → hand off to the WiPay hosted page.
+    // Gateways (card via WiPay, Fygaro) → hand off to a hosted payment page.
+    // Each has its own create endpoint but shares the same retry-dedup
+    // pattern: a previous failed/abandoned attempt from this browser is sent
+    // back so the server updates that order instead of minting a new one.
     if (selected.gateway) {
-      // If a previous attempt from this browser failed or was abandoned,
-      // send it back so the server updates that order instead of creating
-      // a new one on every retry.
+      const pendingKey = `ke-${selected.id}-pending`
       let retry: { retryOrderNo?: string; retryToken?: string } = {}
       try {
-        const raw = sessionStorage.getItem('ke-wipay-pending')
+        const raw = sessionStorage.getItem(pendingKey)
         if (raw) {
           const { orderNo, retryToken } = JSON.parse(raw)
           if (orderNo && retryToken) retry = { retryOrderNo: orderNo, retryToken }
         }
       } catch { /* ignore */ }
 
+      const createEndpoint = selected.id === 'card' ? '/api/payments/wipay/create' : '/api/payments/fygaro/create'
       try {
-        const res = await fetch('/api/payments/wipay/create', {
+        const res = await fetch(createEndpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ customerName, ...contact, items: payloadItems, promoCode: promoCode ?? undefined, pointsRedeemed: pointsApplied || undefined, campaignRef, ...retry }),
         })
         if (res.ok) {
-          const { orderNo, retryToken, action, fields } = await res.json()
-          try { sessionStorage.setItem('ke-wipay-pending', JSON.stringify({ orderNo, retryToken })) } catch { /* ignore */ }
-          postToGateway(action, fields)
-          return // browser navigates away to WiPay
+          const data = await res.json()
+          try { sessionStorage.setItem(pendingKey, JSON.stringify({ orderNo: data.orderNo, retryToken: data.retryToken })) } catch { /* ignore */ }
+          if (selected.id === 'card') {
+            postToGateway(data.action, data.fields)
+          } else {
+            // Also remember this as the last order for /track, since Fygaro's
+            // own post-payment page won't reliably send the customer back here.
+            try {
+              sessionStorage.setItem('ke-last-order', data.orderNo)
+              sessionStorage.setItem('ke-last-method', selected.id)
+            } catch { /* ignore */ }
+            window.location.href = data.redirectUrl
+          }
+          return // browser navigates away to the gateway
         }
         const msg = await res.json().catch(() => null)
-        console.error('[checkout] wipay/create failed', res.status, msg)
-        pushToast('x', "Couldn't start card payment", msg?.error || `Server said: ${res.status}`)
+        console.error(`[checkout] ${createEndpoint} failed`, res.status, msg)
+        pushToast('x', "Couldn't start payment", msg?.error || `Server said: ${res.status}`)
       } catch (err) {
-        console.error('[checkout] wipay/create network error', err)
-        pushToast('x', "Couldn't start card payment", 'Please check your connection and try again.')
+        console.error(`[checkout] ${createEndpoint} network error`, err)
+        pushToast('x', "Couldn't start payment", 'Please check your connection and try again.')
       }
       setPlacing(false)
       return

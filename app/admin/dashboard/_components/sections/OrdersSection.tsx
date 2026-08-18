@@ -106,6 +106,7 @@ export default function OrdersSection() {
   const [stageBusy, setStageBusy] = useState(false)
   const [expandedColumn, setExpandedColumn] = useState<OrderStatus | null>(null)
   const [refundMonth, setRefundMonth] = useState<string>('ALL')
+  const [boardMonth, setBoardMonth] = useState<string>('ALL')
   const [noteDraft, setNoteDraft] = useState('')
   const [noteBusy, setNoteBusy] = useState(false)
   const [newOpen, setNewOpen] = useState(false)
@@ -194,6 +195,25 @@ export default function OrdersSection() {
     } else {
       const d = await res.json().catch(() => ({}))
       window.alert(d.error ?? 'Could not swap that item.')
+    }
+  }
+
+  const [mergeBusy, setMergeBusy] = useState(false)
+
+  const mergeOrder = async (keepId: string, mergeId: string, mergeOrderNo: string) => {
+    if (!confirm(`Combine ${mergeOrderNo} into this order? Its items move here and it's marked as merged — this can't be undone.`)) return
+    setMergeBusy(true)
+    const res = await fetch('/api/admin/orders/merge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ keepId, mergeIds: [mergeId] }),
+    })
+    setMergeBusy(false)
+    if (res.ok) {
+      refreshDetail(keepId)
+    } else {
+      const d = await res.json().catch(() => ({}))
+      window.alert(d.error ?? 'Could not merge those orders.')
     }
   }
 
@@ -360,20 +380,39 @@ export default function OrdersSection() {
   const cancelledMonths = Array.from(new Set(cancelled.map((o) => monthKey(o.createdAt)))).sort().reverse()
   const visibleCancelled = refundMonth === 'ALL' ? cancelled : cancelled.filter((o) => monthKey(o.createdAt) === refundMonth)
 
+  // Which months actually have orders — newest first, like the Finance Calendar.
+  const boardMonths = Array.from(new Set(orders.map((o) => monthKey(o.createdAt)))).sort().reverse()
+  const boardOrders = boardMonth === 'ALL' ? orders : orders.filter((o) => monthKey(o.createdAt) === boardMonth)
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: 0 }}>
           Drag a card to move it between stages. Click a card for details.
         </p>
-        <Button size="sm" variant="primary" onClick={() => setNewOpen(true)} iconRight={<Plus size={14} />}>
-          New order
-        </Button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {boardMonths.length > 0 && (
+            <select
+              value={boardMonth}
+              onChange={(e) => setBoardMonth(e.target.value)}
+              aria-label="Month"
+              style={{ height: 34, padding: '0 10px', border: '1px solid var(--color-border)', borderRadius: 9, fontSize: 12.5, background: 'var(--color-surface)', color: 'var(--color-text)' }}
+            >
+              <option value="ALL">All time ({orders.length})</option>
+              {boardMonths.map((m) => (
+                <option key={m} value={m}>{monthLabel(m)} ({orders.filter((o) => monthKey(o.createdAt) === m).length})</option>
+              ))}
+            </select>
+          )}
+          <Button size="sm" variant="primary" onClick={() => setNewOpen(true)} iconRight={<Plus size={14} />}>
+            New order
+          </Button>
+        </div>
       </div>
 
       <div className="kad-kanban" style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 14, alignItems: 'start' }}>
         {COLUMNS.map((col) => {
-          const cards = orders.filter((o) => o.status === col.id)
+          const cards = boardOrders.filter((o) => o.status === col.id)
           const visible = cards.slice(0, COLUMN_CARD_LIMIT)
           const hiddenCount = cards.length - visible.length
           return (
@@ -493,7 +532,11 @@ export default function OrdersSection() {
         </Modal>
       )}
 
-      {detail && (
+      {detail && (() => {
+        const possibleDuplicates = detail.status === 'PENDING'
+          ? orders.filter((o) => o.id !== detail.id && o.status === 'PENDING' && o.customerName.trim().toLowerCase() === detail.customerName.trim().toLowerCase())
+          : []
+        return (
         <Modal title={`Order ${detail.orderNo}`} onClose={() => setDetail(null)}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <SectionLabel>Order</SectionLabel>
@@ -510,6 +553,22 @@ export default function OrdersSection() {
               <span style={{ fontWeight: 600 }}>{CHANNEL[detail.source]?.label ?? 'Website'}</span>
             </div>
           </div>
+
+          {possibleDuplicates.length > 0 && (
+            <div style={{ background: 'var(--ke-sun-50,#fff7e6)', border: '1px solid var(--ke-sun-300,#fdb813)', borderRadius: 10, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ke-sun-700,#8a5a00)' }}>
+                Possible duplicate{possibleDuplicates.length === 1 ? '' : 's'} from {detail.customerName}
+              </span>
+              {possibleDuplicates.map((dup) => (
+                <div key={dup.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 12.5 }}>
+                  <span>{dup.orderNo} · {dup.itemCount} item{dup.itemCount === 1 ? '' : 's'} · {fmt(dup.total)}{!dup.paid && ' · Unpaid'}</span>
+                  <Button size="sm" variant="outline" onClick={() => mergeOrder(detail.id, dup.id, dup.orderNo)} disabled={mergeBusy}>
+                    {mergeBusy ? 'Merging…' : 'Combine here'}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid var(--color-border)', paddingTop: 12 }}>
             <SectionLabel>Customer</SectionLabel>
@@ -772,7 +831,8 @@ export default function OrdersSection() {
             </Button>
           </div>
         </Modal>
-      )}
+        )
+      })()}
 
       {newOpen && (
         <Modal

@@ -17,15 +17,24 @@ import crypto from 'crypto'
 
 const SECRET = process.env.NEXTAUTH_SECRET ?? 'kingston-energies-track-token-fallback'
 
-export function trackToken(orderNo: string): string {
-  return crypto.createHmac('sha256', SECRET).update(`track:${orderNo}`).digest('hex')
+/** Generic per-order, per-purpose HMAC credential — same derivation trackToken uses, scoped so a token minted for one purpose (tracking) can't be replayed for another (retrying a payment). */
+export function orderToken(scope: string, orderNo: string): string {
+  return crypto.createHmac('sha256', SECRET).update(`${scope}:${orderNo}`).digest('hex')
 }
 
-export function verifyTrackToken(orderNo: string, token: string | null | undefined): boolean {
+export function verifyOrderToken(scope: string, orderNo: string, token: string | null | undefined): boolean {
   if (!token) return false
-  const expected = trackToken(orderNo)
+  const expected = orderToken(scope, orderNo)
   const a = Buffer.from(token)
   const b = Buffer.from(expected)
   if (a.length !== b.length) return false
   return crypto.timingSafeEqual(a, b)
+}
+
+export function trackToken(orderNo: string): string {
+  return orderToken('track', orderNo)
+}
+
+export function verifyTrackToken(orderNo: string, token: string | null | undefined): boolean {
+  return verifyOrderToken('track', orderNo, token)
 }

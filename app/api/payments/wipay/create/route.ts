@@ -13,6 +13,7 @@ import { sendNewOrderAlert } from '@/lib/email'
 import { resolvePointsRedemption } from '@/lib/pointsRedemption'
 import { validateCartPrices } from '@/lib/cartValidation'
 import { withOrderNoRetry } from '@/lib/orderNo'
+import { orderToken, verifyOrderToken } from '@/lib/trackToken'
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
@@ -29,6 +30,12 @@ const bodySchema = z.object({
   pointsRedeemed: z.number().int().min(0).max(1_000_000).optional(),
   campaignRef: z.string().max(60).optional(),
   items: z.array(z.object({ name: z.string().min(1).max(160), price: z.number().min(0), qty: z.number().int().min(1) })).min(1),
+  // If the customer's card attempt failed or they never completed WiPay and
+  // are trying again, the checkout page sends back the order it created last
+  // time (proven with this signed token) so we update it in place instead of
+  // leaving that one stranded and minting a duplicate.
+  retryOrderNo: z.string().max(40).optional(),
+  retryToken: z.string().max(200).optional(),
 })
 
 /**
@@ -48,7 +55,7 @@ export async function POST(request: Request) {
 
   const session = await getServerSession(authOptions)
   const userId = session?.user?.id ?? null
-  const { customerName, email, phone, shippingAddress, billingAddress, cartId, parish, deliveryMethod, promoCode, pointsRedeemed, campaignRef, items } = parsed.data
+  const { customerName, email, phone, shippingAddress, billingAddress, cartId, parish, deliveryMethod, promoCode, pointsRedeemed, campaignRef, items, retryOrderNo, retryToken } = parsed.data
   const campaignId = campaignRef ? await prisma.campaign.findUnique({ where: { id: campaignRef }, select: { id: true } }).then((c) => c?.id ?? null) : null
 
   // Item prices come from the request body — confirm every one is a real
@@ -79,28 +86,60 @@ export async function POST(request: Request) {
   ]
 
   let orderNo: string
+  let isRetry = false
   try {
-    const created = await withOrderNoRetry((no) =>
-      prisma.order.create({
-        data: {
-          orderNo: no,
-          userId: session?.user?.id ?? null,
-          customerName,
-          email: session?.user?.email ?? email ?? null,
-          phone: phone ?? null,
-          shippingAddress: shippingAddress ?? null,
-          billingAddress: billingAddress ?? null,
-          status: 'PENDING',
-          paymentMethod: 'card',
-          paid: false,
-          promoCode: promo?.valid ? promo.code ?? null : null,
-          campaignId,
-          total,
-          items: { create: recordedItems.map((i) => ({ name: i.name, qty: i.qty, price: i.price })) },
-        },
-      })
-    )
-    orderNo = created.orderNo
+    // A retry of a failed/abandoned card attempt: reuse that order (refreshed
+    // to the current cart) instead of minting a second one. The token proves
+    // this browser actually got that order number from us — a guessed order
+    // number alone can't hijack someone else's pending order.
+    const reusable =
+      retryOrderNo && verifyOrderToken('wipay-retry', retryOrderNo, retryToken)
+        ? await prisma.order.findUnique({ where: { orderNo: retryOrderNo } })
+        : null
+
+    if (reusable && reusable.paymentMethod === 'card' && !reusable.paid && reusable.status === 'PENDING') {
+      await prisma.$transaction([
+        prisma.orderItem.deleteMany({ where: { orderId: reusable.id } }),
+        prisma.order.update({
+          where: { id: reusable.id },
+          data: {
+            customerName,
+            email: session?.user?.email ?? email ?? null,
+            phone: phone ?? null,
+            shippingAddress: shippingAddress ?? null,
+            billingAddress: billingAddress ?? null,
+            promoCode: promo?.valid ? promo.code ?? null : null,
+            campaignId,
+            total,
+            items: { create: recordedItems.map((i) => ({ name: i.name, qty: i.qty, price: i.price })) },
+          },
+        }),
+      ])
+      orderNo = reusable.orderNo
+      isRetry = true
+    } else {
+      const created = await withOrderNoRetry((no) =>
+        prisma.order.create({
+          data: {
+            orderNo: no,
+            userId: session?.user?.id ?? null,
+            customerName,
+            email: session?.user?.email ?? email ?? null,
+            phone: phone ?? null,
+            shippingAddress: shippingAddress ?? null,
+            billingAddress: billingAddress ?? null,
+            status: 'PENDING',
+            paymentMethod: 'card',
+            paid: false,
+            promoCode: promo?.valid ? promo.code ?? null : null,
+            campaignId,
+            total,
+            items: { create: recordedItems.map((i) => ({ name: i.name, qty: i.qty, price: i.price })) },
+          },
+        })
+      )
+      orderNo = created.orderNo
+    }
   } catch (err) {
     console.error('[wipay/create] failed to create order:', err)
     return NextResponse.json({ error: 'Could not start checkout. Please try again.' }, { status: 500 })
@@ -111,8 +150,11 @@ export async function POST(request: Request) {
     await prisma.cart.updateMany({ where: { id: cartId }, data: { status: 'CONVERTED' } }).catch(() => {})
   }
 
-  // Alert every admin so orders needing manual follow-up get seen promptly.
-  void sendNewOrderAlert({ orderNo, customerName, total, paymentMethod: 'card', items: recordedItems })
+  // Alert every admin so orders needing manual follow-up get seen promptly —
+  // skip on a retry, since the first attempt already raised this order.
+  if (!isRetry) {
+    void sendNewOrderAlert({ orderNo, customerName, total, paymentMethod: 'card', items: recordedItems })
+  }
 
   const req = buildWiPayRequest({
     orderNo,
@@ -122,5 +164,5 @@ export async function POST(request: Request) {
     email: email ?? session?.user?.email ?? undefined,
   })
 
-  return NextResponse.json({ orderNo, action: req.action, fields: req.fields })
+  return NextResponse.json({ orderNo, retryToken: orderToken('wipay-retry', orderNo), action: req.action, fields: req.fields })
 }

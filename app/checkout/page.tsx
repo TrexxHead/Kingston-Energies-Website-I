@@ -129,14 +129,27 @@ function CheckoutInner() {
 
     // Card → hand off to the WiPay hosted page.
     if (selected.gateway) {
+      // If a previous attempt from this browser failed or was abandoned,
+      // send it back so the server updates that order instead of creating
+      // a new one on every retry.
+      let retry: { retryOrderNo?: string; retryToken?: string } = {}
+      try {
+        const raw = sessionStorage.getItem('ke-wipay-pending')
+        if (raw) {
+          const { orderNo, retryToken } = JSON.parse(raw)
+          if (orderNo && retryToken) retry = { retryOrderNo: orderNo, retryToken }
+        }
+      } catch { /* ignore */ }
+
       try {
         const res = await fetch('/api/payments/wipay/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ customerName, ...contact, items: payloadItems, promoCode: promoCode ?? undefined, pointsRedeemed: pointsApplied || undefined, campaignRef }),
+          body: JSON.stringify({ customerName, ...contact, items: payloadItems, promoCode: promoCode ?? undefined, pointsRedeemed: pointsApplied || undefined, campaignRef, ...retry }),
         })
         if (res.ok) {
-          const { action, fields } = await res.json()
+          const { orderNo, retryToken, action, fields } = await res.json()
+          try { sessionStorage.setItem('ke-wipay-pending', JSON.stringify({ orderNo, retryToken })) } catch { /* ignore */ }
           postToGateway(action, fields)
           return // browser navigates away to WiPay
         }

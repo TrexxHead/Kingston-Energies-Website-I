@@ -282,11 +282,13 @@ INTEGRATION_API_KEY="<random 32+ char secret for the WhatsApp/Instagram n8n bots
 WIPAY_ACCOUNT_NUMBER="<your WiPay merchant account number — only for card payments>"
 WIPAY_API_KEY="<your WiPay API key — used to verify payment callbacks>"
 WIPAY_ENVIRONMENT="sandbox"
+FYGARO_LINK_URL="<the base URL of a Fygaro Link you create in your dashboard>"
+FYGARO_WEBHOOK_SECRET="<the signing secret shown when you add a webhook endpoint>"
 ```
 
 ### Payments
 
-The storefront supports five methods, all managed from **Admin → Finance →
+The storefront supports six methods, all managed from **Admin → Finance →
 Payment methods** (toggle each on, fill in your own details):
 
 | Method | Setup | Cost |
@@ -296,6 +298,7 @@ Payment methods** (toggle each on, fill in your own details):
 | **PayPal** | Enter your PayPal.me link / email | Free |
 | **Cash on delivery** | On by default | Free |
 | **Card (Visa/MC)** | Needs a **WiPay** merchant account + the `WIPAY_*` env vars above | Per-transaction fee |
+| **Fygaro** | Needs a **Fygaro** merchant account + the `FYGARO_*` env vars above | Per-transaction fee |
 
 For the four direct methods, the checkout shows the customer how to pay and asks
 them to quote their **order number** as the reference; you confirm the money and
@@ -313,6 +316,27 @@ and `WIPAY_API_KEY` are set *and* you've switched "Card" on in the admin panel.
    (Field names / the callback hash follow WiPay's published "Request A
    Transaction" docs — confirm them against your merchant dashboard, and test in
    sandbox first.)
+
+**Fygaro:** appears at checkout once `FYGARO_LINK_URL` and `FYGARO_WEBHOOK_SECRET`
+are set *and* you've switched "Fygaro" on in the admin panel.
+1. Sign up at [fygaro.com](https://www.fygaro.com) and create a **Fygaro Link**
+   (a payment button) for Kingston Energies — copy its URL into `FYGARO_LINK_URL`.
+2. In your Fygaro dashboard, add a webhook pointed at
+   `https://<your-domain>/api/payments/fygaro/webhook`, then copy the signing
+   secret it shows you into `FYGARO_WEBHOOK_SECRET`. This is what proves a
+   "payment succeeded" notification genuinely came from Fygaro.
+3. Redeploy. The customer is sent to your Fygaro Link with the order's amount
+   pre-filled; Fygaro confirms payment to the webhook above (not by redirecting
+   the customer back to this site), which marks the order **paid** and emails
+   the customer their confirmation.
+4. **Send one real test payment before going live.** The webhook's signature
+   check is implemented exactly to Fygaro's published scheme, but the exact
+   JSON field names Fygaro sends weren't confirmed against a live payload when
+   this was built — check the server logs after a test payment (they print the
+   raw payload if it doesn't parse as expected) and adjust the field names in
+   `lib/fygaro.ts` (`parseFygaroWebhookEvent`) if needed. Until then, a Fygaro
+   order simply stays "Unpaid" and you mark it paid by hand, same as the direct
+   methods — nothing gets marked paid incorrectly either way.
 
 ### WhatsApp & Instagram automation (n8n)
 

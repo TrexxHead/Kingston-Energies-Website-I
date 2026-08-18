@@ -4,7 +4,7 @@ import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/authOptions'
 import { rateLimit, clientIp } from '@/lib/rateLimit'
-import { buildWiPayRequest, wipayConfigured } from '@/lib/wipay'
+import { buildFygaroRedirectUrl, fygaroConfigured } from '@/lib/fygaro'
 import { bulkDiscountForLines, firstOrderDiscount } from '@/lib/pricing'
 import { validatePromo } from '@/lib/promo'
 import { isFirstTimeCustomer } from '@/lib/customerHistory'
@@ -14,8 +14,6 @@ import { resolvePointsRedemption } from '@/lib/pointsRedemption'
 import { validateCartPrices } from '@/lib/cartValidation'
 import { withOrderNoRetry } from '@/lib/orderNo'
 import { orderToken, verifyOrderToken } from '@/lib/trackToken'
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
 const bodySchema = z.object({
   customerName: z.string().min(1).max(120),
@@ -30,24 +28,22 @@ const bodySchema = z.object({
   pointsRedeemed: z.number().int().min(0).max(1_000_000).optional(),
   campaignRef: z.string().max(60).optional(),
   items: z.array(z.object({ name: z.string().min(1).max(160), price: z.number().min(0), qty: z.number().int().min(1) })).min(1),
-  // If the customer's card attempt failed or they never completed WiPay and
-  // are trying again, the checkout page sends back the order it created last
-  // time (proven with this signed token) so we update it in place instead of
-  // leaving that one stranded and minting a duplicate.
+  // A retry of a failed/abandoned attempt — see wipay/create for the same pattern.
   retryOrderNo: z.string().max(40).optional(),
   retryToken: z.string().max(200).optional(),
 })
 
 /**
- * Start a card payment: create the order (unpaid), then return the WiPay hosted
- * form fields for the browser to POST to. The order is reconciled/marked paid
- * later by the WiPay callback.
+ * Start a Fygaro payment: create the order (unpaid), then return the hosted
+ * Fygaro Link the browser should go to. Unlike WiPay, Fygaro's redirect-back
+ * behavior isn't confirmed (see lib/fygaro.ts), so the order is reconciled
+ * purely by the webhook, not by anything in the URL the customer returns on.
  */
 export async function POST(request: Request) {
-  if (!wipayConfigured()) {
-    return NextResponse.json({ error: 'Card payments are not available right now.' }, { status: 503 })
+  if (!fygaroConfigured()) {
+    return NextResponse.json({ error: 'Fygaro is not available right now.' }, { status: 503 })
   }
-  const rl = await rateLimit(`wipay:${clientIp(request)}`, 10, 60_000)
+  const rl = await rateLimit(`fygaro:${clientIp(request)}`, 10, 60_000)
   if (!rl.ok) return NextResponse.json({ error: 'Too many requests.' }, { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } })
 
   const parsed = bodySchema.safeParse(await request.json().catch(() => null))
@@ -58,8 +54,6 @@ export async function POST(request: Request) {
   const { customerName, email, phone, shippingAddress, billingAddress, cartId, parish, deliveryMethod, promoCode, pointsRedeemed, campaignRef, items, retryOrderNo, retryToken } = parsed.data
   const campaignId = campaignRef ? await prisma.campaign.findUnique({ where: { id: campaignRef }, select: { id: true } }).then((c) => c?.id ?? null) : null
 
-  // Item prices come from the request body — confirm every one is a real
-  // product at its real current price before a card gets charged for it.
   const priceCheck = await validateCartPrices(items)
   if (!priceCheck.ok) {
     return NextResponse.json({ error: priceCheck.error }, { status: 400 })
@@ -68,14 +62,9 @@ export async function POST(request: Request) {
   const gross = items.reduce((sum, i) => sum + i.price * i.qty, 0)
   const bulkDiscount = bulkDiscountForLines(items)
   const promo = promoCode ? await validatePromo(promoCode, gross) : null
-  // Rewards points redeemed — re-validated against the customer's real balance server-side.
-  // Only actually deducted once the WiPay callback confirms payment cleared.
   const { pointsUsed, discount: pointsDiscount } = await resolvePointsRedemption(userId, pointsRedeemed ?? 0)
-  // A genuine first order gets 10% off one unit of the first item — never a
-  // sitewide code, never a cut of the whole cart.
   const firstTime = await isFirstTimeCustomer(userId, session?.user?.email ?? email ?? null)
   const firstOrderDisc = firstOrderDiscount(items, firstTime)
-  // Delivery fee is recomputed server-side from the rate sheet — never trust a client-sent amount.
   const fee = deliveryMethod && parish ? deliveryFee(deliveryMethod, parish) : 0
   const total = Math.max(0, gross - bulkDiscount - (promo?.valid ? (promo.discount ?? 0) : 0) - pointsDiscount - firstOrderDisc) + fee
   const recordedItems = [
@@ -88,16 +77,12 @@ export async function POST(request: Request) {
   let orderNo: string
   let isRetry = false
   try {
-    // A retry of a failed/abandoned card attempt: reuse that order (refreshed
-    // to the current cart) instead of minting a second one. The token proves
-    // this browser actually got that order number from us — a guessed order
-    // number alone can't hijack someone else's pending order.
     const reusable =
-      retryOrderNo && verifyOrderToken('wipay-retry', retryOrderNo, retryToken)
+      retryOrderNo && verifyOrderToken('fygaro-retry', retryOrderNo, retryToken)
         ? await prisma.order.findUnique({ where: { orderNo: retryOrderNo } })
         : null
 
-    if (reusable && reusable.paymentMethod === 'card' && !reusable.paid && reusable.status === 'PENDING') {
+    if (reusable && reusable.paymentMethod === 'fygaro' && !reusable.paid && reusable.status === 'PENDING') {
       await prisma.$transaction([
         prisma.orderItem.deleteMany({ where: { orderId: reusable.id } }),
         prisma.order.update({
@@ -129,7 +114,7 @@ export async function POST(request: Request) {
             shippingAddress: shippingAddress ?? null,
             billingAddress: billingAddress ?? null,
             status: 'PENDING',
-            paymentMethod: 'card',
+            paymentMethod: 'fygaro',
             paid: false,
             promoCode: promo?.valid ? promo.code ?? null : null,
             campaignId,
@@ -141,28 +126,18 @@ export async function POST(request: Request) {
       orderNo = created.orderNo
     }
   } catch (err) {
-    console.error('[wipay/create] failed to create order:', err)
+    console.error('[fygaro/create] failed to create order:', err)
     return NextResponse.json({ error: 'Could not start checkout. Please try again.' }, { status: 500 })
   }
 
-  // Reaching the payment step counts as a conversion for cart analytics.
   if (cartId) {
     await prisma.cart.updateMany({ where: { id: cartId }, data: { status: 'CONVERTED' } }).catch(() => {})
   }
 
-  // Alert every admin so orders needing manual follow-up get seen promptly —
-  // skip on a retry, since the first attempt already raised this order.
   if (!isRetry) {
-    void sendNewOrderAlert({ orderNo, customerName, total, paymentMethod: 'card', items: recordedItems })
+    void sendNewOrderAlert({ orderNo, customerName, total, paymentMethod: 'fygaro', items: recordedItems })
   }
 
-  const req = buildWiPayRequest({
-    orderNo,
-    total,
-    responseUrl: `${siteUrl}/api/payments/wipay/callback`,
-    customerName,
-    email: email ?? session?.user?.email ?? undefined,
-  })
-
-  return NextResponse.json({ orderNo, retryToken: orderToken('wipay-retry', orderNo), action: req.action, fields: req.fields })
+  const redirectUrl = buildFygaroRedirectUrl({ orderNo, total })
+  return NextResponse.json({ orderNo, retryToken: orderToken('fygaro-retry', orderNo), redirectUrl })
 }

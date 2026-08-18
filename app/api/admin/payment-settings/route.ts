@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { guardAdmin } from '@/lib/requireAdmin'
 import { getPaymentConfig, savePaymentConfig, isWiPayConfigured, type PaymentConfig } from '@/lib/payments'
+import { fygaroConfigured } from '@/lib/fygaro'
 
 const configSchema = z.object({
   bank: z.object({
@@ -27,6 +28,7 @@ const configSchema = z.object({
   }),
   cod: z.object({ enabled: z.boolean(), instructions: z.string().max(500) }),
   card: z.object({ enabled: z.boolean() }),
+  fygaro: z.object({ enabled: z.boolean() }),
 })
 
 export async function GET() {
@@ -34,8 +36,8 @@ export async function GET() {
   if (denied) return denied
 
   const config = await getPaymentConfig()
-  // Let the UI explain why "card" won't appear at checkout until WiPay is set.
-  return NextResponse.json({ config, wipayConfigured: isWiPayConfigured() })
+  // Let the UI explain why "card"/"fygaro" won't appear at checkout until connected.
+  return NextResponse.json({ config, wipayConfigured: isWiPayConfigured(), fygaroConfigured: fygaroConfigured() })
 }
 
 export async function PUT(request: Request) {

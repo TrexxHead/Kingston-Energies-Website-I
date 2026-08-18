@@ -12,17 +12,20 @@ interface PaymentConfig {
   paypal: { enabled: boolean; link: string; email: string; instructions: string }
   cod: { enabled: boolean; instructions: string }
   card: { enabled: boolean }
+  fygaro: { enabled: boolean }
 }
 
 /**
  * Admin editor for the storefront's payment methods. Toggle each method on and
  * fill in your own details — the checkout shows exactly these to customers, who
- * pay directly and quote their order number. "Card" uses the WiPay gateway and
- * only appears at checkout once WiPay's keys are set in the environment.
+ * pay directly and quote their order number. "Card" (WiPay) and "Fygaro" are
+ * real gateways and only appear at checkout once each one's keys are set in
+ * the environment.
  */
 export default function PaymentSettingsCard() {
   const [cfg, setCfg] = useState<PaymentConfig | null>(null)
   const [wipayConfigured, setWipayConfigured] = useState(false)
+  const [fygaroConfigured, setFygaroConfigured] = useState(false)
   const [busy, setBusy] = useState(false)
   const [saved, setSaved] = useState(false)
   const [open, setOpen] = useState(false) // collapsed by default — click to expand
@@ -33,6 +36,7 @@ export default function PaymentSettingsCard() {
       const data = await res.json()
       setCfg(data.config)
       setWipayConfigured(Boolean(data.wipayConfigured))
+      setFygaroConfigured(Boolean(data.fygaroConfigured))
     }
   }, [])
 
@@ -80,7 +84,7 @@ export default function PaymentSettingsCard() {
         <Wallet size={17} color="var(--ke-green-600)" />
         <h3 style={{ ...h3Style, margin: 0 }}>Payment methods</h3>
         <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--color-text-muted)', fontSize: 12.5 }}>
-          {[cfg.bank, cfg.lynk, cfg.paypal, cfg.cod, cfg.card].filter((m) => m.enabled).length} active
+          {[cfg.bank, cfg.lynk, cfg.paypal, cfg.cod, cfg.card, cfg.fygaro].filter((m) => m.enabled).length} active
           {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         </span>
       </button>
@@ -136,6 +140,20 @@ export default function PaymentSettingsCard() {
             <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: 0 }}>
               Card payments stay hidden until WiPay is connected (set WIPAY_ACCOUNT_NUMBER &amp; WIPAY_API_KEY, see DEPLOY.md).
               You can switch this on now; it activates automatically once WiPay is set up.
+            </p>
+          )}
+        </MethodBlock>
+
+        {/* Fygaro */}
+        <MethodBlock title="Fygaro" enabled={cfg.fygaro.enabled} onToggle={(v) => set('fygaro', { enabled: v })}>
+          {fygaroConfigured ? (
+            <p style={{ fontSize: 12.5, color: 'var(--ke-green-700)', margin: 0 }}>Fygaro is connected. It will appear at checkout when this is on.</p>
+          ) : (
+            <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: 0 }}>
+              Stays hidden until Fygaro is connected (set FYGARO_LINK_URL &amp; FYGARO_WEBHOOK_SECRET, see DEPLOY.md).
+              In your Fygaro dashboard, point a webhook at{' '}
+              <code style={{ fontSize: 11.5 }}>/api/payments/fygaro/webhook</code> so payments confirm automatically.
+              You can switch this on now; it activates automatically once Fygaro is set up.
             </p>
           )}
         </MethodBlock>

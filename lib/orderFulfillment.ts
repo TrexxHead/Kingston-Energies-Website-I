@@ -83,3 +83,47 @@ export async function releaseOrderItems(tx: Tx, items: { orderItemId: string }[]
     await releaseSerialsForOrderItem(tx, item.orderItemId)
   }
 }
+
+/**
+ * After moving another order's lines onto this one (a merge), the same line
+ * can now appear twice — two rows both named "Braided USB-C Cable" at the
+ * same price, say. Collapses each such group into one row rather than
+ * leaving the order looking like it has double the items.
+ *
+ * A product-backed line (productId set) is summed by quantity, and its
+ * duplicate's claimed serials are reassigned onto the surviving row so
+ * nothing gets orphaned. A one-time line (delivery fee, first-order
+ * discount, points redemption — none of which carry a productId) is
+ * deduplicated instead of summed: two genuinely identical orders each
+ * apply the same one-time adjustment once, not twice, so only one instance
+ * survives. Lines that don't share both name and price are left alone —
+ * that's a real difference (a price change between the two orders, say),
+ * not a duplicate.
+ */
+export async function consolidateOrderItems(tx: Tx, orderId: string): Promise<void> {
+  const items = await tx.orderItem.findMany({ where: { orderId } })
+  const groups = new Map<string, typeof items>()
+  for (const item of items) {
+    const key = `${item.name.trim().toLowerCase()}|${item.price}`
+    const group = groups.get(key)
+    if (group) group.push(item)
+    else groups.set(key, [item])
+  }
+
+  for (const group of groups.values()) {
+    if (group.length < 2) continue
+    const [survivor, ...dupes] = group
+    if (survivor.productId) {
+      const totalQty = group.reduce((sum, i) => sum + i.qty, 0)
+      await tx.orderItem.update({ where: { id: survivor.id }, data: { qty: totalQty } })
+      for (const dupe of dupes) {
+        await tx.productUnit.updateMany({ where: { orderItemId: dupe.id }, data: { orderItemId: survivor.id } })
+        await tx.orderItem.delete({ where: { id: dupe.id } })
+      }
+    } else {
+      for (const dupe of dupes) {
+        await tx.orderItem.delete({ where: { id: dupe.id } })
+      }
+    }
+  }
+}

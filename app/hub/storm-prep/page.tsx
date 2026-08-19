@@ -2,13 +2,25 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { CloudLightning, ExternalLink, Gauge, BatteryCharging, ClipboardList, PowerOff } from 'lucide-react'
+import { CloudLightning, ExternalLink, Gauge, BatteryCharging, ClipboardList, PowerOff, ListChecks } from 'lucide-react'
 import Topbar from '../_components/Topbar'
 import { wizardCard } from '../energy-checkup/_components/shared'
 import StormPrepSubNav from './_components/SubNav'
 import OfflineCard from './_components/OfflineCard'
 import { CATEGORY_LABEL, loadChecked, loadCachedContent, syncContent, type ChecklistCategory, type StormPrepContent } from './_lib/checklist'
 import { computeReserve, fetchDevices, type DeviceSignal } from './_lib/reserve'
+import { buildNextActions } from './_lib/accountability'
+
+function hasLocalStorageContent(key: string): boolean {
+  try {
+    const raw = localStorage.getItem(key)
+    if (!raw) return false
+    const parsed = JSON.parse(raw)
+    return Object.values(parsed).some((v) => typeof v === 'string' && v.trim().length > 0)
+  } catch {
+    return false
+  }
+}
 
 interface CheckupSignal {
   id: string
@@ -26,9 +38,13 @@ export default function StormPrepDashboard() {
   const [checkupLoaded, setCheckupLoaded] = useState(false)
   const [devices, setDevices] = useState<DeviceSignal[]>([])
   const [devicesLoaded, setDevicesLoaded] = useState(false)
+  const [familyPlanSaved, setFamilyPlanSaved] = useState(false)
+  const [resourcesTracked, setResourcesTracked] = useState(false)
 
   useEffect(() => {
     setChecked(loadChecked())
+    setFamilyPlanSaved(hasLocalStorageContent('ke-storm-family-plan'))
+    setResourcesTracked(hasLocalStorageContent('ke-storm-my-resources'))
     setLoaded(true)
     syncContent().then((fresh) => {
       if (fresh) setContent(fresh)
@@ -72,6 +88,16 @@ export default function StormPrepDashboard() {
   const readinessScore = signalsLoaded ? Math.round((pct + checkupScore + backupScore) / 3) : null
 
   const { reserveDevices, totalReserveWh, unmeasuredBackupDevices } = computeReserve(devices)
+
+  const nextActions = signalsLoaded
+    ? buildNextActions({
+        checkupDone: Boolean(checkup),
+        hasBackupDevice: hasBackupDevice,
+        checklistPct: pct,
+        familyPlanSaved,
+        resourcesTracked,
+      })
+    : []
 
   return (
     <>
@@ -119,6 +145,28 @@ export default function StormPrepDashboard() {
           <StormPrepSubNav />
 
           <OfflineCard />
+
+          {signalsLoaded && nextActions.length > 0 && (
+            <div style={{ ...wizardCard, marginBottom: 18 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <ListChecks size={16} color="var(--ke-green-600)" />
+                <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 17, margin: 0 }}>Do this next</h3>
+              </div>
+              <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: '6px 0 16px' }}>
+                Ranked by what actually unlocks the rest of your prep — based only on signals we have real data for.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {nextActions.map((action, i) => (
+                  <Link key={action.id} href={action.href} style={{ textDecoration: 'none', color: 'inherit' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, border: '1px solid var(--color-border)', borderRadius: 12, padding: '12px 14px' }}>
+                      <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 13, color: 'var(--ke-green-600)', flexShrink: 0 }}>{i + 1}</span>
+                      <span style={{ fontSize: 13, lineHeight: 1.5 }}>{action.text}</span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div style={{ ...wizardCard, marginBottom: 18 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>

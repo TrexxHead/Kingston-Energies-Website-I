@@ -401,6 +401,17 @@ export default function StormPrepDashboard() {
               )}
             </div>
           )}
+
+          {content.educationalTips.length > 0 && (
+            <div style={{ ...wizardCard, marginTop: 18 }}>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, margin: '0 0 12px' }}>Did you know?</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {content.educationalTips.map((tip, i) => (
+                  <p key={i} style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: 0, lineHeight: 1.6 }}>{tip}</p>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </>

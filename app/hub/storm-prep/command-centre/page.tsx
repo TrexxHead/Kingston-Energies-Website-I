@@ -5,8 +5,7 @@ import Link from 'next/link'
 import { Phone, BatteryCharging, ClipboardList, PowerOff, Power, MapPin } from 'lucide-react'
 import Topbar from '../../_components/Topbar'
 import { computeReserve, fetchDevices, type DeviceSignal } from '../_lib/reserve'
-import { loadChecked, CHECKLIST } from '../_lib/checklist'
-import { DIRECTORY } from '@/lib/stormPrepDirectory'
+import { loadChecked, CHECKLIST, loadCachedContent } from '../_lib/checklist'
 
 const OUTAGE_KEY = 'ke-storm-outage'
 
@@ -29,8 +28,6 @@ function formatDuration(ms: number): string {
   if (hours === 0) return `${minutes}m`
   return `${hours}h ${minutes}m`
 }
-
-const EMERGENCY_NUMBERS = DIRECTORY.filter((d) => d.phone)
 
 /**
  * Storm Command Centre — the one screen meant to be used DURING an event:
@@ -71,6 +68,7 @@ export default function CommandCentrePage() {
   }
 
   const { totalReserveWh } = computeReserve(devices)
+  const EMERGENCY_NUMBERS = loadCachedContent().directory.filter((d) => d.phone)
   const durationMs = outage.startedAt ? now - new Date(outage.startedAt).getTime() : 0
   const remainingChecklist = CHECKLIST.length - checkedCount
 

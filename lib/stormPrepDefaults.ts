@@ -6,6 +6,10 @@
 // site's behavior never regresses just because nobody has opened the admin
 // editor yet.
 
+import { DIRECTORY, type DirectoryEntry } from './stormPrepDirectory'
+
+export type { DirectoryEntry }
+
 export type ChecklistCategory = 'power' | 'light' | 'food' | 'records'
 
 /**
@@ -58,9 +62,21 @@ export const DEFAULT_KIT_PRODUCT_IDS = ['pb10', 'st300', 'chcab']
 export interface StormPrepContent {
   checklist: StormChecklistItem[]
   kitProductIds: string[]
+  directory: DirectoryEntry[]
+  educationalTips: string[]
 }
+
+// Generic, non-agency-attributed prep tips — safe to admin-edit freely,
+// unlike the Resource Directory's agency contact info.
+export const DEFAULT_EDUCATIONAL_TIPS: string[] = [
+  'A power station’s advertised capacity is never what you can actually draw — real batteries reserve some charge and lose more converting DC to AC.',
+  'Fridges and freezers hold temperature far longer than most people expect if you resist opening the door.',
+  'A motor (fridge, AC, water pump) draws far more power for a moment when it switches on than it does while running.',
+]
 
 export const DEFAULT_STORM_PREP_CONTENT: StormPrepContent = {
   checklist: DEFAULT_CHECKLIST,
   kitProductIds: DEFAULT_KIT_PRODUCT_IDS,
+  directory: DIRECTORY,
+  educationalTips: DEFAULT_EDUCATIONAL_TIPS,
 }

@@ -20,6 +20,8 @@ export async function getStormPrepContent(): Promise<StormPrepContent> {
     return {
       checklist: parsed.checklist?.length ? parsed.checklist : DEFAULT_STORM_PREP_CONTENT.checklist,
       kitProductIds: parsed.kitProductIds?.length ? parsed.kitProductIds : DEFAULT_STORM_PREP_CONTENT.kitProductIds,
+      directory: parsed.directory?.length ? parsed.directory : DEFAULT_STORM_PREP_CONTENT.directory,
+      educationalTips: parsed.educationalTips?.length ? parsed.educationalTips : DEFAULT_STORM_PREP_CONTENT.educationalTips,
     }
   } catch {
     return DEFAULT_STORM_PREP_CONTENT

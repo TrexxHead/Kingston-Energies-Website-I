@@ -1,12 +1,21 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { Phone, ExternalLink, BookOpen } from 'lucide-react'
 import Topbar from '../../_components/Topbar'
 import { wizardCard } from '../../energy-checkup/_components/shared'
 import StormPrepSubNav from '../_components/SubNav'
-import { DIRECTORY } from '@/lib/stormPrepDirectory'
+import { loadCachedContent, syncContent, type StormPrepContent } from '../_lib/checklist'
 
 export default function DirectoryPage() {
+  const [content, setContent] = useState<StormPrepContent>(() => loadCachedContent())
+
+  useEffect(() => {
+    syncContent().then((fresh) => {
+      if (fresh) setContent(fresh)
+    })
+  }, [])
+
   return (
     <>
       <Topbar title="Storm prep" subtitle="Resource & help directory" />
@@ -26,7 +35,7 @@ export default function DirectoryPage() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {DIRECTORY.map((entry) => (
+            {content.directory.map((entry) => (
               <div key={entry.name} style={wizardCard}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
                   <div style={{ flex: 1, minWidth: 220 }}>

@@ -22,6 +22,7 @@ import {
   Menu,
   X,
   Gauge,
+  CloudLightning,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react'
@@ -40,6 +41,7 @@ const ICONS: Record<string, typeof LayoutDashboard> = {
   'life-buoy': LifeBuoy,
   settings: Settings,
   gauge: Gauge,
+  'cloud-lightning': CloudLightning,
 }
 
 const COLLAPSE_KEY = 'ke-hub-sidebar-collapsed'

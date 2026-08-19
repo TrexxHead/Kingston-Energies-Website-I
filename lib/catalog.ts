@@ -222,6 +222,20 @@ export const CATALOG: Product[] = [
 ]
 
 /**
+ * Usable energy capacity in watt-hours, derived only from a real spec
+ * already on the product — never invented. A power bank's `cap` is stated
+ * in mAh at the standard 3.7V li-ion cell voltage, so Wh = mAh × 3.7 / 1000.
+ * Returns null when there's nothing to derive it from (e.g. the power
+ * station's `cap` isn't a capacity spec at all — see its catalog entry) —
+ * callers must treat null as "unknown," not as zero.
+ */
+export function capacityWh(product: Pick<Product, 'cat' | 'cap'>): number | null {
+  if (product.cat !== 'powerbanks' || !product.cap) return null
+  const mAh = Number(product.cap.replace(/[^\d.]/g, ''))
+  return Number.isFinite(mAh) && mAh > 0 ? (mAh * 3.7) / 1000 : null
+}
+
+/**
  * A catalog product merged with live operational data from the database
  * (price + stock). `stock: null` means the product isn't tracked in the DB yet.
  */

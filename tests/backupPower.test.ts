@@ -5,6 +5,7 @@ import {
   usableAcWh,
   runtimeHours,
   checkSurgeCapacity,
+  checkContinuousLoad,
   DEFAULT_USABLE_BATTERY_FRACTION,
   DEFAULT_INVERTER_EFFICIENCY,
 } from '@/lib/energyCheckup/backupPower'
@@ -56,14 +57,32 @@ describe('backupPower', () => {
     })
   })
 
-  describe('catalog integration — never invents a capacity', () => {
-    it('derives a power bank Wh figure from its real mAh spec', () => {
-      const wh = capacityWh({ cat: 'powerbanks', cap: '10,400mAh' })
-      expect(wh).toBeCloseTo((10400 * 3.7) / 1000)
+  describe('checkContinuousLoad', () => {
+    it('is unknown when the source has no rated output or the load is zero', () => {
+      expect(checkContinuousLoad(null, 60)).toBe('unknown')
+      expect(checkContinuousLoad(87, 0)).toBe('unknown')
     })
 
-    it('returns null (not a fabricated number) for the power station with no listed capacity', () => {
-      expect(capacityWh({ cat: 'stations', cap: undefined })).toBeNull()
+    it('is ok with real headroom, tight right at the edge, insufficient above rated output', () => {
+      expect(checkContinuousLoad(87, 60)).toBe('ok') // 1.45x
+      expect(checkContinuousLoad(87, 80)).toBe('tight') // ~1.09x
+      expect(checkContinuousLoad(87, 120)).toBe('insufficient')
+    })
+  })
+
+  describe('catalog integration — never invents a capacity', () => {
+    it('derives a Wh figure from any product\'s real mAh spec, regardless of category', () => {
+      expect(capacityWh({ cap: '10,400mAh' })).toBeCloseTo((10400 * 3.7) / 1000)
+      // The Anker Power Station's real spec (60,000mAh) — same formula, no special-casing by category.
+      expect(capacityWh({ cap: '60,000mAh' })).toBeCloseTo((60000 * 3.7) / 1000)
+    })
+
+    it('never misreads a non-capacity spec (e.g. a solar panel\'s wattage rating) as mAh', () => {
+      expect(capacityWh({ cap: '100W' })).toBeNull()
+    })
+
+    it('returns null (not a fabricated number) for a product with no capacity spec at all', () => {
+      expect(capacityWh({ cap: undefined })).toBeNull()
     })
   })
 })

@@ -28,6 +28,8 @@ export interface Product {
   speed?: string
   best?: string
   warranty?: string
+  /** Rated max continuous output in watts, from the manufacturer spec — never a surge/startup rating. */
+  outputWatts?: number
   /** Capacity/model options selectable on the product page (changes price). */
   variants?: ProductVariant[]
 }
@@ -181,6 +183,8 @@ export const CATALOG: Product[] = [
     image: '/images/anker-1.jpg',
     badge: 'Flagship',
     badgeTone: 'green',
+    cap: '60,000mAh',
+    outputWatts: 87,
     best: 'Home backup',
     warranty: KE_WARRANTY,
   },
@@ -222,15 +226,17 @@ export const CATALOG: Product[] = [
 ]
 
 /**
- * Usable energy capacity in watt-hours, derived only from a real spec
- * already on the product — never invented. A power bank's `cap` is stated
- * in mAh at the standard 3.7V li-ion cell voltage, so Wh = mAh × 3.7 / 1000.
- * Returns null when there's nothing to derive it from (e.g. the power
- * station's `cap` isn't a capacity spec at all — see its catalog entry) —
- * callers must treat null as "unknown," not as zero.
+ * Nominal energy capacity in watt-hours, derived only from a real mAh spec
+ * already on the product — never invented. Wh = mAh × 3.7 (standard li-ion
+ * cell voltage) / 1000. Keyed off the "mAh" unit actually present in `cap`,
+ * not the product's category — a solar panel's `cap` is a wattage rating
+ * ("100W"), not a capacity, and would be silently misread as one if this
+ * only checked that a `cap` string existed. Returns null when there's
+ * nothing to derive it from — callers must treat null as "unknown," not
+ * as zero.
  */
-export function capacityWh(product: Pick<Product, 'cat' | 'cap'>): number | null {
-  if (product.cat !== 'powerbanks' || !product.cap) return null
+export function capacityWh(product: Pick<Product, 'cap'>): number | null {
+  if (!product.cap || !/mAh/i.test(product.cap)) return null
   const mAh = Number(product.cap.replace(/[^\d.]/g, ''))
   return Number.isFinite(mAh) && mAh > 0 ? (mAh * 3.7) / 1000 : null
 }

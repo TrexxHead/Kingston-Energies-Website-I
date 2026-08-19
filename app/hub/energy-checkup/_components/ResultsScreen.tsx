@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import { fmt } from '@/lib/catalog'
 import { Badge, FeatureIcon } from '@/components/shop/ui'
-import { CATEGORY_META, libraryFor } from '@/lib/energyCheckup/applianceLibrary'
+import { CATEGORY_META, libraryFor, confidenceFor, CONFIDENCE_META } from '@/lib/energyCheckup/applianceLibrary'
 import { triageCategories, TRIAGE_TIER_LABEL, type TriageTier } from '@/lib/energyCheckup/triage'
 import { iconFor } from './icons'
 import { wizardCard } from './shared'
@@ -162,6 +162,17 @@ export default function ResultsScreen({
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                     <Icon size={15} color="var(--color-text-muted)" />
                     <span style={{ fontSize: 13.5, fontWeight: 600, fontFamily: 'var(--font-display)', flex: 1 }}>{def?.displayName ?? row.id}</span>
+                    {def && (
+                      <span
+                        title={CONFIDENCE_META[confidenceFor(def)].description}
+                        style={{
+                          fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '.06em', textTransform: 'uppercase',
+                          color: 'var(--color-text-subtle)', border: '1px solid var(--color-border)', borderRadius: 999, padding: '1px 6px',
+                        }}
+                      >
+                        {CONFIDENCE_META[confidenceFor(def)].label}
+                      </span>
+                    )}
                     <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--color-text-muted)' }}>
                       {Math.round(row.kwh)} kWh · {fmt(jmd)}
                     </span>

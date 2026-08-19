@@ -11,6 +11,7 @@ const TABS = [
   { href: '/hub/storm-prep/brownout', label: 'Brownout' },
   { href: '/hub/storm-prep/solar', label: 'Solar' },
   { href: '/hub/storm-prep/generator', label: 'Generator' },
+  { href: '/hub/storm-prep/build-my-system', label: 'Build my system' },
   { href: '/hub/storm-prep/family-plan', label: 'Family plan' },
   { href: '/hub/storm-prep/resources', label: 'Resources' },
 ]

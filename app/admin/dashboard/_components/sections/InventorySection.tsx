@@ -158,6 +158,20 @@ export default function InventorySection() {
     return match.gallery ?? (match.image ? [match.image] : [])
   }
 
+  // A product with no category saved in the DB yet (never explicitly set)
+  // used to silently default to "Power banks" here — meaning saving any
+  // *other* field on, say, a cable would also quietly write POWERBANKS as
+  // its category. Resolve the static catalog's real category first instead,
+  // and only fall back to a guess if this product isn't in the catalog at all.
+  const catalogCategoryFor = (name: string, catalogId: string | null): Category | null => {
+    const match = catalogId
+      ? CATALOG.find((c) => c.id === catalogId)
+      : CATALOG.find((c) => c.name.trim().toLowerCase() === name.trim().toLowerCase())
+    if (!match) return null
+    const upper = match.cat.toUpperCase()
+    return (CAT_OPTIONS as string[]).includes(upper) ? (upper as Category) : null
+  }
+
   const openEdit = (p: Product) => {
     setForm({
       name: p.name,
@@ -168,7 +182,7 @@ export default function InventorySection() {
       cost: p.cost != null ? String(p.cost) : '',
       stock: String(p.stock),
       threshold: String(p.threshold),
-      category: p.category ?? 'POWERBANKS',
+      category: p.category ?? catalogCategoryFor(p.name, p.catalogId) ?? 'POWERBANKS',
       badge: p.badge ?? '',
       brand: p.brand ?? '',
       weight: p.weight ?? '',

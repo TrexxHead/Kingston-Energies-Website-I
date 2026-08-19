@@ -6,6 +6,7 @@ import Button from '../ui/Button'
 import Switch from '../ui/Switch'
 import { cardStyle, h3Style } from '../ui/card'
 import AnnouncementCard from './AnnouncementCard'
+import StormPrepCard from './StormPrepCard'
 
 interface Banner { text: string; active: boolean }
 interface FlashSale { enabled: boolean; headline: string; subtext: string; href: string }
@@ -51,6 +52,8 @@ export default function MarketingContent() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <AnnouncementCard />
+
+      <StormPrepCard />
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 16, alignItems: 'start' }}>
         {/* Homepage banners — editable */}

@@ -1,52 +1,26 @@
-// Shared between the Storm prep dashboard (which needs completion % for the
-// readiness score) and the /checklist subpage (which renders the items) —
-// one definition so the two can never drift out of sync.
+// Checklist *item state* (which boxes this user has checked) lives here,
+// keyed to localStorage. The checklist *content* itself (item text,
+// categories, timing, and the storm-kit product picks) is admin-editable —
+// see lib/stormPrepDefaults.ts / lib/stormPrepContent.ts and syncContent()
+// below — but always starts from the same shipped defaults so nothing
+// regresses for a site nobody has customized via the admin editor yet.
+
+export {
+  DEFAULT_CHECKLIST as CHECKLIST,
+  CATEGORY_LABEL,
+  TIMING_LABEL,
+  TIMING_ORDER,
+  DEFAULT_KIT_PRODUCT_IDS as KIT_PRODUCT_IDS,
+  type ChecklistCategory,
+  type ChecklistTiming,
+  type StormChecklistItem as ChecklistItem,
+  type StormPrepContent,
+} from '@/lib/stormPrepDefaults'
+
+import { DEFAULT_STORM_PREP_CONTENT, type StormPrepContent as Content } from '@/lib/stormPrepDefaults'
 
 export const STORAGE_KEY = 'ke-storm-checklist'
-
-export type ChecklistCategory = 'power' | 'light' | 'food' | 'records'
-
-/**
- * When an item actually needs doing — not everything belongs on the same
- * flat list the day of. Early/logistics items don't compete for attention
- * with the things that only make sense right before (or during) an outage.
- */
-export type ChecklistTiming = '5-7-days' | '72h' | '24h' | 'during'
-
-export interface ChecklistItem {
-  id: string
-  text: string
-  category: ChecklistCategory
-  timing: ChecklistTiming
-}
-
-export const CHECKLIST: ChecklistItem[] = [
-  { id: 'records', text: 'Save your order numbers and warranty info somewhere you can reach offline', category: 'records', timing: '5-7-days' },
-  { id: 'cables', text: 'Keep charging cables and adapters together in one bag, not scattered around the house', category: 'power', timing: '5-7-days' },
-  { id: 'light', text: 'Have a flashlight or lantern ready — don’t rely on a phone screen for hours of light', category: 'light', timing: '72h' },
-  { id: 'powerbanks', text: 'Charge every power bank to 100%', category: 'power', timing: '24h' },
-  { id: 'station', text: 'Charge your power station (if you have one) to 100%', category: 'power', timing: '24h' },
-  { id: 'devices', text: 'Charge phones, laptops and any medical devices to 100%', category: 'power', timing: '24h' },
-  { id: 'fridge', text: 'Set the fridge/freezer as cold as it goes now — it holds temperature far longer once the power cuts', category: 'food', timing: '24h' },
-  { id: 'unplug', text: 'Know what you’ll unplug first to stretch a power station’s runtime (AC and water heating first)', category: 'power', timing: 'during' },
-]
-
-export const CATEGORY_LABEL: Record<ChecklistCategory, string> = {
-  power: 'Power & charging',
-  light: 'Light',
-  food: 'Food & cooling',
-  records: 'Records',
-}
-
-export const TIMING_LABEL: Record<ChecklistTiming, string> = {
-  '5-7-days': '5–7 days out',
-  '72h': '72 hours out',
-  '24h': '24 hours out',
-  during: 'During the storm',
-}
-
-// Render order for timeline sections — not alphabetical or definition order.
-export const TIMING_ORDER: ChecklistTiming[] = ['5-7-days', '72h', '24h', 'during']
+const CONTENT_CACHE_KEY = 'ke-storm-content-cache'
 
 export function loadChecked(): Set<string> {
   try {
@@ -60,4 +34,39 @@ export function saveChecked(checked: Set<string>) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify([...checked]))
   } catch { /* ignore */ }
+}
+
+/**
+ * The last-synced admin content, or the shipped defaults if this browser has
+ * never successfully synced — read synchronously so the page has something
+ * real to render immediately, offline included, before syncContent() has a
+ * chance to run.
+ */
+export function loadCachedContent(): Content {
+  try {
+    const raw = localStorage.getItem(CONTENT_CACHE_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<Content>
+      if (parsed.checklist?.length) return { checklist: parsed.checklist, kitProductIds: parsed.kitProductIds ?? DEFAULT_STORM_PREP_CONTENT.kitProductIds }
+    }
+  } catch { /* ignore */ }
+  return DEFAULT_STORM_PREP_CONTENT
+}
+
+/**
+ * Fetches the current admin-edited content and refreshes the local cache.
+ * Best-effort — returns null (leaving whatever's cached/rendered alone)
+ * rather than throwing when offline or the API is unreachable.
+ */
+export async function syncContent(): Promise<Content | null> {
+  try {
+    const res = await fetch('/api/storm-prep/content')
+    if (!res.ok) return null
+    const data = (await res.json()) as Content
+    if (!data.checklist?.length) return null
+    localStorage.setItem(CONTENT_CACHE_KEY, JSON.stringify(data))
+    return data
+  } catch {
+    return null
+  }
 }

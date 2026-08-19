@@ -6,15 +6,19 @@ import Topbar from '../../_components/Topbar'
 import { wizardCard } from '../../energy-checkup/_components/shared'
 import { Badge } from '@/components/shop/ui'
 import StormPrepSubNav from '../_components/SubNav'
-import { CHECKLIST, TIMING_LABEL, TIMING_ORDER, loadChecked, saveChecked } from '../_lib/checklist'
+import { TIMING_LABEL, TIMING_ORDER, loadChecked, saveChecked, loadCachedContent, syncContent, type StormPrepContent } from '../_lib/checklist'
 
 export default function StormPrepChecklistPage() {
+  const [content, setContent] = useState<StormPrepContent>(() => loadCachedContent())
   const [checked, setChecked] = useState<Set<string>>(new Set())
   const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
     setChecked(loadChecked())
     setLoaded(true)
+    syncContent().then((fresh) => {
+      if (fresh) setContent(fresh)
+    })
   }, [])
 
   useEffect(() => {
@@ -31,8 +35,8 @@ export default function StormPrepChecklistPage() {
     })
   }
 
-  const done = checked.size
-  const pct = Math.round((done / CHECKLIST.length) * 100)
+  const done = content.checklist.filter((i) => checked.has(i.id)).length
+  const pct = content.checklist.length ? Math.round((done / content.checklist.length) * 100) : 0
 
   return (
     <>
@@ -44,7 +48,7 @@ export default function StormPrepChecklistPage() {
           <div style={{ ...wizardCard, marginBottom: 18 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4, flexWrap: 'wrap', gap: 8 }}>
               <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 17, margin: 0 }}>Before the power goes</h3>
-              <Badge tone={pct === 100 ? 'green' : 'neutral'}>{done} of {CHECKLIST.length} done</Badge>
+              <Badge tone={pct === 100 ? 'green' : 'neutral'}>{done} of {content.checklist.length} done</Badge>
             </div>
             <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: '6px 0 4px', maxWidth: 560 }}>
               Grouped by when it actually needs doing — not everything is a same-day scramble.
@@ -55,7 +59,7 @@ export default function StormPrepChecklistPage() {
           </div>
 
           {TIMING_ORDER.map((timing) => {
-            const items = CHECKLIST.filter((i) => i.timing === timing)
+            const items = content.checklist.filter((i) => i.timing === timing)
             if (items.length === 0) return null
             const doneInSection = items.filter((i) => checked.has(i.id)).length
             return (

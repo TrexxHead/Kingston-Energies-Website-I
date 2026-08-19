@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ShoppingBag } from 'lucide-react'
 import Topbar from '../../_components/Topbar'
@@ -9,16 +10,20 @@ import { useCart } from '@/components/cart/CartContext'
 import { useToast } from '@/components/cart/ToastContext'
 import { Button } from '@/components/shop/ui'
 import StormPrepSubNav from '../_components/SubNav'
-
-// The catalog's own picks for a storm kit — real products, real prices, no
-// invented "kit" SKU. Kept to a short, deliberately chosen list rather than
-// every power bank/station in the catalog.
-const KIT_PRODUCT_IDS = ['pb10', 'st300', 'chcab']
+import { loadCachedContent, syncContent, type StormPrepContent } from '../_lib/checklist'
 
 export default function StormPrepResourcesPage() {
   const { addItem } = useCart()
   const { pushToast } = useToast()
-  const kitItems = KIT_PRODUCT_IDS.map((id) => CATALOG.find((p) => p.id === id)).filter((p): p is Product => Boolean(p))
+  const [content, setContent] = useState<StormPrepContent>(() => loadCachedContent())
+
+  useEffect(() => {
+    syncContent().then((fresh) => {
+      if (fresh) setContent(fresh)
+    })
+  }, [])
+
+  const kitItems = content.kitProductIds.map((id) => CATALOG.find((p) => p.id === id)).filter((p): p is Product => Boolean(p))
 
   return (
     <>

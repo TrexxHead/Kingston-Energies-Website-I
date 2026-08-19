@@ -3,11 +3,18 @@ import type { AcType, WaterType, LightType } from '@/lib/energyCheckup/appliance
 export type Mode = 'home' | 'biz'
 export type FridgeAgeBand = '<5' | '5-10' | '10+'
 
+export interface RowAdvanced {
+  measuredWatts?: number
+  surgeWatts?: number
+  dutyCyclePct?: number
+}
+
 export interface RowOverride {
   count: number
   hours: number
   /** Days between uses — 1 = every day, 2 = every other day, 7 = weekly, etc. */
   intervalDays: number
+  advanced?: RowAdvanced
 }
 
 export interface CuState {
@@ -26,6 +33,11 @@ export interface CuState {
   // Business context
   bizType: string
   backup: boolean
+
+  // Quick Mode is the default — Advanced Mode reveals per-appliance
+  // technical fields (measured watts, surge watts, duty cycle) without
+  // changing anything about how Quick Mode itself behaves.
+  advancedMode: boolean
 
   // Appliance overrides, keyed by appliance id
   rows: Record<string, RowOverride>
@@ -52,6 +64,7 @@ export const INITIAL_STATE: CuState = {
   lightType: 'led',
   bizType: 'Retail shop',
   backup: false,
+  advancedMode: false,
   rows: {},
   billKwh: '',
   billJmd: '',

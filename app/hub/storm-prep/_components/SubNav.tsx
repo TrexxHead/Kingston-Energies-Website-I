@@ -6,6 +6,9 @@ import { usePathname } from 'next/navigation'
 const TABS = [
   { href: '/hub/storm-prep', label: 'Dashboard' },
   { href: '/hub/storm-prep/checklist', label: 'Checklist' },
+  { href: '/hub/storm-prep/outage', label: 'Outage' },
+  { href: '/hub/storm-prep/energy-budget', label: 'Energy budget' },
+  { href: '/hub/storm-prep/brownout', label: 'Brownout' },
   { href: '/hub/storm-prep/family-plan', label: 'Family plan' },
   { href: '/hub/storm-prep/resources', label: 'Resources' },
 ]

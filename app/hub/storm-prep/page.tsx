@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { CloudLightning, ExternalLink, Gauge, BatteryCharging, ClipboardList } from 'lucide-react'
+import { CloudLightning, ExternalLink, Gauge, BatteryCharging, ClipboardList, PowerOff } from 'lucide-react'
 import Topbar from '../_components/Topbar'
 import { wizardCard } from '../energy-checkup/_components/shared'
 import StormPrepSubNav from './_components/SubNav'
 import OfflineCard from './_components/OfflineCard'
 import { CATEGORY_LABEL, loadChecked, loadCachedContent, syncContent, type ChecklistCategory, type StormPrepContent } from './_lib/checklist'
+import { computeReserve, fetchDevices, type DeviceSignal } from './_lib/reserve'
 
 interface CheckupSignal {
   id: string
@@ -15,12 +16,6 @@ interface CheckupSignal {
   estimatedKwh: number
   hasBackup: boolean | null
   completedAt: string
-}
-
-interface DeviceSignal {
-  name: string
-  hasBattery: boolean
-  usableWh: number | null
 }
 
 export default function StormPrepDashboard() {
@@ -47,10 +42,8 @@ export default function StormPrepDashboard() {
       .catch(() => setCheckup(null))
       .finally(() => setCheckupLoaded(true))
 
-    fetch('/api/hub/devices')
-      .then((r) => (r.ok ? r.json() : { devices: [] }))
-      .then((d: { devices: DeviceSignal[] }) => setDevices(d.devices ?? []))
-      .catch(() => setDevices([]))
+    fetchDevices()
+      .then(setDevices)
       .finally(() => setDevicesLoaded(true))
   }, [])
 
@@ -78,14 +71,7 @@ export default function StormPrepDashboard() {
   const backupScore = hasBackupDevice ? 100 : 0
   const readinessScore = signalsLoaded ? Math.round((pct + checkupScore + backupScore) / 3) : null
 
-  // Household energy reserve — total usable Wh across every registered
-  // device with a known real capacity spec. Devices with no derivable
-  // capacity (e.g. a power station with no listed Wh) are counted separately
-  // rather than silently dropped, so the total is never presented as
-  // "everything you own" when it's really "everything we can measure."
-  const reserveDevices = devices.filter((d) => d.usableWh !== null)
-  const totalReserveWh = reserveDevices.reduce((sum, d) => sum + (d.usableWh ?? 0), 0)
-  const unmeasuredBackupDevices = devices.filter((d) => d.hasBattery && d.usableWh === null)
+  const { reserveDevices, totalReserveWh, unmeasuredBackupDevices } = computeReserve(devices)
 
   return (
     <>
@@ -114,6 +100,21 @@ export default function StormPrepDashboard() {
               — this page is prep guidance, not a live weather alert.
             </p>
           </div>
+
+          <Link href="/hub/storm-prep/outage" style={{ textDecoration: 'none' }}>
+            <div
+              style={{
+                display: 'flex', alignItems: 'center', gap: 12, background: '#7a2020', borderRadius: 18, padding: '16px 22px',
+                marginBottom: 18, cursor: 'pointer', transition: 'transform .15s ease',
+              }}
+            >
+              <PowerOff size={22} color="#fff" style={{ flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 16, color: '#fff' }}>I HAVE LOST POWER</div>
+                <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,.75)' }}>Start tracking your outage — battery status, runtime, and what to do next</div>
+              </div>
+            </div>
+          </Link>
 
           <StormPrepSubNav />
 

@@ -6,6 +6,7 @@ import { CloudLightning, ExternalLink, Gauge, BatteryCharging, ClipboardList } f
 import Topbar from '../_components/Topbar'
 import { wizardCard } from '../energy-checkup/_components/shared'
 import StormPrepSubNav from './_components/SubNav'
+import OfflineCard from './_components/OfflineCard'
 import { CHECKLIST, CATEGORY_LABEL, loadChecked, type ChecklistCategory } from './_lib/checklist'
 
 interface CheckupSignal {
@@ -108,6 +109,8 @@ export default function StormPrepDashboard() {
           </div>
 
           <StormPrepSubNav />
+
+          <OfflineCard />
 
           <div style={{ ...wizardCard, marginBottom: 18 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>

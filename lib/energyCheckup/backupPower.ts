@@ -75,3 +75,21 @@ export function checkSurgeCapacity(sourceSurgeWatts: number | null | undefined, 
   if (headroom >= 1.0) return 'tight'
   return 'insufficient'
 }
+
+/**
+ * Can this power source sustain a simultaneous steady-state load — separate
+ * from whether it has enough total *energy* (that's `runtimeHours`) and from
+ * whether it can survive a motor's startup spike (that's
+ * `checkSurgeCapacity`, which needs a surge rating this doesn't). Uses a
+ * product's rated continuous output watts — a real spec, never a surge
+ * figure — so this only ever answers "can it carry this many watts at once,"
+ * not "can it start something." Returns 'unknown' rather than guessing when
+ * the source has no published output rating.
+ */
+export function checkContinuousLoad(sourceRatedWatts: number | null | undefined, totalLoadWatts: number): SurgeCheck {
+  if (sourceRatedWatts == null || totalLoadWatts <= 0) return 'unknown'
+  const headroom = sourceRatedWatts / totalLoadWatts
+  if (headroom >= 1.15) return 'ok'
+  if (headroom >= 1.0) return 'tight'
+  return 'insufficient'
+}

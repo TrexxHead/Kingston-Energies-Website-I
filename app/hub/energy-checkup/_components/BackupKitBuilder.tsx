@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { BatteryCharging, Info } from 'lucide-react'
+import { BatteryCharging, Info, TriangleAlert } from 'lucide-react'
 import { CATALOG, capacityWh, fmt, type Product } from '@/lib/catalog'
-import { wattHours, usableWh, runtimeHours } from '@/lib/energyCheckup/backupPower'
+import { wattHours, usableWh, runtimeHours, checkContinuousLoad } from '@/lib/energyCheckup/backupPower'
 import { useCart } from '@/components/cart/CartContext'
 import { useToast } from '@/components/cart/ToastContext'
 import { Button } from '@/components/shop/ui'
@@ -22,13 +22,15 @@ interface BackupKitBuilderProps {
 }
 
 /**
- * A power bank only ever outputs USB power — it cannot run anything that
- * plugs into a wall socket (a fridge, AC, TV). So this sizes backup runtime
- * for exactly what a power bank *can* keep alive: the phones, laptops and
- * routers a household or business actually depends on through an outage.
- * Capacity is only ever read from a real product spec (see capacityWh) —
- * never invented — so a product with no stated capacity is shown as a
- * "talk to us" case, not guessed at.
+ * Sized for exactly what USB/DC output *can* keep alive during an outage —
+ * the phones, laptops and routers a household or business actually depends
+ * on — never a wall-socket appliance (a fridge, AC, TV) even from a power
+ * station's AC side. Candidates are power banks and any power station whose
+ * own spec lists a capacity, so a bigger unit like the Anker naturally
+ * surfaces as an option once it publishes real numbers, not as a special
+ * case. Capacity and output are only ever read from a real product spec
+ * (see capacityWh / outputWatts) — never invented — so a product with
+ * nothing published is left out rather than guessed at.
  */
 export default function BackupKitBuilder({ applianceLabel, deviceCount, watts }: BackupKitBuilderProps) {
   const { addItem } = useCart()
@@ -57,7 +59,7 @@ export default function BackupKitBuilder({ applianceLabel, deviceCount, watts }:
 
   const powerbanks = useMemo(
     () =>
-      CATALOG.filter((p) => p.cat === 'powerbanks')
+      CATALOG.filter((p) => p.cat === 'powerbanks' || p.cat === 'stations')
         .map((p) => {
           const capWh = capacityWh(p)
           return { product: p, capWh, usableWh: capWh !== null ? usableWh(capWh) : null, price: livePrices[p.id] ?? p.price }
@@ -67,11 +69,13 @@ export default function BackupKitBuilder({ applianceLabel, deviceCount, watts }:
     [livePrices],
   )
 
+  const totalLoadWatts = watts * count
   const fits = powerbanks.filter((p) => p.usableWh >= requiredWh)
   const best = fits.length > 0 ? fits.reduce((a, b) => (b.price < a.price ? b : a)) : null
   const biggest = powerbanks[powerbanks.length - 1] ?? null
   const unitsNeeded = !best && biggest ? Math.ceil(requiredWh / biggest.usableWh) : null
-  const bestRuntimeHours = best ? runtimeHours(best.usableWh, watts * count) : null
+  const bestRuntimeHours = best ? runtimeHours(best.usableWh, totalLoadWatts) : null
+  const bestLoadCheck = best ? checkContinuousLoad(best.product.outputWatts, totalLoadWatts) : 'unknown'
 
   return (
     <div style={{ ...wizardCard, marginBottom: 18, background: '#0d1714', color: '#eaf2ec' }}>
@@ -144,7 +148,18 @@ export default function BackupKitBuilder({ applianceLabel, deviceCount, watts }:
             Add to cart
           </Button>
         </div>
-      ) : biggest ? (
+      ) : null}
+      {best && (bestLoadCheck === 'tight' || bestLoadCheck === 'insufficient') && (
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 12, background: 'rgba(240,180,60,.12)', borderRadius: 12, padding: '10px 14px' }}>
+          <TriangleAlert size={13} color="#e0b04a" style={{ flexShrink: 0, marginTop: 2 }} />
+          <span style={{ fontSize: 12, color: 'rgba(234,242,236,.75)', lineHeight: 1.5 }}>
+            {bestLoadCheck === 'insufficient'
+              ? `This has enough total capacity but its rated ${best.product.outputWatts}W output can't actually supply ${Math.round(totalLoadWatts)}W of devices at once — you'll need to charge them in smaller batches.`
+              : `This is close to its rated ${best.product.outputWatts}W output at ${Math.round(totalLoadWatts)}W of simultaneous draw — comfortable, but with little headroom.`}
+          </span>
+        </div>
+      )}
+      {!best && biggest && (
         <div style={{ background: 'rgba(255,255,255,.05)', borderRadius: 14, padding: '14px 16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
             <div>
@@ -164,8 +179,9 @@ export default function BackupKitBuilder({ applianceLabel, deviceCount, watts }:
             </Button>
           </div>
         </div>
-      ) : (
-        <p style={{ fontSize: 13, color: 'rgba(234,242,236,.6)' }}>No power bank capacity data available right now.</p>
+      )}
+      {!best && !biggest && (
+        <p style={{ fontSize: 13, color: 'rgba(234,242,236,.6)' }}>No backup power capacity data available right now.</p>
       )}
 
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,.08)' }}>

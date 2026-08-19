@@ -6,11 +6,17 @@ import { cardStyle, h3Style } from '../ui/card'
 import Button from '../ui/Button'
 import TextInput from '../ui/TextInput'
 import { CATALOG } from '@/lib/catalog'
-import type { ChecklistCategory, ChecklistTiming, StormChecklistItem } from '@/lib/stormPrepDefaults'
+import type { ChecklistCategory, ChecklistTiming, StormChecklistItem, DirectoryEntry } from '@/lib/stormPrepDefaults'
 
 interface Content {
   checklist: StormChecklistItem[]
   kitProductIds: string[]
+  directory: DirectoryEntry[]
+  educationalTips: string[]
+}
+
+function newDirectoryEntry(): DirectoryEntry {
+  return { name: '', description: '', url: '', source: '', lastReviewed: new Date().toISOString().slice(0, 10) }
 }
 
 const CATEGORY_OPTIONS: ChecklistCategory[] = ['power', 'light', 'food', 'records']
@@ -67,6 +73,16 @@ export default function StormPrepCard() {
         ? { ...c, kitProductIds: c.kitProductIds.includes(id) ? c.kitProductIds.filter((p) => p !== id) : [...c.kitProductIds, id] }
         : c,
     )
+
+  const setDirectoryEntry = (i: number, patch: Partial<DirectoryEntry>) =>
+    setContent((c) => (c ? { ...c, directory: c.directory.map((entry, j) => (j === i ? { ...entry, ...patch } : entry)) } : c))
+  const addDirectoryEntry = () => setContent((c) => (c ? { ...c, directory: [...c.directory, newDirectoryEntry()] } : c))
+  const removeDirectoryEntry = (i: number) => setContent((c) => (c ? { ...c, directory: c.directory.filter((_, j) => j !== i) } : c))
+
+  const setTip = (i: number, value: string) =>
+    setContent((c) => (c ? { ...c, educationalTips: c.educationalTips.map((t, j) => (j === i ? value : t)) } : c))
+  const addTip = () => setContent((c) => (c ? { ...c, educationalTips: [...c.educationalTips, ''] } : c))
+  const removeTip = (i: number) => setContent((c) => (c ? { ...c, educationalTips: c.educationalTips.filter((_, j) => j !== i) } : c))
 
   if (!content) {
     return (
@@ -145,6 +161,50 @@ export default function StormPrepCard() {
           )
         })}
       </div>
+
+      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, margin: '20px 0 10px' }}>Resource &amp; help directory</div>
+      <p style={{ fontSize: 12, color: 'var(--color-text-subtle)', margin: '0 0 10px' }}>
+        Shown on /hub/storm-prep/directory. Real agencies only — leave phone blank rather than guess a number; link
+        to the agency&apos;s own site instead.
+      </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 12 }}>
+        {content.directory.map((entry, i) => (
+          <div key={i} style={{ border: '1px solid var(--color-border)', borderRadius: 14, padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <TextInput label="Name" value={entry.name} onChange={(v) => setDirectoryEntry(i, { name: v })} />
+              <TextInput label="Phone (optional)" value={entry.phone ?? ''} onChange={(v) => setDirectoryEntry(i, { phone: v || undefined })} />
+            </div>
+            <TextInput label="Description" value={entry.description} onChange={(v) => setDirectoryEntry(i, { description: v })} multiline />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+              <TextInput label="URL" value={entry.url} onChange={(v) => setDirectoryEntry(i, { url: v })} />
+              <TextInput label="Source" value={entry.source} onChange={(v) => setDirectoryEntry(i, { source: v })} />
+              <TextInput label="Last checked" value={entry.lastReviewed} onChange={(v) => setDirectoryEntry(i, { lastReviewed: v })} />
+            </div>
+            <Button size="sm" variant="outline" onClick={() => removeDirectoryEntry(i)}>
+              <Trash2 size={14} />
+            </Button>
+          </div>
+        ))}
+      </div>
+      <Button size="sm" variant="outline" onClick={addDirectoryEntry} iconRight={<Plus size={13} />}>Add directory entry</Button>
+
+      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, margin: '20px 0 10px' }}>Educational tips</div>
+      <p style={{ fontSize: 12, color: 'var(--color-text-subtle)', margin: '0 0 10px' }}>
+        Shown around Storm prep — generic, non-agency-attributed guidance only.
+      </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+        {content.educationalTips.map((tip, i) => (
+          <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+            <div style={{ flex: 1 }}>
+              <TextInput label={`Tip ${i + 1}`} value={tip} onChange={(v) => setTip(i, v)} multiline />
+            </div>
+            <Button size="sm" variant="outline" onClick={() => removeTip(i)}>
+              <Trash2 size={14} />
+            </Button>
+          </div>
+        ))}
+      </div>
+      <Button size="sm" variant="outline" onClick={addTip} iconRight={<Plus size={13} />}>Add tip</Button>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 18 }}>
         <Button size="sm" variant="primary" onClick={save}>{busy ? 'Saving…' : 'Save Storm prep content'}</Button>

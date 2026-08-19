@@ -47,7 +47,14 @@ export function loadCachedContent(): Content {
     const raw = localStorage.getItem(CONTENT_CACHE_KEY)
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<Content>
-      if (parsed.checklist?.length) return { checklist: parsed.checklist, kitProductIds: parsed.kitProductIds ?? DEFAULT_STORM_PREP_CONTENT.kitProductIds }
+      if (parsed.checklist?.length) {
+        return {
+          checklist: parsed.checklist,
+          kitProductIds: parsed.kitProductIds ?? DEFAULT_STORM_PREP_CONTENT.kitProductIds,
+          directory: parsed.directory?.length ? parsed.directory : DEFAULT_STORM_PREP_CONTENT.directory,
+          educationalTips: parsed.educationalTips?.length ? parsed.educationalTips : DEFAULT_STORM_PREP_CONTENT.educationalTips,
+        }
+      }
     }
   } catch { /* ignore */ }
   return DEFAULT_STORM_PREP_CONTENT

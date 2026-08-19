@@ -9,6 +9,8 @@ const TABS = [
   { href: '/hub/storm-prep/outage', label: 'Outage' },
   { href: '/hub/storm-prep/energy-budget', label: 'Energy budget' },
   { href: '/hub/storm-prep/brownout', label: 'Brownout' },
+  { href: '/hub/storm-prep/solar', label: 'Solar' },
+  { href: '/hub/storm-prep/generator', label: 'Generator' },
   { href: '/hub/storm-prep/family-plan', label: 'Family plan' },
   { href: '/hub/storm-prep/resources', label: 'Resources' },
 ]

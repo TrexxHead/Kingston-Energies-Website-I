@@ -12,8 +12,10 @@ const TABS = [
   { href: '/hub/storm-prep/solar', label: 'Solar' },
   { href: '/hub/storm-prep/generator', label: 'Generator' },
   { href: '/hub/storm-prep/build-my-system', label: 'Build my system' },
+  { href: '/hub/storm-prep/my-resources', label: 'My resources' },
+  { href: '/hub/storm-prep/directory', label: 'Directory' },
   { href: '/hub/storm-prep/family-plan', label: 'Family plan' },
-  { href: '/hub/storm-prep/resources', label: 'Resources' },
+  { href: '/hub/storm-prep/resources', label: 'Shop' },
 ]
 
 export default function StormPrepSubNav() {

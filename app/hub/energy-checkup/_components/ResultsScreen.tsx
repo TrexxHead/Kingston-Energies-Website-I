@@ -12,6 +12,7 @@ import { CATEGORY_META, libraryFor } from '@/lib/energyCheckup/applianceLibrary'
 import { iconFor } from './icons'
 import { wizardCard } from './shared'
 import FixListSimulator from './FixListSimulator'
+import BackupKitBuilder from './BackupKitBuilder'
 import ConsultForm from './ConsultForm'
 import type { CheckupResults, Mode } from './types'
 import type { FixAction } from '@/lib/energyCheckup/fixList'
@@ -85,6 +86,7 @@ export default function ResultsScreen({
   occupants,
   bizType,
   fixActions,
+  usbBackup,
   onSubmitContact,
   onStartOver,
 }: {
@@ -95,6 +97,7 @@ export default function ResultsScreen({
   occupants?: number
   bizType?: string
   fixActions: FixAction[]
+  usbBackup: { label: string; count: number; watts: number }
   onSubmitContact: (contact: string) => Promise<void>
   onStartOver: () => void
 }) {
@@ -201,6 +204,9 @@ export default function ResultsScreen({
 
       {/* 3.9 — Fix-list simulator */}
       <FixListSimulator actions={fixActions} totalKwh={results.totalKwh} rate={results.rate.rate} />
+
+      {/* 3.9.5 — Backup kit builder */}
+      <BackupKitBuilder applianceLabel={usbBackup.label} deviceCount={usbBackup.count} watts={usbBackup.watts} />
 
       {/* 3.10 — Solar readiness */}
       <div style={cardStyle}>

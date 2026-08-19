@@ -39,6 +39,16 @@ export default function EnergyCheckupPage() {
 
   const library = useMemo(() => libraryFor(state.mode ?? 'home'), [state.mode])
 
+  // The one appliance in each library that's genuinely USB/DC-powered, for
+  // the backup-kit builder — never AC-outlet equipment like a fridge or AC.
+  const usbBackupId = state.mode === 'biz' ? 'wifi' : 'charging'
+  const usbBackupDef = library.find((a) => a.id === usbBackupId)
+  const usbBackup = {
+    label: usbBackupDef?.displayName ?? 'devices',
+    count: state.rows[usbBackupId]?.count ?? usbBackupDef?.defaultCount ?? 1,
+    watts: usbBackupDef?.watts ?? 15,
+  }
+
   const live = useMemo(() => {
     const rows = new Map<string, ApplianceRow>(
       library.map((a) => {
@@ -163,6 +173,7 @@ export default function EnergyCheckupPage() {
               occupants={state.occupants}
               bizType={state.bizType}
               fixActions={fixActions}
+              usbBackup={usbBackup}
               onSubmitContact={submitContact}
               onStartOver={startOver}
             />

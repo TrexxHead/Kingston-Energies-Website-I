@@ -6,6 +6,7 @@ import Topbar from '../../_components/Topbar'
 import { wizardCard } from '../../energy-checkup/_components/shared'
 import { Field, inputStyle } from '@/components/shop/ui'
 import StormPrepSubNav from '../_components/SubNav'
+import CalcExplainer from '../_components/CalcExplainer'
 import { computeReserve, fetchDevices, type DeviceSignal } from '../_lib/reserve'
 import { buildEnergyBudget } from '@/lib/energyCheckup/energyBudget'
 
@@ -90,6 +91,17 @@ export default function EnergyBudgetPage() {
                 </div>
               ))}
             </div>
+
+            {budget.recommendedAverageW !== null && (
+              <CalcExplainer>
+                <p style={{ margin: 0 }}>
+                  Recommended average draw = stored energy remaining (Wh) ÷ hours it needs to last. It&apos;s an
+                  average, not a ceiling for every moment — a fridge cycling on briefly can spike above it as long as
+                  the average over time stays under this figure. Conservation tips are shown in a fixed priority
+                  order, not tailored to what you&apos;ve actually got plugged in.
+                </p>
+              </CalcExplainer>
+            )}
           </div>
         </div>
       </div>

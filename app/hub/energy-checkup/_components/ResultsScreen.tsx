@@ -4,11 +4,12 @@ import { useState, type CSSProperties } from 'react'
 import Link from 'next/link'
 import {
   CircleHelp, CircleCheck, TriangleAlert, PowerOff, Sun, Send, RotateCcw,
-  MailCheck, ShieldAlert, CalendarRange, Scale, ChevronDown, ChevronUp, ExternalLink,
+  MailCheck, ShieldAlert, CalendarRange, Scale, ChevronDown, ChevronUp, ExternalLink, ListChecks,
 } from 'lucide-react'
 import { fmt } from '@/lib/catalog'
 import { Badge, FeatureIcon } from '@/components/shop/ui'
 import { CATEGORY_META, libraryFor } from '@/lib/energyCheckup/applianceLibrary'
+import { triageCategories, TRIAGE_TIER_LABEL, type TriageTier } from '@/lib/energyCheckup/triage'
 import { iconFor } from './icons'
 import { wizardCard } from './shared'
 import FixListSimulator from './FixListSimulator'
@@ -43,6 +44,12 @@ const SOLAR_VERDICT: Record<CheckupResults['solar']['verdict'], { label: string;
   strong: { label: 'Strong fit', tone: 'green' },
   exploring: { label: 'Worth exploring', tone: 'blue' },
   'efficiency-first': { label: 'Efficiency first', tone: 'neutral' },
+}
+
+const TRIAGE_TIER_STYLE: Record<TriageTier, { color: string; soft: string; Icon: typeof CircleCheck }> = {
+  'keep-running': { color: 'var(--ke-green-600)', soft: 'var(--ke-green-50)', Icon: CircleCheck },
+  'turn-off-first': { color: '#c0821c', soft: 'var(--ke-sun-50)', Icon: PowerOff },
+  'case-by-case': { color: 'var(--color-text-muted)', soft: 'var(--ke-mist)', Icon: CircleHelp },
 }
 
 const BENCHMARK_LABEL: Record<CheckupResults['benchmark']['verdict'], string> = {
@@ -205,6 +212,9 @@ export default function ResultsScreen({
       {/* 3.9 — Fix-list simulator */}
       <FixListSimulator actions={fixActions} totalKwh={results.totalKwh} rate={results.rate.rate} />
 
+      {/* 3.9.4 — Outage priority (energy triage, using only the category breakdown already computed above) */}
+      <OutagePriorityCard categories={results.categories} />
+
       {/* 3.9.5 — Backup kit builder */}
       <BackupKitBuilder applianceLabel={usbBackup.label} deviceCount={usbBackup.count} watts={usbBackup.watts} />
 
@@ -354,6 +364,45 @@ function IncentiveLine({ text }: { text: string }) {
     <div style={{ display: 'flex', gap: 9, alignItems: 'flex-start' }}>
       <CircleCheck size={15} color="var(--ke-green-600)" style={{ flexShrink: 0, marginTop: 2 }} />
       <span style={{ fontSize: 13, color: 'var(--color-text-muted)', lineHeight: 1.55 }}>{text}</span>
+    </div>
+  )
+}
+
+function OutagePriorityCard({ categories }: { categories: CheckupResults['categories'] }) {
+  const rows = triageCategories(categories)
+  if (rows.length === 0) return null
+
+  return (
+    <div style={cardStyle}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+        <ListChecks size={18} color="var(--ke-green-600)" />
+        <h3 style={{ ...sectionTitle, margin: 0 }}>If the power goes, what to shed first</h3>
+      </div>
+      <p style={{ fontSize: 13.5, color: 'var(--color-text-muted)', margin: '10px 0 18px', maxWidth: 640 }}>
+        Based on your own breakdown above — not a generic list. Ranked by what actually matters most when you&apos;re
+        running on limited backup power.
+      </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {rows.map((row) => {
+          const { color, soft, Icon } = TRIAGE_TIER_STYLE[row.tier]
+          const meta = CATEGORY_META[row.category]
+          return (
+            <div key={row.category} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', background: soft, borderRadius: 12, padding: '12px 14px' }}>
+              <Icon size={16} color={color} style={{ flexShrink: 0, marginTop: 2 }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13.5 }}>{meta.label}</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '.08em', textTransform: 'uppercase', color }}>
+                    {TRIAGE_TIER_LABEL[row.tier]}
+                  </span>
+                  <span style={{ fontSize: 11.5, color: 'var(--color-text-subtle)', marginLeft: 'auto' }}>{row.pct}% of your load</span>
+                </div>
+                <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: '4px 0 0', lineHeight: 1.5 }}>{row.guidance}</p>
+              </div>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }

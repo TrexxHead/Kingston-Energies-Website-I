@@ -1,12 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { Minus, Plus, ChevronDown, ChevronUp } from 'lucide-react'
+import { Minus, Plus, ChevronDown, ChevronUp, SlidersHorizontal } from 'lucide-react'
 import { applianceKwh } from '@/lib/energyCheckup/calc'
 import { CATEGORY_META, ROOM_META, libraryFor, roomOrderFor, type ApplianceDef, type Room } from '@/lib/energyCheckup/applianceLibrary'
 import { iconFor } from './icons'
 import { wizardCard, stepHeading, stepSubhead } from './shared'
-import type { CuState } from './types'
+import type { CuState, RowAdvanced } from './types'
 
 function isZeroed(a: ApplianceDef, state: CuState): boolean {
   if (a.id === 'ac' || a.id === 'bizAc') return state.acType === 'none'
@@ -35,11 +35,22 @@ export default function AppliancesStep({ state, set }: { state: CuState; set: (p
     set({ rows: { ...state.rows, [id]: { ...current, ...patch } } })
   }
 
+  function setAdvanced(id: string, patch: Partial<RowAdvanced>) {
+    const a = library.find((x) => x.id === id)!
+    const current = state.rows[id] ?? { count: a.defaultCount, hours: a.defaultHoursPerDay, intervalDays: 1 }
+    const advanced = { ...current.advanced, ...patch }
+    // Drop the key entirely once cleared, so an empty field means "use Quick Mode's estimate" not "use 0".
+    ;(Object.keys(advanced) as (keyof RowAdvanced)[]).forEach((k) => {
+      if (advanced[k] === undefined || Number.isNaN(advanced[k])) delete advanced[k]
+    })
+    set({ rows: { ...state.rows, [id]: { ...current, advanced } } })
+  }
+
   const ctx = { acType: state.acType, waterType: state.waterType, lightType: state.lightType, fridgeAgeBand: state.fridgeAgeBand }
   const rowsWithKwh = library.map((a) => {
     const row = state.rows[a.id] ?? { count: a.defaultCount, hours: a.defaultHoursPerDay, intervalDays: 1 }
     const zeroed = isZeroed(a, state)
-    const kwh = zeroed ? 0 : applianceKwh(a, { applianceId: a.id, count: row.count, hours: row.hours, intervalDays: row.intervalDays }, ctx)
+    const kwh = zeroed ? 0 : applianceKwh(a, { applianceId: a.id, count: row.count, hours: row.hours, intervalDays: row.intervalDays, advanced: row.advanced }, ctx)
     return { a, row, zeroed, kwh }
   })
   const totalKwh = rowsWithKwh.reduce((sum, r) => sum + r.kwh, 0)
@@ -66,10 +77,34 @@ export default function AppliancesStep({ state, set }: { state: CuState; set: (p
 
   return (
     <div style={wizardCard}>
-      <h2 style={stepHeading}>What do you run?</h2>
-      <p style={stepSubhead}>Adjust counts and daily hours — the live estimate on the right updates as you go. Fold a section you don&apos;t need.</p>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <div>
+          <h2 style={stepHeading}>What do you run?</h2>
+          <p style={stepSubhead}>Adjust counts and daily hours — the live estimate on the right updates as you go. Fold a section you don&apos;t need.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => set({ advancedMode: !state.advancedMode })}
+          aria-pressed={state.advancedMode}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6, height: 32, padding: '0 12px', borderRadius: 999, cursor: 'pointer',
+            border: `1.5px solid ${state.advancedMode ? 'var(--ke-green-500)' : 'var(--color-border)'}`,
+            background: state.advancedMode ? 'var(--ke-green-50)' : '#fff',
+            color: state.advancedMode ? 'var(--ke-green-700)' : 'var(--color-text-muted)',
+            fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12.5, whiteSpace: 'nowrap',
+          }}
+        >
+          <SlidersHorizontal size={13} /> Advanced mode
+        </button>
+      </div>
+      {state.advancedMode && (
+        <p style={{ fontSize: 12, color: 'var(--color-text-subtle)', margin: '8px 0 0', maxWidth: 560 }}>
+          Enter measured watts (off the appliance&apos;s rating label), surge watts, or an observed duty cycle where you
+          have them — anything left blank still uses the Quick Mode estimate.
+        </p>
+      )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 14 }}>
         {roomOrder.map((room) => {
           const items = byRoom.get(room)
           if (!items || items.length === 0) return null
@@ -199,6 +234,30 @@ export default function AppliancesStep({ state, set }: { state: CuState; set: (p
                             </span>
                           )}
                         </div>
+
+                        {/* Line 4 — advanced technical overrides */}
+                        {state.advancedMode && !zeroed && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10, marginLeft: 56, flexWrap: 'wrap' }}>
+                            <AdvancedField
+                              label="Measured W"
+                              value={row.advanced?.measuredWatts}
+                              onChange={(v) => setAdvanced(a.id, { measuredWatts: v })}
+                            />
+                            <AdvancedField
+                              label="Surge W"
+                              value={row.advanced?.surgeWatts}
+                              onChange={(v) => setAdvanced(a.id, { surgeWatts: v })}
+                            />
+                            {a.loadType === 'cycling' && (
+                              <AdvancedField
+                                label="Duty cycle %"
+                                value={row.advanced?.dutyCyclePct}
+                                max={100}
+                                onChange={(v) => setAdvanced(a.id, { dutyCyclePct: v })}
+                              />
+                            )}
+                          </div>
+                        )}
                       </div>
                     )
                   })}
@@ -209,6 +268,26 @@ export default function AppliancesStep({ state, set }: { state: CuState; set: (p
         })}
       </div>
     </div>
+  )
+}
+
+function AdvancedField({ label, value, max, onChange }: { label: string; value: number | undefined; max?: number; onChange: (v: number | undefined) => void }) {
+  return (
+    <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <span style={{ fontSize: 11, color: 'var(--color-text-subtle)', whiteSpace: 'nowrap' }}>{label}</span>
+      <input
+        type="number"
+        min={0}
+        max={max}
+        value={value ?? ''}
+        placeholder="—"
+        onChange={(e) => onChange(e.target.value === '' ? undefined : Number(e.target.value))}
+        style={{
+          width: 64, height: 28, padding: '0 8px', borderRadius: 7, border: '1px solid var(--color-border)',
+          fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--color-text)',
+        }}
+      />
+    </label>
   )
 }
 

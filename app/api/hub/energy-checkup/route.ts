@@ -20,7 +20,18 @@ import {
 } from '@/lib/energyCheckup/calc'
 import { assembleTiers, CONTEXTUAL_TIP_BY_LEADING_CATEGORY } from '@/lib/energyCheckup/recommendations'
 
-const rowSchema = z.object({ count: z.number().min(0).max(50), hours: z.number().min(0).max(24), intervalDays: z.number().min(1).max(30).optional() })
+const advancedSchema = z.object({
+  measuredWatts: z.number().min(0).max(20_000).optional(),
+  surgeWatts: z.number().min(0).max(40_000).optional(),
+  dutyCyclePct: z.number().min(0).max(100).optional(),
+})
+
+const rowSchema = z.object({
+  count: z.number().min(0).max(50),
+  hours: z.number().min(0).max(24),
+  intervalDays: z.number().min(1).max(30).optional(),
+  advanced: advancedSchema.optional(),
+})
 
 const schema = z.object({
   mode: z.enum(['home', 'biz']),
@@ -88,7 +99,7 @@ export async function POST(request: Request) {
 
   const library = libraryFor(d.mode)
   const rows = new Map<string, ApplianceRow>(
-    Object.entries(d.rows).map(([id, r]) => [id, { applianceId: id, count: r.count, hours: r.hours, intervalDays: r.intervalDays }]),
+    Object.entries(d.rows).map(([id, r]) => [id, { applianceId: id, count: r.count, hours: r.hours, intervalDays: r.intervalDays, advanced: r.advanced }]),
   )
   const ctx = { acType: d.acType, waterType: d.waterType, lightType: d.lightType, fridgeAgeBand: d.fridgeAgeBand }
 

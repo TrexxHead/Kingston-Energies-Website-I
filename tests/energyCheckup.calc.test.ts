@@ -186,3 +186,40 @@ describe('annualCostAtRate', () => {
     expect(annualCostAtRate(491, 52)).toBe(Math.round(491 * 52 * 12))
   })
 })
+
+describe('applianceKwh — Advanced Mode overrides', () => {
+  const fridge = HOUSEHOLD_LIBRARY.find((a) => a.id === 'fridge')!
+  const ac = HOUSEHOLD_LIBRARY.find((a) => a.id === 'ac')!
+  const ctx = { acType: 'split' as const }
+
+  it('leaving advanced unset reproduces the Quick Mode number exactly', () => {
+    const row = { applianceId: 'fridge', count: 1, hours: 10 }
+    const withEmptyAdvanced = { ...row, advanced: {} }
+    expect(applianceKwh(fridge, withEmptyAdvanced, ctx)).toBe(applianceKwh(fridge, row, ctx))
+  })
+
+  it('measuredWatts overrides the library/context wattage', () => {
+    const row = { applianceId: 'fridge', count: 1, hours: 10, advanced: { measuredWatts: 200 } }
+    const expected = (200 * 10 * 1 * 30) / 1000
+    expect(applianceKwh(fridge, row, ctx)).toBeCloseTo(expected)
+  })
+
+  it('dutyCyclePct replaces the hours slider only for a cycling loadType', () => {
+    const row = { applianceId: 'fridge', count: 1, hours: 10, advanced: { dutyCyclePct: 40 } }
+    const expectedHours = 24 * 0.4
+    expect(applianceKwh(fridge, row, ctx)).toBeCloseTo((140 * expectedHours * 1 * 30) / 1000)
+  })
+
+  it('dutyCyclePct is ignored for a non-cycling appliance (ac is loadType cycling too — use a constant one)', () => {
+    const fans = HOUSEHOLD_LIBRARY.find((a) => a.id === 'fans')!
+    const withDuty = { applianceId: 'fans', count: 3, hours: 8, advanced: { dutyCyclePct: 50 } }
+    const withoutDuty = { applianceId: 'fans', count: 3, hours: 8 }
+    expect(applianceKwh(fans, withDuty, ctx)).toBe(applianceKwh(fans, withoutDuty, ctx))
+  })
+
+  it('surgeWatts has no effect on the kWh estimate — it is only for the surge-capacity check', () => {
+    const row = { applianceId: 'ac', count: 1, hours: 8, advanced: { surgeWatts: 3000 } }
+    const withoutSurge = { applianceId: 'ac', count: 1, hours: 8 }
+    expect(applianceKwh(ac, row, ctx)).toBe(applianceKwh(ac, withoutSurge, ctx))
+  })
+})

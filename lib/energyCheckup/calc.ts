@@ -1,12 +1,29 @@
 import type { ApplianceDef, AcType, WaterType, LightType, Category } from './applianceLibrary'
 import { contextWatts, ageMultiplier, CATEGORY_META } from './applianceLibrary'
 
+/**
+ * Optional, user-entered technical overrides — Advanced Mode. Every field is
+ * optional and additive: leaving them unset reproduces exactly the Quick
+ * Mode calculation. Real data the household provides about their own
+ * equipment (a measured watts reading off the label, an observed duty
+ * cycle) is never estimated *for* them once they've supplied it.
+ */
+export interface ApplianceAdvanced {
+  /** Overrides the library/context wattage — e.g. read directly off the appliance's rating label. */
+  measuredWatts?: number
+  /** Startup/surge draw, for the backup-power surge-capacity check — not used in the kWh estimate itself. */
+  surgeWatts?: number
+  /** Only applied for a 'cycling' loadType appliance — replaces the hours-per-day slider with 24h × this fraction. */
+  dutyCyclePct?: number
+}
+
 export interface ApplianceRow {
   applianceId: string
   count: number
   hours: number
   /** Days between uses — 1 = every day (the default), 2 = every other day, 7 = weekly, etc. */
   intervalDays?: number
+  advanced?: ApplianceAdvanced
 }
 
 export interface HouseholdContext {
@@ -26,10 +43,11 @@ export interface HouseholdContext {
 // --- 4.1 Per-appliance estimate -------------------------------------------
 
 export function applianceKwh(appliance: ApplianceDef, row: ApplianceRow, ctx: HouseholdContext): number {
-  const watts = contextWatts(appliance, ctx)
+  const watts = row.advanced?.measuredWatts ?? contextWatts(appliance, ctx)
   const mult = ageMultiplier(appliance, ctx.fridgeAgeBand)
   const interval = row.intervalDays && row.intervalDays > 0 ? row.intervalDays : 1
-  const avgHoursPerDay = row.hours / interval
+  const dutyCycle = row.advanced?.dutyCyclePct
+  const avgHoursPerDay = appliance.loadType === 'cycling' && dutyCycle != null ? 24 * (dutyCycle / 100) : row.hours / interval
   return (watts * avgHoursPerDay * row.count * 30) / 1000 * mult
 }
 

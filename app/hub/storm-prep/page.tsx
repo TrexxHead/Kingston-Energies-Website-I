@@ -47,7 +47,9 @@ interface CheckupSignal {
 }
 
 interface DeviceSignal {
+  name: string
   hasBattery: boolean
+  usableWh: number | null
 }
 
 // The catalog's own picks for a storm kit — real products, real prices, no
@@ -62,7 +64,7 @@ export default function StormPrepPage() {
   const [loaded, setLoaded] = useState(false)
   const [checkup, setCheckup] = useState<CheckupSignal | null>(null)
   const [checkupLoaded, setCheckupLoaded] = useState(false)
-  const [hasBackupDevice, setHasBackupDevice] = useState(false)
+  const [devices, setDevices] = useState<DeviceSignal[]>([])
   const [devicesLoaded, setDevicesLoaded] = useState(false)
 
   useEffect(() => {
@@ -82,8 +84,8 @@ export default function StormPrepPage() {
 
     fetch('/api/hub/devices')
       .then((r) => (r.ok ? r.json() : { devices: [] }))
-      .then((d: { devices: DeviceSignal[] }) => setHasBackupDevice((d.devices ?? []).some((dev) => dev.hasBattery)))
-      .catch(() => setHasBackupDevice(false))
+      .then((d: { devices: DeviceSignal[] }) => setDevices(d.devices ?? []))
+      .catch(() => setDevices([]))
       .finally(() => setDevicesLoaded(true))
   }, [])
 
@@ -119,9 +121,19 @@ export default function StormPrepPage() {
   // invents a number for dimensions (food/water, medication, comms) this
   // build doesn't track yet — those show as "not tracked yet" instead.
   const signalsLoaded = loaded && checkupLoaded && devicesLoaded
+  const hasBackupDevice = devices.some((d) => d.hasBattery)
   const checkupScore = checkup ? 100 : 0
   const backupScore = hasBackupDevice ? 100 : 0
   const readinessScore = signalsLoaded ? Math.round((pct + checkupScore + backupScore) / 3) : null
+
+  // Household energy reserve — total usable Wh across every registered
+  // device with a known real capacity spec. Devices with no derivable
+  // capacity (e.g. a power station with no listed Wh) are counted separately
+  // rather than silently dropped, so the total is never presented as
+  // "everything you own" when it's really "everything we can measure."
+  const reserveDevices = devices.filter((d) => d.usableWh !== null)
+  const totalReserveWh = reserveDevices.reduce((sum, d) => sum + (d.usableWh ?? 0), 0)
+  const unmeasuredBackupDevices = devices.filter((d) => d.hasBattery && d.usableWh === null)
 
   const kitItems = KIT_PRODUCT_IDS.map((id) => CATALOG.find((p) => p.id === id)).filter((p): p is Product => Boolean(p))
 
@@ -245,6 +257,48 @@ export default function StormPrepPage() {
               </div>
             </div>
           </div>
+
+          {devicesLoaded && devices.length > 0 && (
+            <div style={{ ...wizardCard, marginBottom: 18 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <BatteryCharging size={16} color="var(--ke-green-600)" />
+                <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 17, margin: 0 }}>Household energy reserve</h3>
+              </div>
+              <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: '6px 0 16px', maxWidth: 560 }}>
+                Usable capacity across everything you&apos;ve registered under{' '}
+                <Link href="/hub/devices" style={{ color: 'var(--ke-green-600)' }}>My devices</Link>, after real-world
+                battery losses — not the raw advertised total.
+              </p>
+
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 14 }}>
+                <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 30, color: 'var(--ke-green-700)' }}>
+                  {totalReserveWh >= 1000 ? `${(totalReserveWh / 1000).toFixed(2)} kWh` : `${Math.round(totalReserveWh)} Wh`}
+                </span>
+                <span style={{ fontSize: 12.5, color: 'var(--color-text-muted)' }}>
+                  usable, across {reserveDevices.length} registered device{reserveDevices.length === 1 ? '' : 's'}
+                </span>
+              </div>
+
+              {reserveDevices.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: unmeasuredBackupDevices.length ? 14 : 0 }}>
+                  {reserveDevices.map((d, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: 'var(--color-text-muted)' }}>
+                      <span>{d.name}</span>
+                      <span style={{ fontVariantNumeric: 'tabular-nums' }}>≈{Math.round(d.usableWh ?? 0)} Wh usable</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {unmeasuredBackupDevices.length > 0 && (
+                <p style={{ fontSize: 11.5, color: 'var(--color-text-subtle)', margin: 0 }}>
+                  {unmeasuredBackupDevices.map((d) => d.name).join(', ')} {unmeasuredBackupDevices.length === 1 ? 'has' : 'have'} a
+                  battery but no listed capacity spec, so {unmeasuredBackupDevices.length === 1 ? "it's" : "they're"} not counted in
+                  the total above rather than guessed at.
+                </p>
+              )}
+            </div>
+          )}
 
           <div style={{ ...wizardCard, marginBottom: 18 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4, flexWrap: 'wrap', gap: 8 }}>

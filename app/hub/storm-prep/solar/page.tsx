@@ -6,6 +6,7 @@ import Topbar from '../../_components/Topbar'
 import { wizardCard } from '../../energy-checkup/_components/shared'
 import { Field, inputStyle } from '@/components/shop/ui'
 import StormPrepSubNav from '../_components/SubNav'
+import CalcExplainer from '../_components/CalcExplainer'
 import { CATALOG } from '@/lib/catalog'
 import { estimateSolarRecharge, SKY_CONDITION_META, type SkyCondition } from '@/lib/energyCheckup/solarRecharge'
 
@@ -68,6 +69,19 @@ export default function SolarRechargePage() {
                 </div>
               </div>
             )}
+
+            <CalcExplainer>
+              <p style={{ margin: '0 0 8px' }}>
+                Low estimate = {PANEL_RATED_WATTS}W × {SKY_CONDITION_META[condition].derate[0]} × sun hours. High
+                estimate = {PANEL_RATED_WATTS}W × {SKY_CONDITION_META[condition].derate[1]} × sun hours.
+              </p>
+              <p style={{ margin: 0 }}>
+                The {(SKY_CONDITION_META[condition].derate[0] * 100).toFixed(0)}–{(SKY_CONDITION_META[condition].derate[1] * 100).toFixed(0)}% derate
+                accounts for the gap between a panel&apos;s lab-tested rated wattage and what it actually puts out
+                outdoors — angle to the sun, heat, and cloud cover. It does not account for charge-controller losses
+                beyond what&apos;s already folded into the derate band.
+              </p>
+            </CalcExplainer>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: 'var(--ke-mist)', borderRadius: 14, padding: '14px 18px' }}>

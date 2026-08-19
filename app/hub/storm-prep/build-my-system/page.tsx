@@ -8,6 +8,7 @@ import { useCart } from '@/components/cart/CartContext'
 import { useToast } from '@/components/cart/ToastContext'
 import { Button } from '@/components/shop/ui'
 import StormPrepSubNav from '../_components/SubNav'
+import CalcExplainer from '../_components/CalcExplainer'
 import { resolveTiers } from '@/lib/energyCheckup/backupSystemTiers'
 
 const TIERS = resolveTiers()
@@ -75,6 +76,15 @@ export default function BuildMySystemPage() {
             Not sure which tier fits your household? Run the <a href="/hub/energy-checkup" style={{ color: 'var(--ke-green-600)' }}>Energy Checkup</a> first
             — it estimates what you actually need to keep running.
           </p>
+
+          <div style={{ maxWidth: 480, marginTop: 8 }}>
+            <CalcExplainer>
+              <p style={{ margin: 0 }}>
+                Each tier total is the live sum of that tier&apos;s product prices from the shop catalog — never a
+                separately hardcoded figure — so a catalog price change is reflected here automatically.
+              </p>
+            </CalcExplainer>
+          </div>
         </div>
       </div>
     </>

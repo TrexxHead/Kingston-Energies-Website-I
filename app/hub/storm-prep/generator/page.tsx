@@ -6,6 +6,7 @@ import Topbar from '../../_components/Topbar'
 import { wizardCard } from '../../energy-checkup/_components/shared'
 import { Field, inputStyle, Button } from '@/components/shop/ui'
 import StormPrepSubNav from '../_components/SubNav'
+import CalcExplainer from '../_components/CalcExplainer'
 import { sizeGenerator, CO_SAFETY_RULES, type GeneratorLoadItem } from '@/lib/energyCheckup/generatorAssistant'
 
 interface DraftLoad {
@@ -115,6 +116,19 @@ export default function GeneratorAssistantPage() {
                   )}
                   . Buy with headroom above this, not right up to it.
                 </div>
+
+                <CalcExplainer>
+                  <p style={{ margin: '0 0 8px' }}>
+                    Running total = the sum of every appliance&apos;s running watts. Suggested size = running total −
+                    the running watts of whichever appliance has the largest startup surge, + that surge figure — so
+                    the moment it kicks on, everything else is already accounted for.
+                  </p>
+                  <p style={{ margin: 0 }}>
+                    Startup surges are usually brief (a second or two) and don&apos;t typically overlap if you stagger
+                    what you switch on, which is why only the single largest one is added rather than all of them
+                    stacked together.
+                  </p>
+                </CalcExplainer>
               </div>
             )}
           </div>

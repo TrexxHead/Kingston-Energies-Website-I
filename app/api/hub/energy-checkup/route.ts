@@ -45,6 +45,35 @@ const schema = z.object({
 })
 
 /**
+ * Tells the signed-in user's dashboard whether they've ever completed an
+ * Energy Checkup, and if so, what it found — a real signal for the Storm
+ * Readiness score rather than a fabricated one. Returns null (not a 0/empty
+ * checkup) when none exists, so callers can distinguish "hasn't done it" from
+ * "did it and it came back near-zero."
+ */
+export async function GET() {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) return NextResponse.json({ checkup: null })
+
+  const latest = await prisma.energyCheckup.findFirst({
+    where: { userId: session.user.id },
+    orderBy: { createdAt: 'desc' },
+    select: { id: true, mode: true, estimatedKwh: true, backup: true, createdAt: true },
+  })
+  if (!latest) return NextResponse.json({ checkup: null })
+
+  return NextResponse.json({
+    checkup: {
+      id: latest.id,
+      mode: latest.mode === 'HOME' ? 'home' : 'biz',
+      estimatedKwh: latest.estimatedKwh,
+      hasBackup: latest.backup ?? null,
+      completedAt: latest.createdAt.toISOString(),
+    },
+  })
+}
+
+/**
  * Runs the whole Energy Usage Checkup calculation server-side (never trusting
  * a client-computed number for what gets stored) and saves the session. The
  * live wizard also runs this same calc engine client-side for instant

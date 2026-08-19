@@ -4,15 +4,13 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { BatteryCharging, Info } from 'lucide-react'
 import { CATALOG, capacityWh, fmt, type Product } from '@/lib/catalog'
+import { wattHours, usableWh, runtimeHours } from '@/lib/energyCheckup/backupPower'
 import { useCart } from '@/components/cart/CartContext'
 import { useToast } from '@/components/cart/ToastContext'
 import { Button } from '@/components/shop/ui'
 import { wizardCard } from './shared'
 
 const HOURS_OPTIONS = [8, 24, 72]
-// Roundtrip loss (USB conversion, self-discharge, never draining a bank to
-// literally 0%) — a standard sizing margin, not a claim about any one product.
-const HEADROOM = 1.2
 
 interface BackupKitBuilderProps {
   /** Which checkup appliance this is sized from — always a USB/DC-powered
@@ -50,21 +48,30 @@ export default function BackupKitBuilder({ applianceLabel, deviceCount, watts }:
       .catch(() => {})
   }, [])
 
-  const requiredWh = watts * count * hours * HEADROOM
+  // Raw energy the devices will draw — comparisons below go against each
+  // bank's usable Wh (via the shared backupPower engine), not its raw
+  // advertised capacity, since a USB power bank never delivers 100% of its
+  // stated mAh out the port either (conversion loss, self-discharge, the BMS
+  // never draining literally to 0%).
+  const requiredWh = wattHours(watts * count, hours)
 
   const powerbanks = useMemo(
     () =>
       CATALOG.filter((p) => p.cat === 'powerbanks')
-        .map((p) => ({ product: p, capWh: capacityWh(p), price: livePrices[p.id] ?? p.price }))
-        .filter((r): r is { product: Product; capWh: number; price: number } => r.capWh !== null)
-        .sort((a, b) => a.capWh - b.capWh),
+        .map((p) => {
+          const capWh = capacityWh(p)
+          return { product: p, capWh, usableWh: capWh !== null ? usableWh(capWh) : null, price: livePrices[p.id] ?? p.price }
+        })
+        .filter((r): r is { product: Product; capWh: number; usableWh: number; price: number } => r.capWh !== null && r.usableWh !== null)
+        .sort((a, b) => a.usableWh - b.usableWh),
     [livePrices],
   )
 
-  const fits = powerbanks.filter((p) => p.capWh >= requiredWh)
+  const fits = powerbanks.filter((p) => p.usableWh >= requiredWh)
   const best = fits.length > 0 ? fits.reduce((a, b) => (b.price < a.price ? b : a)) : null
   const biggest = powerbanks[powerbanks.length - 1] ?? null
-  const unitsNeeded = !best && biggest ? Math.ceil(requiredWh / biggest.capWh) : null
+  const unitsNeeded = !best && biggest ? Math.ceil(requiredWh / biggest.usableWh) : null
+  const bestRuntimeHours = best ? runtimeHours(best.usableWh, watts * count) : null
 
   return (
     <div style={{ ...wizardCard, marginBottom: 18, background: '#0d1714', color: '#eaf2ec' }}>
@@ -113,7 +120,8 @@ export default function BackupKitBuilder({ applianceLabel, deviceCount, watts }:
       </div>
 
       <div style={{ fontSize: 12.5, color: 'rgba(234,242,236,.55)', marginBottom: 14 }}>
-        ≈ {Math.round(requiredWh)} Wh needed, with a {Math.round((HEADROOM - 1) * 100)}% margin for real-world efficiency.
+        ≈ {Math.round(requiredWh)} Wh of draw — compared against each bank&apos;s usable capacity, not its raw advertised
+        mAh (a battery never delivers 100% of that out the port).
       </div>
 
       {best ? (
@@ -121,7 +129,9 @@ export default function BackupKitBuilder({ applianceLabel, deviceCount, watts }:
           <div>
             <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15 }}>{best.product.name}</div>
             <div style={{ fontSize: 12, color: 'rgba(234,242,236,.55)', marginTop: 2 }}>
-              {Math.round(best.capWh)} Wh capacity — covers this with room to spare · {fmt(best.price)}
+              {Math.round(best.capWh)} Wh capacity (≈{Math.round(best.usableWh)} Wh usable)
+              {bestRuntimeHours !== null ? ` — ≈${Math.round(bestRuntimeHours)}h of runtime at this load` : ' — covers this with room to spare'}
+              {' · '}{fmt(best.price)}
             </div>
           </div>
           <Button
@@ -140,7 +150,7 @@ export default function BackupKitBuilder({ applianceLabel, deviceCount, watts }:
             <div>
               <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15 }}>{biggest.product.name}</div>
               <div style={{ fontSize: 12, color: 'rgba(234,242,236,.55)', marginTop: 2 }}>
-                {Math.round(biggest.capWh)} Wh each — you&apos;d need {unitsNeeded} to fully cover this, or run fewer devices / a shorter window
+                {Math.round(biggest.capWh)} Wh each (≈{Math.round(biggest.usableWh)} Wh usable) — you&apos;d need {unitsNeeded} to fully cover this, or run fewer devices / a shorter window
               </div>
             </div>
             <Button

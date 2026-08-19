@@ -8,6 +8,7 @@ const TABS = [
   { href: '/hub/storm-prep/command-centre', label: 'Command centre' },
   { href: '/hub/storm-prep/checklist', label: 'Checklist' },
   { href: '/hub/storm-prep/outage', label: 'Outage' },
+  { href: '/hub/storm-prep/recover', label: 'Recover' },
   { href: '/hub/storm-prep/energy-budget', label: 'Energy budget' },
   { href: '/hub/storm-prep/brownout', label: 'Brownout' },
   { href: '/hub/storm-prep/solar', label: 'Solar' },

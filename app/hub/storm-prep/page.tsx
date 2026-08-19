@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { CloudLightning, ExternalLink, Gauge, BatteryCharging, ClipboardList, PowerOff, ListChecks } from 'lucide-react'
+import { CloudLightning, ExternalLink, Gauge, BatteryCharging, ClipboardList, PowerOff, ListChecks, Briefcase } from 'lucide-react'
 import Topbar from '../_components/Topbar'
 import { wizardCard } from '../energy-checkup/_components/shared'
 import StormPrepSubNav from './_components/SubNav'
@@ -10,6 +10,21 @@ import OfflineCard from './_components/OfflineCard'
 import { CATEGORY_LABEL, loadChecked, loadCachedContent, syncContent, type ChecklistCategory, type StormPrepContent } from './_lib/checklist'
 import { computeReserve, fetchDevices, type DeviceSignal } from './_lib/reserve'
 import { buildNextActions } from './_lib/accountability'
+import { PHASE_META, PHASE_ORDER, inferPhase, type StormPhase } from './_lib/phase'
+import { loadProfile, isProfileComplete, type StormProfile, EMPTY_PROFILE } from './_lib/profile'
+
+const OUTAGE_KEY = 'ke-storm-outage'
+const PHASE_OVERRIDE_KEY = 'ke-storm-phase-override'
+
+function isOutageActive(): boolean {
+  try {
+    const raw = localStorage.getItem(OUTAGE_KEY)
+    if (!raw) return false
+    return Boolean(JSON.parse(raw)?.startedAt)
+  } catch {
+    return false
+  }
+}
 
 function hasLocalStorageContent(key: string): boolean {
   try {
@@ -40,11 +55,22 @@ export default function StormPrepDashboard() {
   const [devicesLoaded, setDevicesLoaded] = useState(false)
   const [familyPlanSaved, setFamilyPlanSaved] = useState(false)
   const [resourcesTracked, setResourcesTracked] = useState(false)
+  const [outageActive, setOutageActive] = useState(false)
+  const [phaseOverride, setPhaseOverride] = useState<StormPhase | null>(null)
+  const [profile, setProfile] = useState<StormProfile>(EMPTY_PROFILE)
+  const [profileLoaded, setProfileLoaded] = useState(false)
 
   useEffect(() => {
     setChecked(loadChecked())
     setFamilyPlanSaved(hasLocalStorageContent('ke-storm-family-plan'))
     setResourcesTracked(hasLocalStorageContent('ke-storm-my-resources'))
+    setOutageActive(isOutageActive())
+    setProfile(loadProfile())
+    setProfileLoaded(true)
+    try {
+      const raw = localStorage.getItem(PHASE_OVERRIDE_KEY)
+      if (raw) setPhaseOverride(JSON.parse(raw))
+    } catch { /* ignore */ }
     setLoaded(true)
     syncContent().then((fresh) => {
       if (fresh) setContent(fresh)
@@ -99,6 +125,15 @@ export default function StormPrepDashboard() {
       })
     : []
 
+  const currentPhase: StormPhase = phaseOverride ?? inferPhase({ outageActive, checklistPct: pct })
+
+  function setPhase(phase: StormPhase) {
+    setPhaseOverride(phase)
+    try {
+      localStorage.setItem(PHASE_OVERRIDE_KEY, JSON.stringify(phase))
+    } catch { /* ignore */ }
+  }
+
   return (
     <>
       <Topbar title="Storm prep" subtitle="Get ready before an outage, not during one" />
@@ -126,6 +161,68 @@ export default function StormPrepDashboard() {
               — this page is prep guidance, not a live weather alert.
             </p>
           </div>
+
+          <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>
+            {PHASE_ORDER.map((phase) => {
+              const active = phase === currentPhase
+              return (
+                <button
+                  key={phase}
+                  type="button"
+                  onClick={() => setPhase(phase)}
+                  title={PHASE_META[phase].description}
+                  style={{
+                    flex: '1 1 120px', padding: '10px 14px', borderRadius: 12, cursor: 'pointer',
+                    border: active ? '1.5px solid var(--ke-green-500)' : '1.5px solid var(--color-border)',
+                    background: active ? 'var(--ke-green-50)' : '#fff',
+                    fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '.1em',
+                    color: active ? 'var(--ke-green-700)' : 'var(--color-text-subtle)', fontWeight: 700,
+                  }}
+                >
+                  {PHASE_META[phase].short}
+                </button>
+              )
+            })}
+          </div>
+          <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', marginTop: -12, marginBottom: 18 }}>
+            {PHASE_META[currentPhase].description}
+            {phaseOverride && (
+              <>
+                {' '}
+                <button
+                  type="button"
+                  onClick={() => { setPhaseOverride(null); localStorage.removeItem(PHASE_OVERRIDE_KEY) }}
+                  style={{ border: 'none', background: 'none', color: 'var(--ke-green-600)', cursor: 'pointer', fontSize: 12.5, padding: 0 }}
+                >
+                  Reset to automatic
+                </button>
+              </>
+            )}
+          </p>
+
+          {profileLoaded && !isProfileComplete(profile) && (
+            <Link href="/hub/storm-prep/setup" style={{ textDecoration: 'none' }}>
+              <div style={{ ...wizardCard, display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18, background: 'var(--ke-green-50)', border: '1px solid var(--ke-green-200, #b8e0c4)' }}>
+                <ClipboardList size={18} color="var(--ke-green-600)" style={{ flexShrink: 0 }} />
+                <div>
+                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13.5 }}>Set up your storm profile</div>
+                  <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>Under a minute — tailors what gets emphasized here.</div>
+                </div>
+              </div>
+            </Link>
+          )}
+
+          {profileLoaded && profile.propertyType === 'business' && (
+            <Link href="/business-power-continuity" style={{ textDecoration: 'none' }}>
+              <div style={{ ...wizardCard, display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
+                <Briefcase size={18} color="var(--ke-green-600)" style={{ flexShrink: 0 }} />
+                <div>
+                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13.5 }}>Business continuity planning</div>
+                  <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>Your storm profile says this is for a business — see the dedicated continuity guide.</div>
+                </div>
+              </div>
+            </Link>
+          )}
 
           <Link href="/hub/storm-prep/outage" style={{ textDecoration: 'none' }}>
             <div

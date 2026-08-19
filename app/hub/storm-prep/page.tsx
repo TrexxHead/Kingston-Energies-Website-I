@@ -7,7 +7,7 @@ import Topbar from '../_components/Topbar'
 import { wizardCard } from '../energy-checkup/_components/shared'
 import StormPrepSubNav from './_components/SubNav'
 import OfflineCard from './_components/OfflineCard'
-import { CHECKLIST, CATEGORY_LABEL, loadChecked, type ChecklistCategory } from './_lib/checklist'
+import { CATEGORY_LABEL, loadChecked, loadCachedContent, syncContent, type ChecklistCategory, type StormPrepContent } from './_lib/checklist'
 
 interface CheckupSignal {
   id: string
@@ -24,6 +24,7 @@ interface DeviceSignal {
 }
 
 export default function StormPrepDashboard() {
+  const [content, setContent] = useState<StormPrepContent>(() => loadCachedContent())
   const [checked, setChecked] = useState<Set<string>>(new Set())
   const [loaded, setLoaded] = useState(false)
   const [checkup, setCheckup] = useState<CheckupSignal | null>(null)
@@ -34,6 +35,9 @@ export default function StormPrepDashboard() {
   useEffect(() => {
     setChecked(loadChecked())
     setLoaded(true)
+    syncContent().then((fresh) => {
+      if (fresh) setContent(fresh)
+    })
   }, [])
 
   useEffect(() => {
@@ -50,12 +54,15 @@ export default function StormPrepDashboard() {
       .finally(() => setDevicesLoaded(true))
   }, [])
 
-  const done = checked.size
-  const pct = Math.round((done / CHECKLIST.length) * 100)
+  // Counted against the current admin-edited checklist, not the raw
+  // checked-id set — an id checked before an admin removed that item
+  // shouldn't inflate completion against a shorter or different list.
+  const done = content.checklist.filter((i) => checked.has(i.id)).length
+  const pct = content.checklist.length ? Math.round((done / content.checklist.length) * 100) : 0
 
   const categoryPct: Record<ChecklistCategory, number> = { power: 0, light: 0, food: 0, records: 0 }
   ;(Object.keys(CATEGORY_LABEL) as ChecklistCategory[]).forEach((cat) => {
-    const items = CHECKLIST.filter((i) => i.category === cat)
+    const items = content.checklist.filter((i) => i.category === cat)
     const doneInCat = items.filter((i) => checked.has(i.id)).length
     categoryPct[cat] = items.length ? Math.round((doneInCat / items.length) * 100) : 0
   })
@@ -141,7 +148,7 @@ export default function StormPrepDashboard() {
                     <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>Checklist</span>
                   </div>
                   <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 22, margin: '6px 0 2px' }}>{pct}%</div>
-                  <div style={{ fontSize: 12, color: 'var(--color-text-subtle)' }}>{done} of {CHECKLIST.length} items done</div>
+                  <div style={{ fontSize: 12, color: 'var(--color-text-subtle)' }}>{done} of {content.checklist.length} items done</div>
                 </div>
               </Link>
 

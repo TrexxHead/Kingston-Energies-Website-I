@@ -224,7 +224,7 @@ export default function ResultsScreen({
       <FixListSimulator actions={fixActions} totalKwh={results.totalKwh} rate={results.rate.rate} />
 
       {/* 3.9.4 — Outage priority (energy triage, using only the category breakdown already computed above) */}
-      <OutagePriorityCard categories={results.categories} />
+      <OutagePriorityCard categories={results.categories} appliances={results.appliances} />
 
       {/* 3.9.5 — Backup kit builder */}
       <BackupKitBuilder applianceLabel={usbBackup.label} deviceCount={usbBackup.count} watts={usbBackup.watts} />
@@ -379,8 +379,8 @@ function IncentiveLine({ text }: { text: string }) {
   )
 }
 
-function OutagePriorityCard({ categories }: { categories: CheckupResults['categories'] }) {
-  const rows = triageCategories(categories)
+function OutagePriorityCard({ categories, appliances }: { categories: CheckupResults['categories']; appliances: CheckupResults['appliances'] }) {
+  const rows = triageCategories(categories, appliances)
   if (rows.length === 0) return null
 
   return (

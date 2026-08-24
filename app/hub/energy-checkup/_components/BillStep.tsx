@@ -70,6 +70,15 @@ export default function BillStep({ state, set }: { state: CuState; set: (patch: 
         </span>
       </div>
 
+      <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: '0 0 22px', lineHeight: 1.55 }}>
+        Don&apos;t have a recent bill handy? Create a free account at{' '}
+        <a href="https://myjps.myjps.net" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--ke-green-600)', fontWeight: 600 }}>
+          myJPSonline
+        </a>{' '}
+        to view your usage history and past bills — Kingston Energies isn&apos;t affiliated with JPS, this just points
+        you to where the real numbers live.
+      </p>
+
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 22 }}>
         <div>
           <label style={fieldLabel} htmlFor="cu-bill-kwh">Bill usage (kWh)</label>

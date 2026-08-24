@@ -4,7 +4,10 @@ import { PillGroup, Stepper, wizardCard, stepHeading, stepSubhead } from './shar
 import type { CuState } from './types'
 
 const PARISHES = ['Kingston & St Andrew', 'St Catherine', 'Clarendon', 'St James', 'Other']
-const HOME_TYPES = ['Apartment', 'Townhouse', 'Detached house']
+const HOME_TYPES = [
+  'Apartment', 'Studio', 'Townhouse', 'Semi-detached house', 'Detached house',
+  'Duplex / two-family house', 'Tenement yard / shared-lot house', 'Other',
+]
 const AC_OPTIONS = [{ value: 'none', label: 'No AC' }, { value: 'window', label: 'Window unit' }, { value: 'split', label: 'Split (inverter)' }]
 const FRIDGE_AGE = [{ value: '<5', label: 'Under 5 yrs' }, { value: '5-10', label: '5–10 yrs' }, { value: '10+', label: '10+ yrs' }]
 const WATER_OPTIONS = [

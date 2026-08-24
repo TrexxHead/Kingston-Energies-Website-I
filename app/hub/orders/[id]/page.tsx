@@ -3,9 +3,12 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/authOptions'
 import { prisma } from '@/lib/prisma'
 import { fmt } from '@/lib/catalog'
+import { parseShippingAddress, guessDeliveryMethod } from '@/lib/delivery'
+import { orderEditable } from '@/lib/orderEditability'
 import Topbar from '../../_components/Topbar'
 import CancelOrderButton from '../CancelOrderButton'
 import ProofOfPaymentUpload from './ProofOfPaymentUpload'
+import EditDeliveryPaymentButton from './EditDeliveryPaymentButton'
 
 const STATUS_META: Record<string, { label: string; bg: string; fg: string }> = {
   PENDING: { label: 'Processing', bg: 'var(--ke-sun-50)', fg: 'var(--ke-sun-500)' },
@@ -24,6 +27,7 @@ export default async function HubOrderDetailPage({ params }: { params: Promise<{
   if (!order || order.userId !== session.user.id) notFound()
 
   const meta = STATUS_META[order.status] ?? STATUS_META.PENDING
+  const parsedAddress = parseShippingAddress(order.shippingAddress)
 
   return (
     <>
@@ -96,6 +100,20 @@ export default async function HubOrderDetailPage({ params }: { params: Promise<{
             <span style={{ fontWeight: 600, color: order.paid ? 'var(--ke-green-700)' : 'var(--ke-sun-500)' }}>{order.paid ? 'Paid' : 'Awaiting confirmation'}</span>
           </div>
 
+          {order.paymentMethod && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, marginTop: 6 }}>
+              <span style={{ color: 'var(--color-text-muted)' }}>Payment method</span>
+              <span style={{ fontWeight: 600 }}>{order.paymentMethod}</span>
+            </div>
+          )}
+
+          {order.shippingAddress && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', fontSize: 13, marginTop: 6, gap: 12 }}>
+              <span style={{ color: 'var(--color-text-muted)', flexShrink: 0 }}>{order.shippingAddress.startsWith('Pickup:') ? 'Pickup' : 'Delivering to'}</span>
+              <span style={{ fontWeight: 600, textAlign: 'right' }}>{order.shippingAddress}</span>
+            </div>
+          )}
+
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--color-border)', flexWrap: 'wrap' }}>
             <a href={`/track?no=${encodeURIComponent(order.orderNo)}`} style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '.14em', color: 'var(--ke-green-700)' }}>
               TRACK DELIVERY →
@@ -110,6 +128,19 @@ export default async function HubOrderDetailPage({ params }: { params: Promise<{
             </a>
             <CancelOrderButton orderId={order.id} status={order.status} cancelReason={order.cancelReason} />
           </div>
+
+          {orderEditable(order) && (
+            <div style={{ marginTop: 16 }}>
+              <EditDeliveryPaymentButton
+                orderId={order.id}
+                initialDeliveryMethod={guessDeliveryMethod(order.items, order.shippingAddress)}
+                initialStreet={parsedAddress.street}
+                initialParish={parsedAddress.parish}
+                initialPickupLocationIndex={parsedAddress.pickupLocationIndex}
+                initialPaymentMethod={order.paymentMethod}
+              />
+            </div>
+          )}
         </div>
 
         {!order.paid && order.status !== 'CANCELLED' && (

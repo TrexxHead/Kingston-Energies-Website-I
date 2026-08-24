@@ -12,7 +12,7 @@ import { useCart } from '@/components/cart/CartContext'
 import { useToast } from '@/components/cart/ToastContext'
 import { fmt } from '@/lib/catalog'
 import { linkifyText } from '@/lib/linkify'
-import { deliveryFee, deliveryTimeframe, PICKUP_LOCATIONS, type DeliveryMethod } from '@/lib/delivery'
+import { deliveryFee, deliveryTimeframe, PICKUP_LOCATIONS, PARISHES, type DeliveryMethod } from '@/lib/delivery'
 import { CAMPAIGN_CLICK_COOKIE } from '@/lib/campaignClick'
 
 /** Reads a first-party cookie by name — used for the campaign-click attribution cookie set in CampaignClickCapture. */
@@ -28,8 +28,6 @@ const DELIVERY_METHODS: { id: DeliveryMethod; label: string }[] = [
   { id: 'express', label: 'Express' },
   { id: 'pickup', label: 'Pickup' },
 ]
-const PARISHES = ['Kingston', 'St. Andrew', 'St. Catherine', 'Clarendon', 'Manchester', 'St. James']
-
 interface PayMethod {
   id: string
   label: string
@@ -114,8 +112,13 @@ function CheckoutInner() {
 
   const placeOrder = async () => {
     if (!selected) return
+    if (!name.trim() || !phone.trim()) {
+      setStep(0)
+      pushToast('x', 'Missing contact info', 'Please add your full name and a phone number.')
+      return
+    }
     setPlacing(true)
-    const customerName = name.trim() || session?.user?.name || 'Guest checkout'
+    const customerName = name.trim()
     const payloadItems = items.map((i) => ({ name: i.name, price: i.price, qty: i.qty }))
     const isPickup = deliveryMethod === 'pickup'
     const shippingAddress = isPickup
@@ -235,11 +238,14 @@ function CheckoutInner() {
         <div style={{ background: '#fff', border: '1px solid var(--color-border)', borderRadius: 22, padding: 30, marginTop: 22, boxShadow: 'var(--shadow-md)' }}>
           {step === 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <Field label="Full name"><input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your full name" style={inputStyle} /></Field>
+              <Field label="Full name *"><input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your full name" style={inputStyle} /></Field>
               <div className="kp-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                <Field label="Phone"><input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="876…" style={inputStyle} /></Field>
+                <Field label="Phone *"><input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="876…" style={inputStyle} /></Field>
                 <Field label="Email"><input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="you@example.com" style={inputStyle} /></Field>
               </div>
+              <p style={{ fontSize: 12, color: 'var(--color-text-subtle)', margin: '-8px 0 0' }}>
+                We need a name and phone number so we can actually reach you about this order.
+              </p>
               <div>
                 <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, color: 'var(--color-text)' }}>Delivery</span>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>
@@ -391,7 +397,7 @@ function CheckoutInner() {
               <Button
                 onClick={() => setStep((s) => s + 1)}
                 iconRight={<ArrowRight size={17} />}
-                disabled={(step === 0 && deliveryMethod !== 'pickup' && !street.trim()) || (step === 1 && !selected)}
+                disabled={(step === 0 && (!name.trim() || !phone.trim() || (deliveryMethod !== 'pickup' && !street.trim()))) || (step === 1 && !selected)}
               >
                 Continue
               </Button>

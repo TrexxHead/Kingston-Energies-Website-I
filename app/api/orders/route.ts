@@ -19,7 +19,10 @@ import { withOrderNoRetry } from '@/lib/orderNo'
 const orderSchema = z.object({
   customerName: z.string().min(1).max(120),
   email: z.string().email().max(160).optional(),
-  phone: z.string().max(40).optional(),
+  // Required — an order with no way to reach the customer is a support
+  // problem waiting to happen (see the delivery/payment edit flow, which
+  // depends on being able to contact them).
+  phone: z.string().min(7).max(40),
   shippingAddress: z.string().max(400).optional(),
   billingAddress: z.string().max(400).optional(),
   cartId: z.string().max(60).optional(),

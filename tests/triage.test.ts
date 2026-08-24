@@ -35,4 +35,21 @@ describe('triageCategories', () => {
       expect(meta.guidance.length).toBeGreaterThan(10)
     }
   })
+
+  it('personalises cooling guidance when the appliances show fans only, no AC', () => {
+    const categories = [{ category: 'cooling', kwh: 40, pct: 39 }]
+    const appliances = [{ id: 'fans', kwh: 40 }]
+    const rows = triageCategories(categories, appliances)
+    expect(rows[0].guidance).toMatch(/don't have AC/i)
+    expect(rows[0].guidance).not.toMatch(/air conditioning is typically/i)
+    // Still shed first, regardless of the wording — fans are still the lightest priority.
+    expect(rows[0].tier).toBe('turn-off-first')
+  })
+
+  it('keeps the generic AC-aware guidance when AC actually contributed to the cooling load', () => {
+    const categories = [{ category: 'cooling', kwh: 100, pct: 40 }]
+    const appliances = [{ id: 'ac', kwh: 85 }, { id: 'fans', kwh: 15 }]
+    const rows = triageCategories(categories, appliances)
+    expect(rows[0].guidance).toMatch(/air conditioning is typically/i)
+  })
 })

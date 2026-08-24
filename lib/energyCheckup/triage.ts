@@ -59,13 +59,40 @@ export interface TriageRow {
   guidance: string
 }
 
+// Appliance library ids that actually mean "AC" (household and business
+// versions) — used to tell a cooling category driven by AC apart from one
+// that's fans/extractor only, so the guidance never talks about "your AC"
+// to someone who doesn't have one.
+const AC_APPLIANCE_IDS = new Set(['ac', 'bizAc'])
+
 /**
  * Ranks the checkup's own category breakdown by triage priority during an
  * outage — no new appliance data, just re-reading what the checkup already
  * computed through a "what matters most on limited backup power" lens.
+ *
+ * The cooling category's guidance is personalised against the actual
+ * appliance rows: someone whose cooling load is entirely fans (no AC
+ * reported) gets told that directly, instead of generic "AC is your
+ * biggest drain" copy that doesn't match what they actually run.
  */
-export function triageCategories(categories: { category: string; kwh: number; pct: number }[]): TriageRow[] {
+export function triageCategories(
+  categories: { category: string; kwh: number; pct: number }[],
+  appliances: { id: string; kwh: number }[] = [],
+): TriageRow[] {
   return categories
     .filter((c): c is { category: Category; kwh: number; pct: number } => c.category in CATEGORY_TRIAGE)
-    .map((c) => ({ ...c, ...CATEGORY_TRIAGE[c.category] }))
+    .map((c) => {
+      const meta = CATEGORY_TRIAGE[c.category]
+      if (c.category === 'cooling' && c.kwh > 0) {
+        const acKwh = appliances.filter((a) => AC_APPLIANCE_IDS.has(a.id)).reduce((s, a) => s + a.kwh, 0)
+        if (acKwh <= 0) {
+          return {
+            ...c,
+            tier: meta.tier,
+            guidance: "You don't have AC in this checkup — this is fans, which draw far less. Still worth switching off first since every watt of runtime counts.",
+          }
+        }
+      }
+      return { ...c, ...meta }
+    })
 }

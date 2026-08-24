@@ -341,6 +341,24 @@ export default function OrdersSection() {
     load()
   }
 
+  const [paymentMethodBusy, setPaymentMethodBusy] = useState(false)
+  const [editingPaymentMethod, setEditingPaymentMethod] = useState(false)
+
+  const setPaymentMethod = async (id: string, paymentMethod: string) => {
+    setPaymentMethodBusy(true)
+    const res = await fetch(`/api/admin/orders/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paymentMethod }),
+    })
+    if (res.ok) {
+      setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, paymentMethod } : o)))
+      setDetail((d) => (d && d.id === id ? { ...d, paymentMethod } : d))
+      setEditingPaymentMethod(false)
+    }
+    setPaymentMethodBusy(false)
+  }
+
   const resetNewOrder = () => {
     setNewOrder({ customerName: '', contact: '', email: '', phone: '', shippingAddress: '', source: 'FACE_TO_FACE', paymentMethod: '', paid: false })
     setNewItems([{ name: '', price: '', qty: '1' }])
@@ -424,6 +442,7 @@ export default function OrdersSection() {
     setCustomerNote('')
     setInternalNote('')
     setNoteDraft('')
+    setEditingPaymentMethod(false)
     setDetail(card)
   }
 
@@ -716,10 +735,34 @@ export default function OrdersSection() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid var(--color-border)', paddingTop: 12 }}>
             <SectionLabel>Payment</SectionLabel>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13 }}>
-              <span style={{ fontWeight: 600 }}>{detail.paymentMethod ? PAYMENT_LABEL[detail.paymentMethod] ?? detail.paymentMethod : 'N/A'}</span>
-              {detail.paid ? <Badge tone="green" dot>Paid</Badge> : <Badge tone="orange" dot>Unpaid</Badge>}
-            </div>
+            {editingPaymentMethod ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <select
+                  defaultValue={detail.paymentMethod ?? ''}
+                  onChange={(e) => setPaymentMethod(detail.id, e.target.value)}
+                  disabled={paymentMethodBusy}
+                  style={detailSelect}
+                >
+                  <option value="" disabled>Choose a method…</option>
+                  {Object.entries(PAYMENT_LABEL).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+                </select>
+                <Button size="sm" variant="outline" onClick={() => setEditingPaymentMethod(false)} disabled={paymentMethodBusy}>Cancel</Button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13 }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontWeight: 600 }}>{detail.paymentMethod ? PAYMENT_LABEL[detail.paymentMethod] ?? detail.paymentMethod : 'N/A'}</span>
+                  <button
+                    type="button"
+                    onClick={() => setEditingPaymentMethod(true)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: 'var(--ke-green-700,#15803d)', padding: 0 }}
+                  >
+                    Change
+                  </button>
+                </span>
+                {detail.paid ? <Badge tone="green" dot>Paid</Badge> : <Badge tone="orange" dot>Unpaid</Badge>}
+              </div>
+            )}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <span style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <a href={`/api/admin/orders/${detail.id}/invoice`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>

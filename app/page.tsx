@@ -33,7 +33,9 @@ export default async function Home() {
 
   const minPriceByGroup: Record<string, number | null> = {}
   for (const [group, cats] of Object.entries(LINEUP_GROUPS)) {
-    const inGroup = products.filter((p) => cats.includes(p.cat))
+    // Only in-stock items count toward "FROM" — a price nobody can actually
+    // buy at right now is a misleading floor to advertise.
+    const inGroup = products.filter((p) => cats.includes(p.cat) && p.inStock)
     minPriceByGroup[group] = inGroup.length ? Math.min(...inGroup.map((p) => p.price)) : null
   }
   const stationsFeatured = products.find((p) => p.id === 'st300')

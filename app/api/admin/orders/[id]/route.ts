@@ -11,8 +11,9 @@ const patchSchema = z
   .object({
     status: z.enum(['PENDING', 'PACKED', 'OUT', 'DONE', 'CANCELLED']).optional(),
     paid: z.boolean().optional(),
+    paymentMethod: z.enum(['bank', 'lynk', 'paypal', 'cod', 'card', 'fygaro']).optional(),
   })
-  .refine((d) => d.status !== undefined || d.paid !== undefined, { message: 'Nothing to update' })
+  .refine((d) => d.status !== undefined || d.paid !== undefined || d.paymentMethod !== undefined, { message: 'Nothing to update' })
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const denied = await guardAdmin()
@@ -23,7 +24,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (!parsed.success) return NextResponse.json({ error: 'Invalid update' }, { status: 400 })
 
   try {
-    const before = await prisma.order.findUnique({ where: { id }, select: { paid: true, invoicedAt: true, status: true, items: true } })
+    const before = await prisma.order.findUnique({ where: { id }, select: { paid: true, invoicedAt: true, status: true, items: true, paymentMethod: true } })
     const order = await prisma.order.update({
       where: { id },
       data: {
@@ -33,8 +34,21 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           ? { status: parsed.data.status, ...(parsed.data.status !== 'CANCELLED' ? { stage: stageForStatus(parsed.data.status) } : {}) }
           : {}),
         ...(parsed.data.paid !== undefined ? { paid: parsed.data.paid } : {}),
+        ...(parsed.data.paymentMethod !== undefined ? { paymentMethod: parsed.data.paymentMethod } : {}),
       },
     })
+
+    if (parsed.data.paymentMethod !== undefined && before && before.paymentMethod !== parsed.data.paymentMethod) {
+      await prisma.orderEvent.create({
+        data: {
+          orderId: id,
+          type: 'NOTE',
+          label: 'Payment method changed',
+          note: `${before.paymentMethod ?? 'none'} → ${parsed.data.paymentMethod}`,
+          adminOnly: false,
+        },
+      }).catch(() => {})
+    }
 
     // Cancelling restocks inventory, same as a customer-initiated cancel.
     if (parsed.data.status === 'CANCELLED' && before && before.status !== 'CANCELLED') {

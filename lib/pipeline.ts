@@ -28,6 +28,11 @@ export const PIPELINE: PipelineStage[] = [
 
 export const LAST_STAGE = PIPELINE.length - 1
 
+// The stage index at which an order is "out for delivery" — the cutoff past
+// which a customer can no longer edit their own delivery/payment details,
+// since the courier may already be en route with the old information.
+export const OUT_FOR_DELIVERY_STAGE = PIPELINE.findIndex((s) => s.key === 'out')
+
 // Stage-change emails only go out for the milestones customers actually care
 // about — Order Received, Payment Verified, Out for Delivery, Delivered.
 // Every other stage still updates the tracking page and in-app notification,

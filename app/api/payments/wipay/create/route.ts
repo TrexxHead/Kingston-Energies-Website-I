@@ -20,7 +20,7 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 const bodySchema = z.object({
   customerName: z.string().min(1).max(120),
   email: z.string().email().optional(),
-  phone: z.string().max(40).optional(),
+  phone: z.string().min(7).max(40),
   shippingAddress: z.string().max(400).optional(),
   billingAddress: z.string().max(400).optional(),
   cartId: z.string().max(60).optional(),

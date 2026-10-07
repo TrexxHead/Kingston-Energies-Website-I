@@ -167,6 +167,12 @@ export const NAV: NavGroup[] = [
         keywords: 'calendar day date schedule income expense month',
       },
       {
+        href: `${BASE}/finance/quotations`,
+        label: 'Quotations',
+        description: 'Follow up quote requests and convert them into orders',
+        keywords: 'quotes leads potentials requests convert bulk request a quote',
+      },
+      {
         href: `${BASE}/finance/sales`,
         label: 'Sales',
         description: 'What sold, to whom, and what it earned',

@@ -2,10 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { guardAdmin } from '@/lib/requireAdmin'
-import { sendNewOrderAlert } from '@/lib/email'
-import { postOrderCogs, postOrderPayment, postOrderRevenue } from '@/lib/ledger/post'
-import { fulfillOrderItems } from '@/lib/orderFulfillment'
-import { withOrderNoRetry } from '@/lib/orderNo'
+import { createManualOrder } from '@/lib/manualOrder'
 
 export async function GET() {
   const denied = await guardAdmin()
@@ -87,42 +84,8 @@ export async function POST(request: Request) {
   if (!parsed.success) return NextResponse.json({ error: 'Invalid order' }, { status: 400 })
 
   const { customerName, contact, email, phone, source, paymentMethod, paid, shippingAddress, items } = parsed.data
-  const total = items.reduce((sum, i) => sum + i.price * i.qty, 0)
 
-  const order = await withOrderNoRetry((orderNo) =>
-    prisma.$transaction(async (tx) => {
-      const created = await tx.order.create({
-        data: {
-          orderNo,
-          customerName,
-          status: 'PENDING',
-          source,
-          contact: contact ?? null,
-          email: email ?? null,
-          phone: phone ?? null,
-          shippingAddress: shippingAddress ?? null,
-          paymentMethod: paymentMethod ?? null,
-          paid: paid ?? false,
-          total,
-          items: { create: items.map((i) => ({ name: i.name, qty: i.qty, price: i.price })) },
-        },
-        include: { items: true },
-      })
-      // Staff are trusted to record a sale deliberately even if stock is off (e.g. a backorder) — never block it.
-      await fulfillOrderItems(tx, created.items.map((oi) => ({ orderItemId: oi.id, name: oi.name, qty: oi.qty })), { mode: 'allow' })
-      return created
-    })
-  )
-
-  // A manual order is a real sale — it hits the ledger exactly like a website
-  // order, which is what keeps off-site revenue inside the financial statements.
-  void postOrderRevenue({ ...order, items }).catch((err) => console.error('[ledger] manual order revenue posting failed:', err))
-  void postOrderCogs({ ...order, items }).catch((err) => console.error('[ledger] manual order COGS posting failed:', err))
-  if (order.paid) {
-    void postOrderPayment(order, order.createdAt).catch((err) => console.error('[ledger] manual order payment posting failed:', err))
-  }
-
-  void sendNewOrderAlert({ orderNo: order.orderNo, customerName, total, paymentMethod: paymentMethod ?? null, items })
+  const order = await createManualOrder({ customerName, contact, email, phone, source, paymentMethod, paid, shippingAddress, items })
 
   return NextResponse.json({ id: order.id, orderNo: order.orderNo }, { status: 201 })
 }

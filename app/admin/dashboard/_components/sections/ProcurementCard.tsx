@@ -21,6 +21,9 @@ interface PO {
   reference: string
   status: string
   amount: number | null
+  invoicedAt: string | null
+  paid: boolean
+  paidAt: string | null
   files: PFile[]
 }
 interface Supplier {
@@ -36,9 +39,9 @@ interface Supplier {
   purchaseOrders: PO[]
 }
 
-const KIND_OPTIONS = ['INVOICE', 'QUOTE', 'PRICE_LIST', 'CONTRACT', 'LINK', 'OTHER']
+const KIND_OPTIONS = ['INVOICE', 'RECEIPT', 'QUOTE', 'PRICE_LIST', 'CONTRACT', 'LINK', 'OTHER']
 const KIND_LABEL: Record<string, string> = {
-  INVOICE: 'Invoice', QUOTE: 'Quote', PRICE_LIST: 'Price list', CONTRACT: 'Contract', LINK: 'Link', OTHER: 'Doc',
+  INVOICE: 'Invoice', RECEIPT: 'Receipt', QUOTE: 'Quote', PRICE_LIST: 'Price list', CONTRACT: 'Contract', LINK: 'Link', OTHER: 'Doc',
 }
 
 const emptySupplier = { name: '', contactEmail: '', contactPhone: '', website: '', address: '', notes: '' }
@@ -144,6 +147,14 @@ export default function ProcurementCard() {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'RECEIVED' }),
+    })
+    load()
+  }
+  const togglePOFlag = async (poId: string, patch: { invoiced?: boolean; paid?: boolean }) => {
+    await fetch(`/api/admin/purchase-orders/${poId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
     })
     load()
   }
@@ -275,6 +286,25 @@ export default function ProcurementCard() {
                                 )}
                                 <button type="button" onClick={() => openAttach({ purchaseOrderId: po.id, name: po.reference })} aria-label="Attach to PO" style={iconBtn}><Paperclip size={12} /></button>
                               </span>
+                            </div>
+                            {/* Buying-side mirror of the sales quote→invoice→paid flow: track when
+                                the supplier has billed this PO and when it's actually been paid,
+                                independent of whether the goods have been received. */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6 }}>
+                              <button
+                                type="button"
+                                onClick={() => togglePOFlag(po.id, { invoiced: !po.invoicedAt })}
+                                style={{ ...plainBtn, fontSize: 11, color: po.invoicedAt ? 'var(--ke-green-700)' : 'var(--color-text-subtle)' }}
+                              >
+                                {po.invoicedAt ? '✓ Invoiced' : 'Mark invoiced'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => togglePOFlag(po.id, { paid: !po.paid })}
+                                style={{ ...plainBtn, fontSize: 11, color: po.paid ? 'var(--ke-green-700)' : 'var(--color-text-subtle)' }}
+                              >
+                                {po.paid ? '✓ Paid' : 'Mark paid'}
+                              </button>
                             </div>
                             {po.files.length > 0 && (
                               <div style={{ marginTop: 6 }}>

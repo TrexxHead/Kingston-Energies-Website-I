@@ -289,10 +289,27 @@ model Lead {
   phone     String?
   message   String   @db.Text
   status    LeadStatus @default(NEW)
+  // Structured detail from the /contact "request a quote" flow, kept
+  // alongside the free-text message rather than instead of it — present
+  // only when the enquiry came in with a product list attached, so a plain
+  // contact-form message still works with all of these null. Item prices
+  // are the real catalog price at submission time (resolved server-side in
+  // app/api/contact/route.ts), never trusted from the client.
+  quoteItems       Json?   // { name: string; price: number; qty: number }[]
+  quoteShoppingFor String?
+  quoteInterests   String[] @default([])
+  quoteArea        String?
+  quoteTimeframe   String?
+  // Set once an admin converts this quote into a real Order — the order
+  // then carries the sale forward through the normal pipeline (payment,
+  // fulfillment, invoicing) exactly like any other.
+  convertedOrderId String?  @unique
+  convertedAt      DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  convertedOrder Order? @relation(fields: [convertedOrderId], references: [id], onDelete: SetNull)
   energyCheckups EnergyCheckup[]
 }
 
@@ -415,6 +432,9 @@ model Order {
   user   User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
   items  OrderItem[]
   events OrderEvent[]
+  // The quote this order was converted from, if it started life as a
+  // request-a-quote submission rather than a direct checkout/manual sale.
+  sourceLead Lead?
 
   @@index([userId])
   // Hot filters as the orders table grows: admin views/status changes filter
@@ -490,6 +510,12 @@ model PurchaseOrder {
   status     POStatus @default(OPEN)
   amount     Float?
   notes      String?
+  // Buying-side mirror of Order's paid/invoicedAt — tracked independently of
+  // `status` (goods-received), since a PO can be invoiced or paid at a
+  // different point than when the goods actually arrive.
+  invoicedAt DateTime?
+  paid       Boolean   @default(false)
+  paidAt     DateTime?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -522,6 +548,7 @@ model ProcurementFile {
 
 enum ProcurementKind {
   INVOICE
+  RECEIPT
   QUOTE
   PRICE_LIST
   CONTRACT

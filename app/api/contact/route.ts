@@ -47,7 +47,17 @@ export async function POST(request: Request) {
 
   try {
     await prisma.lead.create({
-      data: { name, email, phone: phone || null, message },
+      data: {
+        name, email, phone: phone || null, message,
+        // Structured quote detail — kept on the record itself, not just the
+        // one-time email, so an admin can act on a real itemized request
+        // later rather than re-reading a paragraph of free text.
+        quoteItems: resolvedItems.length > 0 ? resolvedItems : undefined,
+        quoteShoppingFor: shoppingFor || null,
+        quoteInterests: interests ?? [],
+        quoteArea: area || null,
+        quoteTimeframe: timeframe || null,
+      },
     })
   } catch (error) {
     console.error('Contact form error:', error)

@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ChevronLeft, ChevronRight, Palette } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Palette, Plus, ShoppingBag } from 'lucide-react'
 import { cardStyle, h3Style } from '../ui/card'
 import Button from '../ui/Button'
 import IconButton from '../ui/IconButton'
@@ -9,6 +9,7 @@ import Modal from '../ui/Modal'
 import { fmt } from '../mockData'
 import { EXPENSE_CATEGORIES, DEFAULT_CATEGORY_COLORS } from '@/lib/finance'
 import { useExpenseCategories } from './useFinanceData'
+import CalendarOrderModal from './CalendarOrderModal'
 
 interface CalendarData {
   month: string
@@ -16,6 +17,24 @@ interface CalendarData {
   totals: { income: number; expense: number; balance: number }
   days: Record<string, { income: number; expense: number }>
   transactions: { id: string; type: 'in' | 'out'; label: string; detail: string; amount: number; date: string }[]
+}
+
+interface OrderEntry {
+  id: string
+  orderNo: string
+  customerName: string
+  status: string
+  total: number
+  estimatedDelivery: string | null
+  createdAt: string
+}
+
+const ORDER_CHIP_COLOR: Record<string, string> = {
+  PENDING: '#d97706',
+  CONFIRMED: 'var(--ke-green-600)',
+  OUT_FOR_DELIVERY: '#2563eb',
+  DELIVERED: 'var(--color-text-muted)',
+  CANCELLED: 'var(--color-danger,#dc2626)',
 }
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -43,6 +62,9 @@ export default function CalendarTab() {
   const [selected, setSelected] = useState<string>(todayKey())
   const [colors, setColors] = useState<Record<string, string>>(DEFAULT_CATEGORY_COLORS)
   const [colorsOpen, setColorsOpen] = useState(false)
+  const [orders, setOrders] = useState<OrderEntry[]>([])
+  const [orderModalDate, setOrderModalDate] = useState<string | null>(null)
+  const [hoverDay, setHoverDay] = useState<string | null>(null)
   const { categories } = useExpenseCategories()
   const categoryOptions = categories.length ? categories : [...EXPENSE_CATEGORIES]
 
@@ -56,6 +78,11 @@ export default function CalendarTab() {
     if (res.ok) setColors((await res.json()).colors)
   }, [])
 
+  const loadOrders = useCallback(async () => {
+    const res = await fetch('/api/admin/orders')
+    if (res.ok) setOrders((await res.json()).orders)
+  }, [])
+
   useEffect(() => {
     load()
   }, [load])
@@ -63,6 +90,22 @@ export default function CalendarTab() {
   useEffect(() => {
     loadColors()
   }, [loadColors])
+
+  useEffect(() => {
+    loadOrders()
+  }, [loadOrders])
+
+  // Orders scheduled to a day via estimatedDelivery show up there; everything
+  // else falls back to when it was actually placed, so nothing is dropped.
+  const ordersByDay = useMemo(() => {
+    const map: Record<string, OrderEntry[]> = {}
+    for (const o of orders) {
+      const key = (o.estimatedDelivery ?? o.createdAt).slice(0, 10)
+      if (!map[key]) map[key] = []
+      map[key].push(o)
+    }
+    return map
+  }, [orders])
 
   // Which expense categories touched each day — used to dot-mark cells and
   // color the day's transaction list, without changing what the aggregate
@@ -102,6 +145,7 @@ export default function CalendarTab() {
   }, [month])
 
   const dayTransactions = data?.transactions.filter((t) => t.date === selected) ?? []
+  const dayOrders = ordersByDay[selected] ?? []
 
   if (!data) {
     return (
@@ -119,9 +163,14 @@ export default function CalendarTab() {
             <ChevronLeft size={16} />
           </IconButton>
           <h3 style={{ ...h3Style, margin: 0 }}>{data.monthLabel}</h3>
-          <IconButton label="Next month" onClick={() => setMonth((m) => monthShift(m, 1))}>
-            <ChevronRight size={16} />
-          </IconButton>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <IconButton label="Next month" onClick={() => setMonth((m) => monthShift(m, 1))}>
+              <ChevronRight size={16} />
+            </IconButton>
+            <Button size="sm" variant="primary" onClick={() => setOrderModalDate(selected)} iconRight={<Plus size={14} />}>
+              New order
+            </Button>
+          </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 4, marginBottom: 6 }}>
@@ -137,13 +186,17 @@ export default function CalendarTab() {
             const d = data.days[cell.key]
             const isSelected = cell.key === selected
             const isToday = cell.key === todayKey()
+            const cellOrders = ordersByDay[cell.key] ?? []
             return (
               <button
                 key={cell.key}
                 type="button"
                 onClick={() => setSelected(cell.key)}
+                onMouseEnter={() => setHoverDay(cell.key)}
+                onMouseLeave={() => setHoverDay((h) => (h === cell.key ? null : h))}
                 style={{
-                  minHeight: 62,
+                  position: 'relative',
+                  minHeight: 68,
                   padding: '6px 4px',
                   borderRadius: 10,
                   border: isSelected ? '1.5px solid var(--ke-green-500)' : '1px solid transparent',
@@ -157,6 +210,31 @@ export default function CalendarTab() {
                   textAlign: 'center',
                 }}
               >
+                {hoverDay === cell.key && cell.inMonth && (
+                  <span
+                    role="button"
+                    aria-label="New order on this day"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setOrderModalDate(cell.key)
+                    }}
+                    style={{
+                      position: 'absolute',
+                      top: 3,
+                      right: 3,
+                      width: 16,
+                      height: 16,
+                      borderRadius: 5,
+                      background: 'var(--ke-green-600)',
+                      color: '#fff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Plus size={11} />
+                  </span>
+                )}
                 <span
                   style={{
                     fontSize: 12.5,
@@ -176,6 +254,26 @@ export default function CalendarTab() {
                     -{fmt(d.expense)}
                   </span>
                 ) : null}
+                {cellOrders.length > 0 && (
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 2,
+                      fontSize: 9,
+                      fontWeight: 700,
+                      color: '#fff',
+                      background: ORDER_CHIP_COLOR[cellOrders[0].status] ?? 'var(--color-text-muted)',
+                      borderRadius: 999,
+                      padding: '1px 5px',
+                      lineHeight: 1.3,
+                      maxWidth: '100%',
+                    }}
+                  >
+                    <ShoppingBag size={8} />
+                    {cellOrders.length > 1 ? `${cellOrders.length} orders` : cellOrders[0].customerName}
+                  </span>
+                )}
                 {categoriesByDay[cell.key]?.length ? (
                   <span style={{ display: 'flex', gap: 2, marginTop: 1 }}>
                     {categoriesByDay[cell.key].slice(0, 5).map((cat) => (
@@ -225,8 +323,26 @@ export default function CalendarTab() {
         <h3 style={h3Style}>
           {new Date(selected).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' })}
         </h3>
+        {dayOrders.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', marginBottom: 6 }}>
+            {dayOrders.map((o) => (
+              <a
+                key={o.id}
+                href="/admin/dashboard/orders"
+                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: '1px solid var(--color-border)', textDecoration: 'none', color: 'inherit' }}
+              >
+                <span style={{ width: 9, height: 9, borderRadius: '50%', background: ORDER_CHIP_COLOR[o.status] ?? 'var(--color-text-muted)', flexShrink: 0 }} />
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13.5 }}>{o.customerName}</span>
+                  <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}> · {o.orderNo} · {o.status.replace(/_/g, ' ').toLowerCase()}</span>
+                </span>
+                <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14 }}>{fmt(o.total)}</span>
+              </a>
+            ))}
+          </div>
+        )}
         {dayTransactions.length === 0 ? (
-          <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: 0 }}>Nothing moved on this day.</p>
+          dayOrders.length === 0 && <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: 0 }}>Nothing moved on this day.</p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {dayTransactions.map((t) => (
@@ -263,6 +379,17 @@ export default function CalendarTab() {
           onSaved={(next) => {
             setColors(next)
             setColorsOpen(false)
+          }}
+        />
+      )}
+
+      {orderModalDate && (
+        <CalendarOrderModal
+          defaultDate={orderModalDate}
+          onClose={() => setOrderModalDate(null)}
+          onCreated={() => {
+            setOrderModalDate(null)
+            loadOrders()
           }}
         />
       )}

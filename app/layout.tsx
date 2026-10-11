@@ -9,6 +9,7 @@ import AnnouncementBar from '@/components/AnnouncementBar'
 import JsonLd from '@/components/JsonLd'
 import GoogleAnalytics from '@/components/GoogleAnalytics'
 import { WebVitals } from '@/components/WebVitals'
+import { ClientLogger } from '@/components/ClientLogger'
 import StorefrontTheme from '@/components/StorefrontTheme'
 import { siteGraph } from '@/lib/structuredData'
 import { keFontVariables } from './_design-system/fonts'
@@ -90,6 +91,7 @@ export default function RootLayout({
           <CookieConsent />
           <GoogleAnalytics />
           <WebVitals />
+          <ClientLogger />
           <StorefrontTheme />
         </Providers>
       </body>

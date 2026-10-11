@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/authOptions'
 import { guardSuperAdmin } from '@/lib/requireAdmin'
+import { logActivity } from '@/lib/activityLog'
 
 /** Revoke an admin's access (demotes them back to a regular customer account). */
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -16,7 +17,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     return NextResponse.json({ error: "You can't remove your own admin access." }, { status: 400 })
   }
 
-  const target = await prisma.user.findUnique({ where: { id }, select: { role: true } })
+  const target = await prisma.user.findUnique({ where: { id }, select: { role: true, email: true } })
   if (!target || target.role === 'USER') return NextResponse.json({ error: 'Admin not found' }, { status: 404 })
 
   if (target.role === 'SUPER_ADMIN') {
@@ -27,5 +28,13 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   }
 
   await prisma.user.update({ where: { id }, data: { role: 'USER' } })
+
+  logActivity({
+    label: `Admin access revoked: ${target.email}`,
+    entity: 'user',
+    entityId: id,
+    actorEmail: session?.user?.email ?? null,
+  })
+
   return NextResponse.json({ ok: true })
 }

@@ -6,6 +6,7 @@ import { authOptions } from '@/lib/authOptions'
 import { guardAdmin } from '@/lib/requireAdmin'
 import { postEntry, reverseEntry } from '@/lib/ledger/post'
 import { ACC, EXPENSE_CATEGORY_ACCOUNT } from '@/lib/ledger/chart'
+import { logActivity } from '@/lib/activityLog'
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const denied = await guardAdmin()
@@ -83,6 +84,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const updated = await prisma.expense.update({
     where: { id },
     data: { category: d.category, description: d.description || null, amount: d.amount, spentAt },
+  })
+
+  logActivity({
+    label: `Expense corrected: ${expense.category} ${expense.amount} → ${updated.category} ${updated.amount}`,
+    detail: d.reason,
+    entity: 'expense',
+    entityId: id,
+    actorEmail: adminEmail,
   })
 
   // If this expense already made it onto the ledger, reverse that entry and

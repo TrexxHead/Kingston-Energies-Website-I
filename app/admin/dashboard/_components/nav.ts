@@ -254,6 +254,15 @@ export const NAV: NavGroup[] = [
     icon: 'settings',
     href: `${BASE}/settings`,
     description: 'Admins, access and site configuration',
+    children: [
+      { href: `${BASE}/settings`, label: 'Overview', description: 'Admins, access and site configuration' },
+      {
+        href: `${BASE}/settings/logs`,
+        label: 'Logs',
+        description: 'Changelog, admin activity and error/health signals',
+        keywords: 'changelog version deploy activity audit trail error health status',
+      },
+    ],
   },
 ]
 

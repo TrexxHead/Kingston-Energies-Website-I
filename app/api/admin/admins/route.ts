@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { guardAdmin, guardSuperAdmin } from '@/lib/requireAdmin'
+import { guardAdmin, guardSuperAdmin, requireAdmin } from '@/lib/requireAdmin'
 import { hashPassword } from '@/lib/password'
+import { logActivity } from '@/lib/activityLog'
 
 /** Engagement status thresholds. */
 const ACTIVE_MS = 5 * 60 * 1000 // seen in last 5 min → active
@@ -70,6 +71,14 @@ export async function POST(request: Request) {
       // to be able to log in immediately.
       emailVerified: new Date(),
     },
+  })
+
+  const session = await requireAdmin().catch(() => null)
+  logActivity({
+    label: `Admin account created: ${email} (${role})`,
+    entity: 'user',
+    entityId: user.id,
+    actorEmail: session?.user?.email ?? null,
   })
 
   return NextResponse.json({ id: user.id, email: user.email, role: user.role }, { status: 201 })

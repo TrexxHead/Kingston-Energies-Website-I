@@ -3,6 +3,7 @@ import { sendNewOrderAlert } from '@/lib/email'
 import { postOrderCogs, postOrderPayment, postOrderRevenue } from '@/lib/ledger/post'
 import { fulfillOrderItems } from '@/lib/orderFulfillment'
 import { withOrderNoRetry } from '@/lib/orderNo'
+import { logActivity } from '@/lib/activityLog'
 
 export interface ManualOrderInput {
   customerName: string
@@ -22,6 +23,9 @@ export interface ManualOrderInput {
   // backdate an order they're only getting around to entering later. Flows
   // into the ledger postings too, so the revenue lands on the right date.
   createdAt?: Date | null
+  // Who recorded this, for the Settings → Logs activity trail. Null for the
+  // quote-conversion path, which isn't tied to a single admin's click.
+  actorEmail?: string | null
   items: { name: string; price: number; qty: number }[]
 }
 
@@ -39,7 +43,7 @@ export interface ManualOrderInput {
  * exact path instead of a second, drifting copy of the same logic.
  */
 export async function createManualOrder(input: ManualOrderInput) {
-  const { customerName, contact, email, phone, source, paymentMethod, paid, shippingAddress, estimatedDelivery, createdAt, items } = input
+  const { customerName, contact, email, phone, source, paymentMethod, paid, shippingAddress, estimatedDelivery, createdAt, actorEmail, items } = input
   const total = items.reduce((sum, i) => sum + i.price * i.qty, 0)
 
   const order = await withOrderNoRetry((orderNo) =>
@@ -78,6 +82,14 @@ export async function createManualOrder(input: ManualOrderInput) {
   }
 
   void sendNewOrderAlert({ orderNo: order.orderNo, customerName, total, paymentMethod: paymentMethod ?? null, items })
+
+  logActivity({
+    label: `Manual order ${order.orderNo} recorded for ${customerName}`,
+    detail: `${source} · ${items.length} item${items.length === 1 ? '' : 's'}`,
+    entity: 'order',
+    entityId: order.id,
+    actorEmail: actorEmail ?? null,
+  })
 
   return order
 }

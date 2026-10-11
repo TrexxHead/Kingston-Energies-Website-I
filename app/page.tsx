@@ -41,7 +41,7 @@ export default async function Home() {
   const stationsFeatured = products.find((p) => p.id === 'st300')
 
   return (
-    <div style={{ fontFamily: 'var(--font-body)', color: '#eaf2ec', background: '#0d1714', minHeight: '100vh' }}>
+    <div style={{ fontFamily: 'var(--font-body)', color: 'var(--ke-dark-text)', background: 'var(--ke-dark-bg)', minHeight: '100vh' }}>
       <Navbar />
       <main>
         <div style={{ position: 'relative' }}>

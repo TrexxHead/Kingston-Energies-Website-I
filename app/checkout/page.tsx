@@ -241,7 +241,9 @@ function CheckoutInner() {
               <Field label="Full name *"><input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your full name" style={inputStyle} /></Field>
               <div className="kp-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <Field label="Phone *"><input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="876…" style={inputStyle} /></Field>
-                <Field label="Email"><input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="you@example.com" style={inputStyle} /></Field>
+                <Field label="Email" hint="For your receipt and order updates">
+                  <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="you@example.com" style={inputStyle} />
+                </Field>
               </div>
               <p style={{ fontSize: 12, color: 'var(--color-text-subtle)', margin: '-8px 0 0' }}>
                 We need a name and phone number so we can actually reach you about this order.

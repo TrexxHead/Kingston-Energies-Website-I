@@ -106,6 +106,7 @@ export default function ProductClient({ product, initialReviews = [] }: { produc
 
   // Detail-page photos: the product's own gallery, else just its main image.
   const gallery = (product.gallery?.length ? product.gallery : product.image ? [product.image] : []) as string[]
+  const [activeImage, setActiveImage] = useState(gallery[0] ?? product.image)
 
   // Spec cells shown under the buy button — only render the ones this product has.
   // Admin-managed specifications (from Inventory) come first, then the curated
@@ -202,14 +203,25 @@ export default function ProductClient({ product, initialReviews = [] }: { produc
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ position: 'relative', width: '100%', aspectRatio: '1', borderRadius: 28, overflow: 'hidden', background: '#eef3ee', boxShadow: 'var(--shadow-md)' }}>
-            <ProductImage src={product.image} alt={product.name} cat={product.cat} sizes="(max-width: 900px) 100vw, 600px" iconSize={72} priority />
+            <ProductImage src={activeImage ?? product.image} alt={product.name} cat={product.cat} sizes="(max-width: 900px) 100vw, 600px" iconSize={72} priority />
           </div>
           {gallery.length > 1 && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12 }}>
-              {gallery.slice(0, 8).map((src) => (
-                <div key={src} style={{ position: 'relative', width: '100%', aspectRatio: '1', borderRadius: 14, overflow: 'hidden', background: '#eef3ee' }}>
-                  <Image src={src} alt={product.name} fill sizes="120px" style={{ objectFit: 'cover' }} />
-                </div>
+              {gallery.slice(0, 8).map((src, i) => (
+                <button
+                  key={src}
+                  type="button"
+                  onClick={() => setActiveImage(src)}
+                  aria-label={`View photo ${i + 1} of ${product.name}`}
+                  aria-current={activeImage === src}
+                  style={{
+                    position: 'relative', width: '100%', aspectRatio: '1', borderRadius: 14, overflow: 'hidden',
+                    background: '#eef3ee', padding: 0, cursor: 'pointer',
+                    border: activeImage === src ? '2px solid var(--ke-green-500)' : '2px solid transparent',
+                  }}
+                >
+                  <Image src={src} alt="" fill sizes="120px" style={{ objectFit: 'cover' }} />
+                </button>
               ))}
             </div>
           )}

@@ -32,7 +32,7 @@ const PHASES = [
 
 export default function Roadmap() {
   return (
-    <section id="ke-roadmap" style={{ background: '#0d1714', padding: '110px 0', position: 'relative' }}>
+    <section id="ke-roadmap" style={{ background: 'var(--ke-dark-bg)', padding: '110px 0', position: 'relative' }}>
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 32px' }}>
         <Reveal>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, letterSpacing: '.3em', color: 'var(--ke-green-400)' }}>

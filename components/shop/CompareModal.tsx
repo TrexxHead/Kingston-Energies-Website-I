@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import Link from 'next/link'
 import { X, Table2, SlidersHorizontal } from 'lucide-react'
 import { CATALOG, fmt, type Product } from '@/lib/catalog'
@@ -19,11 +19,51 @@ const ROWS: { label: string; render: (p: Product) => string }[] = [
   { label: 'Warranty', render: (p) => p.warranty ?? 'N/A' },
 ]
 
+const FOCUSABLE = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+
 export default function CompareModal({ onClose }: { onClose: () => void }) {
   const { addItem } = useCart()
   const { pushToast } = useToast()
   const [view, setView] = useState<'table' | 'detail'>('table')
   const [focusedId, setFocusedId] = useState<string | null>(null)
+  const titleId = useId()
+  const dialogRef = useRef<HTMLDivElement | null>(null)
+  const returnFocusRef = useRef<HTMLElement | null>(null)
+
+  // Standard modal-dialog behavior: focus moves in on open, Escape closes,
+  // Tab/Shift+Tab stay inside, and focus returns to whatever opened this.
+  useEffect(() => {
+    returnFocusRef.current = document.activeElement as HTMLElement | null
+    const node = dialogRef.current
+    const focusable = node?.querySelectorAll<HTMLElement>(FOCUSABLE)
+    ;(focusable?.[0] ?? node)?.focus()
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation()
+        onClose()
+        return
+      }
+      if (e.key !== 'Tab' || !dialogRef.current) return
+      const items = Array.from(dialogRef.current.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => el.offsetParent !== null)
+      if (items.length === 0) return
+      const first = items[0]
+      const last = items[items.length - 1]
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+    document.addEventListener('keydown', onKeyDown, true)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown, true)
+      returnFocusRef.current?.focus?.()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Overlay live prices from the DB (admin inventory) onto the catalog rows.
   const [livePrices, setLivePrices] = useState<Record<string, number>>({})
@@ -84,9 +124,14 @@ export default function CompareModal({ onClose }: { onClose: () => void }) {
       }}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: '#fff',
+          background: 'var(--color-surface)',
           borderRadius: 24,
           maxWidth: 1020,
           width: '100%',
@@ -97,10 +142,11 @@ export default function CompareModal({ onClose }: { onClose: () => void }) {
           color: 'var(--color-text)',
           animation: 'keUp .3s var(--ease-out)',
           overflow: 'hidden',
+          outline: 'none',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '26px 30px 18px', gap: 16, flexWrap: 'wrap' }}>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 24, letterSpacing: '-.02em', margin: 0 }}>
+          <h2 id={titleId} style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 24, letterSpacing: '-.02em', margin: 0 }}>
             Compare power banks
           </h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -109,7 +155,7 @@ export default function CompareModal({ onClose }: { onClose: () => void }) {
                 type="button"
                 aria-pressed={view === 'table'}
                 onClick={() => setView('table')}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, height: 32, padding: '0 12px', borderRadius: 999, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, background: view === 'table' ? '#fff' : 'transparent', color: 'var(--color-text)', boxShadow: view === 'table' ? '0 1px 3px rgba(0,0,0,.12)' : 'none' }}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, height: 32, padding: '0 12px', borderRadius: 999, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, background: view === 'table' ? 'var(--color-surface)' : 'transparent', color: 'var(--color-text)', boxShadow: view === 'table' ? '0 1px 3px rgba(0,0,0,.12)' : 'none' }}
               >
                 <Table2 size={13} /> Table
               </button>
@@ -117,7 +163,7 @@ export default function CompareModal({ onClose }: { onClose: () => void }) {
                 type="button"
                 aria-pressed={view === 'detail'}
                 onClick={() => setView('detail')}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, height: 32, padding: '0 12px', borderRadius: 999, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, background: view === 'detail' ? '#fff' : 'transparent', color: 'var(--color-text)', boxShadow: view === 'detail' ? '0 1px 3px rgba(0,0,0,.12)' : 'none' }}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, height: 32, padding: '0 12px', borderRadius: 999, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, background: view === 'detail' ? 'var(--color-surface)' : 'transparent', color: 'var(--color-text)', boxShadow: view === 'detail' ? '0 1px 3px rgba(0,0,0,.12)' : 'none' }}
               >
                 <SlidersHorizontal size={13} /> Details
               </button>
@@ -126,7 +172,7 @@ export default function CompareModal({ onClose }: { onClose: () => void }) {
               type="button"
               aria-label="Close"
               onClick={onClose}
-              style={{ width: 34, height: 34, borderRadius: 10, border: '1px solid var(--color-border)', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
+              style={{ width: 34, height: 34, borderRadius: 10, border: '1px solid var(--color-border)', background: 'var(--color-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
             >
               <X size={16} />
             </button>

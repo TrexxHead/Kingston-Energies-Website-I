@@ -78,9 +78,9 @@ export default function ShopClient({ products }: { products: ShopProduct[] }) {
                     fontWeight: 600,
                     fontSize: 12.5,
                     whiteSpace: 'nowrap',
-                    border: `1.5px solid ${selected ? '#0d1714' : 'var(--color-border)'}`,
-                    background: selected ? '#0d1714' : '#fff',
-                    color: selected ? '#fff' : 'var(--color-text)',
+                    border: `1.5px solid ${selected ? 'var(--ke-dark-bg)' : 'var(--color-border)'}`,
+                    background: selected ? 'var(--ke-dark-bg)' : 'var(--color-surface)',
+                    color: selected ? 'var(--ke-dark-text)' : 'var(--color-text)',
                   }}
                 >
                   {pill.label}
@@ -118,11 +118,32 @@ export default function ShopClient({ products }: { products: ShopProduct[] }) {
           </button>
         </div>
 
-        <div className="kp-3col" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 20, marginTop: 20 }}>
-          {visible.map((p) => (
-            <ProductCard key={p.id} product={p} initialSaved={savedIds.has(p.id)} onCompare={() => setCompareOpen(true)} />
-          ))}
-        </div>
+        {visible.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '64px 20px', marginTop: 20 }}>
+            <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, margin: 0 }}>
+              {q ? `No products match "${q}".` : 'Nothing in this category yet.'}
+            </p>
+            <p style={{ fontSize: 14, color: 'var(--color-text-muted)', margin: '8px 0 20px' }}>
+              {q ? 'Try a different search term or browse a category instead.' : 'Try a different category, or see everything we carry.'}
+            </p>
+            <button
+              type="button"
+              onClick={() => { setCats(['all']); setQuery('') }}
+              style={{
+                border: '1.5px solid var(--ke-dark-bg)', background: 'var(--ke-dark-bg)', color: 'var(--ke-dark-text)',
+                borderRadius: 999, padding: '10px 20px', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, cursor: 'pointer',
+              }}
+            >
+              Show all products
+            </button>
+          </div>
+        ) : (
+          <div className="kp-3col" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 20, marginTop: 20 }}>
+            {visible.map((p) => (
+              <ProductCard key={p.id} product={p} initialSaved={savedIds.has(p.id)} onCompare={() => setCompareOpen(true)} />
+            ))}
+          </div>
+        )}
       </section>
 
       {compareOpen && <CompareModal onClose={() => setCompareOpen(false)} />}

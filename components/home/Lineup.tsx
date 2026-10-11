@@ -58,7 +58,7 @@ export default function Lineup({ minPrices, powerbanksImage, stationsImage }: Li
     },
   ]
   return (
-    <section id="ke-lineup" style={{ background: '#0d1714', padding: '110px 0 90px', position: 'relative' }}>
+    <section id="ke-lineup" style={{ background: 'var(--ke-dark-bg)', padding: '110px 0 90px', position: 'relative' }}>
       <div style={{ maxWidth: 1240, margin: '0 auto', padding: '0 32px' }}>
         <Reveal
           style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}
@@ -81,7 +81,7 @@ export default function Lineup({ minPrices, powerbanksImage, stationsImage }: Li
                   border: '1px solid rgba(255,255,255,.09)',
                   borderRadius: 22,
                   overflow: 'hidden',
-                  background: '#111e1a',
+                  background: 'var(--ke-dark-card)',
                   transition: 'transform .3s var(--ease-standard),border-color .3s var(--ease-standard)',
                 }}
                 onMouseEnter={(e) => {

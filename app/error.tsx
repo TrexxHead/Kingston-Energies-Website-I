@@ -5,8 +5,13 @@ import Link from 'next/link'
 
 export default function Error({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
-    // In production wire this to your error tracker (Sentry, etc.).
     console.error(error)
+    void fetch('/api/client-log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ level: 'ERROR', message: error.message, stack: error.stack, path: location.pathname }),
+      keepalive: true,
+    }).catch(() => {})
   }, [error])
 
   return (

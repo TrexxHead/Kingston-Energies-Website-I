@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { guardAdmin } from '@/lib/requireAdmin'
+import { guardAdmin, requireAdmin } from '@/lib/requireAdmin'
 import { sendBulkEmail, wrapEmailHtml } from '@/lib/email'
 import { notifyUser } from '@/lib/notify'
 import { PIPELINE, clampStage, statusForStage, stageEmailsOnMove, LAST_STAGE } from '@/lib/pipeline'
+import { logActivity } from '@/lib/activityLog'
 
 const schema = z.object({
   // Either set an absolute stage or advance by one.
@@ -46,6 +47,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const events: { orderId: string; type: string; label?: string | null; note?: string | null; adminOnly?: boolean }[] = []
   if (moved) {
     events.push({ orderId: id, type: 'STAGE', label: def.label, note: customerNote?.trim() || def.blurb, adminOnly: false })
+    const session = await requireAdmin().catch(() => null)
+    logActivity({
+      label: `Order ${order.orderNo} moved to "${def.label}"`,
+      entity: 'order',
+      entityId: order.id,
+      actorEmail: session?.user?.email ?? null,
+    })
   } else if (customerNote?.trim()) {
     events.push({ orderId: id, type: 'NOTE', label: def.label, note: customerNote.trim(), adminOnly: false })
   }

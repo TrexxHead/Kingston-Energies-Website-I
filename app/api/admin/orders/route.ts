@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { guardAdmin } from '@/lib/requireAdmin'
+import { guardAdmin, requireAdmin } from '@/lib/requireAdmin'
 import { createManualOrder } from '@/lib/manualOrder'
 
 export async function GET() {
@@ -90,6 +90,7 @@ export async function POST(request: Request) {
   if (!parsed.success) return NextResponse.json({ error: 'Invalid order' }, { status: 400 })
 
   const { customerName, contact, email, phone, source, paymentMethod, paid, shippingAddress, estimatedDelivery, orderDate, items } = parsed.data
+  const session = await requireAdmin().catch(() => null)
 
   const order = await createManualOrder({
     customerName,
@@ -102,6 +103,7 @@ export async function POST(request: Request) {
     shippingAddress,
     estimatedDelivery: estimatedDelivery ? new Date(estimatedDelivery) : undefined,
     createdAt: orderDate ? new Date(orderDate) : undefined,
+    actorEmail: session?.user?.email ?? null,
     items,
   })
 

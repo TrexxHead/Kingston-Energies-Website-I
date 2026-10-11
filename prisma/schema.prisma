@@ -1613,3 +1613,60 @@ model BankRule {
 
   @@index([enabled, priority])
 }
+
+// ---------------------------------------------------------------------------
+// Settings → Logs: a changelog of what shipped, a trail of admin actions, and
+// a record of errors/health signals from both the server and the browser.
+// ---------------------------------------------------------------------------
+
+enum ActivityType {
+  DEPLOY // auto-logged once per build by instrumentation.ts
+  ADMIN_ACTION // auto-logged by lib/activityLog.ts from admin mutation routes
+  NOTE // typed in by an admin on the Logs page — a manual release note
+}
+
+model ActivityLog {
+  id        String       @id @default(cuid())
+  type      ActivityType
+  // What happened, in one line — shown as the row's headline.
+  label     String
+  // Optional longer detail (a commit message, a PO number, a reason).
+  detail    String?      @db.Text
+  // The entity this touched, if any (e.g. "order", "expense") plus its id —
+  // lets a future "view related record" link be added without a new column.
+  entity    String?
+  entityId  String?
+  // Email of the admin who did this, or null for system-generated rows (DEPLOY).
+  actorEmail String?
+  // Deploys are deduped on this (the commit SHA) so a cold start on an
+  // already-logged build doesn't create a repeat entry.
+  dedupeKey String?      @unique
+  createdAt DateTime     @default(now())
+
+  @@index([type, createdAt])
+}
+
+enum LogLevel {
+  INFO
+  WARN
+  ERROR
+}
+
+enum LogSource {
+  SERVER
+  CLIENT
+}
+
+model ClientLog {
+  id        String    @id @default(cuid())
+  level     LogLevel
+  source    LogSource
+  message   String    @db.Text
+  stack     String?   @db.Text
+  // Page path (client) or route (server) this came from.
+  path      String?
+  userAgent String?
+  createdAt DateTime  @default(now())
+
+  @@index([source, level, createdAt])
+}

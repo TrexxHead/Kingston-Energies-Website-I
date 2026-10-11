@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { rateLimit, clientIp } from '@/lib/rateLimit'
 import { CATALOG } from '@/lib/catalog'
 import { sendQuoteRequestEmails } from '@/lib/email'
+import { logServerError } from '@/lib/clientLog'
 
 const contactSchema = z.object({
   name: z.string().min(1).max(120),
@@ -61,6 +62,7 @@ export async function POST(request: Request) {
     })
   } catch (error) {
     console.error('Contact form error:', error)
+    logServerError(error, { path: '/api/contact' })
     return NextResponse.json({ error: 'Failed to submit form' }, { status: 500 })
   }
 

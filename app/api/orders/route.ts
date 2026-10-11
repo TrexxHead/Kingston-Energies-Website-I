@@ -13,6 +13,7 @@ import { resolvePointsRedemption, redeemPointsAtomic, PointsUnavailableError } f
 import { postOrderCogs, postOrderRevenue } from '@/lib/ledger/post'
 import { validateCartPrices } from '@/lib/cartValidation'
 import { trackToken } from '@/lib/trackToken'
+import { logServerError } from '@/lib/clientLog'
 import { fulfillOrderItems, InsufficientStockError } from '@/lib/orderFulfillment'
 import { withOrderNoRetry } from '@/lib/orderNo'
 
@@ -171,6 +172,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: err.message }, { status: 409 })
     }
     console.error('[orders] failed to create order:', err)
+    logServerError(err, { path: '/api/orders' })
     return NextResponse.json({ error: 'Could not place your order. Please try again.' }, { status: 500 })
   }
 }

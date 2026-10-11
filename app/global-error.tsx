@@ -6,6 +6,12 @@ import { useEffect } from 'react'
 export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
     console.error(error)
+    void fetch('/api/client-log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ level: 'ERROR', message: error.message, stack: error.stack, path: location.pathname }),
+      keepalive: true,
+    }).catch(() => {})
   }, [error])
 
   return (

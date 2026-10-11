@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { Plus, Trash2, Paperclip, X, Pencil, History } from 'lucide-react'
+import { Plus, Trash2, Paperclip, X, Pencil, History, CheckCircle2, Clock } from 'lucide-react'
 import { cardStyle, h3Style } from '../ui/card'
 import Button from '../ui/Button'
 import Modal from '../ui/Modal'
@@ -9,6 +9,13 @@ import TextInput from '../ui/TextInput'
 import { fmt } from '../mockData'
 import { EXPENSE_CATEGORIES } from '@/lib/finance'
 import { useFinanceData, useExpenseCategories, type FinanceExpenseRow } from './useFinanceData'
+// shadcn/ui primitives (components/ui/*) — used here, alongside the design
+// system's own Button above, to give the expense log the same bordered
+// table + status-badge + ghost-icon-action feel as a billing/invoice list.
+// Aliased where a name would otherwise collide with the existing imports.
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Badge as ShadBadge } from '@/components/ui/badge'
+import { Button as ShadButton } from '@/components/ui/button'
 
 /** Budgets against actuals, and the log of what was actually spent. */
 export default function ExpensesTab() {
@@ -200,65 +207,76 @@ export default function ExpensesTab() {
           </Button>
         </div>
         {data.recentExpenses.length === 0 ? (
-          <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: 0 }}>
-            Nothing logged yet. Record your first expense to start tracking profit.
-          </p>
+          <div className="flex flex-col items-center gap-3 rounded-lg border bg-card p-8 text-center">
+            <p className="text-muted-foreground" style={{ fontSize: 12.5, margin: 0 }}>
+              Nothing logged yet. Record your first expense to start tracking profit.
+            </p>
+          </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {data.recentExpenses.map((e) => (
-              <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: '1px solid var(--color-border)' }}>
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13.5 }}>{e.category}</span>
-                  {e.description && <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}> · {e.description}</span>}
-                  {e.editCount > 0 && (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10.5, color: 'var(--ke-sun-500)', marginLeft: 6 }}>
-                      <History size={10} /> edited ×{e.editCount}
-                    </span>
-                  )}
-                  <span style={{ display: 'block', fontSize: 11, color: 'var(--color-text-subtle)' }}>{e.date}</span>
-                </span>
-                <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14 }}>{fmt(e.amount)}</span>
-                {e.documentId ? (
-                  <button
-                    type="button"
-                    onClick={() => openReceipt(e.documentId as string)}
-                    aria-label="View receipt"
-                    title="View receipt"
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ke-green-600)', display: 'flex' }}
-                  >
-                    <Paperclip size={15} />
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => startAttach(e.id)}
-                    aria-label="Attach receipt"
-                    title="Attach receipt"
-                    disabled={attaching && attachTargetId === e.id}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-subtle)', display: 'flex' }}
-                  >
-                    <Paperclip size={15} />
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setEditing(e)}
-                  aria-label="Edit expense"
-                  title="Edit expense"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-subtle)', display: 'flex' }}
-                >
-                  <Pencil size={15} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => removeExpense(e.id)}
-                  aria-label="Delete expense"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-subtle)', display: 'flex' }}
-                >
-                  <Trash2 size={15} />
-                </button>
-              </div>
-            ))}
+          <div className="rounded-lg border bg-card">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead className="px-4">Date</TableHead>
+                  <TableHead className="px-4">Description</TableHead>
+                  <TableHead className="px-4 text-right">Amount</TableHead>
+                  <TableHead className="px-4 text-center">Receipt</TableHead>
+                  <TableHead className="px-4 w-24 text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.recentExpenses.map((e) => (
+                  <TableRow key={e.id}>
+                    <TableCell className="px-4">
+                      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600 }}>{e.category}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {e.date}
+                        {e.editCount > 0 && (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, marginLeft: 6, color: 'var(--ke-sun-500)' }}>
+                            <History size={10} /> edited ×{e.editCount}
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-4">{e.description || '—'}</TableCell>
+                    <TableCell className="px-4 text-right" style={{ fontFamily: 'var(--font-display)', fontWeight: 700 }}>
+                      {fmt(e.amount)}
+                    </TableCell>
+                    <TableCell className="px-4 text-center">
+                      {e.documentId ? (
+                        <ShadBadge variant="outline" className="border-emerald-500/20 bg-emerald-500/10 text-emerald-600 font-normal">
+                          <CheckCircle2 className="size-3" /> Attached
+                        </ShadBadge>
+                      ) : (
+                        <ShadBadge variant="outline" className="border-amber-500/20 bg-amber-500/10 text-amber-600 font-normal">
+                          <Clock className="size-3" /> Missing
+                        </ShadBadge>
+                      )}
+                    </TableCell>
+                    <TableCell className="px-4 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <ShadButton
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => (e.documentId ? openReceipt(e.documentId as string) : startAttach(e.id))}
+                          disabled={!e.documentId && attaching && attachTargetId === e.id}
+                          aria-label={e.documentId ? 'View receipt' : 'Attach receipt'}
+                          title={e.documentId ? 'View receipt' : 'Attach receipt'}
+                        >
+                          <Paperclip className="size-4" />
+                        </ShadButton>
+                        <ShadButton variant="ghost" size="icon" onClick={() => setEditing(e)} aria-label="Edit expense" title="Edit expense">
+                          <Pencil className="size-4" />
+                        </ShadButton>
+                        <ShadButton variant="ghost" size="icon" onClick={() => removeExpense(e.id)} aria-label="Delete expense" title="Delete expense">
+                          <Trash2 className="size-4" />
+                        </ShadButton>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         )}
       </div>

@@ -14,7 +14,7 @@ const TABS = [
   { href: '/hub/storm-prep/solar', label: 'Solar' },
   { href: '/hub/storm-prep/generator', label: 'Generator' },
   { href: '/hub/storm-prep/build-my-system', label: 'Build my system' },
-  { href: '/hub/storm-prep/my-resources', label: 'My resources' },
+  { href: '/hub/storm-prep/my-resources', label: 'Supplies' },
   { href: '/hub/storm-prep/directory', label: 'Directory' },
   { href: '/hub/storm-prep/scenarios', label: 'Scenarios' },
   { href: '/hub/storm-prep/appliance-label', label: 'Read a label' },
@@ -25,13 +25,28 @@ const TABS = [
 export default function StormPrepSubNav() {
   const pathname = usePathname()
   return (
-    <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>
+    <nav
+      aria-label="Storm prep sections"
+      style={{
+        display: 'flex',
+        gap: 8,
+        marginBottom: 18,
+        overflowX: 'auto',
+        flexWrap: 'nowrap',
+        paddingBottom: 4,
+        // Native momentum scroll on iOS, and a scrollbar that doesn't
+        // permanently claim 17px of vertical space on desktop.
+        WebkitOverflowScrolling: 'touch',
+        scrollbarWidth: 'thin',
+      }}
+    >
       {TABS.map((t) => {
         const active = pathname === t.href
         return (
           <Link
             key={t.href}
             href={t.href}
+            aria-current={active ? 'page' : undefined}
             style={{
               padding: '8px 16px',
               borderRadius: 999,
@@ -39,8 +54,10 @@ export default function StormPrepSubNav() {
               fontWeight: 600,
               fontSize: 13,
               textDecoration: 'none',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
               border: active ? '1.5px solid var(--ke-green-500)' : '1.5px solid var(--color-border)',
-              background: active ? 'var(--ke-green-50)' : '#fff',
+              background: active ? 'var(--ke-green-50)' : 'var(--color-surface)',
               color: active ? 'var(--ke-green-700)' : 'var(--color-text-muted)',
             }}
           >
@@ -48,6 +65,6 @@ export default function StormPrepSubNav() {
           </Link>
         )
       })}
-    </div>
+    </nav>
   )
 }

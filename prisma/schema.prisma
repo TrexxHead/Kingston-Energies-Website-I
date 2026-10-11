@@ -25,6 +25,11 @@ model User {
   referralCode  String?   @unique // personal share code, e.g. KEG-24-JFEARON
   pointsRedeemed Int      @default(0) // lifetime points spent at checkout — available balance is loyaltyPoints() minus this
   lastActiveAt  DateTime? // last time the user engaged (drives admin online status)
+  // Notification toggles from Hub → Settings, keyed by preference id (e.g.
+  // "promos", "tips") → boolean. A missing key means "use the default" —
+  // see DEFAULT_NOTIFICATION_PREFS in lib/notificationPrefs.ts — so this
+  // only ever stores the toggles a customer actually changed.
+  notificationPrefs Json?
   // Set when the customer deletes their own account from Settings. Login is
   // blocked and the address is suppressed from every automated send, but
   // nothing else about the account (orders, points, reviews) is touched —

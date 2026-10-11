@@ -77,7 +77,7 @@ export default function OutagePage() {
 
           {!outage.startedAt ? (
             <div style={{ ...wizardCard, textAlign: 'center', padding: 40 }}>
-              <PowerOff size={32} color="#7a2020" style={{ marginBottom: 12 }} />
+              <PowerOff size={32} color="var(--color-danger)" style={{ marginBottom: 12 }} />
               <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 20, margin: '0 0 8px' }}>Lost power?</h2>
               <p style={{ fontSize: 13.5, color: 'var(--color-text-muted)', margin: '0 0 20px', maxWidth: 420, marginLeft: 'auto', marginRight: 'auto' }}>
                 Start the timer to track how long you&apos;ve been out, see your available battery reserve, and get
@@ -87,7 +87,7 @@ export default function OutagePage() {
             </div>
           ) : (
             <>
-              <div style={{ background: '#0d1714', borderRadius: 20, padding: 26, color: '#eaf2ec', marginBottom: 18 }}>
+              <div style={{ background: 'var(--ke-dark-bg)', borderRadius: 20, padding: 26, color: 'var(--ke-dark-text)', marginBottom: 18 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
                   <div>
                     <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '.14em', textTransform: 'uppercase', color: 'rgba(234,242,236,.55)' }}>

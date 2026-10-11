@@ -171,10 +171,12 @@ export default function StormPrepDashboard() {
                   type="button"
                   onClick={() => setPhase(phase)}
                   title={PHASE_META[phase].description}
+                  aria-pressed={active}
+                  aria-label={`${PHASE_META[phase].short}: ${PHASE_META[phase].description}`}
                   style={{
                     flex: '1 1 120px', padding: '10px 14px', borderRadius: 12, cursor: 'pointer',
                     border: active ? '1.5px solid var(--ke-green-500)' : '1.5px solid var(--color-border)',
-                    background: active ? 'var(--ke-green-50)' : '#fff',
+                    background: active ? 'var(--ke-green-50)' : 'var(--color-surface)',
                     fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '.1em',
                     color: active ? 'var(--ke-green-700)' : 'var(--color-text-subtle)', fontWeight: 700,
                   }}

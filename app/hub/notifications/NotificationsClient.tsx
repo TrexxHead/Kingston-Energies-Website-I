@@ -159,7 +159,7 @@ export default function NotificationsClient() {
                   border: `1px solid ${!n.read && !n.archived ? 'rgba(45,138,90,.3)' : 'var(--color-border)'}`,
                 }}
               >
-                <span style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: `${m.tone}1a`, color: m.tone }}>
+                <span style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: `color-mix(in srgb, ${m.tone} 12%, transparent)`, color: m.tone }}>
                   <Icon size={18} />
                 </span>
                 <div style={{ flex: 1, minWidth: 0 }}>

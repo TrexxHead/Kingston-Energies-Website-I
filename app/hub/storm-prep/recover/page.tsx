@@ -27,7 +27,7 @@ export default function RecoverPage() {
         <div style={{ maxWidth: 900, margin: '0 auto' }}>
           <StormPrepSubNav />
 
-          <div style={{ ...wizardCard, marginBottom: 18, background: '#0d1714', color: '#eaf2ec' }}>
+          <div style={{ ...wizardCard, marginBottom: 18, background: 'var(--ke-dark-bg)', color: 'var(--ke-dark-text)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
               <ShieldCheck size={20} color="var(--ke-green-400)" />
               <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 18, margin: 0 }}>Power&apos;s back — safety first</h2>

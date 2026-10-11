@@ -75,7 +75,7 @@ export default function CommandCentrePage() {
   return (
     <>
       <Topbar title="Storm prep" subtitle="Command centre" />
-      <div style={{ minHeight: '100vh', background: '#0a0f0d', color: '#eaf2ec', padding: 24 }}>
+      <div style={{ minHeight: '100vh', background: '#0a0f0d', color: 'var(--ke-dark-text)', padding: 24 }}>
         <div style={{ maxWidth: 640, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 20 }}>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '.24em', textTransform: 'uppercase', color: 'rgba(234,242,236,.5)' }}>

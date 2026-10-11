@@ -148,21 +148,21 @@ export default async function HubOrdersPage({
                 CLEAR FILTERS
               </Link>
             ) : (
-              <a
+              <Link
                 href="/shop"
                 style={{
                   display: 'inline-block',
                   padding: '10px 20px',
                   borderRadius: 999,
                   background: 'var(--color-primary)',
-                  color: '#fff',
+                  color: 'var(--color-primary-contrast)',
                   fontFamily: 'var(--font-display)',
                   fontWeight: 600,
                   fontSize: 13.5,
                 }}
               >
                 Start shopping
-              </a>
+              </Link>
             )}
           </div>
         ) : (

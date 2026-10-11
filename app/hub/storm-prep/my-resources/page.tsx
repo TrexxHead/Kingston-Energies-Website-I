@@ -59,7 +59,7 @@ export default function MyResourcesPage() {
 
   return (
     <>
-      <Topbar title="Storm prep" subtitle="My resources" />
+      <Topbar title="Storm prep" subtitle="Supplies" />
       <div className="ke-screen" style={{ padding: 32 }}>
         <div style={{ maxWidth: 900, margin: '0 auto' }}>
           <StormPrepSubNav />

@@ -27,7 +27,7 @@ export default function StormPrepResourcesPage() {
 
   return (
     <>
-      <Topbar title="Storm prep" subtitle="Resources" />
+      <Topbar title="Storm prep" subtitle="Shop" />
       <div className="ke-screen" style={{ padding: 32 }}>
         <div style={{ maxWidth: 900, margin: '0 auto' }}>
           <StormPrepSubNav />

@@ -7,6 +7,7 @@ import Button from '../ui/Button'
 import Modal from '../ui/Modal'
 import TextInput from '../ui/TextInput'
 import HoldToConfirm from '../ui/HoldToConfirm'
+import TypeToConfirm from '../ui/TypeToConfirm'
 import { cardStyle, h3Style } from '../ui/card'
 import { fmt } from '../mockData'
 import { PIPELINE, stageEmailsOnMove } from '@/lib/pipeline'
@@ -138,6 +139,12 @@ export default function OrdersSection() {
   const [addName, setAddName] = useState('')
   const [addPrice, setAddPrice] = useState('')
   const [addBusy, setAddBusy] = useState(false)
+  const [adjustingDate, setAdjustingDate] = useState(false)
+  const [dateInput, setDateInput] = useState('')
+  const [dateSaving, setDateSaving] = useState(false)
+  const [dateError, setDateError] = useState('')
+  const [proofUploading, setProofUploading] = useState(false)
+  const [proofError, setProofError] = useState('')
 
   const load = useCallback(async () => {
     const res = await fetch('/api/admin/orders')
@@ -357,6 +364,40 @@ export default function OrdersSection() {
       setEditingPaymentMethod(false)
     }
     setPaymentMethodBusy(false)
+  }
+
+  const saveOrderDate = async (id: string) => {
+    if (!dateInput) return
+    setDateError('')
+    setDateSaving(true)
+    const res = await fetch(`/api/admin/orders/${id}/date`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date: dateInput }),
+    })
+    setDateSaving(false)
+    if (!res.ok) {
+      setDateError((await res.json().catch(() => ({}))).error ?? 'Could not adjust the date.')
+      return
+    }
+    setAdjustingDate(false)
+    setDateInput('')
+    load()
+  }
+
+  const uploadProof = async (id: string, file: File) => {
+    setProofError('')
+    setProofUploading(true)
+    const body = new FormData()
+    body.append('file', file)
+    const res = await fetch(`/api/admin/orders/${id}/proof`, { method: 'POST', body })
+    setProofUploading(false)
+    if (!res.ok) {
+      setProofError((await res.json().catch(() => ({}))).error ?? 'Could not attach that file.')
+      return
+    }
+    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, hasProofOfPayment: true } : o)))
+    setDetail((d) => (d && d.id === id ? { ...d, hasProofOfPayment: true } : d))
   }
 
   const resetNewOrder = () => {
@@ -629,13 +670,54 @@ export default function OrdersSection() {
           ? orders.filter((o) => o.id !== detail.id && o.status === 'PENDING' && o.customerName.trim().toLowerCase() === detail.customerName.trim().toLowerCase())
           : []
         return (
-        <Modal title={`Order ${detail.orderNo}`} onClose={() => setDetail(null)}>
+        <Modal title={`Order ${detail.orderNo}`} onClose={() => { setDetail(null); setAdjustingDate(false); setDateError(''); setProofError('') }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <SectionLabel>Order</SectionLabel>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13 }}>
               <span style={{ color: 'var(--color-text-muted)' }}>Placed</span>
-              <span style={{ fontWeight: 600 }}>{detail.date}</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontWeight: 600 }}>{detail.date}</span>
+                {!adjustingDate && (
+                  <button
+                    type="button"
+                    onClick={() => { setAdjustingDate(true); setDateInput(detail.createdAt.slice(0, 10)); setDateError('') }}
+                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 11.5, fontWeight: 600, color: 'var(--ke-green-700,#15803d)' }}
+                  >
+                    Adjust
+                  </button>
+                )}
+              </span>
             </div>
+
+            {adjustingDate && (
+              <div style={{ padding: 10, borderRadius: 10, border: '1px solid var(--color-border)', background: 'var(--ke-gray-50,#fafafa)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <p style={{ fontSize: 11.5, color: 'var(--color-text-muted)', margin: 0, lineHeight: 1.5 }}>
+                  This changes when the order shows as placed. It will not move any revenue or cost entries already posted to the ledger for this order.
+                </p>
+                <input
+                  type="date"
+                  value={dateInput}
+                  onChange={(e) => setDateInput(e.target.value)}
+                  style={{ height: 34, padding: '0 10px', borderRadius: 8, border: '1px solid var(--color-border)', fontSize: 13 }}
+                />
+                <TypeToConfirm
+                  word="adjust"
+                  label="Save new date"
+                  busyLabel="Saving…"
+                  disabled={dateSaving}
+                  onConfirm={() => saveOrderDate(detail.id)}
+                />
+                {dateError && <p style={{ fontSize: 12, color: 'var(--color-danger)', margin: 0 }}>{dateError}</p>}
+                <button
+                  type="button"
+                  onClick={() => { setAdjustingDate(false); setDateError('') }}
+                  style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 11.5, color: 'var(--color-text-subtle)', alignSelf: 'flex-start' }}
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
               <span style={{ color: 'var(--color-text-muted)' }}>Status</span>
               <span style={{ fontWeight: 600 }}>{COLUMNS.find((c) => c.id === detail.status)?.label}</span>
@@ -777,11 +859,34 @@ export default function OrdersSection() {
                     <Button size="sm" variant="outline">View proof of payment</Button>
                   </a>
                 )}
+                <label
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', height: 32, padding: '0 14px', borderRadius: 999,
+                    border: '1.5px solid var(--color-border)', fontSize: 12.5, fontWeight: 600, fontFamily: 'var(--font-display)',
+                    cursor: proofUploading ? 'default' : 'pointer', opacity: proofUploading ? 0.6 : 1, color: 'var(--color-text)',
+                  }}
+                >
+                  {proofUploading ? 'Uploading…' : detail.hasProofOfPayment ? 'Replace proof of payment' : 'Attach proof of payment'}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
+                    disabled={proofUploading}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      e.target.value = ''
+                      if (file) uploadProof(detail.id, file)
+                    }}
+                    style={{ display: 'none' }}
+                  />
+                </label>
               </span>
               <Button size="sm" variant={detail.paid ? 'outline' : 'primary'} onClick={() => setPaid(detail.id, !detail.paid)} disabled={paidBusy}>
                 {paidBusy ? 'Saving…' : detail.paid ? 'Mark as unpaid' : 'Mark as paid'}
               </Button>
             </div>
+            {proofError && (
+              <div style={{ fontSize: 12, color: 'var(--color-danger)', textAlign: 'right' }}>{proofError}</div>
+            )}
             {invoiceMsg && (
               <div style={{ fontSize: 12, color: 'var(--color-text-muted)', textAlign: 'right' }}>{invoiceMsg}</div>
             )}

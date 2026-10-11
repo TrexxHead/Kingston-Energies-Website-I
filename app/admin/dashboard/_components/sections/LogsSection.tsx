@@ -46,7 +46,7 @@ const th: React.CSSProperties = {
   borderBottom: '1px solid var(--color-border)',
   whiteSpace: 'nowrap',
 }
-const td: React.CSSProperties = { padding: '10px', borderBottom: '1px solid var(--color-border)', fontSize: 13, verticalAlign: 'top' }
+const td: React.CSSProperties = { padding: '10px', borderBottom: '1px solid var(--color-border)', fontSize: 13.5, verticalAlign: 'top' }
 
 function Empty({ children }: { children: React.ReactNode }) {
   return <div style={{ padding: 28, textAlign: 'center', color: 'var(--color-text-muted)', fontSize: 13.5, lineHeight: 1.6 }}>{children}</div>

@@ -77,7 +77,7 @@ export default function HoldToConfirm({ label, holdingLabel, onConfirm, tone = '
         padding: isSm ? '0 14px' : '0 18px',
         borderRadius: 999,
         border: `1.5px solid ${colors.border}`,
-        background: '#fff',
+        background: 'var(--color-surface)',
         fontSize: isSm ? 11.5 : 13,
         fontWeight: 700,
         cursor: disabled ? 'default' : 'pointer',

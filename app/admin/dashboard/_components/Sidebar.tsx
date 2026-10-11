@@ -26,6 +26,9 @@ import {
 } from 'lucide-react'
 import { NAV, resolve, type NavGroup } from './nav'
 
+// Keep this in sync with every `icon:` id in nav.ts — nothing enforces the
+// link at build time, so a new nav group with an unmapped icon id silently
+// renders nothing rather than erroring.
 const ICONS: Record<string, typeof LayoutDashboard> = {
   'layout-dashboard': LayoutDashboard,
   'kanban-square': KanbanSquare,
@@ -104,7 +107,7 @@ export default function Sidebar() {
         style={{
           position: 'fixed', top: 14, left: 14, zIndex: 70,
           width: 40, height: 40, borderRadius: 10, border: 'none',
-          background: '#0d1714', color: '#fff',
+          background: 'var(--ke-dark-bg)', color: 'var(--ke-dark-text)',
           alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
           boxShadow: '0 4px 14px rgba(0,0,0,.3)',
         }}
@@ -142,8 +145,8 @@ export default function Sidebar() {
             style={{
               width: RAIL_WIDTH,
               flexShrink: 0,
-              background: '#0d1714',
-              color: '#fff',
+              background: 'var(--ke-dark-bg)',
+              color: 'var(--ke-dark-text)',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -238,8 +241,8 @@ export default function Sidebar() {
             style={{
               width: PANEL_WIDTH,
               flexShrink: 0,
-              background: '#0d1714',
-              color: '#fff',
+              background: 'var(--ke-dark-bg)',
+              color: 'var(--ke-dark-text)',
               display: 'flex',
               flexDirection: 'column',
               padding: '20px 14px',
@@ -250,7 +253,7 @@ export default function Sidebar() {
             <MotionLink href="/admin/dashboard" className="kad-panel-brand" whileHover={HOVER_LIFT} whileTap={TAP} style={{ marginBottom: 18 }}>
               <Image src="/images/logo-mark.png" alt="" width={28} height={28} style={{ objectFit: 'contain', flexShrink: 0 }} />
               <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.3 }}>
-                <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 13, color: '#fff' }}>
+                <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 13, color: 'var(--ke-dark-text)' }}>
                   Kingston Energies
                 </span>
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '.2em', color: 'var(--ke-green-400)' }}>
@@ -266,7 +269,7 @@ export default function Sidebar() {
                     fontFamily: 'var(--font-display)',
                     fontWeight: 700,
                     fontSize: 15,
-                    color: '#fff',
+                    color: 'var(--ke-dark-text)',
                     padding: '0 8px 12px',
                   }}
                 >

@@ -9,6 +9,7 @@ import Modal from '../ui/Modal'
 import TextInput from '../ui/TextInput'
 import { fmt } from '../mockData'
 import { quoteTotal } from '@/lib/quotes'
+import StatTile from '../ui/StatTile'
 
 type Status = 'NEW' | 'CONTACTED' | 'QUALIFIED' | 'CONVERTED' | 'LOST'
 
@@ -94,9 +95,9 @@ export default function QuotationsTab() {
       ) : (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }} className="kad-kpi-grid">
-            <Stat label="Open quotes" value={String(open.length)} sub={fmt(openValue) + ' indicative'} />
-            <Stat label="Converted" value={String(convertedThisSet.length)} sub={fmt(convertedValue) + ' became orders'} />
-            <Stat label="All quote requests" value={String(quotes.length)} sub="Since launch" />
+            <div style={cardStyle}><StatTile label="Open quotes" value={String(open.length)} sub={fmt(openValue) + ' indicative'} subTone="var(--ke-green-600)" /></div>
+            <div style={cardStyle}><StatTile label="Converted" value={String(convertedThisSet.length)} sub={fmt(convertedValue) + ' became orders'} subTone="var(--ke-green-600)" /></div>
+            <div style={cardStyle}><StatTile label="All quote requests" value={String(quotes.length)} sub="Since launch" /></div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
@@ -319,15 +320,5 @@ function NewQuotationModal({ onClose, onCreated }: { onClose: () => void; onCrea
 
       {error && <div style={{ color: 'var(--color-danger,#dc2626)', fontSize: 13 }}>{error}</div>}
     </Modal>
-  )
-}
-
-function Stat({ label, value, sub }: { label: string; value: string; sub: string }) {
-  return (
-    <div style={cardStyle}>
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '.1em', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>{label}</div>
-      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 24, margin: '4px 0 2px' }}>{value}</div>
-      <div style={{ fontSize: 11.5, color: 'var(--color-text-subtle)' }}>{sub}</div>
-    </div>
   )
 }

@@ -11,6 +11,7 @@ import { cardStyle, h3Style } from '../ui/card'
 import { fmt } from '../mockData'
 import { initials } from '@/lib/initials'
 import { CUSTOMER_NEEDS, customerNeedLabel, VALUE_TIERS, paretoShare, type CustomerNeed, type ValueTier } from '@/lib/crm'
+import StatTile from '../ui/StatTile'
 
 type Segment = 'VIP' | 'REPEAT' | 'NEW'
 type TicketStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED'
@@ -497,9 +498,9 @@ function CrmInsights({ customers }: { customers: CustomerRow[] }) {
 
   return (
     <div style={{ ...cardStyle, display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'center' }}>
-      <Stat label="Customers" value={String(customers.length)} />
-      <Stat label="Top 20% share of value" value={`${top20Share}%`} hint="Pareto: focus retention here" />
-      <Stat label="Need on file" value={`${needPct}%`} hint={`${withNeed} of ${customers.length} identified`} />
+      <StatTile label="Customers" value={String(customers.length)} />
+      <StatTile label="Top 20% share of value" value={`${top20Share}%`} sub="Pareto: focus retention here" />
+      <StatTile label="Need on file" value={`${needPct}%`} sub={`${withNeed} of ${customers.length} identified`} />
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginLeft: 'auto' }}>
         {tierCounts.map(({ tier, count }) => (
           <div key={tier} style={{ textAlign: 'center', minWidth: 46 }}>
@@ -508,16 +509,6 @@ function CrmInsights({ customers }: { customers: CustomerRow[] }) {
           </div>
         ))}
       </div>
-    </div>
-  )
-}
-
-function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
-  return (
-    <div>
-      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 24, lineHeight: 1 }}>{value}</div>
-      <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 4 }}>{label}</div>
-      {hint && <div style={{ fontSize: 10, color: 'var(--color-text-subtle)', marginTop: 1 }}>{hint}</div>}
     </div>
   )
 }

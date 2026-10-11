@@ -119,7 +119,8 @@ export default function SegmentsCard() {
     else setError((await res.json().catch(() => ({}))).error ?? 'Could not create segment.')
   }
 
-  const remove = async (id: string) => {
+  const remove = async (id: string, name: string) => {
+    if (!confirm(`Delete the segment "${name}"? Any campaign still targeting it will need a new audience.`)) return
     await fetch(`/api/admin/segments/${id}`, { method: 'DELETE' })
     load()
   }
@@ -146,7 +147,7 @@ export default function SegmentsCard() {
                 <div style={{ fontSize: 11.5, color: 'var(--color-text-subtle)' }}>{s.description || summarize(s.criteria)}</div>
               </div>
               <Badge tone="neutral">{s.size} customers</Badge>
-              <button type="button" onClick={() => remove(s.id)} aria-label={`Delete ${s.name}`} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-subtle)', display: 'flex' }}>
+              <button type="button" onClick={() => remove(s.id, s.name)} aria-label={`Delete ${s.name}`} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-subtle)', display: 'flex' }}>
                 <Trash2 size={15} />
               </button>
             </div>

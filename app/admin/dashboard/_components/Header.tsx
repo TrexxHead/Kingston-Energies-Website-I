@@ -49,21 +49,28 @@ export default function Header() {
         <p style={{ margin: '2px 0 0', fontSize: 12.5, color: 'var(--color-text-muted)' }}>{subtitle}</p>
       </div>
 
-      <span
-        title="Press Cmd/Ctrl + K"
+      <button
+        type="button"
+        aria-label="Search (⌘K)"
+        title="Search (⌘K)"
+        // CommandPalette listens globally for ⌘K/Ctrl+K — reuse that
+        // listener instead of a second open-state, same as Sidebar's button.
+        onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
         style={{
           fontFamily: 'var(--font-mono)',
           fontSize: 9.5,
           letterSpacing: '.06em',
           color: 'var(--color-text-subtle)',
+          background: 'var(--color-surface)',
           border: '1px solid var(--color-border)',
           borderRadius: 6,
           padding: '4px 7px',
           whiteSpace: 'nowrap',
+          cursor: 'pointer',
         }}
       >
         ⌘K
-      </span>
+      </button>
       <ThemeToggle />
       <NotificationsBell onNavigate={(section) => router.push(hrefForSection(section))} />
     </div>

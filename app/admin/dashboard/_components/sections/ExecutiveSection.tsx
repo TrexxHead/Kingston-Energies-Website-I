@@ -9,6 +9,7 @@ import SheetsSyncCard from './SheetsSyncCard'
 import CalendarTab from './CalendarTab'
 import { fmt } from '../mockData'
 import Skeleton from '@/components/Skeleton'
+import StatTile from '../ui/StatTile'
 
 interface Metrics {
   kpis: {
@@ -84,15 +85,12 @@ export default function ExecutiveSection() {
       <div className="kad-kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14 }}>
         {stats.map((s) => (
           <div key={s.label} style={{ ...cardStyle, borderRadius: 14, padding: 16 }}>
-            {m ? (
-              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 21, letterSpacing: '-.01em' }}>{s.value}</div>
-            ) : (
-              <Skeleton width={64} height={22} />
-            )}
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '.12em', color: 'var(--color-text-muted)', marginTop: 5 }}>
-              {s.label}
-            </div>
-            {m && s.sub && <div style={{ fontSize: 10.5, color: 'var(--ke-green-600)', marginTop: 5 }}>{s.sub}</div>}
+            <StatTile
+              label={s.label}
+              value={m ? s.value : <Skeleton width={64} height={22} />}
+              sub={m ? s.sub : undefined}
+              subTone="var(--ke-green-600)"
+            />
           </div>
         ))}
       </div>

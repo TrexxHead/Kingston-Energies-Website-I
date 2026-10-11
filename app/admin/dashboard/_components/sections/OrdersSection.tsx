@@ -932,9 +932,9 @@ export default function OrdersSection() {
                       onClick={() => setAddMode(m)}
                       style={{
                         height: 28, padding: '0 12px', borderRadius: 999, fontSize: 11.5, fontWeight: 600, cursor: 'pointer',
-                        border: `1.5px solid ${addMode === m ? '#0d1714' : 'var(--color-border)'}`,
-                        background: addMode === m ? '#0d1714' : 'var(--color-surface)',
-                        color: addMode === m ? '#fff' : 'var(--color-text)',
+                        border: `1.5px solid ${addMode === m ? 'var(--ke-dark-bg)' : 'var(--color-border)'}`,
+                        background: addMode === m ? 'var(--ke-dark-bg)' : 'var(--color-surface)',
+                        color: addMode === m ? 'var(--ke-dark-text)' : 'var(--color-text)',
                       }}
                     >
                       {m === 'product' ? 'Catalog product' : 'Discount or fee'}

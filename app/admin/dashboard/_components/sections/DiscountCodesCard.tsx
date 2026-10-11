@@ -84,7 +84,8 @@ export default function DiscountCodesCard() {
     load()
   }
 
-  const remove = async (id: string) => {
+  const remove = async (id: string, code: string) => {
+    if (!confirm(`Delete the discount code "${code}"? It will stop working immediately.`)) return
     await fetch(`/api/admin/discount-codes/${id}`, { method: 'DELETE' })
     load()
   }
@@ -117,7 +118,7 @@ export default function DiscountCodesCard() {
                 </div>
               </div>
               <Badge tone={c.active ? 'green' : 'neutral'} onClick={() => toggle(c)}>{c.active ? 'Active' : 'Paused'}</Badge>
-              <button type="button" onClick={() => remove(c.id)} aria-label={`Delete ${c.code}`} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-subtle)', display: 'flex' }}>
+              <button type="button" onClick={() => remove(c.id, c.code)} aria-label={`Delete ${c.code}`} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-subtle)', display: 'flex' }}>
                 <Trash2 size={15} />
               </button>
             </div>

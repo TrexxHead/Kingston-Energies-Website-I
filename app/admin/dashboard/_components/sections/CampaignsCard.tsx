@@ -129,7 +129,8 @@ export default function CampaignsCard() {
     load()
   }
 
-  const remove = async (id: string) => {
+  const remove = async (id: string, name: string) => {
+    if (!confirm(`Delete the campaign "${name}"? This can't be undone.`)) return
     await fetch(`/api/admin/campaigns/${id}`, { method: 'DELETE' })
     load()
   }
@@ -153,7 +154,8 @@ export default function CampaignsCard() {
     else setError((await res.json().catch(() => ({}))).error ?? 'Could not save template.')
   }
 
-  const removeTemplate = async (id: string) => {
+  const removeTemplate = async (id: string, name: string) => {
+    if (!confirm(`Delete the template "${name}"?`)) return
     await fetch(`/api/admin/campaign-templates/${id}`, { method: 'DELETE' })
     loadTemplates()
   }
@@ -218,7 +220,7 @@ export default function CampaignsCard() {
                 {c.status !== 'SENT' && (
                   <button type="button" onClick={() => send(c)} aria-label="Send" title="Send / action now" style={iconBtn}><Send size={13} /></button>
                 )}
-                <button type="button" onClick={() => remove(c.id)} aria-label="Delete" style={iconBtn}><Trash2 size={13} /></button>
+                <button type="button" onClick={() => remove(c.id, c.name)} aria-label="Delete" style={iconBtn}><Trash2 size={13} /></button>
               </div>
             )
           })}
@@ -252,7 +254,7 @@ export default function CampaignsCard() {
                   {templates.map((t) => (
                     <span key={t.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--color-text-subtle)', border: '1px solid var(--color-border)', borderRadius: 999, padding: '2px 4px 2px 8px' }}>
                       {t.name}
-                      <button type="button" onClick={() => removeTemplate(t.id)} aria-label={`Delete template ${t.name}`} style={{ ...iconBtn, width: 18, height: 18, border: 'none', background: 'transparent' }}>
+                      <button type="button" onClick={() => removeTemplate(t.id, t.name)} aria-label={`Delete template ${t.name}`} style={{ ...iconBtn, width: 18, height: 18, border: 'none', background: 'transparent' }}>
                         <Trash2 size={10} />
                       </button>
                     </span>

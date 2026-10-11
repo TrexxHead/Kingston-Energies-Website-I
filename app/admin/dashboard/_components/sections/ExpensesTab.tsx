@@ -16,6 +16,7 @@ import { useFinanceData, useExpenseCategories, type FinanceExpenseRow } from './
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge as ShadBadge } from '@/components/ui/badge'
 import { Button as ShadButton } from '@/components/ui/button'
+import HoldToConfirm from '../ui/HoldToConfirm'
 
 /** Budgets against actuals, and the log of what was actually spent. */
 export default function ExpensesTab() {
@@ -32,6 +33,9 @@ export default function ExpensesTab() {
   const [editing, setEditing] = useState<FinanceExpenseRow | null>(null)
   const [attachTargetId, setAttachTargetId] = useState<string | null>(null)
   const [attaching, setAttaching] = useState(false)
+  // A deleted expense is a financial record — the trash icon arms a
+  // hold-to-confirm in its place rather than deleting on the first click.
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const categoryOptions = categories.length ? categories : [...EXPENSE_CATEGORIES]
 
@@ -268,9 +272,20 @@ export default function ExpensesTab() {
                         <ShadButton variant="ghost" size="icon" onClick={() => setEditing(e)} aria-label="Edit expense" title="Edit expense">
                           <Pencil className="size-4" />
                         </ShadButton>
-                        <ShadButton variant="ghost" size="icon" onClick={() => removeExpense(e.id)} aria-label="Delete expense" title="Delete expense">
-                          <Trash2 className="size-4" />
-                        </ShadButton>
+                        {confirmingDeleteId === e.id ? (
+                          <HoldToConfirm
+                            size="sm"
+                            tone="danger"
+                            label="Hold"
+                            holdingLabel="…"
+                            durationMs={700}
+                            onConfirm={() => { setConfirmingDeleteId(null); removeExpense(e.id) }}
+                          />
+                        ) : (
+                          <ShadButton variant="ghost" size="icon" onClick={() => setConfirmingDeleteId(e.id)} aria-label="Delete expense" title="Delete expense">
+                            <Trash2 className="size-4" />
+                          </ShadButton>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

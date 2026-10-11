@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { LegalPage, LegalSection } from '@/components/legal/LegalPage'
 import { PICKUP_LOCATIONS } from '@/lib/delivery'
 import { fmt } from '@/lib/catalog'
+import { FREE_DELIVERY_THRESHOLD } from '@/lib/pricing'
 
 export const metadata: Metadata = {
   title: 'Delivery & Rate Sheet',
@@ -56,7 +57,8 @@ export default function DeliveryRateSheetPage() {
       <p>
         Every order can be delivered by our own courier, shipped islandwide via Knutsford Express, or collected free
         at one of our pickup locations. Rates below are per order, based on the parish you&apos;re shipping to and
-        how fast you need it.
+        how fast you need it. <strong>Orders over {fmt(FREE_DELIVERY_THRESHOLD)} ship free</strong> on standard delivery,
+        anywhere on the island.
       </p>
 
       <LegalSection heading="Rate table">

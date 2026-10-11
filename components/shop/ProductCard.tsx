@@ -103,10 +103,10 @@ export default function ProductCard({
           title={saved ? 'Saved' : 'Save'}
           style={{
             position: 'absolute',
-            top: 12,
-            right: 12,
-            width: 34,
-            height: 34,
+            top: 10,
+            right: 10,
+            width: 40,
+            height: 40,
             borderRadius: 999,
             border: 'none',
             background: 'rgba(255,255,255,.9)',

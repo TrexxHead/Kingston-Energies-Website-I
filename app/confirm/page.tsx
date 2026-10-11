@@ -10,6 +10,7 @@ import { Button, FeatureIcon } from '@/components/shop/ui'
 import NpsSurvey from '@/components/nps/NpsSurvey'
 import { linkifyText } from '@/lib/linkify'
 import { analytics } from '@/lib/analytics'
+import { loyaltyPoints } from '@/lib/loyalty'
 
 interface PayMethod {
   id: string
@@ -30,9 +31,17 @@ export default function ConfirmPage() {
 function ConfirmInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [orderNo, setOrderNo] = useState('KE-1042')
+  // No hardcoded fallback order number — until the real one resolves (or
+  // genuinely can't be found), the page shows a loading state rather than
+  // ever displaying an order number that isn't real.
+  const [orderNo, setOrderNo] = useState<string | null>(null)
   const [orderToken, setOrderToken] = useState('')
   const [payInfo, setPayInfo] = useState<PayMethod | null>(null)
+  // The real delivery estimate and total for this order, fetched from the
+  // same tracking lookup already used for GA4 purchase reporting below —
+  // never a hardcoded "2-3 days" or a static points figure.
+  const [orderDetail, setOrderDetail] = useState<{ estimatedDelivery: string | null; total: number } | null>(null)
+  const [detailFailed, setDetailFailed] = useState(false)
   const paidByCard = searchParams.get('paid') === '1'
 
   useEffect(() => {
@@ -72,29 +81,73 @@ function ConfirmInner() {
         .catch(() => {})
     }
 
-    // Report the purchase once per order — a refresh of this page must not
-    // double-count revenue in GA4.
     const orderForPurchase = searchParams.get('order') || (() => {
       try { return sessionStorage.getItem('ke-last-order') } catch { return null }
     })()
     if (orderForPurchase) {
-      const reportedKey = `ke-ga-purchase-${orderForPurchase}`
-      let alreadyReported = false
-      try { alreadyReported = sessionStorage.getItem(reportedKey) === '1' } catch { /* ignore */ }
-      if (!alreadyReported) {
-        fetch(`/api/orders/track?no=${encodeURIComponent(orderForPurchase)}${token ? `&t=${encodeURIComponent(token)}` : ''}`)
-          .then((r) => (r.ok ? r.json() : null))
-          .then((d: { total?: number; items?: { qty: number }[] } | null) => {
-            if (!d || typeof d.total !== 'number') return
+      // Always fetch the real order so the page can show an actual delivery
+      // estimate and points figure instead of a hardcoded placeholder.
+      fetch(`/api/orders/track?no=${encodeURIComponent(orderForPurchase)}${token ? `&t=${encodeURIComponent(token)}` : ''}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d: { total?: number; estimatedDelivery?: string | null; items?: { qty: number }[] } | null) => {
+          if (!d || typeof d.total !== 'number') {
+            setDetailFailed(true)
+            return
+          }
+          setOrderDetail({ estimatedDelivery: d.estimatedDelivery ?? null, total: d.total })
+
+          // Report the purchase once per order — a refresh of this page
+          // must not double-count revenue in GA4.
+          const reportedKey = `ke-ga-purchase-${orderForPurchase}`
+          let alreadyReported = false
+          try { alreadyReported = sessionStorage.getItem(reportedKey) === '1' } catch { /* ignore */ }
+          if (!alreadyReported) {
             const itemCount = (d.items ?? []).reduce((n, i) => n + i.qty, 0)
             analytics.trackPurchase(orderForPurchase, d.total, itemCount)
             try { sessionStorage.setItem(reportedKey, '1') } catch { /* ignore */ }
-          })
-          .catch(() => {})
-      }
+          }
+        })
+        .catch(() => setDetailFailed(true))
+    } else {
+      setDetailFailed(true)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Neither a query/session order number nor a loaded one yet — never show
+  // the confirmation chrome (or any hardcoded order data) until we actually
+  // know what order this is.
+  if (!orderNo && !detailFailed) {
+    return (
+      <CommerceShell>
+        <section style={{ maxWidth: 600, margin: '0 auto', padding: '120px 32px', textAlign: 'center' }}>
+          <p style={{ fontSize: 15, color: 'var(--color-text-muted)' }}>Loading your order…</p>
+        </section>
+      </CommerceShell>
+    )
+  }
+
+  if (!orderNo) {
+    return (
+      <CommerceShell>
+        <section style={{ maxWidth: 480, margin: '0 auto', padding: '96px 32px', textAlign: 'center' }}>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 28, margin: 0 }}>We couldn&apos;t find that order.</h1>
+          <p style={{ fontSize: 15, color: 'var(--color-text-muted)', margin: '12px 0 0', lineHeight: 1.6 }}>
+            If you just completed a purchase, check your email for the confirmation, or track it with your order number.
+          </p>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 24, flexWrap: 'wrap' }}>
+            <Button onClick={() => router.push('/track')}>Track an order</Button>
+            <Button variant="outline" onClick={() => router.push('/shop')}>Keep shopping</Button>
+          </div>
+        </section>
+      </CommerceShell>
+    )
+  }
+
+  const deliveryLine = orderDetail?.estimatedDelivery
+    ? `Arriving by ${new Date(orderDetail.estimatedDelivery).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}. We'll text you at every step.`
+    : "We'll text you a delivery window as soon as it's set."
+  const pointsEarned = orderDetail ? loyaltyPoints({ totalSpent: orderDetail.total }) : null
 
   return (
     <CommerceShell>
@@ -130,12 +183,14 @@ function ConfirmInner() {
           confirmed.
         </h1>
         <p style={{ fontSize: 16, color: 'var(--color-text-muted)', margin: '16px auto 0', maxWidth: 380, lineHeight: 1.6 }}>
-          Arriving in 2–3 days. We&apos;ll text you at every step.
+          {deliveryLine}
         </p>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--ke-green-50)', borderRadius: 999, padding: '8px 16px', marginTop: 18, fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '.18em', color: 'var(--ke-green-700)' }}>
-          <Sparkles size={13} />
-          +25&nbsp;POINTS&nbsp;EARNED
-        </div>
+        {pointsEarned !== null && pointsEarned > 0 && (
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--ke-green-50)', borderRadius: 999, padding: '8px 16px', marginTop: 18, fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '.18em', color: 'var(--ke-green-700)' }}>
+            <Sparkles size={13} />
+            +{pointsEarned}&nbsp;POINTS&nbsp;EARNED
+          </div>
+        )}
         {paidByCard && (
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--ke-green-50)', color: 'var(--ke-green-700)', borderRadius: 999, padding: '8px 16px', marginTop: 14, fontSize: 13, fontWeight: 600 }}>
             <BadgeCheck size={15} /> Card payment received, thank you!
@@ -143,7 +198,7 @@ function ConfirmInner() {
         )}
 
         {payInfo && (
-          <div style={{ background: '#fff', border: '1px solid var(--ke-sun-400)', borderRadius: 18, padding: '20px 22px', marginTop: 30, textAlign: 'left', boxShadow: 'var(--shadow-sm)' }}>
+          <div style={{ background: 'var(--color-surface)', border: '1px solid var(--ke-sun-400)', borderRadius: 18, padding: '20px 22px', marginTop: 30, textAlign: 'left', boxShadow: 'var(--shadow-sm)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}>
               <Wallet size={17} color="var(--ke-sun-500)" />
               <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15 }}>Complete your payment: {payInfo.label}</span>
@@ -163,7 +218,7 @@ function ConfirmInner() {
           <Button onClick={() => router.push(`/track?no=${encodeURIComponent(orderNo)}${orderToken ? `&t=${encodeURIComponent(orderToken)}` : ''}`)} iconRight={<ArrowRight size={17} />}>Track order</Button>
           <Button variant="outline" onClick={() => router.push('/shop')}>Keep shopping</Button>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, background: '#fff', border: '1px solid var(--color-border)', borderRadius: 18, padding: '20px 24px', marginTop: 44, textAlign: 'left', boxShadow: 'var(--shadow-sm)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 18, padding: '20px 24px', marginTop: 44, textAlign: 'left', boxShadow: 'var(--shadow-sm)' }}>
           <FeatureIcon tone="blue">
             <BadgeCheck size={20} />
           </FeatureIcon>

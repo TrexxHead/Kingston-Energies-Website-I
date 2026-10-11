@@ -126,12 +126,13 @@ export function Button({
   )
 }
 
-export function Field({ label, children }: { label: string; children: ReactNode }) {
+export function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
     <label style={{ display: 'block' }}>
-      <span style={{ display: 'block', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, color: 'var(--color-text)', marginBottom: 8 }}>
+      <span style={{ display: 'block', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13, color: 'var(--color-text)', marginBottom: hint ? 2 : 8 }}>
         {label}
       </span>
+      {hint && <span style={{ display: 'block', fontSize: 11.5, color: 'var(--color-text-muted)', marginBottom: 8 }}>{hint}</span>}
       {children}
     </label>
   )

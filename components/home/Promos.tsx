@@ -16,7 +16,7 @@ export default async function Promos() {
   if (!flash && banners.length === 0) return null
 
   return (
-    <section style={{ padding: '0 var(--page-pad)', background: '#0d1714' }}>
+    <section style={{ padding: '0 var(--page-pad)', background: 'var(--ke-dark-bg)' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
         {flash && (
           <Link

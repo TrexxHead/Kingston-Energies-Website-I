@@ -11,7 +11,7 @@ export default function Hero() {
         alignItems: 'center',
         justifyContent: 'center',
         overflow: 'hidden',
-        background: 'linear-gradient(180deg,#0d1714 0%,#10201c 55%,#0d1714 100%)',
+        background: 'linear-gradient(180deg,var(--ke-dark-bg) 0%,#10201c 55%,var(--ke-dark-bg) 100%)',
       }}
     >
       <div

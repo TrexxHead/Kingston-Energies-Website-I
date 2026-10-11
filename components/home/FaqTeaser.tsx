@@ -8,7 +8,7 @@ const PREVIEW = SITE_FAQ.rows.map((row) => row.faqItems[0])
 
 export default function FaqTeaser() {
   return (
-    <section style={{ padding: 'clamp(56px,8vw,120px) var(--page-pad)', background: '#0d1714' }}>
+    <section style={{ padding: 'clamp(56px,8vw,120px) var(--page-pad)', background: 'var(--ke-dark-bg)' }}>
       <div style={{ maxWidth: 900, margin: '0 auto', textAlign: 'center' }}>
         <h2
           style={{

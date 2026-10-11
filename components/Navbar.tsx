@@ -58,8 +58,8 @@ export default function Navbar() {
             onClick={() => router.back()}
             aria-label="Go back"
             style={{
-              width: 34,
-              height: 34,
+              width: 40,
+              height: 40,
               borderRadius: 999,
               border: '1px solid rgba(255,255,255,.16)',
               background: 'transparent',
@@ -143,8 +143,8 @@ export default function Navbar() {
             aria-label="Open cart"
             style={{
               position: 'relative',
-              width: 34,
-              height: 34,
+              width: 40,
+              height: 40,
               borderRadius: 999,
               border: '1px solid rgba(255,255,255,.16)',
               display: 'flex',

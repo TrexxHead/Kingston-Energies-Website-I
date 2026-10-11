@@ -54,7 +54,7 @@ export default async function Reviews() {
   const avg = (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)
 
   return (
-    <section style={{ padding: 'clamp(56px,8vw,120px) var(--page-pad)', background: '#0d1714' }}>
+    <section style={{ padding: 'clamp(56px,8vw,120px) var(--page-pad)', background: 'var(--ke-dark-bg)' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
         <div style={{ maxWidth: 640, marginBottom: 36 }}>
           <div

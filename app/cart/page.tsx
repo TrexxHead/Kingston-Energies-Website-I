@@ -116,7 +116,7 @@ export default function CartPage() {
                     <StepBtn label="Increase" onClick={() => inc(ci.name)}>+</StepBtn>
                   </div>
                   <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 17, minWidth: 56, textAlign: 'right' }}>{fmt(ci.price * ci.qty)}</span>
-                  <button type="button" aria-label="Remove" onClick={() => remove(ci.name)} style={{ width: 30, height: 30, borderRadius: 999, border: 'none', background: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <button type="button" aria-label="Remove" onClick={() => remove(ci.name)} style={{ width: 40, height: 40, borderRadius: 999, border: 'none', background: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <X size={15} />
                   </button>
                 </div>
@@ -247,7 +247,7 @@ export default function CartPage() {
 
 function StepBtn({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button type="button" aria-label={label} onClick={onClick} style={{ width: 28, height: 28, borderRadius: 999, border: 'none', background: 'none', cursor: 'pointer', fontSize: 16, color: 'var(--color-text)' }}>
+    <button type="button" aria-label={label} onClick={onClick} style={{ width: 40, height: 40, borderRadius: 999, border: 'none', background: 'none', cursor: 'pointer', fontSize: 16, color: 'var(--color-text)' }}>
       {children}
     </button>
   )

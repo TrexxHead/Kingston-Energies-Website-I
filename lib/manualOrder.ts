@@ -18,6 +18,10 @@ export interface ManualOrderInput {
   // member wants to flag when it needs to go out). Independent of the
   // ledger date; purely a scheduling/visibility field.
   estimatedDelivery?: Date | null
+  // When the sale actually happened, if different from "now" — lets staff
+  // backdate an order they're only getting around to entering later. Flows
+  // into the ledger postings too, so the revenue lands on the right date.
+  createdAt?: Date | null
   items: { name: string; price: number; qty: number }[]
 }
 
@@ -35,7 +39,7 @@ export interface ManualOrderInput {
  * exact path instead of a second, drifting copy of the same logic.
  */
 export async function createManualOrder(input: ManualOrderInput) {
-  const { customerName, contact, email, phone, source, paymentMethod, paid, shippingAddress, estimatedDelivery, items } = input
+  const { customerName, contact, email, phone, source, paymentMethod, paid, shippingAddress, estimatedDelivery, createdAt, items } = input
   const total = items.reduce((sum, i) => sum + i.price * i.qty, 0)
 
   const order = await withOrderNoRetry((orderNo) =>
@@ -53,6 +57,7 @@ export async function createManualOrder(input: ManualOrderInput) {
           paymentMethod: paymentMethod ?? null,
           paid: paid ?? false,
           estimatedDelivery: estimatedDelivery ?? null,
+          ...(createdAt ? { createdAt } : {}),
           total,
           items: { create: items.map((i) => ({ name: i.name, qty: i.qty, price: i.price })) },
         },

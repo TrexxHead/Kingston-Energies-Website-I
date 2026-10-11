@@ -66,6 +66,9 @@ const manualOrderSchema = z.object({
   // ISO date string — set when the order is created from a specific day on
   // the Finance → Calendar view, so it's pinned to that day there.
   estimatedDelivery: z.string().datetime().optional().or(z.string().date().optional()),
+  // When the sale actually happened, if different from "now" — lets staff
+  // backdate an order they're only getting around to entering later.
+  orderDate: z.string().datetime().optional().or(z.string().date().optional()),
   items: z
     .array(z.object({ name: z.string().min(1).max(160), price: z.number().min(0), qty: z.number().int().min(1).max(999) }))
     .min(1),
@@ -86,7 +89,7 @@ export async function POST(request: Request) {
   const parsed = manualOrderSchema.safeParse(await request.json().catch(() => null))
   if (!parsed.success) return NextResponse.json({ error: 'Invalid order' }, { status: 400 })
 
-  const { customerName, contact, email, phone, source, paymentMethod, paid, shippingAddress, estimatedDelivery, items } = parsed.data
+  const { customerName, contact, email, phone, source, paymentMethod, paid, shippingAddress, estimatedDelivery, orderDate, items } = parsed.data
 
   const order = await createManualOrder({
     customerName,
@@ -98,6 +101,7 @@ export async function POST(request: Request) {
     paid,
     shippingAddress,
     estimatedDelivery: estimatedDelivery ? new Date(estimatedDelivery) : undefined,
+    createdAt: orderDate ? new Date(orderDate) : undefined,
     items,
   })
 

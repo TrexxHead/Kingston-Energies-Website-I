@@ -115,7 +115,7 @@ export default function OrdersSection() {
   const [newError, setNewError] = useState('')
   const [newOrder, setNewOrder] = useState({
     customerName: '', contact: '', email: '', phone: '', shippingAddress: '',
-    source: 'FACE_TO_FACE' as OrderChannel, paymentMethod: '', paid: false,
+    source: 'FACE_TO_FACE' as OrderChannel, paymentMethod: '', paid: false, orderDate: '',
   })
   const [newItems, setNewItems] = useState([{ name: '', price: '', qty: '1' }])
   const [products, setProducts] = useState<{ id: string; name: string; price: number; salePrice: number | null }[]>([])
@@ -360,7 +360,7 @@ export default function OrdersSection() {
   }
 
   const resetNewOrder = () => {
-    setNewOrder({ customerName: '', contact: '', email: '', phone: '', shippingAddress: '', source: 'FACE_TO_FACE', paymentMethod: '', paid: false })
+    setNewOrder({ customerName: '', contact: '', email: '', phone: '', shippingAddress: '', source: 'FACE_TO_FACE', paymentMethod: '', paid: false, orderDate: '' })
     setNewItems([{ name: '', price: '', qty: '1' }])
     setNewError('')
   }
@@ -386,6 +386,7 @@ export default function OrdersSection() {
         source: newOrder.source,
         paymentMethod: newOrder.paymentMethod || undefined,
         paid: newOrder.paid,
+        orderDate: newOrder.orderDate || undefined,
         items,
       }),
     })
@@ -1181,6 +1182,13 @@ export default function OrdersSection() {
               </select>
             </label>
           </div>
+
+          <TextInput
+            label="Order date (optional — defaults to now)"
+            value={newOrder.orderDate}
+            onChange={(v) => setNewOrder({ ...newOrder, orderDate: v })}
+            type="date"
+          />
 
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '10px 0 4px', fontSize: 13 }}>
             <input type="checkbox" checked={newOrder.paid} onChange={(e) => setNewOrder({ ...newOrder, paid: e.target.checked })} />

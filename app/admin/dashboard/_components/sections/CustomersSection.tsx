@@ -19,7 +19,7 @@ interface CustomerRow {
   id: string
   registered: boolean
   name: string
-  email: string
+  email: string | null
   phone: string | null
   segment: Segment | null
   loyaltyTier: string | null
@@ -116,7 +116,7 @@ export default function CustomersSection() {
       if (tier !== 'all' && c.valueTier !== tier) return false
       if (reg === 'registered' && !c.registered) return false
       if (reg === 'guest' && c.registered) return false
-      if (search && !`${c.name} ${c.email}`.toLowerCase().includes(search.toLowerCase())) return false
+      if (search && !`${c.name} ${c.email ?? ''} ${c.phone ?? ''}`.toLowerCase().includes(search.toLowerCase())) return false
       return true
     })
     .sort((a, b) => {
@@ -310,7 +310,7 @@ export default function CustomersSection() {
                     <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15 }}>{detail.name}</span>
                     <Badge tone={detail.registered ? 'blue' : 'grey'} dot>{detail.registered ? 'Registered' : 'Guest'}</Badge>
                   </div>
-                  <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{detail.email}{detail.phone ? ` · ${detail.phone}` : ''} · CLV {fmt(Math.round(detail.ltv))}</div>
+                  <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{[detail.email, detail.phone].filter(Boolean).join(' · ')} · CLV {fmt(Math.round(detail.ltv))}</div>
                 </div>
                 <Badge tone={VALUE_TIERS[detail.valueTier].tone}>{detail.valueTier} · {VALUE_TIERS[detail.valueTier].label}</Badge>
               </div>
@@ -458,7 +458,7 @@ export default function CustomersSection() {
             <select value={mergeTargetId} onChange={(e) => setMergeTargetId(e.target.value)} style={detailSelect}>
               <option value="">Choose a customer…</option>
               {customers.filter((c) => c.id !== detail.id).map((c) => (
-                <option key={c.id} value={c.id}>{c.name}, {c.email} ({c.registered ? 'registered' : 'guest'})</option>
+                <option key={c.id} value={c.id}>{c.name}, {c.email ?? c.phone ?? 'no contact'} ({c.registered ? 'registered' : 'guest'})</option>
               ))}
             </select>
           </label>

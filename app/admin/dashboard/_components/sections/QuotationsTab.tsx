@@ -1,9 +1,12 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { ArrowRight, ExternalLink, Mail, Phone } from 'lucide-react'
+import { ArrowRight, ExternalLink, Mail, Phone, Plus, Trash2 } from 'lucide-react'
 import { cardStyle } from '../ui/card'
 import Pill from '../ui/Pill'
+import Button from '../ui/Button'
+import Modal from '../ui/Modal'
+import TextInput from '../ui/TextInput'
 import { fmt } from '../mockData'
 import { quoteTotal } from '@/lib/quotes'
 
@@ -47,6 +50,7 @@ export default function QuotationsTab() {
   const [loaded, setLoaded] = useState(false)
   const [filter, setFilter] = useState<Status | 'ALL'>('ALL')
   const [converting, setConverting] = useState<string | null>(null)
+  const [newOpen, setNewOpen] = useState(false)
 
   const load = useCallback(async () => {
     const res = await fetch('/api/admin/leads')
@@ -95,10 +99,15 @@ export default function QuotationsTab() {
             <Stat label="All quote requests" value={String(quotes.length)} sub="Since launch" />
           </div>
 
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {(['ALL', ...STATUSES] as const).map((s) => (
-              <Pill key={s} label={s === 'ALL' ? 'All' : STATUS_LABEL[s]} selected={filter === s} onClick={() => setFilter(s)} />
-            ))}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {(['ALL', ...STATUSES] as const).map((s) => (
+                <Pill key={s} label={s === 'ALL' ? 'All' : STATUS_LABEL[s]} selected={filter === s} onClick={() => setFilter(s)} />
+              ))}
+            </div>
+            <Button size="sm" variant="primary" onClick={() => setNewOpen(true)} iconRight={<Plus size={14} />}>
+              New quotation
+            </Button>
           </div>
 
           {visible.length === 0 ? (
@@ -173,7 +182,143 @@ export default function QuotationsTab() {
           )}
         </>
       )}
+
+      {newOpen && (
+        <NewQuotationModal
+          onClose={() => setNewOpen(false)}
+          onCreated={() => {
+            setNewOpen(false)
+            load()
+          }}
+        />
+      )}
     </div>
+  )
+}
+
+interface Row {
+  name: string
+  price: string
+  qty: string
+}
+
+function NewQuotationModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
+  const [shoppingFor, setShoppingFor] = useState('')
+  const [area, setArea] = useState('')
+  const [timeframe, setTimeframe] = useState('')
+  const [rows, setRows] = useState<Row[]>([{ name: '', price: '', qty: '1' }])
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  const setRow = (i: number, patch: Partial<Row>) => setRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, ...patch } : r)))
+
+  const total = rows.reduce((sum, r) => sum + (Number(r.price) || 0) * (Number(r.qty) || 0), 0)
+
+  const submit = async () => {
+    setError('')
+    if (!name.trim()) return setError('Customer name is required.')
+    if (!email.trim()) return setError('Email is required.')
+    const items = rows
+      .filter((r) => r.name.trim())
+      .map((r) => ({ name: r.name.trim(), price: Number(r.price) || 0, qty: Math.max(1, Number(r.qty) || 1) }))
+    if (items.length === 0) return setError('Add at least one item.')
+
+    setBusy(true)
+    const res = await fetch('/api/admin/leads', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: name.trim(),
+        email: email.trim(),
+        phone: phone.trim() || undefined,
+        quoteShoppingFor: shoppingFor.trim() || undefined,
+        quoteArea: area.trim() || undefined,
+        quoteTimeframe: timeframe.trim() || undefined,
+        items,
+      }),
+    })
+    setBusy(false)
+    if (!res.ok) return setError((await res.json().catch(() => ({}))).error || 'Could not create this quotation.')
+    onCreated()
+  }
+
+  return (
+    <Modal
+      title="New quotation"
+      width={520}
+      onClose={onClose}
+      footer={
+        <>
+          <Button size="sm" variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button size="sm" variant="primary" onClick={submit} disabled={busy}>
+            {busy ? 'Creating…' : `Create quotation · J$${total.toLocaleString()}`}
+          </Button>
+        </>
+      }
+    >
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <TextInput label="Customer name" value={name} onChange={setName} />
+        <TextInput label="Email" value={email} onChange={setEmail} type="email" />
+        <TextInput label="Phone (optional)" value={phone} onChange={setPhone} type="tel" />
+        <TextInput label="Shopping for (optional)" value={shoppingFor} onChange={setShoppingFor} placeholder="Home, business…" />
+        <TextInput label="Area (optional)" value={area} onChange={setArea} />
+        <TextInput label="Timeframe (optional)" value={timeframe} onChange={setTimeframe} placeholder="ASAP, this month…" />
+      </div>
+
+      <div>
+        <span style={{ display: 'block', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12.5, color: 'var(--color-text)', marginBottom: 6 }}>
+          Items
+        </span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {rows.map((r, i) => (
+            <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 90px 60px 28px', gap: 6, alignItems: 'center' }}>
+              <input
+                value={r.name}
+                onChange={(e) => setRow(i, { name: e.target.value })}
+                placeholder="Item name"
+                style={{ height: 38, padding: '0 10px', border: '1.5px solid var(--color-border)', borderRadius: 10, fontSize: 13, background: 'var(--color-surface-sunk)' }}
+              />
+              <input
+                value={r.price}
+                onChange={(e) => setRow(i, { price: e.target.value })}
+                placeholder="Price"
+                type="number"
+                style={{ height: 38, padding: '0 10px', border: '1.5px solid var(--color-border)', borderRadius: 10, fontSize: 13, background: 'var(--color-surface-sunk)' }}
+              />
+              <input
+                value={r.qty}
+                onChange={(e) => setRow(i, { qty: e.target.value })}
+                placeholder="Qty"
+                type="number"
+                style={{ height: 38, padding: '0 10px', border: '1.5px solid var(--color-border)', borderRadius: 10, fontSize: 13, background: 'var(--color-surface-sunk)' }}
+              />
+              <button
+                type="button"
+                onClick={() => setRows((prev) => prev.filter((_, idx) => idx !== i))}
+                disabled={rows.length === 1}
+                style={{ width: 28, height: 28, borderRadius: 8, border: 'none', background: 'none', cursor: rows.length === 1 ? 'default' : 'pointer', opacity: rows.length === 1 ? 0.3 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => setRows((prev) => [...prev, { name: '', price: '', qty: '1' }])}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 8, background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: 'var(--ke-green-700,#15803d)', padding: 0 }}
+        >
+          <Plus size={13} /> Add item
+        </button>
+      </div>
+
+      {error && <div style={{ color: 'var(--color-danger,#dc2626)', fontSize: 13 }}>{error}</div>}
+    </Modal>
   )
 }
 

@@ -3,6 +3,14 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { guardAdmin } from '@/lib/requireAdmin'
 import { customerValueTier, monthsSince } from '@/lib/crm'
+import { Prisma } from '@prisma/client'
+
+/** A guest "customer" id encodes how its orders are grouped — by email, by phone (when no email was captured), or by a single order (when neither was). */
+function guestOrderWhere(key: string): Prisma.OrderWhereInput {
+  if (key.startsWith('phone:')) return { userId: null, phone: key.slice('phone:'.length) }
+  if (key.startsWith('order:')) return { id: key.slice('order:'.length) }
+  return { userId: null, email: { equals: key, mode: 'insensitive' } }
+}
 
 const patchSchema = z.object({
   segment: z.enum(['VIP', 'REPEAT', 'NEW']).nullish(),
@@ -18,11 +26,11 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   const { id } = await params
 
-  // Guest customer: build the record from their orders (grouped by email).
+  // Guest customer: build the record from their orders (grouped by email, phone, or a single order).
   if (id.startsWith('guest:')) {
-    const email = id.slice('guest:'.length)
+    const key = id.slice('guest:'.length)
     const orders = await prisma.order.findMany({
-      where: { userId: null, email: { equals: email, mode: 'insensitive' } },
+      where: guestOrderWhere(key),
       orderBy: { createdAt: 'desc' },
       include: { items: true },
     })
@@ -34,8 +42,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       customer: {
         id,
         registered: false,
-        name: latest.customerName || email,
-        email,
+        name: latest.customerName || orders.find((o) => o.email)?.email || orders.find((o) => o.phone)?.phone || 'Guest',
+        email: orders.find((o) => o.email)?.email ?? null,
         phone: orders.find((o) => o.phone)?.phone ?? null,
         shippingAddress: orders.find((o) => o.shippingAddress)?.shippingAddress ?? null,
         billingAddress: orders.find((o) => o.billingAddress)?.billingAddress ?? null,
@@ -138,9 +146,9 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   const { id } = await params
 
   if (id.startsWith('guest:')) {
-    const email = id.slice('guest:'.length)
+    const key = id.slice('guest:'.length)
     await prisma.order.updateMany({
-      where: { userId: null, email: { equals: email, mode: 'insensitive' }, status: { notIn: ['CANCELLED', 'DONE'] } },
+      where: { ...guestOrderWhere(key), status: { notIn: ['CANCELLED', 'DONE'] } },
       data: { status: 'CANCELLED', cancelReason: 'Customer record removed by admin', cancelledAt: new Date() },
     })
     return NextResponse.json({ ok: true })

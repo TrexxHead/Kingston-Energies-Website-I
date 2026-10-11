@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ChevronLeft, ChevronRight, Palette, Plus, ShoppingBag } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Palette, Plus, ShoppingBag, ShoppingCart, Receipt } from 'lucide-react'
 import { cardStyle, h3Style } from '../ui/card'
 import Button from '../ui/Button'
 import IconButton from '../ui/IconButton'
@@ -10,6 +10,7 @@ import { fmt } from '../mockData'
 import { EXPENSE_CATEGORIES, DEFAULT_CATEGORY_COLORS } from '@/lib/finance'
 import { useExpenseCategories } from './useFinanceData'
 import CalendarOrderModal from './CalendarOrderModal'
+import CalendarExpenseModal from './CalendarExpenseModal'
 
 interface CalendarData {
   month: string
@@ -63,7 +64,8 @@ export default function CalendarTab() {
   const [colors, setColors] = useState<Record<string, string>>(DEFAULT_CATEGORY_COLORS)
   const [colorsOpen, setColorsOpen] = useState(false)
   const [orders, setOrders] = useState<OrderEntry[]>([])
-  const [orderModalDate, setOrderModalDate] = useState<string | null>(null)
+  const [chooserDate, setChooserDate] = useState<string | null>(null)
+  const [txType, setTxType] = useState<'order' | 'expense' | null>(null)
   const [hoverDay, setHoverDay] = useState<string | null>(null)
   const { categories } = useExpenseCategories()
   const categoryOptions = categories.length ? categories : [...EXPENSE_CATEGORIES]
@@ -167,8 +169,8 @@ export default function CalendarTab() {
             <IconButton label="Next month" onClick={() => setMonth((m) => monthShift(m, 1))}>
               <ChevronRight size={16} />
             </IconButton>
-            <Button size="sm" variant="primary" onClick={() => setOrderModalDate(selected)} iconRight={<Plus size={14} />}>
-              New order
+            <Button size="sm" variant="primary" onClick={() => setChooserDate(selected)} iconRight={<Plus size={14} />}>
+              New transaction
             </Button>
           </div>
         </div>
@@ -213,10 +215,10 @@ export default function CalendarTab() {
                 {hoverDay === cell.key && cell.inMonth && (
                   <span
                     role="button"
-                    aria-label="New order on this day"
+                    aria-label="New transaction on this day"
                     onClick={(e) => {
                       e.stopPropagation()
-                      setOrderModalDate(cell.key)
+                      setChooserDate(cell.key)
                     }}
                     style={{
                       position: 'absolute',
@@ -383,17 +385,79 @@ export default function CalendarTab() {
         />
       )}
 
-      {orderModalDate && (
+      {chooserDate && !txType && (
+        <TransactionTypeModal
+          onClose={() => setChooserDate(null)}
+          onPick={(type) => setTxType(type)}
+        />
+      )}
+
+      {chooserDate && txType === 'order' && (
         <CalendarOrderModal
-          defaultDate={orderModalDate}
-          onClose={() => setOrderModalDate(null)}
+          defaultDate={chooserDate}
+          onClose={() => { setChooserDate(null); setTxType(null) }}
           onCreated={() => {
-            setOrderModalDate(null)
+            setChooserDate(null)
+            setTxType(null)
             loadOrders()
           }}
         />
       )}
+
+      {chooserDate && txType === 'expense' && (
+        <CalendarExpenseModal
+          defaultDate={chooserDate}
+          onClose={() => { setChooserDate(null); setTxType(null) }}
+          onCreated={() => {
+            setChooserDate(null)
+            setTxType(null)
+            load()
+          }}
+        />
+      )}
     </div>
+  )
+}
+
+function TransactionTypeModal({ onClose, onPick }: { onClose: () => void; onPick: (type: 'order' | 'expense') => void }) {
+  return (
+    <Modal title="New transaction" width={380} onClose={onClose}>
+      <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: '0 0 4px' }}>What are you logging?</p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <button
+          type="button"
+          onClick={() => onPick('order')}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderRadius: 14,
+            border: '1.5px solid var(--color-border)', background: 'var(--color-surface)', cursor: 'pointer', textAlign: 'left',
+          }}
+        >
+          <span style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--ke-green-50,#eef7ee)', color: 'var(--ke-green-600)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <ShoppingCart size={17} />
+          </span>
+          <span>
+            <span style={{ display: 'block', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14 }}>Order</span>
+            <span style={{ display: 'block', fontSize: 12, color: 'var(--color-text-muted)' }}>A sale — money coming in</span>
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => onPick('expense')}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderRadius: 14,
+            border: '1.5px solid var(--color-border)', background: 'var(--color-surface)', cursor: 'pointer', textAlign: 'left',
+          }}
+        >
+          <span style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(220,38,38,.08)', color: 'var(--color-danger,#dc2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Receipt size={17} />
+          </span>
+          <span>
+            <span style={{ display: 'block', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14 }}>Expense</span>
+            <span style={{ display: 'block', fontSize: 12, color: 'var(--color-text-muted)' }}>A cost — money going out</span>
+          </span>
+        </button>
+      </div>
+    </Modal>
   )
 }
 

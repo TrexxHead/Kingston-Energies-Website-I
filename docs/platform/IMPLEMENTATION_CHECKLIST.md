@@ -77,7 +77,7 @@ Status: ✅ done · 🟢 foundation done, more to build · 🟡 in progress · �
 - Bugs found and fixed by these tests: unresolved motor load hid an unknown startup peak; JSONB key reordering defeated duplicate detection; reports dated "today" were sent as noon (future) and rejected.
 
 **M2a (12 Oct 2026)**
-- Unit: 65 files, 455 tests pass (adds `mapRegistry`, quick-add and same-browser duplicate tests). Typecheck clean, `next build` succeeds.
+- Unit: 65 files, 454 tests pass (adds `mapRegistry`, quick-add and same-browser duplicate tests). Typecheck clean, `next build` succeeds.
 - Browser (production build, local DB): new suite 20 checks + original 15 — all pass. Covers quick add → assumed basis → edit → recalculation; admin catalogue two-person verification and publish refusal; station draft → refused publish → source → verify → publish → visible on public map with "Status unavailable" and attribution; report moderation; navigation fits at 1001–1440 px.
 - Bugs found and fixed: identical devices in one browser were collapsed on sign-in merge; station editor reopened blank after create/publish; menu wrapped at ≤1280 px; admin "Add evidence" buttons had no distinguishing accessible names.
 

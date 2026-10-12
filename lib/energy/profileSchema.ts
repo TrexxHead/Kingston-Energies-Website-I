@@ -145,13 +145,16 @@ export function mergeProfiles(server: EnergyProfile, local: EnergyProfile): { pr
     }
 
     const remap = new Map<string, string>()
+    // Only equipment already on the account counts as a duplicate — two
+    // identical fridges entered in the same browser are two fridges.
+    const existing = [...target.devices]
     for (const d of lp.devices) {
       const sameId = target.devices.findIndex((x) => x.clientId === d.clientId)
       if (sameId >= 0) {
         target.devices[sameId] = d
         continue
       }
-      const dup = target.devices.find((x) => deviceFingerprint(x) === deviceFingerprint(d))
+      const dup = existing.find((x) => deviceFingerprint(x) === deviceFingerprint(d))
       if (dup) {
         remap.set(d.clientId, dup.clientId)
         skippedDuplicates++

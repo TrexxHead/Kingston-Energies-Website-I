@@ -235,6 +235,33 @@ export const NAV: NavGroup[] = [
     ],
   },
   {
+    id: 'platform',
+    label: 'Energy platform',
+    icon: 'zap',
+    href: `${BASE}/platform`,
+    description: 'Verified product specs and the Jamaica Energy Map',
+    children: [
+      {
+        href: `${BASE}/platform`,
+        label: 'Catalogue evidence',
+        description: 'Record and verify exact product specifications before anything is recommended',
+        keywords: 'sku specs datasheet verify evidence catalogue backup match',
+      },
+      {
+        href: `${BASE}/platform/map`,
+        label: 'Map stations',
+        description: 'Add, verify and publish EV charging locations',
+        keywords: 'ev charger station registry energy map publish',
+      },
+      {
+        href: `${BASE}/platform/map-reports`,
+        label: 'Map reports & coverage',
+        description: 'Moderate driver reports and record parish coverage reviews',
+        keywords: 'moderation community report missing charger parish coverage',
+      },
+    ],
+  },
+  {
     id: 'analytics',
     label: 'Analytics',
     icon: 'chart-scatter',

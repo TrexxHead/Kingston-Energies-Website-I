@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
-import { Plus, Trash2, Cloud, HardDrive } from 'lucide-react'
+import { Plus, Trash2, Cloud, HardDrive, Pencil, Zap } from 'lucide-react'
 import { PARISHES } from '@/lib/map/parishes'
 import { EMPTY_PROFILE, newClientId, pruneScenario, type EnergyProfile, type ProfileDevice, type ProfileProperty, type ProfileScenario } from '@/lib/energy/profileSchema'
 import { loadLocalProfile, saveLocalProfile, clearLocalProfile } from '@/lib/energy/localProfile'
+import { QUICK_ITEMS, quickAddDevice } from '@/lib/energy/quickAdd'
 import DeviceForm from './DeviceForm'
 import ScenarioResults from './ScenarioResults'
 import { card, label, input, muted, h2, Btn, BasisChip } from './ui'
@@ -34,6 +35,8 @@ export default function MyEnergyClient() {
   const [propId, setPropId] = useState<string | null>(null)
   const [scnId, setScnId] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
+  const [editing, setEditing] = useState<string | null>(null)
+  const [preset, setPreset] = useState<{ name: string; category: ProfileDevice['category']; model: 'cooling'; motor: boolean } | undefined>()
   const [newProp, setNewProp] = useState({ name: 'Home', kind: 'home' as 'home' | 'business', parish: '' })
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -107,8 +110,9 @@ export default function MyEnergyClient() {
     persist({ ...profile, properties: profile.properties.map((p) => (p.clientId === property.clientId ? fn(p) : p)) })
   }
 
-  function addProperty() {
-    const p: ProfileProperty = { clientId: newClientId('prop'), name: newProp.name.trim() || 'Home', kind: newProp.kind, parish: newProp.parish || undefined, devices: [], scenarios: [defaultScenario()] }
+  function addProperty(override?: { name: string; kind: 'home' | 'business' }) {
+    const base = override ?? newProp
+    const p: ProfileProperty = { clientId: newClientId('prop'), name: base.name.trim() || 'Home', kind: base.kind, parish: override ? undefined : newProp.parish || undefined, devices: [], scenarios: [defaultScenario()] }
     persist({ ...profile, properties: [...profile.properties, p] })
     setPropId(p.clientId)
     setScnId(null)
@@ -131,12 +135,29 @@ export default function MyEnergyClient() {
   }
 
   function addDevice(d: ProfileDevice) {
+    if (property?.devices.some((x) => x.clientId === d.clientId)) {
+      updateProperty((p) => ({ ...p, devices: p.devices.map((x) => (x.clientId === d.clientId ? d : x)) }))
+      setEditing(null)
+      return
+    }
     updateProperty((p) => ({
       ...p,
       devices: [...p.devices, d],
       scenarios: p.scenarios.map((s) => (s.clientId === scenario?.clientId ? { ...s, items: [...s.items, { deviceClientId: d.clientId, simultaneous: true, essential: true }] } : s)),
     }))
     setAdding(false)
+    setPreset(undefined)
+  }
+
+  function quickAdd(key: string) {
+    if (key === 'ac') {
+      setPreset({ name: 'Air conditioner', category: 'cooling', model: 'cooling', motor: true })
+      setEditing(null)
+      setAdding(true)
+      return
+    }
+    const d = quickAddDevice(key)
+    if (d) addDevice(d)
   }
 
   function removeDevice(id: string) {
@@ -194,6 +215,17 @@ export default function MyEnergyClient() {
       </div>
       {notice && <p role="status" style={{ ...card, padding: 14, margin: 0, ...muted }}>{notice}</p>}
 
+      {profile.properties.length === 0 && (
+        <section style={{ ...card, display: 'grid', gap: 12, borderColor: 'var(--ke-green-500)' }} aria-labelledby="start-title">
+          <h2 id="start-title" style={h2}>Start here</h2>
+          <p style={{ ...muted, margin: 0 }}>Create your first property, then add what you run. It takes about two minutes, and nothing needs an account.</p>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <Btn onClick={() => addProperty({ name: 'Home', kind: 'home' })}>Start with my home</Btn>
+            <Btn variant="ghost" onClick={() => addProperty({ name: 'My business', kind: 'business' })}>Start with my business</Btn>
+          </div>
+        </section>
+      )}
+
       {/* Properties */}
       <section style={{ ...card, display: 'grid', gap: 14 }} aria-labelledby="props-title">
         <h2 id="props-title" style={h2}>Your properties</h2>
@@ -232,7 +264,7 @@ export default function MyEnergyClient() {
               ))}
             </select>
           </div>
-          <Btn variant="ghost" onClick={addProperty} disabled={profile.properties.length >= 10}>
+          <Btn variant="ghost" onClick={() => addProperty()} disabled={profile.properties.length >= 10}>
             <Plus size={14} aria-hidden /> Add property
           </Btn>
         </div>
@@ -245,12 +277,27 @@ export default function MyEnergyClient() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
               <h2 id="dev-title" style={h2}>Equipment at {property.name}</h2>
               {!adding && (
-                <Btn onClick={() => setAdding(true)}>
+                <Btn onClick={() => { setEditing(null); setPreset(undefined); setAdding(true) }}>
                   <Plus size={14} aria-hidden /> Add equipment
                 </Btn>
               )}
             </div>
             <p style={{ ...muted, margin: 0 }}>Enter each item once. Every tool — backup planning, storm preparation, solar readiness — reads this same list.</p>
+            <div style={{ display: 'grid', gap: 8 }}>
+              <span style={{ ...muted, fontSize: 12.5, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <Zap size={14} aria-hidden /> Quick add — uses typical figures marked “Assumed”. Edit each one with your label reading to narrow the result.
+              </span>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {QUICK_ITEMS.map((q) => (
+                  <Btn key={q.key} variant="ghost" onClick={() => quickAdd(q.key)} ariaLabel={`Quick add ${q.name}`}>
+                    <Plus size={13} aria-hidden /> {q.name}
+                  </Btn>
+                ))}
+                <Btn variant="ghost" onClick={() => quickAdd('ac')} ariaLabel="Add an air conditioner">
+                  <Plus size={13} aria-hidden /> Air conditioner (needs label)
+                </Btn>
+              </div>
+            </div>
             {property.devices.length === 0 && !adding && <p style={muted}>No equipment yet.</p>}
             {property.devices.map((d) => {
               const bases = Object.values(d.load).filter((v): v is { value: number; basis: 'measured' } => typeof v === 'object' && v !== null && 'basis' in v).map((v) => v.basis)
@@ -264,6 +311,9 @@ export default function MyEnergyClient() {
                     {[...new Set(bases)].map((b) => (
                       <BasisChip key={b} basis={b} />
                     ))}
+                    <Btn variant="ghost" onClick={() => { setAdding(false); setEditing(d.clientId) }} ariaLabel={`Edit ${d.name}`}>
+                      <Pencil size={14} aria-hidden />
+                    </Btn>
                     <Btn variant="danger" onClick={() => removeDevice(d.clientId)} ariaLabel={`Remove ${d.name}`}>
                       <Trash2 size={14} aria-hidden />
                     </Btn>
@@ -272,7 +322,10 @@ export default function MyEnergyClient() {
               )
             })}
           </section>
-          {adding && <DeviceForm onAdd={addDevice} onCancel={() => setAdding(false)} />}
+          {adding && <DeviceForm key={preset?.name ?? 'new'} preset={preset} onAdd={addDevice} onCancel={() => { setAdding(false); setPreset(undefined) }} />}
+          {editing && property.devices.some((d) => d.clientId === editing) && (
+            <DeviceForm key={editing} initial={property.devices.find((d) => d.clientId === editing)} onAdd={addDevice} onCancel={() => setEditing(null)} />
+          )}
 
           {/* Scenario */}
           {scenario && (

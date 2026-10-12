@@ -85,13 +85,14 @@ export default function Navbar() {
               fontSize: 14,
               letterSpacing: '.22em',
               color: '#fff',
+              whiteSpace: 'nowrap',
             }}
           >
             KINGSTON ENERGIES
           </span>
         </Link>
 
-        <div className="kad-hide-sm" style={{ display: 'flex', gap: 28, marginLeft: 12 }}>
+        <div className="kad-hide-sm" style={{ display: 'flex', gap: 22, marginLeft: 12, whiteSpace: 'nowrap' }}>
           <Link href="/shop" style={{ fontSize: 13.5, color: 'rgba(234,242,236,.72)' }}>
             Shop
           </Link>
@@ -115,12 +116,13 @@ export default function Navbar() {
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 22 }}>
           <a
             href="tel:+18763389958"
-            className="kad-hide-sm"
+            className="kad-hide-sm kad-hide-md"
             style={{
               fontFamily: 'var(--font-mono)',
               fontSize: 12,
               letterSpacing: '.08em',
               color: 'rgba(234,242,236,.6)',
+              whiteSpace: 'nowrap',
             }}
           >
             876-338-9958
@@ -139,6 +141,7 @@ export default function Navbar() {
               fontFamily: 'var(--font-display)',
               fontWeight: 600,
               fontSize: 12.5,
+              whiteSpace: 'nowrap',
             }}
           >
             Get yours
@@ -187,7 +190,7 @@ export default function Navbar() {
           </Link>
 
           {status !== 'authenticated' ? (
-            <Link href="/login" style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12.5, color: '#fff' }}>
+            <Link href="/login" style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12.5, color: '#fff', whiteSpace: 'nowrap' }}>
               Sign in
             </Link>
           ) : (

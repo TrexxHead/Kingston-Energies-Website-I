@@ -58,22 +58,42 @@ function Num({ id, text, f, set, unit, withBasis = true }: { id: string; text: s
 const ev = (f: NumField) => (f.value.trim() === '' ? undefined : { value: Number(f.value), basis: f.basis })
 
 /** Add one device to the profile. Unknown values stay blank — the engine will ask for them rather than guess. */
-export default function DeviceForm({ onAdd, onCancel }: { onAdd: (d: ProfileDevice) => void; onCancel: () => void }) {
-  const [name, setName] = useState('')
-  const [category, setCategory] = useState<ProfileDevice['category']>('electronics')
-  const [quantity, setQuantity] = useState('1')
-  const [model, setModel] = useState<ModelKind>('steady')
-  const [watts, setWatts] = useState(nf('manufacturer'))
-  const [nameplate, setNameplate] = useState(false)
-  const [hours, setHours] = useState(nf())
-  const [duty, setDuty] = useState(nf('assumed'))
-  const [inputW, setInputW] = useState(nf('manufacturer'))
-  const [btu, setBtu] = useState(nf('manufacturer'))
-  const [eer, setEer] = useState(nf('manufacturer'))
-  const [kwh, setKwh] = useState('')
-  const [overHours, setOverHours] = useState('')
-  const [motor, setMotor] = useState(false)
-  const [startup, setStartup] = useState(nf('manufacturer'))
+function fromEv(e: { value: number; basis: EvidenceBasis } | undefined, fallback: EvidenceBasis): NumField {
+  return e ? { value: String(e.value), basis: e.basis } : nf(fallback)
+}
+
+/**
+ * Add or edit one device. Unknown values stay blank — the engine will ask for
+ * them rather than guess. `initial` prefills the form; `preset` starts a new
+ * device of a given kind (e.g. an air conditioner from Quick add).
+ */
+export default function DeviceForm({
+  onAdd,
+  onCancel,
+  initial,
+  preset,
+}: {
+  onAdd: (d: ProfileDevice) => void
+  onCancel: () => void
+  initial?: ProfileDevice
+  preset?: { name: string; category: ProfileDevice['category']; model: ModelKind; motor?: boolean }
+}) {
+  const L = initial?.load
+  const [name, setName] = useState(initial?.name ?? preset?.name ?? '')
+  const [category, setCategory] = useState<ProfileDevice['category']>(initial?.category ?? preset?.category ?? 'electronics')
+  const [quantity, setQuantity] = useState(String(initial?.quantity ?? 1))
+  const [model, setModel] = useState<ModelKind>(L?.kind ?? preset?.model ?? 'steady')
+  const [watts, setWatts] = useState(fromEv(L?.kind === 'steady' ? L.watts : L?.kind === 'cycling' ? L.runningWatts : undefined, 'manufacturer'))
+  const [nameplate, setNameplate] = useState(L?.kind === 'steady' && L.wattsKind === 'nameplate_max')
+  const [hours, setHours] = useState(fromEv(L?.kind === 'steady' || L?.kind === 'cooling' ? L.hoursPerDay : undefined, 'customer_entered'))
+  const [duty, setDuty] = useState(fromEv(L?.kind === 'cycling' ? L.dutyCyclePct : undefined, 'assumed'))
+  const [inputW, setInputW] = useState(fromEv(L?.kind === 'cooling' ? L.inputWatts : undefined, 'manufacturer'))
+  const [btu, setBtu] = useState(fromEv(L?.kind === 'cooling' ? L.capacityBtuh : undefined, 'manufacturer'))
+  const [eer, setEer] = useState(fromEv(L?.kind === 'cooling' ? L.eer : undefined, 'manufacturer'))
+  const [kwh, setKwh] = useState(L?.kind === 'measured_energy' ? String(L.kwh) : '')
+  const [overHours, setOverHours] = useState(L?.kind === 'measured_energy' ? String(L.overHours) : '')
+  const [motor, setMotor] = useState(initial?.motorLoad ?? preset?.motor ?? false)
+  const [startup, setStartup] = useState(fromEv(initial?.startupWatts, 'manufacturer'))
   const [error, setError] = useState<string | null>(null)
 
   function submit(e: FormEvent) {
@@ -85,7 +105,10 @@ export default function DeviceForm({ onAdd, onCancel }: { onAdd: (d: ProfileDevi
     if (model === 'cooling') load = { kind: 'cooling', inputWatts: ev(inputW), capacityBtuh: ev(btu), eer: ev(eer), hoursPerDay: h }
     if (model === 'measured_energy') load = { kind: 'measured_energy', kwh: Number(kwh), overHours: Number(overHours) }
     const candidate = {
-      clientId: newClientId('dev'),
+      clientId: initial?.clientId ?? newClientId('dev'),
+      brand: initial?.brand,
+      model: initial?.model,
+      notes: initial?.notes,
       name,
       category,
       quantity: Number(quantity),
@@ -107,7 +130,7 @@ export default function DeviceForm({ onAdd, onCancel }: { onAdd: (d: ProfileDevi
   return (
     <form onSubmit={submit} style={{ ...card, display: 'grid', gap: 16 }} aria-labelledby="add-device-title">
       <h3 id="add-device-title" style={h2}>
-        Add equipment
+        {initial ? `Edit ${initial.name}` : 'Add equipment'}
       </h3>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 12 }}>
         <div>
@@ -189,7 +212,7 @@ export default function DeviceForm({ onAdd, onCancel }: { onAdd: (d: ProfileDevi
 
       {error && <p role="alert" style={{ color: '#f6a5a5', margin: 0, fontSize: 13.5 }}>{error}</p>}
       <div style={{ display: 'flex', gap: 10 }}>
-        <Btn type="submit">Add to profile</Btn>
+        <Btn type="submit">{initial ? 'Save changes' : 'Add to profile'}</Btn>
         <Btn variant="ghost" onClick={onCancel}>Cancel</Btn>
       </div>
     </form>

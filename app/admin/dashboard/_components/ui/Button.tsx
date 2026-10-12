@@ -9,6 +9,7 @@ interface ButtonProps {
   onClick?: () => void
   iconRight?: ReactNode
   disabled?: boolean
+  ariaLabel?: string
   children: ReactNode
 }
 
@@ -19,6 +20,7 @@ export default function Button({
   onClick,
   iconRight,
   disabled = false,
+  ariaLabel,
   children,
 }: ButtonProps) {
   const isPrimary = variant === 'primary'
@@ -29,6 +31,7 @@ export default function Button({
       type="button"
       onClick={onClick}
       disabled={disabled}
+      aria-label={ariaLabel}
       style={{
         opacity: disabled ? 0.5 : 1,
         pointerEvents: disabled ? 'none' : undefined,

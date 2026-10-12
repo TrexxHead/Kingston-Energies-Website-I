@@ -94,10 +94,35 @@ describe('mergeProfiles', () => {
     expect(r.skippedDuplicates).toBe(1)
   })
 
+  it('two identical devices entered in the same browser are both kept', () => {
+    const r = mergeProfiles(EMPTY_PROFILE, profile([fridge, { ...fridge, clientId: 'dev_fridge_2' }]))
+    expect(r.profile.properties[0].devices).toHaveLength(2)
+    expect(r.skippedDuplicates).toBe(0)
+  })
+
   it('a locally edited device replaces the stored copy', () => {
     const server = mergeProfiles(EMPTY_PROFILE, profile([fridge])).profile
     const edited = profile([{ ...fridge, quantity: 2 }])
     const r = mergeProfiles(server, edited)
     expect(r.profile.properties[0].devices[0].quantity).toBe(2)
+  })
+})
+
+describe('quick add', async () => {
+  const { QUICK_ITEMS, quickAddDevice } = await import('@/lib/energy/quickAdd')
+  const { deviceSchema } = await import('@/lib/energy/profileSchema')
+  it('every quick-add item is a valid device with only assumed figures', () => {
+    for (const item of QUICK_ITEMS) {
+      const d = quickAddDevice(item.key)
+      expect(d, item.key).not.toBeNull()
+      expect(deviceSchema.safeParse(d).success, item.key).toBe(true)
+      const bases = Object.values(d!.load).filter((v) => typeof v === 'object' && v && 'basis' in v).map((v) => (v as { basis: string }).basis)
+      expect(new Set(bases), item.key).toEqual(new Set(['assumed']))
+    }
+  })
+  it('motor items flag a startup surge without inventing its size', () => {
+    const pump = quickAddDevice('pump')!
+    expect(pump.motorLoad).toBe(true)
+    expect(pump.startupWatts).toBeUndefined()
   })
 })

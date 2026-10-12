@@ -73,6 +73,7 @@ export async function GET(request: Request) {
         pricingObservedAt: s.pricingObservedAt,
         closed: s.status === 'closed',
         verifiedAt: s.verifiedAt,
+        googlePlaceId: s.googlePlaceId,
         sources: s.sources,
         connectorGroups: groups,
         statusSummary: s.status === 'closed' ? 'Closed' : stationStatusSummary(groups.map((g) => ({ connectorType: g.connectorType, status: g.status! }))),

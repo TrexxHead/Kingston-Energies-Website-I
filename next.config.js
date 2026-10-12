@@ -18,7 +18,7 @@ function buildCsp({ googleMaps = false } = {}) {
     "img-src 'self' https: data: blob:",
     "font-src 'self' data:" + (googleMaps ? ' https://fonts.gstatic.com' : ''),
     "connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com" + (googleMaps ? ' https://*.googleapis.com https://*.gstatic.com' : ''),
-    "frame-src 'self' https://jm.wipayfinancial.com https://accounts.google.com",
+    "frame-src 'self' https://jm.wipayfinancial.com https://accounts.google.com" + (googleMaps ? ' https://www.google.com' : ''),
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "object-src 'none'",

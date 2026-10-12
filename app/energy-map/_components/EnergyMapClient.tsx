@@ -6,6 +6,7 @@ import { PARISHES, COVERAGE_LABEL, JAMAICA_CENTER, type CoverageState } from '@/
 import { DISPLAY_LABEL, type DisplayState, type GroupStatus } from '@/lib/map/status'
 import { card, label, input, muted, h2, Btn } from '@/app/my-energy/_components/ui'
 import ReportForm from './ReportForm'
+import { embedKey, embedSearchUrl, embedPlaceUrl } from '@/lib/map/embed'
 
 interface Group {
   id?: string
@@ -34,6 +35,7 @@ interface Station {
   sources: { sourceName: string; sourceType: string; verifiedAt: string | null }[]
   connectorGroups: Group[]
   statusSummary: string
+  googlePlaceId?: string | null
 }
 interface Coverage {
   verifiedLocations: number
@@ -71,6 +73,7 @@ const ACCESS_LABEL: Record<string, string> = { public: 'Public', customers_only:
 
 const BROWSER_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY ?? ''
 const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? ''
+const EMBED_KEY = embedKey()
 
 function StatusLine({ s }: { s: GroupStatus | null }) {
   if (!s) return <span style={muted}>Closed</span>
@@ -131,6 +134,7 @@ export default function EnergyMapClient() {
   const [geoMsg, setGeoMsg] = useState<string | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
   const [reporting, setReporting] = useState<{ stationId?: string; name?: string } | null>(null)
+  const [embedFor, setEmbedFor] = useState<string | null>(null)
   const [mapState, setMapState] = useState<'off' | 'loading' | 'ready' | 'failed'>(BROWSER_KEY ? 'loading' : 'off')
   const [discovered, setDiscovered] = useState<{ places: DiscoveredPlace[]; limitNote: string } | null>(null)
   const [discoverMsg, setDiscoverMsg] = useState<string | null>(null)
@@ -322,6 +326,26 @@ export default function EnergyMapClient() {
             </div>
           )}
         </section>
+      ) : EMBED_KEY ? (
+        <section aria-labelledby="google-embed-title" style={{ display: 'grid', gap: 8 }}>
+          <h2 id="google-embed-title" style={{ ...h2, fontSize: 17 }}>
+            Google Maps search{parish ? ` — ${PARISHES.find((p) => p.id === parish)?.name}` : ''}
+          </h2>
+          <iframe
+            key={parish || 'all'}
+            title={`Google Maps search for EV charging stations${parish ? ` in ${PARISHES.find((p) => p.id === parish)?.name}` : ' in Jamaica'}`}
+            src={embedSearchUrl(EMBED_KEY, parish || null)}
+            width="100%"
+            height="460"
+            style={{ border: 0, borderRadius: 20, background: 'var(--ke-dark-card)', display: 'block' }}
+            loading="lazy"
+            allowFullScreen
+            referrerPolicy="strict-origin-when-cross-origin"
+          />
+          <p style={{ ...muted, margin: 0, fontSize: 12.5 }}>
+            Results inside this map come from Google and are not yet verified by Kingston Energies. They don’t show live availability, and one search can miss chargers — check with the operator before you rely on one. Our verified locations are listed below.
+          </p>
+        </section>
       ) : (
         <p style={{ ...card, ...muted, margin: 0 }}>The interactive map is not switched on yet. The list below works on its own, with directions for every location.</p>
       )}
@@ -386,10 +410,26 @@ export default function EnergyMapClient() {
                   Operator site
                 </a>
               )}
+              {mapState === 'off' && EMBED_KEY && (
+                <button type="button" aria-expanded={embedFor === s.id} onClick={() => setEmbedFor(embedFor === s.id ? null : s.id)} style={{ background: 'none', border: 0, color: 'var(--ke-green-400)', cursor: 'pointer', fontSize: 14, fontWeight: 600, padding: 0 }}>
+                  {embedFor === s.id ? 'Hide map' : 'Show map'}
+                </button>
+              )}
               <button type="button" onClick={() => setReporting({ stationId: s.id, name: s.name })} style={{ background: 'none', border: 0, color: 'var(--ke-dark-text-muted)', cursor: 'pointer', fontSize: 14, padding: 0 }}>
                 Report a problem
               </button>
             </div>
+            {embedFor === s.id && EMBED_KEY && (
+              <iframe
+                title={`Map of ${s.name}`}
+                src={embedPlaceUrl(EMBED_KEY, s)}
+                width="100%"
+                height="280"
+                style={{ border: 0, borderRadius: 14, marginTop: 12, display: 'block' }}
+                loading="lazy"
+                referrerPolicy="strict-origin-when-cross-origin"
+              />
+            )}
           </article>
         ))}
       </section>

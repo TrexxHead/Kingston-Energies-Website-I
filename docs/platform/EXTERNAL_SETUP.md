@@ -22,7 +22,9 @@ To get a shareable staging site:
 2. **Billing account attached** — Maps Platform requires billing even within free usage caps. Use a company card. Set **budget alerts** (Billing → Budgets) at e.g. US$50 / $150 / $300. Alerts do *not* cap spending; the app enforces its own limits (`MAP_DISCOVER_DAILY_CAP`, per-IP rate limits).
 3. Accept the Google Maps Platform Terms of Service for the project.
 
-**APIs to enable** (APIs & Services → Library)
+**Quickest start — Maps Embed API (free).** Enable *Maps Embed API*, create a key restricted to **Websites** (your domain, the Vercel preview domain `*-trexxheads-projects.vercel.app/*`) and **Maps Embed API** only, and set it as `NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY` in Vercel (Preview first). Redeploy — `NEXT_PUBLIC_` values are read at build time. `/energy-map` then shows Google's own charging-station search for the island or chosen parish, plus a "Show map" for each verified station. It can't plot our markers, sync with the list or show live availability; those need the JavaScript and Places APIs below.
+
+**APIs to enable for the full map** (APIs & Services → Library)
 - Maps JavaScript API — interactive map.
 - Places API (New) — user-initiated "Search this area" discovery, incl. `evChargeOptions`.
 - Routes API — later, for trip planning (M07). Not needed yet.

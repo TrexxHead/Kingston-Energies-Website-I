@@ -29,6 +29,8 @@ const COMPANY_COLUMN = [
   { href: '/services', label: 'Services' },
   { href: '/faq', label: 'FAQ' },
   { href: '/find-my-power', label: 'Find my power' },
+  { href: '/my-energy', label: 'My Energy' },
+  { href: '/energy-map', label: 'Jamaica Energy Map' },
   { href: '/back-in-stock', label: 'Back in stock' },
 ]
 

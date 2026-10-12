@@ -9,22 +9,31 @@
 // route handlers — the browser never talks to either directly, so allowing
 // them in connect-src (a directive that only matters for browser
 // fetch/XHR/WebSocket) served no purpose and was pure attack surface.
-const csp = [
-  "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com",
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' https: data: blob:",
-  "font-src 'self' data:",
-  "connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com",
-  "frame-src 'self' https://jm.wipayfinancial.com https://accounts.google.com",
-  "frame-ancestors 'none'",
-  "base-uri 'self'",
-  "object-src 'none'",
-  "worker-src 'self'",
-  "manifest-src 'self'",
-  "form-action 'self' https://jm.wipayfinancial.com",
-  'upgrade-insecure-requests',
-].join('; ')
+function buildCsp({ googleMaps = false } = {}) {
+  const maps = googleMaps ? ' https://maps.googleapis.com https://maps.gstatic.com' : ''
+  return [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com" + maps,
+    "style-src 'self' 'unsafe-inline'" + (googleMaps ? ' https://fonts.googleapis.com' : ''),
+    "img-src 'self' https: data: blob:",
+    "font-src 'self' data:" + (googleMaps ? ' https://fonts.gstatic.com' : ''),
+    "connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com" + (googleMaps ? ' https://*.googleapis.com https://*.gstatic.com' : ''),
+    "frame-src 'self' https://jm.wipayfinancial.com https://accounts.google.com",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "object-src 'none'",
+    "worker-src 'self'" + (googleMaps ? ' blob:' : ''),
+    "manifest-src 'self'",
+    "form-action 'self' https://jm.wipayfinancial.com",
+    'upgrade-insecure-requests',
+  ].join('; ')
+}
+const csp = buildCsp()
+// The Jamaica Energy Map page alone loads the Google Maps JavaScript API and
+// may ask (on a tap of "Nearby") for the visitor's location — so only that
+// route widens script/connect sources and allows same-origin geolocation.
+// To validate against the live API in staging once a browser key exists.
+const mapCsp = buildCsp({ googleMaps: true })
 
 const securityHeaders = [
   { key: 'Content-Security-Policy', value: csp },
@@ -51,6 +60,14 @@ const nextConfig = {
   async headers() {
     return [
       { source: '/:path*', headers: securityHeaders },
+      // Later rules override earlier ones for the same header key.
+      {
+        source: '/energy-map',
+        headers: [
+          { key: 'Content-Security-Policy', value: mapCsp },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(self), payment=()' },
+        ],
+      },
       // Order/account/admin pages carry another person's data if a shared or
       // CDN cache ever stored a response for them — never let that happen.
       {

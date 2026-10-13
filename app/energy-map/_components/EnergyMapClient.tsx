@@ -105,6 +105,7 @@ declare global {
   interface Window {
     google?: any
     __keMapsReady?: () => void
+    gm_authFailure?: () => void
   }
 }
 
@@ -135,7 +136,7 @@ export default function EnergyMapClient() {
   const [selected, setSelected] = useState<string | null>(null)
   const [reporting, setReporting] = useState<{ stationId?: string; name?: string } | null>(null)
   const [embedFor, setEmbedFor] = useState<string | null>(null)
-  const [mapState, setMapState] = useState<'off' | 'loading' | 'ready' | 'failed'>(BROWSER_KEY ? 'loading' : 'off')
+  const [mapState, setMapState] = useState<'off' | 'loading' | 'ready' | 'failed' | 'rejected'>(BROWSER_KEY ? 'loading' : 'off')
   const [discovered, setDiscovered] = useState<{ places: DiscoveredPlace[]; limitNote: string } | null>(null)
   const [discoverMsg, setDiscoverMsg] = useState<string | null>(null)
   const [discoverAvailable, setDiscoverAvailable] = useState(false)
@@ -169,6 +170,8 @@ export default function EnergyMapClient() {
   // Interactive map — only with a configured, restricted browser key.
   useEffect(() => {
     if (!BROWSER_KEY || !mapEl.current || map.current) return
+    // Google calls this global when it rejects the key (referrer restriction, API not enabled, billing).
+    window.gm_authFailure = () => setMapState('rejected')
     loadMaps()
       .then((g) => {
         map.current = new g.maps.Map(mapEl.current, { center: JAMAICA_CENTER, zoom: 9, mapId: MAP_ID || undefined, streetViewControl: false, mapTypeControl: false })
@@ -322,6 +325,11 @@ export default function EnergyMapClient() {
         <section aria-label="Map" style={{ display: 'grid', gap: 8 }}>
           <div ref={mapEl} style={{ width: '100%', height: 'min(60vh, 520px)', borderRadius: 20, overflow: 'hidden', background: 'var(--ke-dark-card)' }} />
           {mapState === 'failed' && <p role="alert" style={muted}>The map could not load. Every location below still has directions.</p>}
+          {mapState === 'rejected' && (
+            <p role="alert" style={muted}>
+              Google refused the map key for this web address. In Google Cloud → Credentials, add this site to the key’s website restrictions and confirm the Maps JavaScript API and billing are enabled. Every location below still has directions.
+            </p>
+          )}
           {mapState === 'ready' && discoverAvailable && (
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
               <Btn variant="ghost" onClick={searchArea}>

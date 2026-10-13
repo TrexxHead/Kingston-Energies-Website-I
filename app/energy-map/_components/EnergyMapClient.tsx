@@ -1,12 +1,26 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { CircleCheck, Clock, CircleX, MessageCircle, CircleHelp, History, Navigation, LocateFixed, Search, Flag, Lock } from 'lucide-react'
-import { PARISHES, COVERAGE_LABEL, JAMAICA_CENTER, type CoverageState } from '@/lib/map/parishes'
+import dynamic from 'next/dynamic'
+import { CircleCheck, Clock, CircleX, MessageCircle, CircleHelp, History, Navigation, LocateFixed, Flag, Lock } from 'lucide-react'
+import { PARISHES, COVERAGE_LABEL, type CoverageState } from '@/lib/map/parishes'
 import { DISPLAY_LABEL, type DisplayState, type GroupStatus } from '@/lib/map/status'
 import { card, label, input, muted, h2, Btn } from '@/app/my-energy/_components/ui'
 import ReportForm from './ReportForm'
-import { embedKey, embedSearchUrl, embedPlaceUrl, cleanKey, keyFingerprint } from '@/lib/map/embed'
+import { embedPlaceUrl } from '@/lib/map/embed'
+import { stationMarkerState } from '@/lib/map/openStyle'
+import GoogleMapPanel, { type DiscoveredResults } from './maps/GoogleMapPanel'
+import { GOOGLE_EMBED_KEY, GOOGLE_EMBED_ONLY } from './maps/googleKeys'
+import type { MapStation, MapViewHandle } from './maps/types'
+
+// MapLibre touches window/WebGL — load it in the browser only.
+const KingstonMap = dynamic(() => import('./maps/KingstonMap'), { ssr: false, loading: () => <div style={{ height: 'min(60vh, 520px)', borderRadius: 20, background: '#0b2634' }} /> })
+
+type MapKind = 'kingston' | 'google'
+const MAP_TABS: { id: MapKind; label: string }[] = [
+  { id: 'kingston', label: 'Kingston Energies map' },
+  { id: 'google', label: 'Google map' },
+]
 
 interface Group {
   id?: string
@@ -43,15 +57,6 @@ interface Coverage {
   lastReviewedAt: string | null
   statement: string
 }
-interface DiscoveredPlace {
-  placeId: string
-  name: string
-  address: string | null
-  lat: number
-  lng: number
-  googleMapsUri: string | null
-  connectorGroups: (Group & { observation: unknown })[]
-}
 
 const STATE_ICON: Record<DisplayState, typeof CircleCheck> = {
   available_now: CircleCheck,
@@ -71,9 +76,6 @@ const STATE_COLOR: Record<DisplayState, string> = {
 }
 const ACCESS_LABEL: Record<string, string> = { public: 'Public', customers_only: 'Customers only', restricted: 'Restricted', private: 'Private' }
 
-const BROWSER_KEY = cleanKey(process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY)
-const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? ''
-const EMBED_KEY = embedKey()
 
 function StatusLine({ s }: { s: GroupStatus | null }) {
   if (!s) return <span style={muted}>Closed</span>
@@ -100,27 +102,6 @@ function distanceKm(a: { lat: number; lng: number }, b: { lat: number; lng: numb
   return 2 * R * Math.asin(Math.sqrt(x))
 }
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-declare global {
-  interface Window {
-    google?: any
-    __keMapsReady?: () => void
-    gm_authFailure?: () => void
-  }
-}
-
-function loadMaps(): Promise<any> {
-  if (window.google?.maps) return Promise.resolve(window.google)
-  return new Promise((resolve, reject) => {
-    window.__keMapsReady = () => resolve(window.google)
-    const s = document.createElement('script')
-    s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(BROWSER_KEY)}&v=weekly&loading=async&libraries=marker&callback=__keMapsReady`
-    s.async = true
-    s.onerror = () => reject(new Error('maps failed'))
-    document.head.appendChild(s)
-  })
-}
-
 export default function EnergyMapClient() {
   const [stations, setStations] = useState<Station[]>([])
   const [coverage, setCoverage] = useState<Coverage | null>(null)
@@ -136,14 +117,21 @@ export default function EnergyMapClient() {
   const [selected, setSelected] = useState<string | null>(null)
   const [reporting, setReporting] = useState<{ stationId?: string; name?: string } | null>(null)
   const [embedFor, setEmbedFor] = useState<string | null>(null)
-  const [mapState, setMapState] = useState<'off' | 'loading' | 'ready' | 'failed' | 'rejected'>(BROWSER_KEY ? 'loading' : 'off')
-  const [discovered, setDiscovered] = useState<{ places: DiscoveredPlace[]; limitNote: string } | null>(null)
-  const [discoverMsg, setDiscoverMsg] = useState<string | null>(null)
-  const [discoverAvailable, setDiscoverAvailable] = useState(false)
-  const mapEl = useRef<HTMLDivElement>(null)
-  const map = useRef<any>(null)
-  const markers = useRef<any[]>([])
-  const discoverAbort = useRef<AbortController | null>(null)
+  const [discovered, setDiscovered] = useState<DiscoveredResults | null>(null)
+  const [mapKind, setMapKind] = useState<MapKind>('kingston')
+  const mapView = useRef<MapViewHandle>(null)
+
+  // Remember the chosen map in the address (?map=google) so it can be linked to.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('map') === 'google') setMapKind('google')
+  }, [])
+  const chooseMap = useCallback((k: MapKind) => {
+    setMapKind(k)
+    const url = new URL(window.location.href)
+    if (k === 'google') url.searchParams.set('map', 'google')
+    else url.searchParams.delete('map')
+    window.history.replaceState(null, '', url)
+  }, [])
 
   useEffect(() => {
     const qs = new URLSearchParams()
@@ -167,37 +155,14 @@ export default function EnergyMapClient() {
   const connectorOptions = useMemo(() => [...new Set(stations.flatMap((s) => s.connectorGroups.map((g) => g.connectorType)))].sort(), [stations])
   const sorted = useMemo(() => (me ? [...stations].sort((a, b) => distanceKm(me, a) - distanceKm(me, b)) : stations), [stations, me])
 
-  // Interactive map — only with a configured, restricted browser key.
-  useEffect(() => {
-    if (!BROWSER_KEY || !mapEl.current || map.current) return
-    // Google calls this global when it rejects the key (referrer restriction, API not enabled, billing).
-    window.gm_authFailure = () => setMapState('rejected')
-    loadMaps()
-      .then((g) => {
-        map.current = new g.maps.Map(mapEl.current, { center: JAMAICA_CENTER, zoom: 9, mapId: MAP_ID || undefined, streetViewControl: false, mapTypeControl: false })
-        setMapState('ready')
-        fetch('/api/map/discover')
-          .then((r) => (r.ok ? r.json() : { configured: false }))
-          .then((d) => setDiscoverAvailable(!!d.configured))
-          .catch(() => setDiscoverAvailable(false))
-      })
-      .catch(() => setMapState('failed'))
+  const mapStations = useMemo<MapStation[]>(
+    () => sorted.map((s) => ({ id: s.id, name: s.name, lat: s.lat, lng: s.lng, statusSummary: s.statusSummary, markerState: stationMarkerState(s.connectorGroups.map((g) => g.status?.state)) })),
+    [sorted],
+  )
+  const selectStation = useCallback((id: string) => {
+    setSelected(id)
+    document.getElementById(`station-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
   }, [])
-
-  useEffect(() => {
-    const g = window.google
-    if (mapState !== 'ready' || !g) return
-    markers.current.forEach((m) => (m.map !== undefined ? (m.map = null) : m.setMap?.(null)))
-    markers.current = sorted.map((s) => {
-      const opts = { position: { lat: s.lat, lng: s.lng }, map: map.current, title: `${s.name} — ${s.statusSummary}` }
-      const m = MAP_ID && g.maps.marker?.AdvancedMarkerElement ? new g.maps.marker.AdvancedMarkerElement(opts) : new g.maps.Marker(opts)
-      m.addListener?.('click', () => {
-        setSelected(s.id)
-        document.getElementById(`station-${s.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-      })
-      return m
-    })
-  }, [sorted, mapState])
 
   const nearby = useCallback(() => {
     if (!('geolocation' in navigator)) {
@@ -210,41 +175,12 @@ export default function EnergyMapClient() {
         const p = { lat: pos.coords.latitude, lng: pos.coords.longitude }
         setMe(p)
         setGeoMsg('Sorted by straight-line distance from you. Driving distance will differ — use Directions.')
-        map.current?.setCenter(p)
-        map.current?.setZoom(12)
+        mapView.current?.focus(p, 12)
       },
       () => setGeoMsg('Location permission was not given. Parish and area search still work.'),
       { enableHighAccuracy: false, timeout: 10_000, maximumAge: 300_000 },
     )
   }, [])
-
-  async function searchArea() {
-    const b = map.current?.getBounds?.()
-    if (!b) return
-    discoverAbort.current?.abort()
-    const ctrl = new AbortController()
-    discoverAbort.current = ctrl
-    setDiscoverMsg('Searching this area…')
-    try {
-      const ne = b.getNorthEast()
-      const sw = b.getSouthWest()
-      const res = await fetch('/api/map/discover', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bounds: { north: ne.lat(), east: ne.lng(), south: sw.lat(), west: sw.lng() } }),
-        signal: ctrl.signal,
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        setDiscoverMsg(data.error ?? 'Search failed.')
-        return
-      }
-      setDiscovered({ places: data.places, limitNote: data.limitNote })
-      setDiscoverMsg(null)
-    } catch (e) {
-      if ((e as Error).name !== 'AbortError') setDiscoverMsg('Search failed — verified locations are still listed.')
-    }
-  }
 
   return (
     <div style={{ display: 'grid', gap: 20 }}>
@@ -320,48 +256,41 @@ export default function EnergyMapClient() {
 
       {reporting && <ReportForm stationId={reporting.stationId} stationName={reporting.name} onClose={() => setReporting(null)} />}
 
-      {/* Map */}
-      {mapState !== 'off' ? (
-        <section aria-label="Map" style={{ display: 'grid', gap: 8 }}>
-          <div ref={mapEl} style={{ width: '100%', height: 'min(60vh, 520px)', borderRadius: 20, overflow: 'hidden', background: 'var(--ke-dark-card)' }} />
-          {mapState === 'failed' && <p role="alert" style={muted}>The map could not load. Every location below still has directions.</p>}
-          {mapState === 'rejected' && (
-            <p role="alert" style={muted}>
-              Google refused the map key. If Google says the key is invalid, the value saved in the hosting settings doesn’t match the key in Google Cloud. If it says the site isn’t authorised, add this site to the key’s website restrictions and confirm the Maps JavaScript API and billing are enabled. Key this page received: {keyFingerprint(BROWSER_KEY)}. Every location below still has directions.
-            </p>
+      {/* Map — two independent views behind one tab bar */}
+      <section aria-label="Map" style={{ display: 'grid', gap: 10 }}>
+        <div role="tablist" aria-label="Choose a map" style={{ display: 'inline-flex', gap: 4, padding: 4, borderRadius: 999, background: 'var(--ke-dark-card)', border: '1px solid var(--ke-dark-hairline)', justifySelf: 'start', flexWrap: 'wrap' }}>
+          {MAP_TABS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              id={`map-tab-${t.id}`}
+              aria-selected={mapKind === t.id}
+              aria-controls={`map-panel-${t.id}`}
+              onClick={() => chooseMap(t.id)}
+              style={{
+                border: 0,
+                borderRadius: 999,
+                padding: '8px 16px',
+                cursor: 'pointer',
+                fontSize: 14,
+                fontWeight: 600,
+                background: mapKind === t.id ? 'var(--ke-green-400)' : 'transparent',
+                color: mapKind === t.id ? 'var(--ke-dark-bg)' : 'var(--ke-dark-text)',
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <div role="tabpanel" id={`map-panel-${mapKind}`} aria-labelledby={`map-tab-${mapKind}`}>
+          {mapKind === 'kingston' ? (
+            <KingstonMap ref={mapView} stations={mapStations} selected={selected} onSelect={selectStation} parish={parish} />
+          ) : (
+            <GoogleMapPanel ref={mapView} stations={mapStations} selected={selected} onSelect={selectStation} parish={parish} onDiscovered={setDiscovered} />
           )}
-          {mapState === 'ready' && discoverAvailable && (
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-              <Btn variant="ghost" onClick={searchArea}>
-                <Search size={14} aria-hidden /> Search this area with Google
-              </Btn>
-              {discoverMsg && <span role="status" style={muted}>{discoverMsg}</span>}
-            </div>
-          )}
-        </section>
-      ) : EMBED_KEY ? (
-        <section aria-labelledby="google-embed-title" style={{ display: 'grid', gap: 8 }}>
-          <h2 id="google-embed-title" style={{ ...h2, fontSize: 17 }}>
-            Google Maps search{parish ? ` — ${PARISHES.find((p) => p.id === parish)?.name}` : ''}
-          </h2>
-          <iframe
-            key={parish || 'all'}
-            title={`Google Maps search for EV charging stations${parish ? ` in ${PARISHES.find((p) => p.id === parish)?.name}` : ' in Jamaica'}`}
-            src={embedSearchUrl(EMBED_KEY, parish || null)}
-            width="100%"
-            height="460"
-            style={{ border: 0, borderRadius: 20, background: 'var(--ke-dark-card)', display: 'block' }}
-            loading="lazy"
-            allowFullScreen
-            referrerPolicy="strict-origin-when-cross-origin"
-          />
-          <p style={{ ...muted, margin: 0, fontSize: 12.5 }}>
-            Results inside this map come from Google and are not yet verified by Kingston Energies. They don’t show live availability, and one search can miss chargers — check with the operator before you rely on one. Our verified locations are listed below.
-          </p>
-        </section>
-      ) : (
-        <p style={{ ...card, ...muted, margin: 0 }}>The interactive map is not switched on yet. The list below works on its own, with directions for every location.</p>
-      )}
+        </div>
+      </section>
 
       {/* Registry list */}
       <section aria-labelledby="list-title" style={{ display: 'grid', gap: 12 }}>
@@ -423,7 +352,7 @@ export default function EnergyMapClient() {
                   Operator site
                 </a>
               )}
-              {mapState === 'off' && EMBED_KEY && (
+              {mapKind === 'google' && GOOGLE_EMBED_ONLY && (
                 <button type="button" aria-expanded={embedFor === s.id} onClick={() => setEmbedFor(embedFor === s.id ? null : s.id)} style={{ background: 'none', border: 0, color: 'var(--ke-green-400)', cursor: 'pointer', fontSize: 14, fontWeight: 600, padding: 0 }}>
                   {embedFor === s.id ? 'Hide map' : 'Show map'}
                 </button>
@@ -432,10 +361,10 @@ export default function EnergyMapClient() {
                 Report a problem
               </button>
             </div>
-            {embedFor === s.id && EMBED_KEY && (
+            {embedFor === s.id && mapKind === 'google' && GOOGLE_EMBED_KEY && (
               <iframe
                 title={`Map of ${s.name}`}
-                src={embedPlaceUrl(EMBED_KEY, s)}
+                src={embedPlaceUrl(GOOGLE_EMBED_KEY, s)}
                 width="100%"
                 height="280"
                 style={{ border: 0, borderRadius: 14, marginTop: 12, display: 'block' }}

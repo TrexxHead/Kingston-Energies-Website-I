@@ -15,6 +15,13 @@ To get a shareable staging site:
 | Schema | Engineer | `DATABASE_URL=… DIRECT_URL=… npx prisma db push` against staging, then run `prisma/enable-rls.sql` in the staging SQL editor. |
 | Separate Google keys for staging | Owner | See §2 — referrer restriction for the staging domain. |
 
+## 2a. Kingston Energies map (OpenStreetMap — no account needed)
+
+The default tab on `/energy-map`. Nothing to sign up for.
+- Street detail: OpenStreetMap vector tiles from **OpenFreeMap** (free, no key, no usage agreement). To self-host or switch provider later, set `NEXT_PUBLIC_OPEN_MAP_TILES_URL` (TileJSON, OpenMapTiles schema) and `NEXT_PUBLIC_OPEN_MAP_GLYPHS_URL` (fonts), then redeploy — the map page CSP picks the hosts up automatically. `off` shows only our own layers.
+- Parish boundaries are self-hosted (`public/maps/jamaica-parishes.geojson`).
+- Licence: OpenStreetMap data is ODbL — keep "© OpenStreetMap contributors" visible (built in). Missing roads/places can be added at openstreetmap.org from your own knowledge or site visits — **never copied from Google Maps**.
+
 ## 2. Google Maps Platform (Energy Map — M01, M04)
 
 **Account**
@@ -48,7 +55,7 @@ Use **different keys for staging and production**.
 
 **Cost notes** — requesting `evChargeOptions` puts Text Search in a higher (Enterprise) pricing tier. The plan's illustration (20k map loads + 5k details + 3k searches ≈ US$250/month) is illustrative only; measure real usage in staging.
 
-**CSP** — `/energy-map` alone allows `maps.googleapis.com`, `maps.gstatic.com`, `fonts.googleapis.com/gstatic.com` and `*.googleapis.com` connections, without `'unsafe-eval'`. Validate the live map loads under this policy in staging; if Google requires more, widen only that route.
+**CSP** — `/energy-map` alone uses Google's Maps JavaScript allowlist (`*.googleapis.com`, `*.gstatic.com`, `*.google.com`, `'unsafe-eval'`, `blob:`) plus the OpenStreetMap tile host. Every other page keeps the strict policy.
 
 ## 3. EV charging data sources (M02) — needs your authorisation to contact
 

@@ -40,3 +40,19 @@ export const COVERAGE_LABEL: Record<CoverageState, string> = {
 export function isParishId(v: string): v is ParishId {
   return (PARISH_IDS as string[]).includes(v)
 }
+
+/** [west, south, east, north] of a GeoJSON Polygon / MultiPolygon — used to frame a parish. */
+export function geometryBounds(geometry: { type: string; coordinates: unknown }): [number, number, number, number] | null {
+  let w = Infinity, s = Infinity, e = -Infinity, n = -Infinity
+  const walk = (c: unknown): void => {
+    if (!Array.isArray(c)) return
+    if (typeof c[0] === 'number' && typeof c[1] === 'number') {
+      w = Math.min(w, c[0]); e = Math.max(e, c[0]); s = Math.min(s, c[1]); n = Math.max(n, c[1])
+      return
+    }
+    c.forEach(walk)
+  }
+  if (geometry.type !== 'Polygon' && geometry.type !== 'MultiPolygon') return null
+  walk(geometry.coordinates)
+  return Number.isFinite(w) ? [w, s, e, n] : null
+}

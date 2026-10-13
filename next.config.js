@@ -9,6 +9,22 @@
 // route handlers — the browser never talks to either directly, so allowing
 // them in connect-src (a directive that only matters for browser
 // fetch/XHR/WebSocket) served no purpose and was pure attack surface.
+// Hosts the Kingston Energies map (MapLibre + OpenStreetMap tiles) fetches from.
+// Mirrors lib/map/openStyle.ts: OpenFreeMap by default, or the TileJSON/glyph
+// hosts set in NEXT_PUBLIC_OPEN_MAP_TILES_URL / _GLYPHS_URL ("off" disables).
+function openMapOrigins() {
+  const pick = (raw, fallback) => {
+    const v = (raw || '').trim()
+    if (v.toLowerCase() === 'off') return null
+    return v || fallback
+  }
+  const urls = [
+    pick(process.env.NEXT_PUBLIC_OPEN_MAP_TILES_URL, 'https://tiles.openfreemap.org/planet'),
+    pick(process.env.NEXT_PUBLIC_OPEN_MAP_GLYPHS_URL, ''),
+  ]
+  return [...new Set(urls.filter((u) => u && /^https:\/\//.test(u)).map((u) => new URL(u.replace(/\{[^}]+\}/g, 'x')).origin))]
+}
+
 function buildCsp({ googleMaps = false } = {}) {
   // Google's allowlist for the Maps JavaScript API includes 'unsafe-eval' and
   // blob: workers; it is granted on the map page only, never site-wide.
@@ -19,7 +35,7 @@ function buildCsp({ googleMaps = false } = {}) {
     "style-src 'self' 'unsafe-inline'" + (googleMaps ? ' https://fonts.googleapis.com' : ''),
     "img-src 'self' https: data: blob:",
     "font-src 'self' data:" + (googleMaps ? ' https://fonts.gstatic.com' : ''),
-    "connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com" + (googleMaps ? ' https://*.googleapis.com https://*.gstatic.com https://*.google.com data: blob:' : ''),
+    "connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com" + (googleMaps ? ' https://*.googleapis.com https://*.gstatic.com https://*.google.com data: blob: ' + openMapOrigins().join(' ') : ''),
     "frame-src 'self' https://jm.wipayfinancial.com https://accounts.google.com" + (googleMaps ? ' https://*.google.com' : ''),
     "frame-ancestors 'none'",
     "base-uri 'self'",
@@ -32,9 +48,9 @@ function buildCsp({ googleMaps = false } = {}) {
 }
 const csp = buildCsp()
 // The Jamaica Energy Map page alone loads the Google Maps JavaScript API and
-// may ask (on a tap of "Nearby") for the visitor's location — so only that
-// route widens script/connect sources and allows same-origin geolocation.
-// To validate against the live API in staging once a browser key exists.
+// OpenStreetMap vector tiles for the Kingston Energies map, and may ask (on a
+// tap of "Nearby") for the visitor's location — so only that route widens
+// script/connect sources and allows same-origin geolocation.
 const mapCsp = buildCsp({ googleMaps: true })
 
 const securityHeaders = [

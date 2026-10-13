@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
-    "postinstall": "prisma generate",
+    "build": "node scripts/copy-maplibre-worker.js && prisma generate && next build",
+    "postinstall": "prisma generate && node scripts/copy-maplibre-worker.js",
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",
@@ -30,6 +30,7 @@
     "google-auth-library": "^10.9.0",
     "google-spreadsheet": "^5.3.0",
     "lucide-react": "^1.23.0",
+    "maplibre-gl": "6.11.2",
     "next": "^15.5.22",
     "next-auth": "^4.24.15",
     "react": "^19.0.0",

@@ -13,6 +13,7 @@ Status: ✅ done · 🟢 foundation done, more to build · 🟡 in progress · �
 | M1 (12 Oct 2026) | F01 audit, F03 profile, F04 engine, F05 evidence gate, M03/M04/M05 map foundation | Done in staging (local). **Not deployed to production.** |
 | M2a (12 Oct 2026) | F06 admin UIs: catalogue evidence, map station registry, report moderation, parish coverage. My Energy: start card, Quick add (assumed figures), edit equipment. Site navigation links. | Done in staging (local) and on PR preview. **Not in production.** |
 | M2c (12 Oct 2026) | Maps Embed API interim map on /energy-map (Google search per island/parish + per-station location map); EV station leads research (`docs/platform/research/ev-station-leads.md`). | Done locally; awaiting an Embed key in Vercel. |
+| M2d (13 Oct 2026) | Maps JavaScript API verified with the owner's browser key in a local production build: Jamaica renders, registry markers appear, clicking a marker highlights its list card, no CSP violations. Map-page CSP widened to Google's allowlist (incl. `'unsafe-eval'`, `blob:`) on /energy-map only. Discovery button hidden until the server key exists. | Awaiting `NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY` in Vercel Preview. |
 | M2b (next) | E02 checkup on engine, E03 full compatibility chain, E01 bill explainer UI, approved tariff entry, measurement entry | Planned |
 
 ## Backlog
@@ -68,6 +69,7 @@ Status: ✅ done · 🟢 foundation done, more to build · 🟡 in progress · �
 | 2026-10-12 | Quick-add equipment reuses the existing curated reference table, always marked basis "assumed"; motor items flag startup surge without a size. | Faster start without presenting typical figures as the customer's evidence. |
 | 2026-10-12 | Map source verification needs a link or ≥10-character evidence notes and records the verifier; single-admin allowed (unlike catalogue's two-person rule). | A small team must be able to publish a charger they visited; catalogue specs carry purchase risk. Revisit when staff grows. |
 | 2026-10-12 | Publicly posted station facts may be used with attribution after staff confirmation; live status is not taken from operator apps' private backends. | No operator publishes live status publicly (JPS → ChargeLab app); scraping private APIs breaches terms and risks stale data shown as live. Legitimate routes: Google Places, operator feed. |
+| 2026-10-13 | `/energy-map` CSP allows `'unsafe-eval'` and `blob:` scripts (Google's Maps JS allowlist); every other page keeps the strict policy. | Maps JavaScript API requires it; the page renders no user-supplied HTML. |
 | 2026-10-12 | Maps Embed API used as interim map. | Free and needs only a referrer-restricted key; clearly separated from verified registry data. |
 | 2026-10-12 | Login honours same-site `callbackUrl`. | Return customers to `/my-energy` after sign-in to complete the merge journey. |
 

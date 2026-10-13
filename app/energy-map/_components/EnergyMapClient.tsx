@@ -138,6 +138,7 @@ export default function EnergyMapClient() {
   const [mapState, setMapState] = useState<'off' | 'loading' | 'ready' | 'failed'>(BROWSER_KEY ? 'loading' : 'off')
   const [discovered, setDiscovered] = useState<{ places: DiscoveredPlace[]; limitNote: string } | null>(null)
   const [discoverMsg, setDiscoverMsg] = useState<string | null>(null)
+  const [discoverAvailable, setDiscoverAvailable] = useState(false)
   const mapEl = useRef<HTMLDivElement>(null)
   const map = useRef<any>(null)
   const markers = useRef<any[]>([])
@@ -172,6 +173,10 @@ export default function EnergyMapClient() {
       .then((g) => {
         map.current = new g.maps.Map(mapEl.current, { center: JAMAICA_CENTER, zoom: 9, mapId: MAP_ID || undefined, streetViewControl: false, mapTypeControl: false })
         setMapState('ready')
+        fetch('/api/map/discover')
+          .then((r) => (r.ok ? r.json() : { configured: false }))
+          .then((d) => setDiscoverAvailable(!!d.configured))
+          .catch(() => setDiscoverAvailable(false))
       })
       .catch(() => setMapState('failed'))
   }, [])
@@ -317,7 +322,7 @@ export default function EnergyMapClient() {
         <section aria-label="Map" style={{ display: 'grid', gap: 8 }}>
           <div ref={mapEl} style={{ width: '100%', height: 'min(60vh, 520px)', borderRadius: 20, overflow: 'hidden', background: 'var(--ke-dark-card)' }} />
           {mapState === 'failed' && <p role="alert" style={muted}>The map could not load. Every location below still has directions.</p>}
-          {mapState === 'ready' && (
+          {mapState === 'ready' && discoverAvailable && (
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
               <Btn variant="ghost" onClick={searchArea}>
                 <Search size={14} aria-hidden /> Search this area with Google

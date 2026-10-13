@@ -15,6 +15,11 @@ const schema = z.object({
 const PER_IP = { max: 10, windowMs: 60_000 }
 const GLOBAL_PER_DAY = Number(process.env.MAP_DISCOVER_DAILY_CAP ?? 500)
 
+/** GET — whether user-driven Google discovery is available (no Google call is made). */
+export async function GET() {
+  return NextResponse.json({ configured: googleServerKeyConfigured() }, { headers: { 'Cache-Control': 'no-store' } })
+}
+
 /**
  * POST /api/map/discover — one bounded, user-initiated Google Places search
  * for the visible area ("Search this area"). Results are transient: not

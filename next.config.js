@@ -10,15 +10,17 @@
 // them in connect-src (a directive that only matters for browser
 // fetch/XHR/WebSocket) served no purpose and was pure attack surface.
 function buildCsp({ googleMaps = false } = {}) {
-  const maps = googleMaps ? ' https://maps.googleapis.com https://maps.gstatic.com' : ''
+  // Google's allowlist for the Maps JavaScript API includes 'unsafe-eval' and
+  // blob: workers; it is granted on the map page only, never site-wide.
+  const maps = googleMaps ? " 'unsafe-eval' blob: https://*.googleapis.com https://*.gstatic.com https://*.google.com https://*.ggpht.com" : ''
   return [
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com" + maps,
     "style-src 'self' 'unsafe-inline'" + (googleMaps ? ' https://fonts.googleapis.com' : ''),
     "img-src 'self' https: data: blob:",
     "font-src 'self' data:" + (googleMaps ? ' https://fonts.gstatic.com' : ''),
-    "connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com" + (googleMaps ? ' https://*.googleapis.com https://*.gstatic.com' : ''),
-    "frame-src 'self' https://jm.wipayfinancial.com https://accounts.google.com" + (googleMaps ? ' https://www.google.com' : ''),
+    "connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com" + (googleMaps ? ' https://*.googleapis.com https://*.gstatic.com https://*.google.com data: blob:' : ''),
+    "frame-src 'self' https://jm.wipayfinancial.com https://accounts.google.com" + (googleMaps ? ' https://*.google.com' : ''),
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "object-src 'none'",

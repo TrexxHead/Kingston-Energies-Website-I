@@ -19,7 +19,8 @@ To get a shareable staging site:
 
 The default tab on `/energy-map`. Nothing to sign up for.
 - Street detail: OpenStreetMap vector tiles from **OpenFreeMap** (free, no key, no usage agreement). To self-host or switch provider later, set `NEXT_PUBLIC_OPEN_MAP_TILES_URL` (TileJSON, OpenMapTiles schema) and `NEXT_PUBLIC_OPEN_MAP_GLYPHS_URL` (fonts), then redeploy — the map page CSP picks the hosts up automatically. `off` shows only our own layers.
-- Parish boundaries are self-hosted (`public/maps/jamaica-parishes.geojson`).
+- Terrain (hill shading, 3D): AWS Terrain Tiles (open data, no key); `NEXT_PUBLIC_OPEN_MAP_TERRAIN_URL` to swap, `off` for flat.
+- Parish boundaries and the coastline mask are self-hosted (`public/maps/`).
 - Licence: OpenStreetMap data is ODbL — keep "© OpenStreetMap contributors" visible (built in). Missing roads/places can be added at openstreetmap.org from your own knowledge or site visits — **never copied from Google Maps**.
 
 ## 2. Google Maps Platform (Energy Map — M01, M04)

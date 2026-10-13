@@ -156,12 +156,25 @@ export default function EnergyMapClient() {
   const sorted = useMemo(() => (me ? [...stations].sort((a, b) => distanceKm(me, a) - distanceKm(me, b)) : stations), [stations, me])
 
   const mapStations = useMemo<MapStation[]>(
-    () => sorted.map((s) => ({ id: s.id, name: s.name, lat: s.lat, lng: s.lng, statusSummary: s.statusSummary, markerState: stationMarkerState(s.connectorGroups.map((g) => g.status?.state)) })),
+    () =>
+      sorted.map((s) => ({
+        id: s.id,
+        name: s.name,
+        lat: s.lat,
+        lng: s.lng,
+        statusSummary: s.statusSummary,
+        markerState: stationMarkerState(s.connectorGroups.map((g) => g.status?.state)),
+        subtitle: [s.operator?.name, PARISHES.find((p) => p.id === s.parish)?.name, s.address].filter(Boolean).join(' · '),
+        connectorsLine: s.connectorGroups
+          .map((g) => [g.connectorType, g.currentType, g.maxPowerKw != null ? `up to ${g.maxPowerKw} kW` : null, g.count != null ? `${g.count}×` : null].filter(Boolean).join(' · '))
+          .join('  |  '),
+        directionsUrl: directionsUrl(s.lat, s.lng),
+      })),
     [sorted],
   )
-  const selectStation = useCallback((id: string) => {
+  const showDetails = useCallback((id: string) => {
     setSelected(id)
-    document.getElementById(`station-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    document.getElementById(`station-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }, [])
 
   const nearby = useCallback(() => {
@@ -184,30 +197,9 @@ export default function EnergyMapClient() {
 
   return (
     <div style={{ display: 'grid', gap: 20 }}>
-      {/* Coverage — what we actually know, not a completeness claim */}
-      <section style={{ ...card, display: 'grid', gap: 10 }} aria-labelledby="coverage-title">
-        <h2 id="coverage-title" style={h2}>What this map covers</h2>
-        <p style={{ ...muted, margin: 0 }}>
-          <strong style={{ color: '#fff' }}>{coverage?.verifiedLocations ?? 0}</strong> verified location{coverage?.verifiedLocations === 1 ? '' : 's'}.{' '}
-          {coverage?.statement ?? ''} {coverage?.lastReviewedAt ? `Last coverage review: ${new Date(coverage.lastReviewedAt).toLocaleDateString('en-JM')}.` : 'Parish coverage reviews have not started yet.'}
-        </p>
-        {coverage && (
-          <details>
-            <summary style={{ cursor: 'pointer', color: 'var(--ke-green-400)', fontWeight: 600, fontSize: 14 }}>Coverage by parish</summary>
-            <ul style={{ ...muted, columns: 2, paddingLeft: 18, marginTop: 8 }}>
-              {coverage.parishes.map((p) => (
-                <li key={p.parish}>
-                  {p.name}: {COVERAGE_LABEL[p.state]}
-                </li>
-              ))}
-            </ul>
-          </details>
-        )}
-      </section>
-
       {/* Filters */}
       <section style={{ ...card, display: 'grid', gap: 12 }} aria-label="Filters">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 10, alignItems: 'end' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(135px,1fr))', gap: 10, alignItems: 'end' }}>
           <div>
             <label htmlFor="f-parish" style={label}>Parish</label>
             <select id="f-parish" style={input} value={parish} onChange={(e) => setParish(e.target.value)}>
@@ -285,11 +277,32 @@ export default function EnergyMapClient() {
         </div>
         <div role="tabpanel" id={`map-panel-${mapKind}`} aria-labelledby={`map-tab-${mapKind}`}>
           {mapKind === 'kingston' ? (
-            <KingstonMap ref={mapView} stations={mapStations} selected={selected} onSelect={selectStation} parish={parish} />
+            <KingstonMap ref={mapView} stations={mapStations} selected={selected} onSelect={setSelected} onShowDetails={showDetails} parish={parish} me={me} onLocate={nearby} />
           ) : (
-            <GoogleMapPanel ref={mapView} stations={mapStations} selected={selected} onSelect={selectStation} parish={parish} onDiscovered={setDiscovered} />
+            <GoogleMapPanel ref={mapView} stations={mapStations} selected={selected} onSelect={setSelected} onShowDetails={showDetails} parish={parish} me={me} onLocate={nearby} onDiscovered={setDiscovered} />
           )}
         </div>
+      </section>
+
+      {/* Coverage — what we actually know, not a completeness claim */}
+      <section style={{ ...card, display: 'grid', gap: 10 }} aria-labelledby="coverage-title">
+        <h2 id="coverage-title" style={h2}>What this map covers</h2>
+        <p style={{ ...muted, margin: 0 }}>
+          <strong style={{ color: '#fff' }}>{coverage?.verifiedLocations ?? 0}</strong> verified location{coverage?.verifiedLocations === 1 ? '' : 's'}.{' '}
+          {coverage?.statement ?? ''} {coverage?.lastReviewedAt ? `Last coverage review: ${new Date(coverage.lastReviewedAt).toLocaleDateString('en-JM')}.` : 'Parish coverage reviews have not started yet.'}
+        </p>
+        {coverage && (
+          <details>
+            <summary style={{ cursor: 'pointer', color: 'var(--ke-green-400)', fontWeight: 600, fontSize: 14 }}>Coverage by parish</summary>
+            <ul style={{ ...muted, columns: 2, paddingLeft: 18, marginTop: 8 }}>
+              {coverage.parishes.map((p) => (
+                <li key={p.parish}>
+                  {p.name}: {COVERAGE_LABEL[p.state]}
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
       </section>
 
       {/* Registry list */}

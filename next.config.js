@@ -9,9 +9,10 @@
 // route handlers — the browser never talks to either directly, so allowing
 // them in connect-src (a directive that only matters for browser
 // fetch/XHR/WebSocket) served no purpose and was pure attack surface.
-// Hosts the Kingston Energies map (MapLibre + OpenStreetMap tiles) fetches from.
-// Mirrors lib/map/openStyle.ts: OpenFreeMap by default, or the TileJSON/glyph
-// hosts set in NEXT_PUBLIC_OPEN_MAP_TILES_URL / _GLYPHS_URL ("off" disables).
+// Hosts the Kingston Energies map (MapLibre + OpenStreetMap tiles + terrain)
+// fetches from. Mirrors lib/map/openStyle.ts: OpenFreeMap and AWS Terrain
+// Tiles by default, or the hosts set in NEXT_PUBLIC_OPEN_MAP_TILES_URL /
+// _GLYPHS_URL / _TERRAIN_URL ("off" disables).
 function openMapOrigins() {
   const pick = (raw, fallback) => {
     const v = (raw || '').trim()
@@ -21,6 +22,7 @@ function openMapOrigins() {
   const urls = [
     pick(process.env.NEXT_PUBLIC_OPEN_MAP_TILES_URL, 'https://tiles.openfreemap.org/planet'),
     pick(process.env.NEXT_PUBLIC_OPEN_MAP_GLYPHS_URL, ''),
+    pick(process.env.NEXT_PUBLIC_OPEN_MAP_TERRAIN_URL, 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'),
   ]
   return [...new Set(urls.filter((u) => u && /^https:\/\//.test(u)).map((u) => new URL(u.replace(/\{[^}]+\}/g, 'x')).origin))]
 }
@@ -85,6 +87,13 @@ const nextConfig = {
           { key: 'Content-Security-Policy', value: mapCsp },
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(self), payment=()' },
         ],
+      },
+      // MapLibre fetches street tiles from inside its web worker, and a worker
+      // runs under its own script's CSP — so the worker files need the map
+      // policy too, or every tile request is silently blocked.
+      {
+        source: '/maps/vendor/:path*',
+        headers: [{ key: 'Content-Security-Policy', value: mapCsp }],
       },
       // Order/account/admin pages carry another person's data if a shared or
       // CDN cache ever stored a response for them — never let that happen.

@@ -51,7 +51,7 @@ interface Props extends MapViewProps {
   onDiscovered: (r: DiscoveredResults) => void
 }
 
-const GoogleMapPanel = forwardRef<MapViewHandle, Props>(function GoogleMapPanel({ stations, onSelect, parish, onDiscovered }, ref) {
+const GoogleMapPanel = forwardRef<MapViewHandle, Props>(function GoogleMapPanel({ stations, onSelect, onShowDetails, parish, onDiscovered }, ref) {
   const [mapState, setMapState] = useState<'off' | 'loading' | 'ready' | 'failed' | 'rejected'>(GOOGLE_BROWSER_KEY ? 'loading' : 'off')
   const [discoverAvailable, setDiscoverAvailable] = useState(false)
   const [discoverMsg, setDiscoverMsg] = useState<string | null>(null)
@@ -61,6 +61,8 @@ const GoogleMapPanel = forwardRef<MapViewHandle, Props>(function GoogleMapPanel(
   const discoverAbort = useRef<AbortController | null>(null)
   const onSelectRef = useRef(onSelect)
   onSelectRef.current = onSelect
+  const onDetailsRef = useRef(onShowDetails)
+  onDetailsRef.current = onShowDetails
 
   useImperativeHandle(ref, () => ({
     focus: (p, zoom) => {
@@ -93,7 +95,10 @@ const GoogleMapPanel = forwardRef<MapViewHandle, Props>(function GoogleMapPanel(
     markers.current = stations.map((s) => {
       const opts = { position: { lat: s.lat, lng: s.lng }, map: map.current, title: `${s.name} — ${s.statusSummary}` }
       const m = GOOGLE_MAP_ID && g.maps.marker?.AdvancedMarkerElement ? new g.maps.marker.AdvancedMarkerElement(opts) : new g.maps.Marker(opts)
-      m.addListener?.('click', () => onSelectRef.current(s.id))
+      m.addListener?.('click', () => {
+        onSelectRef.current(s.id)
+        onDetailsRef.current(s.id)
+      })
       return m
     })
   }, [stations, mapState])

@@ -10,8 +10,19 @@ import { PARISHES } from './parishes'
 
 const BASE = 'https://www.google.com/maps/embed/v1'
 
+/** Strip whitespace and accidental surrounding quotes — a common paste mistake in hosting dashboards. */
+export function cleanKey(raw: string | undefined): string {
+  return (raw ?? '').trim().replace(/^['"]+|['"]+$/g, '').trim()
+}
+
+/** A masked fingerprint (first 6 + last 4 characters, and length) for comparing keys without showing them in full. */
+export function keyFingerprint(key: string): string {
+  if (!key) return 'none'
+  return key.length > 12 ? `${key.slice(0, 6)}…${key.slice(-4)} (${key.length} characters)` : `(${key.length} characters)`
+}
+
 export function embedKey(): string {
-  return process.env.NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY || ''
+  return cleanKey(process.env.NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY) || cleanKey(process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY)
 }
 
 /** Google's own search for charging stations in a parish, or island-wide. */

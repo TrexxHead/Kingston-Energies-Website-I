@@ -6,7 +6,7 @@ import { PARISHES, COVERAGE_LABEL, JAMAICA_CENTER, type CoverageState } from '@/
 import { DISPLAY_LABEL, type DisplayState, type GroupStatus } from '@/lib/map/status'
 import { card, label, input, muted, h2, Btn } from '@/app/my-energy/_components/ui'
 import ReportForm from './ReportForm'
-import { embedKey, embedSearchUrl, embedPlaceUrl } from '@/lib/map/embed'
+import { embedKey, embedSearchUrl, embedPlaceUrl, cleanKey, keyFingerprint } from '@/lib/map/embed'
 
 interface Group {
   id?: string
@@ -71,7 +71,7 @@ const STATE_COLOR: Record<DisplayState, string> = {
 }
 const ACCESS_LABEL: Record<string, string> = { public: 'Public', customers_only: 'Customers only', restricted: 'Restricted', private: 'Private' }
 
-const BROWSER_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY ?? ''
+const BROWSER_KEY = cleanKey(process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY)
 const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? ''
 const EMBED_KEY = embedKey()
 
@@ -327,7 +327,7 @@ export default function EnergyMapClient() {
           {mapState === 'failed' && <p role="alert" style={muted}>The map could not load. Every location below still has directions.</p>}
           {mapState === 'rejected' && (
             <p role="alert" style={muted}>
-              Google refused the map key for this web address. In Google Cloud → Credentials, add this site to the key’s website restrictions and confirm the Maps JavaScript API and billing are enabled. Every location below still has directions.
+              Google refused the map key. If Google says the key is invalid, the value saved in the hosting settings doesn’t match the key in Google Cloud. If it says the site isn’t authorised, add this site to the key’s website restrictions and confirm the Maps JavaScript API and billing are enabled. Key this page received: {keyFingerprint(BROWSER_KEY)}. Every location below still has directions.
             </p>
           )}
           {mapState === 'ready' && discoverAvailable && (

@@ -17,3 +17,16 @@ describe('Maps Embed URLs', () => {
     expect(new URL(embedPlaceUrl('k', { lat: 18, lng: -76.8 })).searchParams.get('q')).toBe('18,-76.8')
   })
 })
+
+describe('key hygiene', async () => {
+  const { cleanKey, keyFingerprint } = await import('@/lib/map/embed')
+  it('strips spaces, newlines and pasted quotes', () => {
+    expect(cleanKey('  "AIzaTEST123"\n')).toBe('AIzaTEST123')
+    expect(cleanKey("'abc'")).toBe('abc')
+    expect(cleanKey(undefined)).toBe('')
+  })
+  it('fingerprints without revealing the whole key', () => {
+    expect(keyFingerprint('AIzaSyABCDEFGHIJKLMNOPQRSTUVWXYZ0123456')).toBe('AIzaSy…3456 (39 characters)')
+    expect(keyFingerprint('')).toBe('none')
+  })
+})

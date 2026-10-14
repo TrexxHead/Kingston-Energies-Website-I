@@ -260,6 +260,18 @@ export const NAV: NavGroup[] = [
         keywords: 'tariff jps our fuel petrojam price shelter odpem reference data approve',
       },
       {
+        href: `${BASE}/platform/bookings`,
+        label: 'Bookings',
+        description: 'Service bookings, deposits, and the services and capacity customers can book',
+        keywords: 'booking visit install appointment deposit fygaro capacity service schedule',
+      },
+      {
+        href: `${BASE}/platform/installers`,
+        label: 'Installer directory',
+        description: 'Licensed installers: record licence evidence, verify and publish',
+        keywords: 'installer electrician licence gei directory verify',
+      },
+      {
         href: `${BASE}/platform/map-reports`,
         label: 'Map reports & coverage',
         description: 'Moderate driver reports and record parish coverage reviews',

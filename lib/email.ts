@@ -468,6 +468,35 @@ export async function sendStationStatusDigest(digest: import('./map/reminders').
   return { sent }
 }
 
+/** Booking received: confirmation to the customer (if they gave an e-mail) and an alert to admins. */
+export async function sendBookingEmails(b: { bookingNo: string; serviceName: string; date: string; window: string; customerName: string; email: string | null; phone: string; parish: string; address: string | null; notes: string | null; depositAmount: number }, payOnline: boolean): Promise<void> {
+  if (!isEmailConfigured()) {
+    console.info(`[email] skipped booking emails for ${b.bookingNo} (no provider configured)`)
+    return
+  }
+  const site = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://kingstonenergies.com'
+  const when = `${new Date(`${b.date}T12:00:00Z`).toLocaleDateString('en-JM', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' })}, ${b.window}`
+  const deposit = b.depositAmount > 0 ? (payOnline ? `<p>Your booking is held while the ${fmt(b.depositAmount)} deposit is paid. If the payment page closed, reply to this e-mail and we’ll help.</p>` : `<p>A ${fmt(b.depositAmount)} deposit applies — we’ll contact you to arrange it.</p>`) : ''
+  if (b.email) {
+    try {
+      await deliver({
+        to: b.email,
+        subject: `Booking ${b.bookingNo} received — ${b.serviceName}`,
+        html: wrapEmailHtml('Booking received', `<p>Hi ${escapeHtml(b.customerName)}, thanks — we’ve received your request for <strong>${escapeHtml(b.serviceName)}</strong> on <strong>${escapeHtml(when)}</strong> (reference ${b.bookingNo}).</p>${deposit}<p>A member of our team will confirm the visit with you by phone.</p>`),
+      })
+    } catch (err) {
+      console.error('[email] booking confirmation failed:', err)
+    }
+  }
+  try {
+    const recipients = await adminRecipients()
+    const html = wrapEmailHtml('New booking', `<p><strong>${escapeHtml(b.customerName)}</strong> (${escapeHtml(b.phone)}${b.email ? `, ${escapeHtml(b.email)}` : ''}) booked <strong>${escapeHtml(b.serviceName)}</strong> for ${escapeHtml(when)} in ${escapeHtml(b.parish)}.</p>${b.address ? `<p>${escapeHtml(b.address)}</p>` : ''}${b.notes ? `<p>${escapeHtml(b.notes)}</p>` : ''}<p>Deposit: ${b.depositAmount > 0 ? `${fmt(b.depositAmount)} (${payOnline ? 'online, awaiting payment' : 'to arrange'})` : 'none'}</p><a href="${site}/admin/dashboard/platform/bookings" style="color:#1f6b45;font-weight:600">Open bookings</a>`)
+    await Promise.all(recipients.map((to) => deliver({ to, subject: `Booking ${b.bookingNo}: ${b.serviceName}, ${when}`, html })))
+  } catch (err) {
+    console.error('[email] booking admin alert failed:', err)
+  }
+}
+
 async function deliver({ to, subject, html }: { to: string; subject: string; html: string }): Promise<void> {
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',

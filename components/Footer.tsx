@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import WhatsAppButton from './WhatsAppButton'
 import { ArrowRight, Mail, Phone } from 'lucide-react'
 import { analytics } from '@/lib/analytics'
 
@@ -38,6 +39,8 @@ const COMPANY_COLUMN = [
   { href: '/financing', label: 'Financing calculator' },
   { href: '/net-billing', label: 'Net billing guide' },
   { href: '/business-tools', label: 'Business & farm tools' },
+  { href: '/installers', label: 'Licensed installers' },
+  { href: '/book', label: 'Book a visit' },
   { href: '/back-in-stock', label: 'Back in stock' },
 ]
 
@@ -249,6 +252,7 @@ export default function Footer({ showCta = true }: { showCta?: boolean }) {
               <Mail size={13} />
               kingstonenergygroup@outlook.com
             </a>
+            <WhatsAppButton style={{ height: 32, fontSize: 12.5, padding: '0 12px', alignSelf: 'flex-start' }} />
             <a
               href="https://instagram.com/kingstonenergies"
               target="_blank"

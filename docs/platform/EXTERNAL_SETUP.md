@@ -25,6 +25,11 @@ The default tab on `/energy-map`. Nothing to sign up for and no keys: every file
 ## 2b. Public data feeds (no account, no key)
 - **PVGIS** (EU JRC) — `/api/solar/yield`; **NHC CurrentStorms.json** (NOAA, public domain) — `/api/storm/active`. Both are called from the server and cached. Neither can be reached from the dev container, so after each deploy open `/solar` (tap a roof) and `/storm-ready` on the preview to confirm they answer. If either is down the page says so — there is no fallback number. `PVGIS_BASE_URL` / `NHC_BASE_URL` exist only for local stand-ins; never set them in Vercel.
 
+## 2c. Bookings, installers, WhatsApp (new tables + optional keys)
+- **Schema:** this release adds `ServiceBooking` and `Installer`. Run `npx prisma db push` against staging, then production, before those pages are used (additive — no existing data changes).
+- **Bookings:** Admin → Bookings → add services (name, how you quote the price, deposit J$), visits per morning/afternoon, closed days and deposit terms. Nothing is bookable until you do. Online deposits use the existing Fygaro settings (`FYGARO_LINK_URL`, `FYGARO_WEBHOOK_SECRET`); make one live test payment and check the webhook log, as noted in `lib/fygaro.ts`.
+- **WhatsApp:** `NEXT_PUBLIC_WHATSAPP_NUMBER` (your WhatsApp Business number) shows “Chat on WhatsApp”. Automatic booking messages also need Meta WhatsApp Cloud API access — `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID` — and an approved template whose name goes in `WHATSAPP_TEMPLATE_BOOKING` (body with four variables: name, service, date/time, reference). Messages go only to customers who tick the opt-in.
+
 ## 2. Google Maps Platform (Energy Map — M01, M04)
 
 **Account**

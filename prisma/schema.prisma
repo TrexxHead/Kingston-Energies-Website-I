@@ -2012,3 +2012,65 @@ model MapCoverageReview {
   reviewedBy      String?
   updatedAt       DateTime  @updatedAt
 }
+
+// ---------------------------------------------------------------------------
+// Service bookings with optional deposits (roadmap W5 / backlog C01–C03).
+// Services, prices and daily capacity are owner-entered settings
+// (SiteSetting "services:v1"); each booking snapshots what was offered.
+// A deposit is confirmed only by the signed Fygaro webhook, never a redirect.
+// ---------------------------------------------------------------------------
+
+model ServiceBooking {
+  id            String    @id @default(cuid())
+  bookingNo     String    @unique // BK-XXXXXX, also the Fygaro client_reference
+  serviceId     String
+  serviceName   String
+  date          String // YYYY-MM-DD (Jamaica)
+  window        String // morning | afternoon
+  customerName  String
+  email         String?
+  phone         String
+  parish        String
+  address       String?   @db.Text
+  notes         String?   @db.Text
+  userId        String?
+  whatsappOptIn Boolean   @default(false) // customer agreed to WhatsApp updates about this booking
+  status        String    @default("requested") // requested | confirmed | completed | cancelled
+  depositAmount Float     @default(0)
+  depositStatus String    @default("none") // none | pending | paid | refunded
+  depositPaidAt DateTime?
+  staffNote     String?   @db.Text
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([date, window, status])
+  @@index([status, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Verified installer directory (roadmap W4). A listing is public only when
+// staff have seen and recorded the licence evidence and it hasn't expired.
+// ---------------------------------------------------------------------------
+
+model Installer {
+  id             String    @id @default(cuid())
+  name           String
+  business       String?
+  parishes       String[]  @default([])
+  services       String[]  @default([])
+  phone          String?
+  email          String?
+  website        String?
+  licenceType    String? // e.g. "Licensed electrician (Government Electrical Inspectorate)"
+  licenceNumber  String?
+  licenceExpires DateTime?
+  evidenceNote   String?   @db.Text // what staff saw, where, when
+  status         String    @default("draft") // draft | published | suspended
+  createdBy      String?
+  verifiedBy     String?
+  verifiedAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([status])
+}

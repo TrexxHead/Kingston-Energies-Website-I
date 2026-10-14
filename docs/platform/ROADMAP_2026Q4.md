@@ -80,9 +80,9 @@ Smart-plug / meter readings per device upgrade the evidence basis from assumed t
 ### W1 · Net billing guide + tracker ✅ built (`/net-billing`) · 🔒 owner to review the step wording against JPS’s current process — step-by-step with JPS/OUR references; customer’s own checklist of stages (no claim to know JPS’s internal status).
 ### W2 · Financing calculator ✅ built (`/financing`) · 🟡 lender rates appear once staff enter and approve them — repayment maths; lender list as reference data (rates entered from lender pages with date); no partnership claims.
 ### W3 · Business & farm tools ✅ built (`/business-tools`: generator fuel/runtime/cost, solar water-pump sizing; Bill Explainer tariff picker) · 🟡 commercial bills need the commercial tariff approved — commercial bill analysis (needs commercial tariff in R0), solar water-pump sizing, generator fuel & runtime.
-### W4 · Verified installer directory ⬜ — listing requires licence evidence (Government Electrical Inspectorate) recorded and verified by staff.
-### W5 · Bookings & deposits ⬜ — installation visits / audits / charger installs with Fygaro deposits (backlog C01–C03). 🔒 live Fygaro test payment.
-### W6 · WhatsApp channel 🔒 — structure for alerts/support; needs a WhatsApp Business API provider and approved templates.
+### W4 · Verified installer directory ✅ built (`/installers`, Admin → Installer directory) · 🔒 staff to collect licence evidence — listing requires licence evidence (Government Electrical Inspectorate) recorded and verified by staff.
+### W5 · Bookings & deposits ✅ built (`/book`, Admin → Bookings) · 🔒 owner to enter services/deposits/capacity; live Fygaro test payment to confirm webhook field names — installation visits / audits / charger installs with Fygaro deposits (backlog C01–C03). 🔒 live Fygaro test payment.
+### W6 · WhatsApp channel ✅ structure built · 🔒 set the business number (click-to-chat); choose Cloud API access + approve a booking template — structure for alerts/support; needs a WhatsApp Business API provider and approved templates.
 
 ---
 

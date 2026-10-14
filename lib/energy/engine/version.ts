@@ -22,6 +22,9 @@
  *   from manual figures (linear between points, floored below the lowest,
  *   single figure only within ±10 points of load). Solar water-pump sizing:
  *   ρgVH ÷ wire-to-water efficiency (assumed 30/40/50% without a datasheet)
- *   against the worst month's PVGIS yield.
+ *   against the worst month's PVGIS yield. EV trip energy (driver's
+ *   kWh/100 km; hills m·g·h at 85% drivetrain efficiency, 60% regen, only
+ *   with vehicle mass) and charge stops at the last charger before a
+ *   shortfall (80%, raised to 100% if needed).
  */
 export const CALC_ENGINE_VERSION = '1.3.0'

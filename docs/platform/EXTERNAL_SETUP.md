@@ -35,6 +35,9 @@ The default tab on `/energy-map`. Nothing to sign up for and no keys: every file
 - For each station, enter the operator’s location id in Admin → Energy Map → station → “Operator location id”.
 - Status is fetched live (≈1 min cache) and not stored. Check the agreement allows display on our site.
 
+## 2e. Road routing for the trip planner
+- `/trip-planner` needs an OSRM-compatible routing server: `OSRM_BASE_URL`. Recommended: self-host OSRM on the Jamaica OpenStreetMap extract (small — a basic VPS is enough); the public OSRM demo server is not for production use. Until set, the page is unlisted and says planning isn’t on yet. When it’s live, add it to the footer and sitemap.
+
 ## 2. Google Maps Platform (Energy Map — M01, M04)
 
 **Account**

@@ -10,7 +10,7 @@ import StormChecklist from './_components/StormChecklist'
 import { STORM_READY_CSS } from './_components/styles'
 
 export const metadata = {
-  title: 'Storm ready: hurricanes, shelters and backup power in Jamaica | Kingston Energies',
+  title: 'Storm ready: hurricanes, shelters and backup power in Jamaica',
   description: 'Active Atlantic storms from the National Hurricane Center, emergency shelters, how long your battery backup will last, and a power checklist for hurricane season.',
 }
 

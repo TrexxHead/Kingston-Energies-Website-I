@@ -53,6 +53,8 @@ const nextConfig = {
   // Stop advertising the framework in responses — real, one-line fix from
   // the same review (ZAP: "X-Powered-By: Next.js" disclosure, CWE-497).
   poweredByHeader: false,
+  // Station pages read the self-hosted search index from disk for "While you charge".
+  outputFileTracingIncludes: { '/energy-map/station/[slug]': ['./public/maps/data/jamaica-search-*.json'] },
   images: {
     remotePatterns: [
       // Public product images served from Supabase Storage.

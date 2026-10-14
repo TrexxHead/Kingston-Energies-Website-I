@@ -5,7 +5,7 @@ import { buildBreadcrumbs } from '@/lib/structuredData'
 import EvCostCalculator from './_components/EvCostCalculator'
 
 export const metadata = {
-  title: 'EV vs petrol: what would an electric car cost to run in Jamaica? | Kingston Energies',
+  title: 'EV vs petrol: what would an electric car cost to run in Jamaica?',
   description: 'Compare a year of fuel with a year of charging — at home on your JPS bill or at public chargers — using current pump prices and your own driving.',
 }
 

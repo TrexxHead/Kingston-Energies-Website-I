@@ -64,7 +64,7 @@ Station card: “I charged here” / “It’s not working” → moderated comm
 ### M2 · Staff status reminders ✅ built · 🟡 e-mails send once the e-mail provider (EMAIL_API_KEY / EMAIL_FROM) is set in Vercel
 Daily cron e-mails admins the stations whose “working” check expires within 24 h, and faults older than 7 days. Uses the existing e-mail provider; logs when unconfigured.
 
-### M3 · Station pages for search ⬜
+### M3 · Station pages for search ✅ built (`/energy-map/station/[slug]`) · 🟡 photos field not built yet (needs staff photos + consent policy)
 `/energy-map/station/[slug]` with status, connectors, hours, nearby food/shops (self-hosted POIs), directions; schema.org markup; sitemap. Photos and prices fields (staff-entered).
 
 ### M4 · Product compatibility check ⬜

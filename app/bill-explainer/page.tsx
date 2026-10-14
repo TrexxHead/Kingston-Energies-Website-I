@@ -5,7 +5,7 @@ import { buildBreadcrumbs } from '@/lib/structuredData'
 import BillExplainer from './_components/BillExplainer'
 
 export const metadata = {
-  title: 'JPS Bill Explainer — why did my light bill go up? | Kingston Energies',
+  title: 'JPS Bill Explainer — why did my light bill go up?',
   description: 'Enter the numbers from your JPS bill to see your daily use, what each kWh really costs, and exactly why this bill differs from the last one.',
 }
 

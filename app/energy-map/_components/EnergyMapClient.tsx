@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { CircleCheck, CircleX, CircleHelp, Navigation, LocateFixed, Flag, Lock } from 'lucide-react'
@@ -7,6 +8,7 @@ import { PARISHES, COVERAGE_LABEL, type CoverageState } from '@/lib/map/parishes
 import { DISPLAY_LABEL, type DisplayState, type GroupStatus } from '@/lib/map/status'
 import { card, label, input, muted, h2, Btn } from '@/app/my-energy/_components/ui'
 import ReportForm from './ReportForm'
+import { stationSlug } from '@/lib/map/stationSlug'
 import { embedPlaceUrl } from '@/lib/map/embed'
 import { stationMarkerState } from '@/lib/map/openStyle'
 import GoogleMapPanel, { type DiscoveredResults } from './maps/GoogleMapPanel'
@@ -360,6 +362,9 @@ export default function EnergyMapClient() {
               <a href={directionsUrl(s.lat, s.lng)} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--ke-green-400)', fontWeight: 600, fontSize: 14 }}>
                 <Navigation size={14} aria-hidden /> Directions
               </a>
+              <Link href={`/energy-map/station/${stationSlug(s)}`} style={{ color: 'var(--ke-green-400)', fontWeight: 600, fontSize: 14 }}>
+                Station page
+              </Link>
               {s.operator?.website && (
                 <a href={s.operator.website} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--ke-green-400)', fontWeight: 600, fontSize: 14 }}>
                   Operator site

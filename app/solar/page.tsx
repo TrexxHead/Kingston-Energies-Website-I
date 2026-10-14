@@ -5,7 +5,7 @@ import { buildBreadcrumbs } from '@/lib/structuredData'
 import SolarClient from './_components/SolarClient'
 
 export const metadata = {
-  title: 'Rooftop solar estimator for Jamaica — Kingston Energies',
+  title: 'Rooftop solar estimator for Jamaica',
   description: 'Tap your roof on the map to estimate panels, yearly solar output and savings on your JPS bill — free, using EU PVGIS solar data.',
 }
 

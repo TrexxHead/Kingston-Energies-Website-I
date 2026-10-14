@@ -30,6 +30,11 @@ The default tab on `/energy-map`. Nothing to sign up for and no keys: every file
 - **Bookings:** Admin → Bookings → add services (name, how you quote the price, deposit J$), visits per morning/afternoon, closed days and deposit terms. Nothing is bookable until you do. Online deposits use the existing Fygaro settings (`FYGARO_LINK_URL`, `FYGARO_WEBHOOK_SECRET`); make one live test payment and check the webhook log, as noted in `lib/fygaro.ts`.
 - **WhatsApp:** `NEXT_PUBLIC_WHATSAPP_NUMBER` (your WhatsApp Business number) shows “Chat on WhatsApp”. Automatic booking messages also need Meta WhatsApp Cloud API access — `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID` — and an approved template whose name goes in `WHATSAPP_TEMPLATE_BOOKING` (body with four variables: name, service, date/time, reference). Messages go only to customers who tick the opt-in.
 
+## 2d. Operator live status (OCPI) — after an agreement
+- Once JPS Charge ’n Go / Evergo agree to share status, ask for **OCPI 2.2.1 Locations** access (a URL and a token). Put them in Vercel as `OCPI_FEEDS` = `[{"operator":"Evergo","url":"https://…/ocpi/2.2.1/locations","token":"…"}]` (operator name exactly as on our stations).
+- For each station, enter the operator’s location id in Admin → Energy Map → station → “Operator location id”.
+- Status is fetched live (≈1 min cache) and not stored. Check the agreement allows display on our site.
+
 ## 2. Google Maps Platform (Energy Map — M01, M04)
 
 **Account**

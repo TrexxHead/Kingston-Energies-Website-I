@@ -90,7 +90,7 @@ Smart-plug / meter readings per device upgrade the evidence basis from assumed t
 
 ### L1 · Trip planner 🔒 — route + charge stops + elevation-aware energy. Needs a routing engine (self-hosted OSRM/Valhalla on the Jamaica extract, or Google Routes). Build the planner UI/energy model first.
 ### L2 · Satellite view ⬜ — cloud-free Sentinel-2 mosaic of Jamaica as self-hosted raster tiles.
-### L3 · Operator live status 🔒 — OCPI/partner adapter structure now; needs owner authorisation to contact JPS Charge ’n Go and Evergo.
+### L3 · Operator live status ✅ OCPI adapter built · 🔒 needs an agreement + OCPI credentials from JPS Charge ’n Go / Evergo (owner to authorise contact)
 
 ---
 

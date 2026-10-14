@@ -26,6 +26,7 @@ interface Station {
   paymentNotes: string | null
   pricingNotes: string | null
   googlePlaceId: string | null
+  operatorLocationId: string | null
   verificationNote: string | null
   status: string
   connectorGroups: Group[]
@@ -47,18 +48,18 @@ const parishName = (id: string) => PARISHES.find((p) => p.id === id)?.name ?? id
 
 interface Form {
   name: string; operatorName: string; parish: string; address: string; lat: string; lng: string; access: string
-  accessNotes: string; hours: string; paymentNotes: string; pricingNotes: string; googlePlaceId: string; verificationNote: string
+  accessNotes: string; hours: string; paymentNotes: string; pricingNotes: string; googlePlaceId: string; operatorLocationId: string; verificationNote: string
   groups: { connectorType: string; currentType: 'AC' | 'DC'; maxPowerKw: string; count: string; portsShared: boolean }[]
 }
 
 function emptyForm(prefill?: Partial<Form>): Form {
-  return { name: '', operatorName: '', parish: 'kingston', address: '', lat: '', lng: '', access: 'public', accessNotes: '', hours: '', paymentNotes: '', pricingNotes: '', googlePlaceId: '', verificationNote: '', groups: [], ...prefill }
+  return { name: '', operatorName: '', parish: 'kingston', address: '', lat: '', lng: '', access: 'public', accessNotes: '', hours: '', paymentNotes: '', pricingNotes: '', googlePlaceId: '', operatorLocationId: '', verificationNote: '', groups: [], ...prefill }
 }
 
 function toForm(s: Station): Form {
   return {
     name: s.name, operatorName: s.operator?.name ?? '', parish: s.parish, address: s.address ?? '', lat: String(s.lat), lng: String(s.lng), access: s.access,
-    accessNotes: s.accessNotes ?? '', hours: s.hours ?? '', paymentNotes: s.paymentNotes ?? '', pricingNotes: s.pricingNotes ?? '', googlePlaceId: s.googlePlaceId ?? '', verificationNote: s.verificationNote ?? '',
+    accessNotes: s.accessNotes ?? '', hours: s.hours ?? '', paymentNotes: s.paymentNotes ?? '', pricingNotes: s.pricingNotes ?? '', googlePlaceId: s.googlePlaceId ?? '', operatorLocationId: s.operatorLocationId ?? '', verificationNote: s.verificationNote ?? '',
     groups: s.connectorGroups.map((g) => ({ connectorType: g.connectorType, currentType: g.currentType, maxPowerKw: g.maxPowerKw != null ? String(g.maxPowerKw) : '', count: g.count != null ? String(g.count) : '', portsShared: !!g.portsShared })),
   }
 }
@@ -67,7 +68,7 @@ function toPayload(f: Form) {
   const opt = (v: string) => (v.trim() ? v.trim() : null)
   return {
     name: f.name, operatorName: opt(f.operatorName), parish: f.parish, address: opt(f.address), lat: Number(f.lat), lng: Number(f.lng), access: f.access,
-    accessNotes: opt(f.accessNotes), hours: opt(f.hours), paymentNotes: opt(f.paymentNotes), pricingNotes: opt(f.pricingNotes), googlePlaceId: opt(f.googlePlaceId), verificationNote: opt(f.verificationNote),
+    accessNotes: opt(f.accessNotes), hours: opt(f.hours), paymentNotes: opt(f.paymentNotes), pricingNotes: opt(f.pricingNotes), googlePlaceId: opt(f.googlePlaceId), operatorLocationId: opt(f.operatorLocationId), verificationNote: opt(f.verificationNote),
     connectorGroups: f.groups.map((g) => ({ connectorType: g.connectorType, currentType: g.currentType, maxPowerKw: g.maxPowerKw ? Number(g.maxPowerKw) : null, count: g.count ? Number(g.count) : null, portsShared: g.portsShared })),
   }
 }
@@ -286,6 +287,7 @@ function StationEditor({ station, prefill, onBack, onSaved }: { station?: Statio
           <TextInput label="Access" value={f.access} onChange={set('access')} options={ACCESS} />
           <TextInput label="Hours" value={f.hours} onChange={set('hours')} placeholder="Leave blank if unknown" />
           <TextInput label="Google Place ID (optional)" value={f.googlePlaceId} onChange={set('googlePlaceId')} />
+          <TextInput label="Operator location id (live feed, optional)" value={f.operatorLocationId} onChange={set('operatorLocationId')} />
         </div>
         <TextInput label="Access instructions" value={f.accessNotes} onChange={set('accessNotes')} multiline />
         <TextInput label="Payment / app instructions" value={f.paymentNotes} onChange={set('paymentNotes')} multiline />

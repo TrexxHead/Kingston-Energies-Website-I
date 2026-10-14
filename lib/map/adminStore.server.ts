@@ -32,6 +32,7 @@ export async function stationData(input: StationInput) {
     pricingNotes: input.pricingNotes ?? null,
     pricingObservedAt: input.pricingObservedAt ? new Date(input.pricingObservedAt) : null,
     googlePlaceId: input.googlePlaceId?.trim() || null,
+    operatorLocationId: input.operatorLocationId?.trim() || null,
     verificationNote: input.verificationNote ?? null,
   }
 }

@@ -1903,6 +1903,8 @@ model EvStation {
   pricingObservedAt DateTime?
   status            String    @default("draft") // draft | published | closed | retired
   googlePlaceId     String?   @unique
+  /// The operator's own id for this site in their live feed (OCPI location id).
+  operatorLocationId String?
   verifiedAt        DateTime?
   verificationNote  String?   @db.Text
   createdAt         DateTime  @default(now())

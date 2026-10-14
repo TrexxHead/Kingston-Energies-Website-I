@@ -37,6 +37,7 @@ export const stationInputSchema = z.object({
   pricingNotes: optText(1000),
   pricingObservedAt: z.string().datetime().nullable().optional(),
   googlePlaceId: optText(200),
+  operatorLocationId: optText(120),
   verificationNote: optText(2000),
   connectorGroups: z.array(connectorGroupSchema).max(20),
 })

@@ -1,5 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import type { Prisma } from '@prisma/client'
+import { liveOperatorLocations, configuredFeeds } from './operatorFeeds.server'
+import { groupObservation } from './ocpi'
 import { deriveGroupStatus, stationStatusSummary, type StatusObservation, type CommunitySignal, type StatusSource } from './status'
 
 /**
@@ -18,7 +20,11 @@ export async function loadPublicStations(where: Prisma.EvStationWhereInput = {},
     },
     orderBy: { name: 'asc' },
   })
+  // Live operator status, only when a feed is configured and a station is linked to it.
+  const live = configuredFeeds().length && stations.some((s) => s.operatorLocationId) ? await liveOperatorLocations() : null
+
   return stations.map((s) => {
+    const liveLoc = live && s.operatorLocationId && s.operator ? live.locations.get(s.operator.name.trim().toLowerCase())?.get(s.operatorLocationId) : undefined
     const community: CommunitySignal[] = s.reports.map((r) => ({ kind: r.kind as CommunitySignal['kind'], observedAt: r.observedAt.toISOString(), moderation: 'approved' }))
     const groups = s.connectorGroups.map((g) => {
       const observations: StatusObservation[] = g.observations.map((o) => ({
@@ -30,6 +36,8 @@ export async function loadPublicStations(where: Prisma.EvStationWhereInput = {},
         inUseCount: o.inUseCount,
         supportsInUse: o.supportsInUse,
       }))
+      const feed = liveLoc && live ? groupObservation(liveLoc, g.connectorType, live.retrievedAt) : null
+      if (feed) observations.unshift(feed)
       return {
         id: g.id,
         connectorType: g.connectorType,

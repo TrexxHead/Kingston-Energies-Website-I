@@ -3,7 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { guardAdmin, requireAdmin } from '@/lib/requireAdmin'
 import { logActivity } from '@/lib/activityLog'
 import { stationInputSchema, publishBlockers } from '@/lib/map/registry'
-import { STATION_INCLUDE, stationData, groupRows } from '@/lib/map/adminStore.server'
+import { STATION_INCLUDE, stationData, groupRows, toObservation } from '@/lib/map/adminStore.server'
+import { deriveGroupStatus } from '@/lib/map/status'
 
 /** GET — every registry station (all statuses) with its publish blockers. */
 export async function GET() {
@@ -11,7 +12,13 @@ export async function GET() {
   if (denied) return denied
   const stations = await prisma.evStation.findMany({ include: STATION_INCLUDE, orderBy: [{ status: 'asc' }, { name: 'asc' }] })
   const now = new Date()
-  return NextResponse.json({ stations: stations.map((s) => ({ ...s, blockers: publishBlockers(s, now) })) })
+  return NextResponse.json({
+    stations: stations.map((s) => ({
+      ...s,
+      blockers: publishBlockers(s, now),
+      connectorGroups: s.connectorGroups.map(({ observations, ...g }) => ({ ...g, status: deriveGroupStatus(g.count, observations.map(toObservation), [], now) })),
+    })),
+  })
 }
 
 /** POST — create a draft station. */

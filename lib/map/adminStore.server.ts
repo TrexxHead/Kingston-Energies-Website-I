@@ -1,9 +1,10 @@
 import { prisma } from '@/lib/prisma'
 import type { StationInput } from './registry'
+import type { StatusObservation, StatusSource } from './status'
 
 export const STATION_INCLUDE = {
   operator: { select: { id: true, name: true } },
-  connectorGroups: true,
+  connectorGroups: { include: { observations: { orderBy: { observedAt: 'desc' as const }, take: 3 } } },
   sources: { orderBy: { createdAt: 'asc' as const } },
   _count: { select: { reports: true } },
 }
@@ -44,4 +45,17 @@ export function groupRows(input: StationInput) {
     portsShared: g.portsShared ?? null,
     notes: g.notes ?? null,
   }))
+}
+
+/** DB row → status-logic observation (observation time kept separate from retrieval time). */
+export function toObservation(o: { source: string; observedAt: Date | null; retrievedAt: Date; availableCount: number | null; outOfServiceCount: number | null; inUseCount: number | null; supportsInUse: boolean }): StatusObservation {
+  return {
+    source: o.source as StatusSource,
+    observedAt: o.observedAt?.toISOString() ?? null,
+    retrievedAt: o.retrievedAt.toISOString(),
+    availableCount: o.availableCount,
+    outOfServiceCount: o.outOfServiceCount,
+    inUseCount: o.inUseCount,
+    supportsInUse: o.supportsInUse,
+  }
 }

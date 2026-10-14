@@ -79,3 +79,31 @@ export function sourceVerifiable(src: { url: string | null; notes: string | null
   if (!src.url && !(src.notes && src.notes.trim().length >= 10)) return 'Add a link or notes describing the evidence (who, when, what was checked) before verifying.'
   return null
 }
+
+/** How a Kingston Energies status check was made — recorded in the activity log with the check. */
+export const CHECK_METHODS = ['site_visit', 'phone_call', 'operator_app', 'operator_confirmed', 'other'] as const
+export const CHECK_STATES = ['working', 'out_of_service', 'unknown'] as const
+export type CheckState = (typeof CHECK_STATES)[number]
+
+export const statusCheckSchema = z.object({
+  checks: z.array(z.object({ groupId: z.string().min(1), state: z.enum(CHECK_STATES) })).min(1).max(20),
+  /** When the status was checked; defaults to now. Can't be in the future or more than 30 days back. */
+  observedAt: z.string().datetime().nullable().optional(),
+  method: z.enum(CHECK_METHODS),
+  note: optText(1000),
+})
+
+/** Observation counts for a staff check. Unknown connector counts are recorded as 1, which the status logic reads as "all". */
+export function checkObservation(state: CheckState, connectorCount: number | null) {
+  const n = connectorCount && connectorCount > 0 ? connectorCount : 1
+  if (state === 'working') return { availableCount: n, outOfServiceCount: 0 }
+  if (state === 'out_of_service') return { availableCount: 0, outOfServiceCount: n }
+  return { availableCount: null, outOfServiceCount: null }
+}
+
+export function checkTimeProblem(observedAt: Date, now = new Date()): string | null {
+  if (Number.isNaN(observedAt.getTime())) return 'Invalid check time.'
+  if (observedAt.getTime() > now.getTime() + 5 * 60_000) return 'The check time can’t be in the future.'
+  if (now.getTime() - observedAt.getTime() > 30 * 24 * 60 * 60_000) return 'Checks older than 30 days would already be out of date.'
+  return null
+}

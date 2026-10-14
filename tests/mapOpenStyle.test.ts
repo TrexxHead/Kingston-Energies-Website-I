@@ -54,10 +54,10 @@ describe('Kingston map sources (self-hosted)', () => {
 
 describe('station marker state', () => {
   it('shows the most useful known state, and unknown when nothing is known', () => {
-    expect(stationMarkerState([])).toBe('status_unavailable')
-    expect(stationMarkerState([null, undefined])).toBe('status_unavailable')
-    expect(stationMarkerState(['out_of_service', 'available_now'])).toBe('available_now')
-    expect(stationMarkerState(['status_unavailable', 'in_use'])).toBe('in_use')
+    expect(stationMarkerState([])).toBe('status_unknown')
+    expect(stationMarkerState([null, undefined])).toBe('status_unknown')
+    expect(stationMarkerState(['out_of_service', 'available'])).toBe('available')
+    expect(stationMarkerState(['status_unknown', 'out_of_service'])).toBe('status_unknown')
     expect(stationMarkerState(['out_of_service'])).toBe('out_of_service')
   })
 })

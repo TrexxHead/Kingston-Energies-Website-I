@@ -46,9 +46,8 @@ const MAX_BOUNDS: [[number, number], [number, number]] = [
   [JAMAICA_BOUNDS.east + 2.5, JAMAICA_BOUNDS.north + 3],
 ]
 const LEGEND = [
-  { label: 'Available', color: STATE_MARKER_COLOR.available_now },
-  { label: 'In use', color: STATE_MARKER_COLOR.in_use },
-  { label: 'Status unknown', color: STATE_MARKER_COLOR.status_unavailable },
+  { label: 'Available', color: STATE_MARKER_COLOR.available },
+  { label: 'Status unknown', color: STATE_MARKER_COLOR.status_unknown },
   { label: 'Out of service', color: STATE_MARKER_COLOR.out_of_service },
 ]
 
@@ -452,9 +451,14 @@ const KingstonMap = forwardRef<MapViewHandle, MapViewProps>(function KingstonMap
                 <i style={{ background: STATE_MARKER_COLOR[station.markerState] }} aria-hidden />
                 <span>
                   <strong>{DISPLAY_LABEL[station.markerState]}</strong>
-                  {station.statusSummary && station.statusSummary !== DISPLAY_LABEL[station.markerState] ? ` · ${station.statusSummary}` : ''}
+                  {(() => {
+                    // "Available: CCS" → "· CCS" (which connector groups); identical summaries add nothing.
+                    const rest = station.statusSummary.replace(new RegExp(`^${DISPLAY_LABEL[station.markerState]}:?\\s*`), '')
+                    return rest && rest !== station.statusSummary.trim() ? ` · ${rest}` : rest && station.statusSummary !== DISPLAY_LABEL[station.markerState] ? ` · ${station.statusSummary}` : ''
+                  })()}
                 </span>
               </p>
+              {station.statusDetail && <p className="ke-card__sub ke-card__fine">{station.statusDetail}</p>}
               {station.connectorsLine && <p className="ke-card__sub">{station.connectorsLine}</p>}
               <div className="ke-card__actions">
                 <a className="ke-btn ke-btn--primary" href={station.directionsUrl} target="_blank" rel="noopener noreferrer">

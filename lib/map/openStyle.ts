@@ -225,20 +225,17 @@ export const MAP_THEMES: Record<MapTheme, ThemeColors> = {
 
 /** Marker colour per display state — matches the list's status meaning. */
 export const STATE_MARKER_COLOR: Record<DisplayState, string> = {
-  available_now: '#5fae2e',
-  in_use: '#f2a20c',
+  available: '#3f9d2a',
+  status_unknown: '#7d8a84',
   out_of_service: '#d9534f',
-  recently_reported_working: '#2b8fd0',
-  status_unavailable: '#7d8a84',
-  status_may_be_outdated: '#f2a20c',
 }
 
-/** Most useful state across a station's connector groups (available beats unknown, etc.). */
-const STATE_RANK: DisplayState[] = ['available_now', 'recently_reported_working', 'in_use', 'status_may_be_outdated', 'status_unavailable', 'out_of_service']
+/** Best state across a station's connector groups: any confirmed working group makes the pin green. */
+const STATE_RANK: DisplayState[] = ['available', 'status_unknown', 'out_of_service']
 export function stationMarkerState(states: (DisplayState | null | undefined)[]): DisplayState {
-  const present = states.filter((s): s is DisplayState => !!s)
-  if (present.length === 0) return 'status_unavailable'
-  return STATE_RANK.find((r) => present.includes(r)) ?? 'status_unavailable'
+  const present = states.filter((s): s is DisplayState => !!s && (STATE_RANK as string[]).includes(s))
+  if (present.length === 0) return 'status_unknown'
+  return STATE_RANK.find((r) => present.includes(r)) ?? 'status_unknown'
 }
 
 const FONT = ['Open Sans Regular']

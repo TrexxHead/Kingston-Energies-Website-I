@@ -19,60 +19,104 @@ function obs(over: Partial<StatusObservation>): StatusObservation {
   }
 }
 
-describe('deriveGroupStatus', () => {
-  it('available now requires a current availability count above zero', () => {
-    expect(deriveGroupStatus(2, [obs({ availableCount: 1 })], [], NOW).state).toBe('available_now')
+const daysAgo = (d: number) => minsAgo(d * 24 * 60)
+const staff = (over: Partial<StatusObservation>) => obs({ source: 'staff_check', supportsInUse: false, ...over })
+
+describe('deriveGroupStatus — three public states', () => {
+  it('available requires a current confirmed-working count above zero', () => {
+    expect(deriveGroupStatus(2, [obs({ availableCount: 1 })], [], NOW).state).toBe('available')
   })
 
   it('a missing availability field is never zero, available or closed', () => {
-    const s = deriveGroupStatus(2, [obs({})], [], NOW)
-    expect(s.state).toBe('status_unavailable')
+    expect(deriveGroupStatus(2, [obs({})], [], NOW).state).toBe('status_unknown')
   })
 
-  it('zero available is not inferred as in use', () => {
+  it('zero available is not inferred as broken or busy', () => {
     const s = deriveGroupStatus(2, [obs({ availableCount: 0 })], [], NOW)
-    expect(s.state).toBe('status_unavailable')
-    expect(s.detail).toMatch(/does not say/)
+    expect(s.state).toBe('status_unknown')
+    expect(s.detail).toMatch(/not whether/)
   })
 
-  it('in use only when the provider explicitly supports it', () => {
+  it('"in use" from a feed is shown as status unknown with the reason, never as available', () => {
     const s = deriveGroupStatus(2, [obs({ source: 'operator_feed', availableCount: 0, inUseCount: 2, supportsInUse: true })], [], NOW)
-    expect(s.state).toBe('in_use')
+    expect(s.state).toBe('status_unknown')
+    expect(s.detail).toMatch(/in use/)
   })
 
-  it('out of service when the provider reports every connector out', () => {
+  it('out of service when every connector is reported out', () => {
     expect(deriveGroupStatus(2, [obs({ outOfServiceCount: 2, availableCount: 0 })], [], NOW).state).toBe('out_of_service')
   })
 
-  it('stale status is labelled, not shown as live', () => {
+  it('stale feed status falls back to unknown, saying when it was last seen', () => {
     const s = deriveGroupStatus(2, [obs({ availableCount: 2, observedAt: minsAgo(90) })], [], NOW)
-    expect(s.state).toBe('status_may_be_outdated')
+    expect(s.state).toBe('status_unknown')
+    expect(s.detail).toMatch(/Last confirmed working by Google/)
   })
 
   it('a retrieval time never stands in for a missing observation time', () => {
     const s = deriveGroupStatus(2, [obs({ availableCount: 2, observedAt: null })], [], NOW)
-    expect(s.state).toBe('status_unavailable')
+    expect(s.state).toBe('status_unknown')
     expect(s.observedAt).toBeNull()
     expect(s.detail).toMatch(/without an observation time/)
   })
 
-  it('community reports show only when moderated, and never override current provider status', () => {
+  it('a moderated community report is a hint in the detail, never a confirmation', () => {
     const report = { kind: 'successful_charge' as const, observedAt: minsAgo(60), moderation: 'approved' as const }
-    expect(deriveGroupStatus(1, [], [report], NOW).state).toBe('recently_reported_working')
-    expect(deriveGroupStatus(1, [], [{ ...report, moderation: 'pending' }], NOW).state).toBe('status_unavailable')
+    const s = deriveGroupStatus(1, [], [report], NOW)
+    expect(s.state).toBe('status_unknown')
+    expect(s.detail).toMatch(/driver reported a successful charge/)
+    expect(deriveGroupStatus(1, [], [{ ...report, moderation: 'pending' }], NOW).detail).not.toMatch(/driver/)
     expect(deriveGroupStatus(1, [obs({ outOfServiceCount: 1 })], [report], NOW).state).toBe('out_of_service')
   })
 
-  it('no data at all is status unavailable', () => {
-    expect(deriveGroupStatus(1, [], [], NOW).state).toBe('status_unavailable')
+  it('no data at all is status unknown', () => {
+    expect(deriveGroupStatus(1, [], [], NOW).state).toBe('status_unknown')
+  })
+})
+
+describe('Kingston Energies status checks (admin)', () => {
+  it('a working check shows Available for 7 days, then Status unknown with the date', () => {
+    const fresh = deriveGroupStatus(2, [staff({ availableCount: 2, outOfServiceCount: 0, observedAt: daysAgo(6) })], [], NOW)
+    expect(fresh.state).toBe('available')
+    expect(fresh.detail).toBe('Confirmed working by Kingston Energies 6 days ago.')
+    const stale = deriveGroupStatus(2, [staff({ availableCount: 2, outOfServiceCount: 0, observedAt: daysAgo(8) })], [], NOW)
+    expect(stale.state).toBe('status_unknown')
+    expect(stale.detail).toMatch(/Last confirmed working by Kingston Energies 8 days ago/)
+  })
+
+  it('an out-of-service check lasts 30 days', () => {
+    expect(deriveGroupStatus(1, [staff({ availableCount: 0, outOfServiceCount: 1, observedAt: daysAgo(20) })], [], NOW).state).toBe('out_of_service')
+    const old = deriveGroupStatus(1, [staff({ availableCount: 0, outOfServiceCount: 1, observedAt: daysAgo(31) })], [], NOW)
+    expect(old.state).toBe('status_unknown')
+    expect(old.detail).toMatch(/not re-checked/)
+  })
+
+  it('works when the connector count is unknown', () => {
+    expect(deriveGroupStatus(null, [staff({ availableCount: 0, outOfServiceCount: 1 })], [], NOW).state).toBe('out_of_service')
+    expect(deriveGroupStatus(null, [staff({ availableCount: 1, outOfServiceCount: 0 })], [], NOW).state).toBe('available')
+  })
+
+  it('the newest check wins, and clearing returns to unknown', () => {
+    const older = staff({ availableCount: 1, outOfServiceCount: 0, observedAt: daysAgo(2) })
+    const newer = staff({ availableCount: 0, outOfServiceCount: 1, observedAt: daysAgo(1) })
+    expect(deriveGroupStatus(1, [older, newer], [], NOW).state).toBe('out_of_service')
+    const cleared = staff({ availableCount: null, outOfServiceCount: null, observedAt: minsAgo(5) })
+    const s = deriveGroupStatus(1, [newer, cleared], [], NOW)
+    expect(s.state).toBe('status_unknown')
+    expect(s.detail).toMatch(/cleared/)
   })
 })
 
 describe('stationStatusSummary', () => {
+  const avail = deriveGroupStatus(1, [obs({ availableCount: 1 })], [], NOW)
+  const unk = deriveGroupStatus(1, [], [], NOW)
+  const out = deriveGroupStatus(1, [obs({ outOfServiceCount: 1, availableCount: 0 })], [], NOW)
   it('names the connector group rather than implying the whole site is ready', () => {
-    const avail = deriveGroupStatus(1, [obs({ availableCount: 1 })], [], NOW)
-    const unk = deriveGroupStatus(1, [], [], NOW)
-    expect(stationStatusSummary([{ connectorType: 'CCS2', status: avail }, { connectorType: 'Type 2', status: unk }])).toBe('Availability reported for CCS2')
+    expect(stationStatusSummary([{ connectorType: 'CCS2', status: avail }, { connectorType: 'Type 2', status: unk }])).toBe('Available: CCS2')
+    expect(stationStatusSummary([{ connectorType: 'CCS2', status: avail }])).toBe('Available')
+    expect(stationStatusSummary([{ connectorType: 'CCS2', status: out }, { connectorType: 'Type 2', status: unk }])).toBe('Out of service: CCS2')
+    expect(stationStatusSummary([{ connectorType: 'CCS2', status: out }])).toBe('Out of service')
+    expect(stationStatusSummary([{ connectorType: 'Type 2', status: unk }])).toBe('Status unknown')
   })
 })
 
@@ -106,8 +150,8 @@ describe('Google Places normalisation', () => {
     expect(t2.observation.availableCount).toBeNull()
     expect(t2.observation.observedAt).toBeNull()
     expect(places[0].attribution).toBe('Google Maps')
-    expect(deriveGroupStatus(2, [t2.observation], [], NOW).state).toBe('status_unavailable')
-    expect(deriveGroupStatus(2, [ccs.observation], [], NOW).state).toBe('available_now')
+    expect(deriveGroupStatus(2, [t2.observation], [], NOW).state).toBe('status_unknown')
+    expect(deriveGroupStatus(2, [ccs.observation], [], NOW).state).toBe('available')
   })
 
   it('clamps searches to Jamaica', () => {

@@ -32,3 +32,27 @@ describe('stationInputSchema', () => {
     expect(r.success).toBe(false)
   })
 })
+
+describe('admin status checks', () => {
+  it('records working / out of service / unknown as counts the status logic understands', async () => {
+    const { checkObservation } = await import('@/lib/map/registry')
+    expect(checkObservation('working', 2)).toEqual({ availableCount: 2, outOfServiceCount: 0 })
+    expect(checkObservation('out_of_service', null)).toEqual({ availableCount: 0, outOfServiceCount: 1 })
+    expect(checkObservation('unknown', 3)).toEqual({ availableCount: null, outOfServiceCount: null })
+  })
+
+  it('refuses future or month-old check times', async () => {
+    const { checkTimeProblem } = await import('@/lib/map/registry')
+    const now = new Date('2026-10-14T12:00:00Z')
+    expect(checkTimeProblem(new Date('2026-10-14T11:00:00Z'), now)).toBeNull()
+    expect(checkTimeProblem(new Date('2026-10-14T13:00:00Z'), now)).toMatch(/future/)
+    expect(checkTimeProblem(new Date('2026-09-01T12:00:00Z'), now)).toMatch(/30 days/)
+  })
+
+  it('validates the request shape', async () => {
+    const { statusCheckSchema } = await import('@/lib/map/registry')
+    expect(statusCheckSchema.safeParse({ checks: [{ groupId: 'g1', state: 'working' }], method: 'phone_call' }).success).toBe(true)
+    expect(statusCheckSchema.safeParse({ checks: [], method: 'phone_call' }).success).toBe(false)
+    expect(statusCheckSchema.safeParse({ checks: [{ groupId: 'g1', state: 'in_use' }], method: 'phone_call' }).success).toBe(false)
+  })
+})

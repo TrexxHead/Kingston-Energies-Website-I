@@ -8,6 +8,8 @@ export interface MapStation {
   lng: number
   statusSummary: string
   markerState: DisplayState
+  /** Who confirmed the status and when, e.g. "Confirmed working by Kingston Energies 2 days ago." */
+  statusDetail: string
   /** Operator · parish · address, already joined. */
   subtitle: string
   /** e.g. "Type 2 · AC · up to 7 kW · 2 connectors". */

@@ -9,7 +9,8 @@ import Button from '../../ui/Button'
 import TextInput from '../../ui/TextInput'
 import { PARISHES } from '@/lib/map/parishes'
 
-interface Group { connectorType: string; currentType: 'AC' | 'DC'; maxPowerKw: number | null; count: number | null; portsShared: boolean | null; notes: string | null }
+interface GroupStatus { state: 'available' | 'status_unknown' | 'out_of_service'; detail: string }
+interface Group { id?: string; status?: GroupStatus; connectorType: string; currentType: 'AC' | 'DC'; maxPowerKw: number | null; count: number | null; portsShared: boolean | null; notes: string | null }
 interface Source { id: string; sourceName: string; sourceType: string; url: string | null; notes: string | null; licence: string | null; permissionScope: string | null; reviewState: string; verifiedAt: string | null; observedAt: string | null }
 interface Station {
   id: string
@@ -37,6 +38,11 @@ const CONNECTORS = ['Type 2', 'J1772 (Type 1)', 'CCS', 'CCS2', 'CCS1', 'CHAdeMO'
 const ACCESS = ['public', 'customers_only', 'restricted', 'private', 'unknown']
 const SOURCE_TYPES = ['field_visit', 'site_owner', 'operator_agreement', 'operator_public', 'open_data', 'staff_list', 'community']
 const muted = { color: 'var(--color-text-muted)', fontSize: 13 } as const
+const STATUS_LABEL = { available: 'Available', status_unknown: 'Status unknown', out_of_service: 'Out of service' } as const
+const STATUS_TONE = { available: 'green', status_unknown: 'neutral', out_of_service: 'red' } as const
+const bestState = (groups: Group[]): GroupStatus['state'] =>
+  groups.some((g) => g.status?.state === 'available') ? 'available' : groups.length && groups.every((g) => g.status?.state === 'out_of_service') ? 'out_of_service' : 'status_unknown'
+const CHECK_METHODS: [string, string][] = [['site_visit', 'Site visit'], ['phone_call', 'Phoned the site / operator'], ['operator_app', 'Operator app'], ['operator_confirmed', 'Operator confirmed in writing'], ['other', 'Other']]
 const parishName = (id: string) => PARISHES.find((p) => p.id === id)?.name ?? id
 
 interface Form {
@@ -132,6 +138,7 @@ export default function MapStationsSection() {
                 <th style={{ padding: 8 }}>Parish</th>
                 <th style={{ padding: 8 }}>Connectors</th>
                 <th style={{ padding: 8 }}>Sources</th>
+                <th style={{ padding: 8 }}>Charger status</th>
                 <th style={{ padding: 8 }}>Status</th>
                 <th />
               </tr>
@@ -143,6 +150,13 @@ export default function MapStationsSection() {
                   <td style={{ padding: 8 }}>{parishName(s.parish)}</td>
                   <td style={{ padding: 8 }}>{s.connectorGroups.map((g) => g.connectorType).join(', ') || <span style={muted}>None</span>}</td>
                   <td style={{ padding: 8 }}>{s.sources.filter((x) => x.reviewState === 'verified').length} verified / {s.sources.length}</td>
+                  <td style={{ padding: 8 }}>
+                    {s.connectorGroups.length ? (
+                      <Badge tone={STATUS_TONE[bestState(s.connectorGroups)]}>{STATUS_LABEL[bestState(s.connectorGroups)]}</Badge>
+                    ) : (
+                      <span style={muted}>—</span>
+                    )}
+                  </td>
                   <td style={{ padding: 8 }}>
                     <Badge tone={s.status === 'published' ? 'green' : s.status === 'draft' ? (s.blockers.length ? 'orange' : 'blue') : 'grey'}>
                       {s.status === 'draft' && !s.blockers.length ? 'ready to publish' : s.status}
@@ -303,6 +317,8 @@ function StationEditor({ station, prefill, onBack, onSaved }: { station?: Statio
         </div>
       </div>
 
+      {station && station.connectorGroups.length > 0 && <StatusCheckCard station={station} onSaved={() => onSaved(station.id)} />}
+
       {station && (
         <div style={{ ...cardStyle, display: 'grid', gap: 12 }}>
           <h3 style={{ ...h3Style, margin: 0 }}>Sources</h3>
@@ -396,7 +412,7 @@ function ImportListCard({ onImported }: { onImported: () => Promise<void> }) {
     <div style={{ ...cardStyle, display: 'grid', gap: 10 }}>
       <h3 style={h3Style}>Station list: {preview.list}</h3>
       <p style={{ ...muted, margin: 0 }}>
-        {preview.total} stations — {preview.publishable} with connector details will be published; {preview.drafts} without connector details become drafts to complete. {preview.note} Access is marked “not confirmed” and status “unavailable” until an operator feed or site check says otherwise. Running it again skips stations already imported, so your edits are kept.
+        {preview.total} stations — {preview.publishable} with connector details will be published; {preview.drafts} without connector details become drafts to complete. {preview.note} Access is marked “not confirmed” and status “unknown” until you record a status check on the station. Running it again skips stations already imported, so your edits are kept.
       </p>
       {flagged.length > 0 && (
         <details>
@@ -418,6 +434,122 @@ function ImportListCard({ onImported }: { onImported: () => Promise<void> }) {
           </span>
         )}
         {error && <span role="alert" style={{ ...muted, color: 'var(--color-danger, #c0392b)' }}>{error}</span>}
+      </div>
+    </div>
+  )
+}
+
+type CheckChoice = 'working' | 'out_of_service' | 'unknown'
+
+/**
+ * Record a Kingston Energies status check. Public map shows "Available" for
+ * 7 days after a working check and "Out of service" for 30 days after a
+ * fault, then falls back to "Status unknown" until someone checks again.
+ */
+function StatusCheckCard({ station, onSaved }: { station: Station; onSaved: () => void }) {
+  const groups = station.connectorGroups.filter((g): g is Group & { id: string } => !!g.id)
+  const [choice, setChoice] = useState<Record<string, CheckChoice | ''>>({})
+  const [method, setMethod] = useState('phone_call')
+  const [when, setWhen] = useState('')
+  const [note, setNote] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState<string | null>(null)
+
+  const setAll = (c: CheckChoice) => setChoice(Object.fromEntries(groups.map((g) => [g.id, c])))
+  const chosen = groups.filter((g) => choice[g.id])
+
+  async function submit() {
+    if (!chosen.length) return setMsg('Choose a status for at least one connector group.')
+    setBusy(true)
+    setMsg(null)
+    const res = await fetch(`/api/admin/map/stations/${station.id}/status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        checks: chosen.map((g) => ({ groupId: g.id, state: choice[g.id] })),
+        method,
+        note: note.trim() || null,
+        observedAt: when ? new Date(when).toISOString() : null,
+      }),
+    })
+    const d = await res.json().catch(() => ({}))
+    setBusy(false)
+    if (!res.ok) return setMsg(d.error ?? 'Could not save the status check.')
+    setChoice({})
+    setNote('')
+    setWhen('')
+    setMsg('Status saved — the public map shows it within a minute.')
+    onSaved()
+  }
+
+  const btn = (g: Group & { id: string }, c: CheckChoice, label: string) => (
+    <button
+      type="button"
+      aria-pressed={choice[g.id] === c}
+      onClick={() => setChoice({ ...choice, [g.id]: choice[g.id] === c ? '' : c })}
+      style={{
+        padding: '6px 12px',
+        borderRadius: 999,
+        border: '1px solid var(--color-border-strong)',
+        background: choice[g.id] === c ? (c === 'working' ? '#3f9d2a' : c === 'out_of_service' ? '#d9534f' : '#6b7873') : 'transparent',
+        color: choice[g.id] === c ? '#fff' : 'inherit',
+        fontSize: 13,
+        fontWeight: 600,
+        cursor: 'pointer',
+      }}
+    >
+      {label}
+    </button>
+  )
+
+  return (
+    <div style={{ ...cardStyle, display: 'grid', gap: 12 }}>
+      <h3 style={{ ...h3Style, margin: 0 }}>Charger status</h3>
+      <p style={{ ...muted, margin: 0 }}>
+        Confirm whether each connector is working. The map shows <strong>Available</strong> for 7 days after a working check and <strong>Out of service</strong> for 30 days after a fault, then <strong>Status unknown</strong> until someone checks again. Only record what you actually confirmed.
+      </p>
+      {groups.map((g) => (
+        <div key={g.id} style={{ display: 'grid', gap: 6, borderTop: '1px solid var(--color-border)', paddingTop: 10 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+            <strong style={{ fontSize: 14 }}>
+              {g.connectorType} · {g.currentType}
+              {g.maxPowerKw != null ? ` · ${g.maxPowerKw} kW` : ''}
+              {g.count != null ? ` · ×${g.count}` : ''}
+            </strong>
+            {g.status && <Badge tone={STATUS_TONE[g.status.state]}>{STATUS_LABEL[g.status.state]}</Badge>}
+          </div>
+          {g.status && <span style={muted}>Now showing: {g.status.detail}</span>}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }} role="group" aria-label={`${g.connectorType} status`}>
+            {btn(g, 'working', 'Working')}
+            {btn(g, 'out_of_service', 'Out of service')}
+            {btn(g, 'unknown', 'Unknown')}
+          </div>
+        </div>
+      ))}
+      {groups.length > 1 && (
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <Button size="sm" variant="outline" onClick={() => setAll('working')}>All working</Button>
+          <Button size="sm" variant="outline" onClick={() => setAll('out_of_service')}>All out of service</Button>
+        </div>
+      )}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 10 }}>
+        <label style={{ display: 'grid', gap: 4, fontSize: 13 }}>
+          <span>How was it confirmed?</span>
+          <select value={method} onChange={(e) => setMethod(e.target.value)} style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid var(--color-border-strong)' }}>
+            {CHECK_METHODS.map(([v, l]) => (
+              <option key={v} value={v}>{l}</option>
+            ))}
+          </select>
+        </label>
+        <label style={{ display: 'grid', gap: 4, fontSize: 13 }}>
+          <span>When checked (blank = now)</span>
+          <input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid var(--color-border-strong)' }} />
+        </label>
+        <TextInput label="Note (internal, optional)" value={note} onChange={setNote} />
+      </div>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+        <Button size="sm" onClick={submit} disabled={busy}>{busy ? 'Saving…' : 'Save status check'}</Button>
+        {msg && <span role="status" style={muted}>{msg}</span>}
       </div>
     </div>
   )

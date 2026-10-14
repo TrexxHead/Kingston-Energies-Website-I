@@ -9,33 +9,32 @@
  * read as zero, available or closed.
  */
 
-export type StatusSource = 'operator_feed' | 'google_places' | 'site_owner' | 'community'
+export type StatusSource = 'operator_feed' | 'google_places' | 'site_owner' | 'staff_check' | 'community'
 
-export type DisplayState =
-  | 'available_now'
-  | 'in_use'
-  | 'out_of_service'
-  | 'recently_reported_working'
-  | 'status_unavailable'
-  | 'status_may_be_outdated'
+/**
+ * Three public states (owner decision, 14 Oct 2026):
+ *  - available: an operator feed or a Kingston Energies check confirms it
+ *    working within the freshness window. It means "working", not that a
+ *    port is free this minute — the detail line says who confirmed it, when.
+ *  - out_of_service: confirmed not working within the window.
+ *  - status_unknown: everything else, including stale confirmations,
+ *    community reports and "in use" (occupied ≠ broken, but not free).
+ */
+export type DisplayState = 'available' | 'status_unknown' | 'out_of_service'
+
+export const DISPLAY_STATES: DisplayState[] = ['available', 'status_unknown', 'out_of_service']
 
 export const DISPLAY_LABEL: Record<DisplayState, string> = {
-  available_now: 'Available now',
-  in_use: 'In use',
+  available: 'Available',
+  status_unknown: 'Status unknown',
   out_of_service: 'Out of service',
-  recently_reported_working: 'Recently reported working',
-  status_unavailable: 'Status unavailable',
-  status_may_be_outdated: 'Status may be outdated',
 }
 
 /** Icon names (lucide) so state is never communicated by colour alone. */
 export const DISPLAY_ICON: Record<DisplayState, string> = {
-  available_now: 'circle-check',
-  in_use: 'clock',
+  available: 'circle-check',
+  status_unknown: 'circle-help',
   out_of_service: 'circle-x',
-  recently_reported_working: 'message-circle',
-  status_unavailable: 'circle-help',
-  status_may_be_outdated: 'history',
 }
 
 export interface StatusObservation {
@@ -68,7 +67,20 @@ export const FRESHNESS_MS: Record<StatusSource, number> = {
   operator_feed: 5 * 60_000,
   google_places: 15 * 60_000,
   site_owner: 24 * 60 * 60_000,
+  // A Kingston Energies check (site visit, call, operator app) stays current for a week…
+  staff_check: 7 * 24 * 60 * 60_000,
   community: 14 * 24 * 60 * 60_000,
+}
+
+/** …and a confirmed fault for 30 days, unless someone re-checks sooner. */
+export const OUT_OF_SERVICE_FRESHNESS_MS = 30 * 24 * 60 * 60_000
+
+const SOURCE_TEXT: Record<StatusSource, string> = {
+  operator_feed: 'the operator',
+  google_places: 'Google',
+  site_owner: 'the site owner',
+  staff_check: 'Kingston Energies',
+  community: 'a driver',
 }
 
 export interface GroupStatus {
@@ -79,7 +91,7 @@ export interface GroupStatus {
   retrievedAt: string | null
 }
 
-const AUTHORITATIVE: StatusSource[] = ['operator_feed', 'google_places', 'site_owner']
+const AUTHORITATIVE: StatusSource[] = ['operator_feed', 'google_places', 'site_owner', 'staff_check']
 
 function ageText(ms: number): string {
   const m = Math.round(ms / 60_000)
@@ -92,11 +104,11 @@ function ageText(ms: number): string {
 
 /**
  * Derive the display status for one connector group of `connectorCount`
- * connectors (which may share ports — this does not imply simultaneous
- * charging capacity).
+ * connectors (null when the count is unknown; connectors may share ports —
+ * this does not imply simultaneous charging capacity).
  */
 export function deriveGroupStatus(
-  connectorCount: number,
+  connectorCount: number | null,
   observations: StatusObservation[],
   community: CommunitySignal[],
   now: Date,
@@ -108,56 +120,65 @@ export function deriveGroupStatus(
   const timed = authoritative.filter((o) => o.observedAt)
   const latest = timed[0]
 
-  const communityFallback = (): GroupStatus | null => {
+  const unknown = (detail: string, extra: Partial<GroupStatus> = {}): GroupStatus => ({
+    state: 'status_unknown',
+    detail,
+    source: null,
+    observedAt: null,
+    retrievedAt: null,
+    ...extra,
+  })
+
+  // A moderated "charged here" report is a useful hint, never a confirmation.
+  const communityHint = (): string | null => {
     const working = community
       .filter((c) => c.moderation === 'approved' && c.kind === 'successful_charge')
       .filter((c) => now.getTime() - Date.parse(c.observedAt) <= freshness.community)
       .sort((a, b) => Date.parse(b.observedAt) - Date.parse(a.observedAt))[0]
-    if (!working) return null
-    return {
-      state: 'recently_reported_working',
-      detail: `A driver reported a successful charge ${ageText(now.getTime() - Date.parse(working.observedAt))}. This is a community report, not live equipment status.`,
-      source: 'community',
-      observedAt: working.observedAt,
-      retrievedAt: null,
-    }
+    return working ? `A driver reported a successful charge ${ageText(now.getTime() - Date.parse(working.observedAt))}.` : null
   }
 
   if (!latest) {
-    const c = communityFallback()
-    if (c) return c
-    const untimed = authoritative.length > 0
-    return {
-      state: 'status_unavailable',
-      detail: untimed ? 'The provider returned a status without an observation time, so it cannot be shown as current.' : 'No supported live status for this charger.',
-      source: null,
-      observedAt: null,
-      retrievedAt: authoritative[0]?.retrievedAt ?? null,
-    }
+    const hint = communityHint()
+    if (authoritative.length) return unknown('A status was received without an observation time, so it cannot be shown as current.', { retrievedAt: authoritative[0].retrievedAt })
+    return unknown(hint ?? 'Not yet confirmed. No live status feed for this charger.')
   }
 
   const age = now.getTime() - Date.parse(latest.observedAt as string)
+  const when = ageText(age)
+  const who = SOURCE_TEXT[latest.source]
   const base = { source: latest.source, observedAt: latest.observedAt, retrievedAt: latest.retrievedAt }
-  if (age > freshness[latest.source]) {
-    const c = communityFallback()
-    if (c) return c
-    return { ...base, state: 'status_may_be_outdated', detail: `Last provider status was observed ${ageText(age)}.` }
+  const count = connectorCount && connectorCount > 0 ? connectorCount : null
+
+  const allOut =
+    latest.outOfServiceCount != null && latest.outOfServiceCount > 0 && (count != null ? latest.outOfServiceCount >= count : latest.availableCount === 0 || latest.availableCount == null)
+  if (allOut) {
+    const window = latest.source === 'staff_check' ? OUT_OF_SERVICE_FRESHNESS_MS : freshness[latest.source]
+    if (age > window) return unknown(`Reported out of service by ${who} ${when}; not re-checked since.`, base)
+    return { ...base, state: 'out_of_service', detail: `Confirmed out of service by ${who} ${when}.` }
   }
 
-  const when = ageText(age)
-  if (latest.outOfServiceCount != null && connectorCount > 0 && latest.outOfServiceCount >= connectorCount) {
-    return { ...base, state: 'out_of_service', detail: `Provider reports all ${connectorCount} connector(s) out of service (${when}).` }
+  if (age > freshness[latest.source]) {
+    const was = latest.availableCount != null && latest.availableCount > 0 ? `Last confirmed working by ${who} ${when}.` : `Last status from ${who} was ${when}.`
+    return unknown([was, communityHint()].filter(Boolean).join(' '), base)
   }
+
   if (latest.availableCount != null && latest.availableCount > 0) {
-    return { ...base, state: 'available_now', detail: `${latest.availableCount} of ${connectorCount} connector(s) reported available (${when}).` }
+    const detail =
+      latest.source === 'staff_check'
+        ? `Confirmed working by ${who} ${when}.`
+        : count != null
+          ? `${latest.availableCount} of ${count} connector(s) reported available by ${who} (${when}).`
+          : `Reported available by ${who} (${when}).`
+    return { ...base, state: 'available', detail }
   }
   if (latest.supportsInUse && latest.inUseCount != null && latest.inUseCount > 0) {
-    return { ...base, state: 'in_use', detail: `Provider reports ${latest.inUseCount} connector(s) in use (${when}).` }
+    return unknown(`${who[0].toUpperCase()}${who.slice(1)} reports ${latest.inUseCount} connector(s) in use (${when}).`, base)
   }
   if (latest.availableCount === 0) {
-    return { ...base, state: 'status_unavailable', detail: `Provider reports 0 of ${connectorCount} available (${when}) but does not say whether they are in use or faulty.` }
+    return unknown(`${who[0].toUpperCase()}${who.slice(1)} reports 0${count != null ? ` of ${count}` : ''} available (${when}) but not whether they are in use or faulty.`, base)
   }
-  return { ...base, state: 'status_unavailable', detail: 'The provider did not report availability for this connector group.' }
+  return unknown(latest.source === 'staff_check' ? `Status cleared by Kingston Energies ${when}.` : `${who[0].toUpperCase()}${who.slice(1)} did not report availability for this connector group.`, base)
 }
 
 export interface ConnectorGroupSummary {
@@ -170,10 +191,11 @@ export interface ConnectorGroupSummary {
  * never implies every charger at the site is ready.
  */
 export function stationStatusSummary(groups: ConnectorGroupSummary[]): string {
-  const available = groups.filter((g) => g.status.state === 'available_now')
-  if (available.length) return `Availability reported for ${available.map((g) => g.connectorType).join(', ')}`
-  if (groups.length && groups.every((g) => g.status.state === 'out_of_service')) return 'All reported connector groups out of service'
-  if (groups.some((g) => g.status.state === 'status_may_be_outdated')) return 'Status may be outdated'
-  if (groups.some((g) => g.status.state === 'recently_reported_working')) return 'Recently reported working'
-  return 'Status unavailable'
+  const available = groups.filter((g) => g.status.state === 'available')
+  if (available.length === groups.length && groups.length) return 'Available'
+  if (available.length) return `Available: ${available.map((g) => g.connectorType).join(', ')}`
+  if (groups.length && groups.every((g) => g.status.state === 'out_of_service')) return 'Out of service'
+  const out = groups.filter((g) => g.status.state === 'out_of_service')
+  if (out.length) return `Out of service: ${out.map((g) => g.connectorType).join(', ')}`
+  return 'Status unknown'
 }

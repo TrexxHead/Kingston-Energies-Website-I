@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
-import { CircleCheck, Clock, CircleX, MessageCircle, CircleHelp, History, Navigation, LocateFixed, Flag, Lock } from 'lucide-react'
+import { CircleCheck, CircleX, CircleHelp, Navigation, LocateFixed, Flag, Lock } from 'lucide-react'
 import { PARISHES, COVERAGE_LABEL, type CoverageState } from '@/lib/map/parishes'
 import { DISPLAY_LABEL, type DisplayState, type GroupStatus } from '@/lib/map/status'
 import { card, label, input, muted, h2, Btn } from '@/app/my-energy/_components/ui'
@@ -59,31 +59,27 @@ interface Coverage {
 }
 
 const STATE_ICON: Record<DisplayState, typeof CircleCheck> = {
-  available_now: CircleCheck,
-  in_use: Clock,
+  available: CircleCheck,
+  status_unknown: CircleHelp,
   out_of_service: CircleX,
-  recently_reported_working: MessageCircle,
-  status_unavailable: CircleHelp,
-  status_may_be_outdated: History,
 }
 const STATE_COLOR: Record<DisplayState, string> = {
-  available_now: 'var(--ke-green-400)',
-  in_use: 'var(--ke-sun-300)',
+  available: 'var(--ke-green-400)',
+  status_unknown: 'var(--ke-gray-400)',
   out_of_service: '#f6a5a5',
-  recently_reported_working: 'var(--ke-blue-300)',
-  status_unavailable: 'var(--ke-gray-400)',
-  status_may_be_outdated: 'var(--ke-sun-300)',
 }
 const ACCESS_LABEL: Record<string, string> = { public: 'Public', customers_only: 'Customers only', restricted: 'Restricted', private: 'Private', unknown: 'Access not confirmed' }
 
 
 function StatusLine({ s }: { s: GroupStatus | null }) {
   if (!s) return <span style={muted}>Closed</span>
-  const Icon = STATE_ICON[s.state]
+  // Anything unexpected (e.g. an older cached response) reads as unknown rather than breaking the page.
+  const state: DisplayState = s.state in STATE_ICON ? s.state : 'status_unknown'
+  const Icon = STATE_ICON[state]
   return (
     <span style={{ display: 'grid', gap: 2 }}>
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: STATE_COLOR[s.state], fontWeight: 600, fontSize: 13 }}>
-        <Icon size={15} aria-hidden /> {DISPLAY_LABEL[s.state]}
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: STATE_COLOR[state], fontWeight: 600, fontSize: 13 }}>
+        <Icon size={15} aria-hidden /> {DISPLAY_LABEL[state]}
       </span>
       <span style={{ ...muted, fontSize: 12.5 }}>{s.detail}</span>
     </span>
@@ -164,6 +160,10 @@ export default function EnergyMapClient() {
         lng: s.lng,
         statusSummary: s.statusSummary,
         markerState: stationMarkerState(s.connectorGroups.map((g) => g.status?.state)),
+        statusDetail: (() => {
+          const state = stationMarkerState(s.connectorGroups.map((g) => g.status?.state))
+          return s.connectorGroups.find((g) => g.status?.state === state)?.status?.detail ?? ''
+        })(),
         subtitle: [s.operator?.name, PARISHES.find((p) => p.id === s.parish)?.name, s.address].filter(Boolean).join(' · '),
         connectorsLine: s.connectorGroups
           .map((g) => [g.connectorType, g.currentType, g.maxPowerKw != null ? `up to ${g.maxPowerKw} kW` : null, g.count != null ? `${g.count}×` : null].filter(Boolean).join(' · '))

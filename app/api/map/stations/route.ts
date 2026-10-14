@@ -55,7 +55,7 @@ export async function GET(request: Request) {
           maxPowerKw: g.maxPowerKw,
           count: g.count,
           portsShared: g.portsShared,
-          status: s.status === 'closed' ? null : deriveGroupStatus(g.count ?? 0, observations, community, now),
+          status: s.status === 'closed' ? null : deriveGroupStatus(g.count, observations, community, now),
         }
       })
       return {

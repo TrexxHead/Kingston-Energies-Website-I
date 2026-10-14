@@ -12,5 +12,9 @@
  *   specific yield (±1 SD range), marginal-rate savings with a daytime-use
  *   bound; export credit not valued. Default usable roof share 45% flat /
  *   40% pitched; system sized to the household's use, capped by the roof.
+ * 1.2.0 (2026-10-14) — EV vs petrol energy cost: home charging priced as
+ *   the added cost on the household bill at an approved tariff (or the
+ *   visitor's price), public charging at an operator price, charging losses
+ *   10% home / 5% public, simple payback on a purchase premium.
  */
-export const CALC_ENGINE_VERSION = '1.1.0'
+export const CALC_ENGINE_VERSION = '1.2.0'

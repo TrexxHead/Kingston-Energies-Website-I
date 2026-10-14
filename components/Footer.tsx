@@ -32,6 +32,8 @@ const COMPANY_COLUMN = [
   { href: '/my-energy', label: 'My Energy' },
   { href: '/energy-map', label: 'Jamaica Energy Map' },
   { href: '/solar', label: 'Rooftop solar estimator' },
+  { href: '/bill-explainer', label: 'Bill Explainer' },
+  { href: '/ev-costs', label: 'EV vs petrol costs' },
   { href: '/back-in-stock', label: 'Back in stock' },
 ]
 

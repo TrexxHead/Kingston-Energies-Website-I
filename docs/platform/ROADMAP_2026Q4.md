@@ -31,13 +31,13 @@ Legend: ✅ done · 🟡 built, waiting on a blocker · ⏳ in progress · ⬜ n
 - **Blockers:** PVGIS reachable from Vercel (can’t be tested from the dev container — verify on preview); tariff (R0) for savings.
 - **Done when:** unit tests for area/kWp/savings; PVGIS parsing tested on the documented response shape; browser flow on a real Kingston roof.
 
-### P2 · Bill Explainer ⬜
+### P2 · Bill Explainer ✅ built (`/bill-explainer`) · 🟡 tariff comparison + marginal cost appear once a tariff is approved; photo upload waits on an extraction provider
 - **Goal:** “Why is my bill this high?” — a clear breakdown, what changed since last month, and what one fewer kWh is really worth.
 - **Build:** bill entry form (period, kWh, reading type, line items); comparison of two bills using `lib/energy/engine/bills.ts` (period / consumption / price / fixed effects); priced breakdown and marginal saving with the approved tariff; save to My Energy; upload-a-photo structure for later.
 - **Blockers:** tariff (R0) for the “what each kWh costs” part; 🔒 document-extraction provider for photo upload.
 - **Done when:** effects sum exactly to the change; estimated readings flagged; works without a tariff (comparison only).
 
-### P3 · EV vs petrol cost calculator ⬜
+### P3 · EV vs petrol cost calculator ✅ built (`/ev-costs`) · 🟡 pre-fills once pump prices / tariff / operator prices are approved
 - **Goal:** the first question every EV buyer asks — what will it cost me to run versus petrol?
 - **Build:** `/ev-costs`: distance per week, petrol car L/100 km, EV kWh/100 km (entered, with ranges), share of home vs public charging, public price; annual cost both ways, difference and break-even on a price premium; all assumptions visible.
 - **Data:** Petrojam weekly prices and JPS tariff via R0; public charging price entered by staff per operator.

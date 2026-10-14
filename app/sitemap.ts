@@ -7,7 +7,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const staticRoutes = [
     '', '/shop', '/services', '/about', '/contact', '/faq',
     '/find-my-power', '/business-power-continuity', '/bulk-corporate', '/back-in-stock', '/guides/what-will-this-power',
-    '/my-energy', '/energy-map', '/solar',
+    '/my-energy', '/energy-map', '/solar', '/bill-explainer', '/ev-costs',
     '/legal/privacy', '/legal/terms', '/legal/returns', '/legal/warranty', '/legal/delivery',
   ]
 

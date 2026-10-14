@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Plus, Trash2, ArrowLeft, CircleCheck, CircleX } from 'lucide-react'
 import { cardStyle, h3Style } from '../../ui/card'
@@ -94,7 +94,10 @@ export default function MapStationsSection() {
     load()
   }, [load])
   useEffect(() => {
-    if (params.get('new')) {
+    // From a driver report or a reminder e-mail: open that station's editor (with its status check).
+    const id = params.get('station')
+    if (id) setEditing(id)
+    else if (params.get('new')) {
       setPrefill({ name: params.get('name') ?? '', parish: params.get('parish') || 'kingston', verificationNote: params.get('notes') ?? '' })
       setEditing('new')
     }
@@ -455,6 +458,12 @@ function StatusCheckCard({ station, onSaved }: { station: Station; onSaved: () =
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
 
+  // Opened from a driver report or a reminder e-mail (?station=…): bring the check into view.
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('station') === station.id) ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [station.id])
+
   const setAll = (c: CheckChoice) => setChoice(Object.fromEntries(groups.map((g) => [g.id, c])))
   const chosen = groups.filter((g) => choice[g.id])
 
@@ -503,7 +512,7 @@ function StatusCheckCard({ station, onSaved }: { station: Station; onSaved: () =
   )
 
   return (
-    <div style={{ ...cardStyle, display: 'grid', gap: 12 }}>
+    <div ref={ref} id="status-check" style={{ ...cardStyle, display: 'grid', gap: 12, scrollMarginTop: 80 }}>
       <h3 style={{ ...h3Style, margin: 0 }}>Charger status</h3>
       <p style={{ ...muted, margin: 0 }}>
         Confirm whether each connector is working. The map shows <strong>Available</strong> for 7 days after a working check and <strong>Out of service</strong> for 30 days after a fault, then <strong>Status unknown</strong> until someone checks again. Only record what you actually confirmed.

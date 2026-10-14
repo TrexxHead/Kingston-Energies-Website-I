@@ -2,7 +2,7 @@
 
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
-import { Plus, Minus, LocateFixed, Navigation2, Sun, Moon, Mountain, Maximize2, Minimize2, X, Navigation, List } from 'lucide-react'
+import { Plus, Minus, LocateFixed, Navigation2, Sun, Moon, Mountain, Maximize2, Minimize2, X, Navigation, List, ThumbsUp, TriangleAlert } from 'lucide-react'
 import { Protocol } from 'pmtiles'
 import { JAMAICA_BOUNDS, geometryBounds } from '@/lib/map/parishes'
 import { DISPLAY_LABEL } from '@/lib/map/status'
@@ -100,6 +100,44 @@ function clusterEl(count: number, color: string, onClick: () => void): HTMLButto
     onClick()
   })
   return b
+}
+
+type QuickKind = 'successful_charge' | 'equipment_fault'
+
+/**
+ * One-tap driver report from the station card. Sent straight to moderation —
+ * it never changes the station's status on its own; staff re-check first.
+ */
+function QuickReport({ stationId }: { stationId: string }) {
+  const [state, setState] = useState<{ kind: QuickKind; phase: 'sending' | 'sent' | 'error'; message?: string } | null>(null)
+  const send = async (kind: QuickKind) => {
+    setState({ kind, phase: 'sending' })
+    const res = await fetch('/api/map/reports', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stationId, kind, observedAt: new Date().toISOString() }),
+    }).catch(() => null)
+    const d = await res?.json().catch(() => ({}))
+    setState(res?.ok ? { kind, phase: 'sent' } : { kind, phase: 'error', message: d?.error ?? 'Couldn’t send — please try again.' })
+  }
+  if (state?.phase === 'sent' || state?.phase === 'error') {
+    return (
+      <p className="ke-card__report" role="status">
+        {state.phase === 'sent' ? (state.kind === 'successful_charge' ? 'Thanks! Our team reviews reports before the map changes.' : 'Thanks — we’ll check this charger before changing its status.') : state.message}
+      </p>
+    )
+  }
+  return (
+    <div className="ke-card__quick" role="group" aria-label="Report on this charger">
+      <span>Been here?</span>
+      <button type="button" disabled={!!state} onClick={() => send('successful_charge')}>
+        <ThumbsUp size={14} aria-hidden /> I charged here
+      </button>
+      <button type="button" disabled={!!state} onClick={() => send('equipment_fault')}>
+        <TriangleAlert size={14} aria-hidden /> Not working
+      </button>
+    </div>
+  )
 }
 
 const KingstonMap = forwardRef<MapViewHandle, MapViewProps>(function KingstonMap({ stations, selected, onSelect, onShowDetails, parish, me, onLocate }, ref) {
@@ -460,6 +498,7 @@ const KingstonMap = forwardRef<MapViewHandle, MapViewProps>(function KingstonMap
               </p>
               {station.statusDetail && <p className="ke-card__sub ke-card__fine">{station.statusDetail}</p>}
               {station.connectorsLine && <p className="ke-card__sub">{station.connectorsLine}</p>}
+              <QuickReport key={station.id} stationId={station.id} />
               <div className="ke-card__actions">
                 <a className="ke-btn ke-btn--primary" href={station.directionsUrl} target="_blank" rel="noopener noreferrer">
                   <Navigation size={15} aria-hidden /> Directions
@@ -540,6 +579,12 @@ const CSS = `
 .ke-card__status i{transform:translateY(-1px)}
 .ke-card__close{position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;border:0;background:var(--g-hover);color:inherit;cursor:pointer}
 .ke-card__actions{display:flex;gap:8px;margin-top:14px}
+.ke-card__quick{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:10px;font-size:12.5px;color:var(--g-muted)}
+.ke-card__quick span{opacity:.75;margin-right:2px}
+.ke-card__quick button{display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 10px;border-radius:999px;border:1px solid var(--g-line);background:transparent;color:inherit;font:inherit;font-weight:600;cursor:pointer}
+.ke-card__quick button:hover{background:var(--g-hover)}
+.ke-card__quick button:disabled{opacity:.55;cursor:wait}
+.ke-card__report{margin:10px 0 0;font-size:12.5px;line-height:1.45}
 .ke-map .ke-btn{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:7px;height:40px;border-radius:12px;border:1px solid var(--g-line);background:var(--g-hover);color:inherit;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none;transition:transform .12s,filter .12s}
 .ke-btn:active{transform:scale(.97)}
 .ke-map .ke-btn--primary,.ke-map .ke-btn--primary:visited,.ke-map .ke-btn--primary:hover{background:#2f80ed;border-color:transparent;color:#fff}

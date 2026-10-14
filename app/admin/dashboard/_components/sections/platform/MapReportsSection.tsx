@@ -74,7 +74,7 @@ export default function MapReportsSection() {
           </div>
         </div>
         <p style={{ ...muted, margin: '8px 0 12px' }}>
-          Approved “successful charge” reports show on the station as dated community evidence — never as live status. A missing-charger report is a lead to check, not a station.
+          Approved “successful charge” reports show on the station as dated community evidence — never as live status. A fault report is a prompt to re-check: confirm it (site visit, call or operator app) with “Record a check”, and only that changes the public status. A missing-charger report is a lead to check, not a station.
         </p>
         {msg && <p role="status" style={{ fontSize: 13 }}>{msg}</p>}
         {reports.length === 0 ? (
@@ -99,6 +99,11 @@ export default function MapReportsSection() {
                       <Button size="sm" onClick={() => moderate(r.id, 'approved')}>Approve</Button>
                       <Button size="sm" variant="outline" onClick={() => moderate(r.id, 'rejected')}>Reject</Button>
                     </>
+                  )}
+                  {r.station && r.kind !== 'new_station' && (
+                    <Link href={`/admin/dashboard/platform/map?station=${encodeURIComponent(r.station.id)}`} style={{ fontSize: 13, fontWeight: 600, color: 'var(--ke-blue-500)', alignSelf: 'center' }}>
+                      Record a check
+                    </Link>
                   )}
                   {r.kind === 'new_station' && (
                     <Link

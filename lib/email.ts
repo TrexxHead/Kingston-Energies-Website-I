@@ -427,6 +427,47 @@ export async function sendPersonalizedBulkEmail(recipients: string[], subject: s
   return sent
 }
 
+/**
+ * Daily station re-check list for admins (Energy Map, roadmap M2). Skipped
+ * — with a log line — when no e-mail provider is configured or nothing is due.
+ */
+export async function sendStationStatusDigest(digest: import('./map/reminders').ReminderDigest): Promise<{ sent: number; skipped?: string }> {
+  if (digest.isEmpty) return { sent: 0, skipped: 'nothing due' }
+  if (!isEmailConfigured()) {
+    console.info('[email] skipped station status digest (no provider configured)')
+    return { sent: 0, skipped: 'no provider' }
+  }
+  const recipients = await adminRecipients()
+  if (recipients.length === 0) return { sent: 0, skipped: 'no admin recipients' }
+  const site = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://kingstonenergies.com'
+  const day = (iso: string) => new Date(iso).toLocaleDateString('en-JM', { timeZone: 'America/Jamaica', day: 'numeric', month: 'short' })
+  const link = (id: string, name: string) => `<a href="${site}/admin/dashboard/platform/map?station=${encodeURIComponent(id)}" style="color:#1f6b45;font-weight:600">${escapeHtml(name)}</a>`
+  const section = (title: string, note: string, rows: string[]) =>
+    rows.length ? `<h3 style="margin:18px 0 4px;font-size:15px">${title} (${rows.length})</h3><p style="margin:0 0 6px;font-size:12.5px;color:#556059">${note}</p><ul style="margin:0;padding-left:18px;font-size:13.5px;line-height:1.6">${rows.join('')}</ul>` : ''
+  const item = (i: import('./map/reminders').ReminderItem, verb: string) => `<li>${link(i.stationId, i.name)} · ${escapeHtml(i.parish)} · ${escapeHtml(i.connectors.join(', '))} — ${verb} ${day(i.checkedAt)}</li>`
+  const html = wrapEmailHtml(
+    'Chargers to re-check today',
+    `<p>These Energy Map stations need a fresh check (site visit, call or operator app) so the public map stays accurate.</p>` +
+      section('Pending “not working” reports', 'Drivers reported a problem. Nothing changes on the map until you record a check.', digest.faultReports.map((r) => `<li>${link(r.stationId, r.stationName)} — ${escapeHtml(r.kind.replace(/_/g, ' '))}, seen ${day(r.observedAt)}</li>`)) +
+      section('Working check expires within a day', 'Re-check today or these show “Status unknown” tomorrow.', digest.expiringSoon.map((i) => item(i, 'confirmed working'))) +
+      section('Now showing “Status unknown”', 'The working check lapsed in the last day.', digest.justLapsed.map((i) => item(i, 'last confirmed'))) +
+      section('Out of service for over a week', 'Has it been repaired?', digest.longFaults.map((i) => item(i, 'marked out of service'))),
+  )
+  const total = digest.faultReports.length + digest.expiringSoon.length + digest.justLapsed.length + digest.longFaults.length
+  let sent = 0
+  await Promise.all(
+    recipients.map(async (to) => {
+      try {
+        await deliver({ to, subject: `Energy Map: ${total} charger${total === 1 ? '' : 's'} to re-check`, html })
+        sent++
+      } catch (err) {
+        console.error('[email] failed to send station status digest:', err)
+      }
+    }),
+  )
+  return { sent }
+}
+
 async function deliver({ to, subject, html }: { to: string; subject: string; html: string }): Promise<void> {
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',

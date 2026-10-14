@@ -58,10 +58,10 @@ Legend: ✅ done · 🟡 built, waiting on a blocker · ⏳ in progress · ⬜ n
 
 ## 2. Improvements to what exists
 
-### M1 · One-tap driver reports ⬜
+### M1 · One-tap driver reports ✅ built
 Station card: “I charged here” / “It’s not working” → moderated community report → admin re-check prompt. Never changes public status by itself.
 
-### M2 · Staff status reminders ⬜
+### M2 · Staff status reminders ✅ built · 🟡 e-mails send once the e-mail provider (EMAIL_API_KEY / EMAIL_FROM) is set in Vercel
 Daily cron e-mails admins the stations whose “working” check expires within 24 h, and faults older than 7 days. Uses the existing e-mail provider; logs when unconfigured.
 
 ### M3 · Station pages for search ⬜

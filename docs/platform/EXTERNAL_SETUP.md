@@ -22,6 +22,9 @@ The default tab on `/energy-map`. Nothing to sign up for and no keys: every file
 - Refreshing the data: `scripts/map-data/README.md` (a few minutes; bump the versioned file names in `lib/map/mapData.ts`).
 - Missing roads/places can be added at openstreetmap.org from your own knowledge or site visits — **never copied from Google Maps** — and appear after the next data refresh.
 
+## 2b. Public data feeds (no account, no key)
+- **PVGIS** (EU JRC) — `/api/solar/yield`; **NHC CurrentStorms.json** (NOAA, public domain) — `/api/storm/active`. Both are called from the server and cached. Neither can be reached from the dev container, so after each deploy open `/solar` (tap a roof) and `/storm-ready` on the preview to confirm they answer. If either is down the page says so — there is no fallback number. `PVGIS_BASE_URL` / `NHC_BASE_URL` exist only for local stand-ins; never set them in Vercel.
+
 ## 2. Google Maps Platform (Energy Map — M01, M04)
 
 **Account**

@@ -44,7 +44,7 @@ Legend: ✅ done · 🟡 built, waiting on a blocker · ⏳ in progress · ⬜ n
 - **Blockers:** R0 records.
 - **Done when:** tests on the maths; refuses without approved prices; ranges shown, not single-point claims.
 
-### P4 · Hurricane & outage readiness hub ⬜
+### P4 · Hurricane & outage readiness hub ✅ built (`/storm-ready`) · 🟡 verify NHC from the preview; shelters appear once an ODPEM list is approved
 - **Goal:** the page people return to every season — active storms, shelters, “how long will my backup last?”, and a checklist.
 - **Build:**
   1. `/storm-ready`: active Atlantic systems from the **US National Hurricane Center** public feed (public domain), cached server-side, with distance to Jamaica; link to the official Met Service bulletin.

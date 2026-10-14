@@ -34,6 +34,7 @@ const COMPANY_COLUMN = [
   { href: '/solar', label: 'Rooftop solar estimator' },
   { href: '/bill-explainer', label: 'Bill Explainer' },
   { href: '/ev-costs', label: 'EV vs petrol costs' },
+  { href: '/storm-ready', label: 'Storm ready' },
   { href: '/back-in-stock', label: 'Back in stock' },
 ]
 

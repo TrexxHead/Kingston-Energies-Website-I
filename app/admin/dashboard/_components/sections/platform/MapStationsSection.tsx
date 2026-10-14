@@ -33,9 +33,9 @@ interface Station {
   _count: { reports: number }
 }
 
-const CONNECTORS = ['Type 2', 'J1772 (Type 1)', 'CCS2', 'CCS1', 'CHAdeMO', 'Tesla', 'NACS', 'GB/T', 'Wall outlet', 'Other']
-const ACCESS = ['public', 'customers_only', 'restricted', 'private']
-const SOURCE_TYPES = ['field_visit', 'site_owner', 'operator_agreement', 'operator_public', 'open_data', 'community']
+const CONNECTORS = ['Type 2', 'J1772 (Type 1)', 'CCS', 'CCS2', 'CCS1', 'CHAdeMO', 'Tesla', 'NACS', 'GB/T', 'Wall outlet', 'Other']
+const ACCESS = ['public', 'customers_only', 'restricted', 'private', 'unknown']
+const SOURCE_TYPES = ['field_visit', 'site_owner', 'operator_agreement', 'operator_public', 'open_data', 'staff_list', 'community']
 const muted = { color: 'var(--color-text-muted)', fontSize: 13 } as const
 const parishName = (id: string) => PARISHES.find((p) => p.id === id)?.name ?? id
 
@@ -117,6 +117,7 @@ export default function MapStationsSection() {
         </p>
         <Button size="sm" onClick={() => setEditing('new')} iconRight={<Plus size={14} />}>New station</Button>
       </div>
+      <ImportListCard onImported={load} />
       <div style={cardStyle}>
         <h3 style={h3Style}>Stations</h3>
         {loading ? (
@@ -353,6 +354,71 @@ function StationEditor({ station, prefill, onBack, onSaved }: { station?: Statio
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+interface ImportPreview { list: string; note: string; total: number; publishable: number; drafts: number; entries: { ref: number; name: string; publish: boolean; warnings: string[] }[] }
+interface ImportOutcome { created: { ref: number; name: string; status: string }[]; skipped: { ref: number; name: string; reason: string }[]; warnings: { ref: number; name: string; warnings: string[] }[] }
+
+/** One-click import of the owner-supplied station list bundled with the site. */
+function ImportListCard({ onImported }: { onImported: () => Promise<void> }) {
+  const [preview, setPreview] = useState<ImportPreview | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [outcome, setOutcome] = useState<ImportOutcome | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch('/api/admin/map/import-list')
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setPreview)
+      .catch(() => setPreview(null))
+  }, [])
+
+  async function run() {
+    setBusy(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/admin/map/import-list', { method: 'POST' })
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? 'Import failed.')
+      setOutcome(await res.json())
+      await onImported()
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (!preview) return null
+  const flagged = preview.entries.filter((e) => e.warnings.length)
+  return (
+    <div style={{ ...cardStyle, display: 'grid', gap: 10 }}>
+      <h3 style={h3Style}>Station list: {preview.list}</h3>
+      <p style={{ ...muted, margin: 0 }}>
+        {preview.total} stations — {preview.publishable} with connector details will be published; {preview.drafts} without connector details become drafts to complete. {preview.note} Access is marked “not confirmed” and status “unavailable” until an operator feed or site check says otherwise. Running it again skips stations already imported, so your edits are kept.
+      </p>
+      {flagged.length > 0 && (
+        <details>
+          <summary style={{ cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>{flagged.length} entries to double-check</summary>
+          <ul style={{ ...muted, margin: '8px 0 0', paddingLeft: 18, display: 'grid', gap: 4 }}>
+            {flagged.map((e) => (
+              <li key={e.ref}>
+                #{e.ref} {e.name}: {e.warnings.join(' ')}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+        <Button size="sm" onClick={run} disabled={busy}>{busy ? 'Importing…' : `Import ${preview.total} stations`}</Button>
+        {outcome && (
+          <span role="status" style={muted}>
+            Added {outcome.created.filter((c) => c.status === 'published').length} published and {outcome.created.filter((c) => c.status === 'draft').length} drafts; {outcome.skipped.length} already imported.
+          </span>
+        )}
+        {error && <span role="alert" style={{ ...muted, color: 'var(--color-danger, #c0392b)' }}>{error}</span>}
+      </div>
     </div>
   )
 }

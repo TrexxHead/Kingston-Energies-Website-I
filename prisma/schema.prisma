@@ -1895,7 +1895,7 @@ model EvStation {
   address           String?
   lat               Float
   lng               Float
-  access            String    @default("public") // public | customers_only | restricted | private
+  access            String    @default("public") // public | customers_only | restricted | private | unknown
   accessNotes       String?   @db.Text
   hours             String?
   paymentNotes      String?   @db.Text
@@ -1939,7 +1939,7 @@ model EvSourceRecord {
   id              String    @id @default(cuid())
   stationId       String
   sourceName      String
-  sourceType      String // operator_agreement | operator_public | site_owner | field_visit | community | open_data
+  sourceType      String // operator_agreement | operator_public | site_owner | field_visit | community | open_data | staff_list
   licence         String?
   permissionScope String?   @db.Text
   url             String?

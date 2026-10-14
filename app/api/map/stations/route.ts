@@ -7,7 +7,8 @@ import { deriveGroupStatus, stationStatusSummary, type StatusObservation, type C
  * GET /api/map/stations — published registry stations with source metadata
  * and derived status, plus the coverage summary the page must show instead
  * of any claim of national completeness. Filters: parish, connector,
- * current (AC|DC), minKw, access. Stations with unknown values for a filter
+ * current (AC|DC), minKw, access (access=public keeps 'unknown' access, shown
+ * as not confirmed). Stations with unknown values for a filter
  * are kept when includeUnknown=1 (the default) and flagged.
  */
 export async function GET(request: Request) {
@@ -22,7 +23,7 @@ export async function GET(request: Request) {
   const now = new Date()
   const [stations, coverage] = await Promise.all([
     prisma.evStation.findMany({
-      where: { status: { in: ['published', 'closed'] }, ...(parish && isParishId(parish) ? { parish } : {}), ...(access ? { access } : {}) },
+      where: { status: { in: ['published', 'closed'] }, ...(parish && isParishId(parish) ? { parish } : {}), ...(access ? { access: access === 'public' ? { in: ['public', 'unknown'] } : access } : {}) },
       include: {
         operator: { select: { name: true, website: true, appInfo: true } },
         connectorGroups: { include: { observations: { orderBy: { observedAt: 'desc' }, take: 5 } } },

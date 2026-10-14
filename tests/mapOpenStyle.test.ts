@@ -150,3 +150,17 @@ describe('style validity', () => {
     }
   })
 })
+
+describe('pin clustering — second pass', () => {
+  it('merges neighbouring bubbles whose centres would overlap', () => {
+    // Greedy pass gives {a,b} (centre x=22.5) and {c} (x=50): 27.5 px apart, so they'd overlap.
+    const pts = [
+      { id: 'a', x: 0, y: 0 },
+      { id: 'b', x: 45, y: 0 },
+      { id: 'c', x: 50, y: 0 },
+      { id: 'far', x: 300, y: 0 },
+    ]
+    const groups = clusterStations(pts, (p) => p).map((g) => g.map((p) => p.id).sort())
+    expect(groups).toEqual([['a', 'b', 'c'], ['far']])
+  })
+})

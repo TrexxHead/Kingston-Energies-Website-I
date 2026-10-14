@@ -74,7 +74,7 @@ const STATE_COLOR: Record<DisplayState, string> = {
   status_unavailable: 'var(--ke-gray-400)',
   status_may_be_outdated: 'var(--ke-sun-300)',
 }
-const ACCESS_LABEL: Record<string, string> = { public: 'Public', customers_only: 'Customers only', restricted: 'Restricted', private: 'Private' }
+const ACCESS_LABEL: Record<string, string> = { public: 'Public', customers_only: 'Customers only', restricted: 'Restricted', private: 'Private', unknown: 'Access not confirmed' }
 
 
 function StatusLine({ s }: { s: GroupStatus | null }) {
@@ -326,7 +326,7 @@ export default function EnergyMapClient() {
                 </p>
               </div>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, ...muted }}>
-                {s.access !== 'public' && <Lock size={14} aria-hidden />} {ACCESS_LABEL[s.access] ?? s.access}
+                {s.access === 'unknown' ? <CircleHelp size={14} aria-hidden /> : s.access !== 'public' && <Lock size={14} aria-hidden />} {ACCESS_LABEL[s.access] ?? s.access}
               </span>
             </div>
             <p style={{ margin: '10px 0', color: '#fff', fontWeight: 600, fontSize: 14 }}>{s.statusSummary}</p>

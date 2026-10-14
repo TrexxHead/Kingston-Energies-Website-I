@@ -7,9 +7,9 @@ import { JAMAICA_BOUNDS, PARISH_IDS, type ParishId } from './parishes'
  * coordinates inside Jamaica and a valid parish. Drafts can be incomplete.
  */
 
-export const ACCESS_VALUES = ['public', 'customers_only', 'restricted', 'private'] as const
+export const ACCESS_VALUES = ['public', 'customers_only', 'restricted', 'private', 'unknown'] as const
 export const STATION_STATUS = ['draft', 'published', 'closed', 'retired'] as const
-export const SOURCE_TYPES = ['operator_agreement', 'operator_public', 'site_owner', 'field_visit', 'community', 'open_data'] as const
+export const SOURCE_TYPES = ['operator_agreement', 'operator_public', 'site_owner', 'field_visit', 'community', 'open_data', 'staff_list'] as const
 export const COVERAGE_STATES = ['unreviewed', 'in_progress', 'reviewed_none_confirmed', 'reviewed_sites_confirmed'] as const
 
 const optText = (max: number) => z.string().trim().max(max).nullable().optional()

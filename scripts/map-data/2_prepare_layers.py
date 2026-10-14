@@ -72,6 +72,11 @@ KIND=[('ev_charging','EXCLUDE'),('charging','EXCLUDE'),('airport','airport'),('h
  ('government','gov'),('police','gov'),('fire_station','gov'),('post_office','gov'),('historic','attraction'),('museum','attraction'),('landmark','attraction'),('arts','attraction'),('tourist','attraction'),('beach','park'),('park','park'),('garden','park'),
  ('auto','auto'),('vehicle','auto'),('bus_station','transport'),('ferry','transport')]
 IMPORTANT={'airport','health_hospital','shopping_mall','college_university','resort','historic_site','beach','park','hotel','museum'}
+from shapely.geometry import shape as _shape
+from shapely.ops import unary_union as _union
+from shapely.strtree import STRtree as _Tree
+_coast=_union([_shape(f['geometry']).buffer(0) for f in feats('land') if f['properties']['subtype']=='land' and 'Polygon' in f['geometry']['type'] and _shape(f['geometry']).intersects(_shape({'type':'Polygon','coordinates':[[[-78.6,17.6],[-76.0,17.6],[-76.0,18.7],[-78.6,18.7],[-78.6,17.6]]]}))]).boundary
+def coastal(f): return _coast.distance(_shape(f['geometry']))<0.004  # ~400 m
 n=0
 for f in feats('place'):
     p=f['properties']; b=(p.get('basic') or p.get('cat') or '')
@@ -79,7 +84,9 @@ for f in feats('place'):
     if 'charging' in b or 'charging' in cat: continue
     kind=next((k for key,k in KIND if key in b or key in cat),'place')
     if kind=='EXCLUDE': continue
-    imp = b in ('airport','hospital','shopping_mall','college_university','resort','historic_site','beach','park','museum') or 'airport' in cat
+    # Beach listings are only trusted on the coast (some are mis-geocoded inland).
+    if (b=='beach' or cat=='beach') and not coastal(f): continue
+    imp = b in ('airport','hospital','shopping_mall','college_university','resort','museum','beach') or 'airport' in cat
     emit('poi',f,{'kind':kind,'name':p['name'],'cat':b or cat,'rank':1 if imp else 2},13 if imp else 15); n+=1
 print('pois',n)
 for o in outs.values(): o.close()

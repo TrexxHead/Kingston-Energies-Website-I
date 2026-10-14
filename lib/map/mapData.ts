@@ -8,10 +8,10 @@
  * CDLA-Permissive-2.0) and AWS Terrain Tiles (Mapzen) for elevation.
  */
 export const MAP_DATA = {
-  base: '/maps/data/jamaica-base-2026-09.pmtiles',
+  base: '/maps/data/jamaica-base-2026-09-r2.pmtiles',
   buildings: '/maps/data/jamaica-buildings-2026-09.pmtiles',
   terrain: '/maps/data/jamaica-terrain-v1.pmtiles',
-  search: '/maps/data/jamaica-search-2026-09.json',
+  search: '/maps/data/jamaica-search-2026-09-r2.json',
   glyphs: '/maps/fonts/{fontstack}/{range}.pbf',
   parishes: '/maps/jamaica-parishes.geojson',
 } as const

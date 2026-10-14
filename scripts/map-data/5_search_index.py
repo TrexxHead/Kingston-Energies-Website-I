@@ -5,7 +5,9 @@ from shapely.geometry import shape, Point
 from shapely.strtree import STRtree
 from shapely.ops import linemerge
 
-par = json.load(open('../../public/maps/jamaica-parishes.geojson'))
+import os
+HERE = os.path.dirname(os.path.abspath(__file__))
+par = json.load(open(os.path.join(HERE, '..', '..', 'public', 'maps', 'jamaica-parishes.geojson')))
 polys = [shape(f['geometry']) for f in par['features']]
 pids = [f['properties']['id'] for f in par['features']]
 PIDS = ['kingston', 'st-andrew', 'st-thomas', 'portland', 'st-mary', 'st-ann', 'trelawny', 'st-james', 'hanover', 'westmoreland', 'st-elizabeth', 'manchester', 'clarendon', 'st-catherine']

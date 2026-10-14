@@ -67,10 +67,10 @@ Daily cron e-mails admins the stations whose “working” check expires within 
 ### M3 · Station pages for search ✅ built (`/energy-map/station/[slug]`) · 🟡 photos field not built yet (needs staff photos + consent policy)
 `/energy-map/station/[slug]` with status, connectors, hours, nearby food/shops (self-hosted POIs), directions; schema.org markup; sitemap. Photos and prices fields (staff-entered).
 
-### M4 · Product compatibility check ⬜
+### M4 · Product compatibility check ✅ built · 🔒 appears on a product page only once its specs are verified and published (datasheets + second admin)
 “Will this power station run my devices for 8 hours?” — verified catalogue specs × My Energy devices via the scenario engine. 🔒 product datasheets + second admin for verification.
 
-### M5 · Measurement entry ⬜
+### M5 · Measurement entry ✅ already in My Energy (“Meter reading (kWh)” device model = measured evidence)
 Smart-plug / meter readings per device upgrade the evidence basis from assumed to measured.
 
 ---

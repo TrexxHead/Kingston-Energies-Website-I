@@ -12,7 +12,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes = [
     '', '/shop', '/services', '/about', '/contact', '/faq',
     '/find-my-power', '/business-power-continuity', '/bulk-corporate', '/back-in-stock', '/guides/what-will-this-power',
-    '/my-energy', '/energy-map', '/solar', '/bill-explainer', '/ev-costs', '/storm-ready',
+    '/my-energy', '/energy-map', '/solar', '/bill-explainer', '/ev-costs', '/storm-ready', '/financing', '/net-billing', '/business-tools',
     '/legal/privacy', '/legal/terms', '/legal/returns', '/legal/warranty', '/legal/delivery',
   ]
 

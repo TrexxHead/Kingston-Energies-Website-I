@@ -5,8 +5,7 @@ import { ArrowDown, ArrowUp, Info } from 'lucide-react'
 import { card, label, input, muted, h2, Btn, fmt } from '@/app/my-energy/_components/ui'
 import { summariseBill, compareBills, type BillInput, type ReadingType } from '@/lib/energy/engine/bills'
 import { periodCost, marginalSaving } from '@/lib/energy/engine/tariff'
-import { useActiveRecord } from '@/lib/refdata/useRefData'
-import { tariffFromPublic } from '@/lib/refdata/types'
+import { tariffFromPublic, type PublicRecord } from '@/lib/refdata/types'
 
 /**
  * Bill Explainer (roadmap P2). Explains a JPS bill from the numbers printed
@@ -86,7 +85,21 @@ export default function BillExplainer() {
   const [current, setCurrent] = useState<BillForm>(EMPTY)
   const [previous, setPrevious] = useState<BillForm>(EMPTY)
   const [showPrev, setShowPrev] = useState(false)
-  const { record: tariffRecord } = useActiveRecord('tariff', 'residential')
+  // Every approved tariff in effect (residential, commercial…) — residential first by default.
+  const [tariffs, setTariffs] = useState<PublicRecord<'tariff'>[] | undefined>(undefined)
+  const [tariffId, setTariffId] = useState('')
+  useEffect(() => {
+    fetch('/api/refdata?kind=tariff&all=1')
+      .then((r) => (r.ok ? r.json() : { records: [] }))
+      .then((d) => {
+        const list: PublicRecord<'tariff'>[] = d.records ?? []
+        setTariffs(list)
+        const res = list.find((t) => /residential/i.test(`${t.name} ${t.data.customerClass}`)) ?? list[0]
+        if (res) setTariffId(res.id)
+      })
+      .catch(() => setTariffs([]))
+  }, [])
+  const tariffRecord = tariffs === undefined ? undefined : (tariffs.find((t) => t.id === tariffId) ?? null)
   const tariff = tariffRecord ? tariffFromPublic(tariffRecord) : null
 
   // Remember the last bills on this device only (nothing is sent to us).
@@ -185,6 +198,18 @@ export default function BillExplainer() {
             <p style={{ ...muted, margin: 0 }}>Once the current JPS tariff is entered and approved by our team, this page will also show what each extra kWh really costs you and how this bill lines up with the published rates.</p>
           ) : (
             <div style={{ display: 'grid', gap: 10 }}>
+              {(tariffs?.length ?? 0) > 1 && (
+                <div style={{ maxWidth: 360 }}>
+                  <label htmlFor="be-tariff" style={label}>Your rate (on your bill)</label>
+                  <select id="be-tariff" style={input} value={tariffId} onChange={(e) => setTariffId(e.target.value)}>
+                    {tariffs!.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.data.customerClass}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               {lastKwh?.ok && (
                 <p style={{ ...muted, margin: 0 }}>
                   <strong style={{ color: '#fff' }}>Each kWh you cut saves about J${fmt(lastKwh.value.perKwh, 2)}</strong> at this level of use — {summary.value.averageVariablePrice != null && lastKwh.value.perKwh > summary.value.averageVariablePrice ? 'more than' : 'different from'} the J${fmt(summary.value.averageVariablePrice ?? 0, 2)} average, because the last kWh on a bill is charged at the highest block and fixed charges don’t fall.

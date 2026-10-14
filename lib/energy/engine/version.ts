@@ -16,5 +16,12 @@
  *   the added cost on the household bill at an approved tariff (or the
  *   visitor's price), public charging at an operator price, charging losses
  *   10% home / 5% public, simple payback on a purchase premium.
+ * 1.3.0 (2026-10-14) — loan repayment for energy purchases: amortising
+ *   monthly payments at annual rate ÷ 12, financed fees, net monthly effect
+ *   and break-even month against a constant bill saving. Generator fuel use
+ *   from manual figures (linear between points, floored below the lowest,
+ *   single figure only within ±10 points of load). Solar water-pump sizing:
+ *   ρgVH ÷ wire-to-water efficiency (assumed 30/40/50% without a datasheet)
+ *   against the worst month's PVGIS yield.
  */
-export const CALC_ENGINE_VERSION = '1.2.0'
+export const CALC_ENGINE_VERSION = '1.3.0'

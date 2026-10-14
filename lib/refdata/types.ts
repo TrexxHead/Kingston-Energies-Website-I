@@ -9,7 +9,7 @@ import type { TariffVersion, TariffComponent } from '@/lib/energy/engine/tariff'
  * with none, they refuse rather than guess.
  */
 
-export const REF_KINDS = ['tariff', 'fuel_price', 'shelter_list', 'charging_price'] as const
+export const REF_KINDS = ['tariff', 'fuel_price', 'shelter_list', 'charging_price', 'lender_offer'] as const
 export type RefKind = (typeof REF_KINDS)[number]
 export const REF_STATUS = ['draft', 'approved', 'retired'] as const
 export type RefStatus = (typeof REF_STATUS)[number]
@@ -19,6 +19,7 @@ export const REF_KIND_LABEL: Record<RefKind, string> = {
   fuel_price: 'Fuel prices',
   shelter_list: 'Emergency shelters',
   charging_price: 'Public charging price',
+  lender_offer: 'Lender offer',
 }
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD.')
@@ -82,11 +83,30 @@ export const chargingPriceDataSchema = z.object({
   notes: z.string().trim().max(500).nullable().optional(),
 })
 
+/**
+ * A lender's ADVERTISED terms for an energy / solar / general loan, copied
+ * from the lender's own page with the date read. Not an offer, and not a
+ * partnership — the financing page says so.
+ */
+export const lenderOfferDataSchema = z
+  .object({
+    lender: z.string().trim().min(2).max(120),
+    product: z.string().trim().min(2).max(120),
+    /** Advertised annual rate, %; "from" rates go in as the lowest advertised. */
+    annualRatePct: z.number().min(0).max(60),
+    rateIsFrom: z.boolean().default(false),
+    rateType: z.enum(['fixed', 'variable']),
+    maxTermMonths: z.number().int().min(1).max(360).nullable().optional(),
+    minDepositPct: z.number().min(0).max(100).nullable().optional(),
+    notes: z.string().trim().max(500).nullable().optional(),
+  })
+
 export const DATA_SCHEMA = {
   tariff: tariffDataSchema,
   fuel_price: fuelPriceDataSchema,
   shelter_list: shelterListDataSchema,
   charging_price: chargingPriceDataSchema,
+  lender_offer: lenderOfferDataSchema,
 } as const
 
 export type RefData = {
@@ -94,6 +114,7 @@ export type RefData = {
   fuel_price: z.infer<typeof fuelPriceDataSchema>
   shelter_list: z.infer<typeof shelterListDataSchema>
   charging_price: z.infer<typeof chargingPriceDataSchema>
+  lender_offer: z.infer<typeof lenderOfferDataSchema>
 }
 
 export interface RefRecord<K extends RefKind = RefKind> {

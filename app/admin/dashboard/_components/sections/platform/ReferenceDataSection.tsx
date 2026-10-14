@@ -43,7 +43,7 @@ export default function ReferenceDataSection() {
 
   if (adding) return <RecordEditor kind={adding} onDone={async () => { setAdding(null); await load() }} />
 
-  const kinds: RefKind[] = ['tariff', 'fuel_price', 'charging_price', 'shelter_list']
+  const kinds: RefKind[] = ['tariff', 'fuel_price', 'charging_price', 'lender_offer', 'shelter_list']
   return (
     <div style={{ display: 'grid', gap: 16 }}>
       <div style={{ ...cardStyle, display: 'grid', gap: 10 }}>
@@ -124,6 +124,10 @@ function Summary({ r }: { r: RefRecord }) {
     return <span style={muted}>{d.basis === 'pump_average' ? 'Average pump prices' : 'Ex-refinery prices (exclude taxes and retail margin)'}: {d.grades.map((g) => `${g.grade} J$${g.pricePerLitre}/L`).join(' · ')}</span>
   }
   if (r.kind === 'shelter_list') return <span style={muted}>{(r.data as RefRecord<'shelter_list'>['data']).shelters.length} shelters</span>
+  if (r.kind === 'lender_offer') {
+    const l = r.data as RefRecord<'lender_offer'>['data']
+    return <span style={muted}>{l.lender} — {l.product}: {l.rateIsFrom ? 'from ' : ''}{l.annualRatePct}% {l.rateType}{l.maxTermMonths ? `, up to ${l.maxTermMonths} months` : ''}{l.minDepositPct != null ? `, ${l.minDepositPct}% deposit` : ''}</span>
+  }
   const d = r.data as RefRecord<'charging_price'>['data']
   return <span style={muted}>{d.operator}: {d.pricePerKwh != null ? `J$${d.pricePerKwh}/kWh` : 'not per kWh'}{d.notes ? ` — ${d.notes}` : ''}</span>
 }
@@ -150,6 +154,14 @@ function RecordEditor({ kind, onDone }: { kind: RefKind; onDone: () => void }) {
   const [perKwh, setPerKwh] = useState('')
   // shelters
   const [csv, setCsv] = useState('')
+  // lender
+  const [lender, setLender] = useState('')
+  const [product, setProduct] = useState('')
+  const [rate, setRate] = useState('')
+  const [rateFrom, setRateFrom] = useState('no')
+  const [rateType, setRateType] = useState<'fixed' | 'variable'>('fixed')
+  const [maxTerm, setMaxTerm] = useState('')
+  const [minDeposit, setMinDeposit] = useState('')
 
   const addComp = (k: TariffComponent['kind']) =>
     setComps([...comps, { kind: k, label: k === 'fixed' ? 'Customer charge' : k === 'energy_blocks' ? 'Energy charge' : k === 'per_kwh' ? 'Fuel & IPP charge' : 'GCT', amount: '', percent: '', blocks: k === 'energy_blocks' ? [{ upTo: '100', rate: '' }, { upTo: '', rate: '' }] : [] }])
@@ -172,6 +184,8 @@ function RecordEditor({ kind, onDone }: { kind: RefKind; onDone: () => void }) {
         ),
       }
     if (kind === 'fuel_price') return { basis, currency: 'JMD', grades: grades.filter((g) => g.price.trim()).map((g) => ({ grade: g.grade, pricePerLitre: num(g.price) })) }
+    if (kind === 'lender_offer')
+      return { lender, product, annualRatePct: num(rate), rateIsFrom: rateFrom === 'yes', rateType, maxTermMonths: maxTerm.trim() ? num(maxTerm) : null, minDepositPct: minDeposit.trim() ? num(minDeposit) : null, notes: notes.trim() || null }
     if (kind === 'charging_price') return { operator, pricePerKwh: perKwh.trim() ? num(perKwh) : null, notes: notes.trim() || null }
     const shelters = csv
       .split('\n')
@@ -261,6 +275,22 @@ function RecordEditor({ kind, onDone }: { kind: RefKind; onDone: () => void }) {
           <TextInput label="Operator" value={operator} onChange={setOperator} placeholder="JPS Charge 'n Go" />
           <TextInput label="J$ per kWh (blank if not per kWh)" value={perKwh} onChange={setPerKwh} />
           <TextInput label="Notes (session fees, idle fees…)" value={notes} onChange={setNotes} />
+        </div>
+      )}
+
+      {kind === 'lender_offer' && (
+        <div style={{ display: 'grid', gap: 8 }}>
+          <p style={{ ...muted, margin: 0 }}>Copy the lender’s advertised terms from their own page. The public calculator shows them as advertised rates with your source and date — never as an offer or a partnership.</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 10 }}>
+            <TextInput label="Lender" value={lender} onChange={setLender} />
+            <TextInput label="Loan product" value={product} onChange={setProduct} placeholder="e.g. Green energy loan" />
+            <TextInput label="Annual rate %" value={rate} onChange={setRate} />
+            <TextInput label="Rate is “from” (lowest advertised)" value={rateFrom} onChange={setRateFrom} options={['no', 'yes']} />
+            <TextInput label="Fixed or variable" value={rateType} onChange={(v) => setRateType(v as typeof rateType)} options={['fixed', 'variable']} />
+            <TextInput label="Longest term (months)" value={maxTerm} onChange={setMaxTerm} />
+            <TextInput label="Minimum deposit %" value={minDeposit} onChange={setMinDeposit} />
+            <TextInput label="Notes (fees, eligibility)" value={notes} onChange={setNotes} />
+          </div>
         </div>
       )}
 

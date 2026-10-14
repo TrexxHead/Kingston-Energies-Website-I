@@ -430,6 +430,12 @@ export default function SolarEstimator() {
                     <li key={a.id}>{a.description}</li>
                   ))}
                 </ul>
+                <p style={{ ...muted, fontSize: 13, margin: 0 }}>
+                  {/* The lower, daytime-only saving — the cautious figure to plan repayments around. */}
+                  <a href={`/financing?saving=${Math.round(savings.value.annualDaytime / 12)}`} style={{ color: 'var(--ke-green-400)', fontWeight: 600, textDecoration: 'none' }}>
+                    See what financing would cost each month →
+                  </a>
+                </p>
               </>
             ) : null}
           </section>

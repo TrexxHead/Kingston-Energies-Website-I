@@ -35,6 +35,9 @@ const COMPANY_COLUMN = [
   { href: '/bill-explainer', label: 'Bill Explainer' },
   { href: '/ev-costs', label: 'EV vs petrol costs' },
   { href: '/storm-ready', label: 'Storm ready' },
+  { href: '/financing', label: 'Financing calculator' },
+  { href: '/net-billing', label: 'Net billing guide' },
+  { href: '/business-tools', label: 'Business & farm tools' },
   { href: '/back-in-stock', label: 'Back in stock' },
 ]
 

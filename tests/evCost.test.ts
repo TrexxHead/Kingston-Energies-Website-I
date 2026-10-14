@@ -54,6 +54,8 @@ describe('EV vs petrol energy cost', () => {
   })
 
   it('engine version records the EV formulas', () => {
-    expect(CALC_ENGINE_VERSION).toBe('1.2.0')
+    // The EV formulas arrived in 1.2.0; later bumps keep them.
+    const [maj, min] = CALC_ENGINE_VERSION.split('.').map(Number)
+    expect(maj > 1 || (maj === 1 && min >= 2)).toBe(true)
   })
 })

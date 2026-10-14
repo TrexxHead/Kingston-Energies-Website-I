@@ -149,6 +149,19 @@ describe('style validity', () => {
       expect(errs.map((e: { message: string }) => e.message)).toEqual([])
     }
   })
+  it('the satellite hybrid view is valid, sits under roads and hides flat buildings', async () => {
+    const { validateStyleMin } = await import('@maplibre/maplibre-gl-style-spec')
+    const s = { ...openMapSources('https://kingstonenergies.com'), satellite: 'pmtiles://https://kingstonenergies.com/maps/data/sat.pmtiles' }
+    const style = buildOpenStyle(s, { type: 'FeatureCollection', features: [] }, 'light', { satellite: true })
+    expect(validateStyleMin(style).map((e: { message: string }) => e.message)).toEqual([])
+    const ids: string[] = style.layers.map((l: { id: string }) => l.id)
+    expect(ids.indexOf('satellite')).toBeGreaterThan(ids.indexOf('water'))
+    expect(ids.indexOf('satellite')).toBeLessThan(ids.indexOf('road-primary'))
+    expect(style.layers.find((l: { id: string }) => l.id === 'building').layout.visibility).toBe('none')
+    expect(style.sources.satellite.attribution).toMatch(/Copernicus Sentinel/)
+    // Without the option (or without data) there's no satellite layer.
+    expect(buildOpenStyle(s, '/x.geojson').layers.some((l: { id: string }) => l.id === 'satellite')).toBe(false)
+  })
 })
 
 describe('pin clustering — second pass', () => {

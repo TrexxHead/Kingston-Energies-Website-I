@@ -1,6 +1,6 @@
 import type { DisplayState } from './status'
 import { PARISHES } from './parishes'
-import { MAP_DATA, DATA_ATTRIBUTION, TERRAIN_ATTRIBUTION } from './mapData'
+import { MAP_DATA, DATA_ATTRIBUTION, TERRAIN_ATTRIBUTION, SATELLITE_ATTRIBUTION } from './mapData'
 
 /**
  * The Kingston Energies map — our own MapLibre style over self-hosted data.
@@ -22,6 +22,8 @@ export interface OpenMapSources {
   buildings: string
   terrain: string
   glyphs: string
+  /** Sentinel-2 satellite mosaic (raster PMTiles), when built. */
+  satellite?: string
 }
 
 /** Absolute URLs for the self-hosted data (MapLibre needs absolute URLs in a style). */
@@ -31,6 +33,7 @@ export function openMapSources(origin: string): OpenMapSources {
     base: `pmtiles://${o}${MAP_DATA.base}`,
     buildings: `pmtiles://${o}${MAP_DATA.buildings}`,
     terrain: `pmtiles://${o}${MAP_DATA.terrain}`,
+    satellite: MAP_DATA.satellite ? `pmtiles://${o}${MAP_DATA.satellite}` : undefined,
     glyphs: `${o}${MAP_DATA.glyphs}`,
   }
 }
@@ -265,8 +268,15 @@ const ROADS: { id: string; kinds: string[]; minzoom: number; width: [number, num
   { id: 'motorway', kinds: ['motorway'], minzoom: 5, width: [[5, 0.8], [10, 2.4], [14, 7.5], [16, 14], [19, 34]], fill: 'roadMotorway', casing: 'roadMotorwayCasing' },
 ]
 
-export function buildOpenStyle(s: OpenMapSources, parishData: string | object, theme: MapTheme = 'light'): any {
-  const c = MAP_THEMES[theme]
+/**
+ * `satellite`: hybrid view — the Sentinel-2 mosaic over the land and near
+ * shore, with roads, places and labels on top in the dark palette (light
+ * text on imagery reads like Google's hybrid view). Flat building fills are
+ * hidden so the roofs show.
+ */
+export function buildOpenStyle(s: OpenMapSources, parishData: string | object, theme: MapTheme = 'light', opts: { satellite?: boolean } = {}): any {
+  const sat = Boolean(opts.satellite && s.satellite)
+  const c = MAP_THEMES[sat ? 'dark' : theme]
   const dem = { type: 'raster-dem', url: s.terrain, tileSize: 256, encoding: 'terrarium', attribution: TERRAIN_ATTRIBUTION }
   const sources: Record<string, any> = {
     jamaica: { type: 'vector', url: s.base, attribution: OSM_ATTRIBUTION },
@@ -274,6 +284,7 @@ export function buildOpenStyle(s: OpenMapSources, parishData: string | object, t
     // Separate sources for shading and 3D terrain, as MapLibre recommends.
     hillshade: dem,
     terrain: { ...dem },
+    ...(s.satellite ? { satellite: { type: 'raster', url: s.satellite, tileSize: 256, attribution: SATELLITE_ATTRIBUTION } } : {}),
     parishes: { type: 'geojson', data: parishData, promoteId: 'id' },
     // One label point per parish (approximate centres from lib/map/parishes — framing only).
     parishCentres: {
@@ -365,6 +376,7 @@ export function buildOpenStyle(s: OpenMapSources, parishData: string | object, t
         layout: { 'line-cap': 'round', 'line-join': 'round' },
         paint: { 'line-color': c.water, 'line-width': byKind('river', [[9, 0.8, 0.3], [13, 2.2, 0.8], [17, 8, 2.6]]) },
       }),
+      ...(sat ? [{ id: 'satellite', type: 'raster', source: 'satellite', paint: { 'raster-fade-duration': 150, 'raster-saturation': 0.08, 'raster-contrast': 0.06 } }] : []),
       v('aeroway', 'aeroway', 'line', { filter: ['==', ['geometry-type'], 'LineString'], paint: { 'line-color': c.airport, 'line-width': byKind('runway', [[11, 3, 0.5], [14, 20, 4], [17, 80, 24]]) } }),
       v('pier', 'pier', 'line', { paint: { 'line-color': c.land, 'line-width': zoomWidth([[13, 1], [17, 8]]) } }),
       road('path', kind('footway', 'path', 'pedestrian', 'steps', 'cycleway', 'bridleway'), c.path, zoomWidth([[14, 0.6], [18, 2.6]]), 14.5, { 'line-dasharray': [2, 1.4] }),
@@ -377,6 +389,7 @@ export function buildOpenStyle(s: OpenMapSources, parishData: string | object, t
         source: 'buildings',
         'source-layer': 'buildings',
         minzoom: 14,
+        layout: { visibility: sat ? 'none' : 'visible' },
         paint: { 'fill-color': c.building, 'fill-outline-color': c.buildingLine, 'fill-opacity': ['interpolate', ['linear'], ['zoom'], 14, 0.5, 15, 1] },
       },
       // Shown only in the 3D view (the map component toggles visibility).

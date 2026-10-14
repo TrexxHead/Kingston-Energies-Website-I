@@ -2,7 +2,7 @@
 
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
-import { Plus, Minus, LocateFixed, Navigation2, Sun, Moon, Mountain, Maximize2, Minimize2, X, Navigation, List } from 'lucide-react'
+import { Plus, Minus, LocateFixed, Navigation2, Sun, Moon, Mountain, Maximize2, Minimize2, X, Navigation, List, Satellite } from 'lucide-react'
 import { Protocol } from 'pmtiles'
 import { JAMAICA_BOUNDS, geometryBounds } from '@/lib/map/parishes'
 import { DISPLAY_LABEL } from '@/lib/map/status'
@@ -117,6 +117,9 @@ const KingstonMap = forwardRef<MapViewHandle, MapViewProps>(function KingstonMap
   const [theme, setTheme] = useState<MapTheme>(storedTheme)
   const themeRef = useRef(theme)
   themeRef.current = theme
+  const [satellite, setSatellite] = useState(false)
+  const satRef = useRef(satellite)
+  satRef.current = satellite
   const [state, setState] = useState<'loading' | 'ready' | 'failed'>('loading')
   const [detailDown, setDetailDown] = useState(false)
   const [is3D, setIs3D] = useState(false)
@@ -162,7 +165,7 @@ const KingstonMap = forwardRef<MapViewHandle, MapViewProps>(function KingstonMap
           fadeDuration: 200,
         })
         m.addControl(new ml.ScaleControl({ unit: 'metric', maxWidth: 90 }), 'bottom-right')
-        m.on('styleimagemissing', () => addMapImages(m, themeRef.current))
+        m.on('styleimagemissing', () => addMapImages(m, satRef.current ? 'dark' : themeRef.current))
         m.on('error', (e: any) => {
           console.warn('[Kingston map]', e?.error?.message ?? e)
           if (e?.sourceId === 'jamaica' || /pmtiles/i.test(String(e?.error?.message ?? ''))) setDetailDown(true)
@@ -185,7 +188,7 @@ const KingstonMap = forwardRef<MapViewHandle, MapViewProps>(function KingstonMap
           m.on('mouseleave', id, () => (m.getCanvas().style.cursor = ''))
         }
         m.on('load', () => {
-          addMapImages(m, themeRef.current)
+          addMapImages(m, satRef.current ? 'dark' : themeRef.current)
           if (!cancelled) setState('ready')
         })
         map.current = m
@@ -210,7 +213,7 @@ const KingstonMap = forwardRef<MapViewHandle, MapViewProps>(function KingstonMap
     if (!m) return
     m.setTerrain(on ? { source: 'terrain', exaggeration: 1.5 } : null)
     if (m.getLayer('building-3d')) m.setLayoutProperty('building-3d', 'visibility', on ? 'visible' : 'none')
-    if (m.getLayer('building')) m.setLayoutProperty('building', 'visibility', on ? 'none' : 'visible')
+    if (m.getLayer('building')) m.setLayoutProperty('building', 'visibility', on || satRef.current ? 'none' : 'visible')
   }, [])
 
   // Theme switch: swap the style in place and redraw theme-specific icons.
@@ -227,14 +230,14 @@ const KingstonMap = forwardRef<MapViewHandle, MapViewProps>(function KingstonMap
     }
     const m = map.current
     if (!m || !geo.current || !sources.current) return
-    m.setStyle(buildOpenStyle(sources.current, geo.current, theme), { diff: true })
+    m.setStyle(buildOpenStyle(sources.current, geo.current, theme, { satellite }), { diff: true })
     m.once('styledata', () => {
-      addMapImages(m, theme)
+      addMapImages(m, satellite ? 'dark' : theme)
       applyTerrain(is3D)
       if (selectedParish.current) m.setFeatureState({ source: 'parishes', id: selectedParish.current }, { selected: true })
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [theme])
+  }, [theme, satellite])
 
   // Station pins, grouped into count bubbles where they would overlap
   // (re-grouped after every move; the selected station always shows as a pin).
@@ -423,7 +426,12 @@ const KingstonMap = forwardRef<MapViewHandle, MapViewProps>(function KingstonMap
               <button type="button" className="ke-ctrl" aria-label="3D view" aria-pressed={is3D} onClick={toggle3D}>
                 <Mountain size={18} aria-hidden />
               </button>
-              <button type="button" className="ke-ctrl" aria-label={theme === 'dark' ? 'Light map' : 'Dark map'} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+              {MAP_DATA.satellite && (
+                <button type="button" className="ke-ctrl" aria-label="Satellite view" aria-pressed={satellite} onClick={() => setSatellite(!satellite)}>
+                  <Satellite size={18} aria-hidden />
+                </button>
+              )}
+              <button type="button" className="ke-ctrl" aria-label={theme === 'dark' ? 'Light map' : 'Dark map'} disabled={satellite} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
                 {theme === 'dark' ? <Sun size={18} aria-hidden /> : <Moon size={18} aria-hidden />}
               </button>
               {canFullscreen && (

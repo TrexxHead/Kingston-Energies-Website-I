@@ -7,7 +7,7 @@ import { getShopProducts } from '@/lib/products'
 import BackInStockList from './BackInStockList'
 
 export const metadata = {
-  title: 'Back in stock: Kingston Energies',
+  title: 'Back in stock',
   description: 'Sold out for now — join the waitlist and we’ll email you the moment it’s back.',
 }
 

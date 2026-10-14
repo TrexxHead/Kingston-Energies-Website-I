@@ -7,7 +7,7 @@ import JsonLd from '@/components/JsonLd'
 import { buildBreadcrumbs } from '@/lib/structuredData'
 
 export const metadata = {
-  title: 'What will this power? A guide to picking the right backup: Kingston Energies',
+  title: 'What will this power? A guide to picking the right backup',
   description: 'A plain-language guide to matching what you actually need to run — a phone, a router, a fridge — to the right kind of backup power.',
 }
 

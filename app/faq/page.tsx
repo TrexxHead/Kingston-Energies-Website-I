@@ -9,7 +9,7 @@ import FaqBrowser from '@/components/ui/faq-browser'
 import { SITE_FAQ } from '@/lib/faqContent'
 
 export const metadata = {
-  title: 'FAQ: Kingston Energies',
+  title: 'FAQ',
   description: 'Delivery, payment, warranty, returns, bulk orders and more — answered.',
 }
 

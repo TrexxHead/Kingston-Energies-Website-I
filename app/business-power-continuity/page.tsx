@@ -7,7 +7,7 @@ import JsonLd from '@/components/JsonLd'
 import { buildBreadcrumbs } from '@/lib/structuredData'
 
 export const metadata = {
-  title: 'Business power continuity: Kingston Energies',
+  title: 'Business power continuity',
   description: 'What does an outage actually cost your business? Estimate it, then build a backup power plan around real numbers.',
 }
 

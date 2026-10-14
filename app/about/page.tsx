@@ -8,7 +8,7 @@ import JsonLd from '@/components/JsonLd'
 import { buildBreadcrumbs } from '@/lib/structuredData'
 
 export const metadata = {
-  title: 'About: Kingston Energies',
+  title: 'About',
   description: 'Born in Kingston, built for everywhere. The story behind Kingston Energies.',
 }
 

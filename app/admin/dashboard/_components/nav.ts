@@ -254,6 +254,12 @@ export const NAV: NavGroup[] = [
         keywords: 'ev charger station registry energy map publish',
       },
       {
+        href: `${BASE}/platform/reference-data`,
+        label: 'Reference data',
+        description: 'Tariffs, fuel prices, charging prices and shelters the calculators use',
+        keywords: 'tariff jps our fuel petrojam price shelter odpem reference data approve',
+      },
+      {
         href: `${BASE}/platform/map-reports`,
         label: 'Map reports & coverage',
         description: 'Moderate driver reports and record parish coverage reviews',

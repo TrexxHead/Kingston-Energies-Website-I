@@ -524,21 +524,6 @@ const CSS = `
 .ke-ctrl:hover{background:var(--g-hover)}
 .ke-ctrl[aria-pressed=true]{color:#5fae2e}
 .ke-ctrl:focus-visible,.ke-btn:focus-visible,.ke-card__close:focus-visible,.ke-pin:focus-visible{outline:2px solid #29abe2;outline-offset:2px}
-.ke-search{position:absolute;left:14px;top:14px;z-index:4;width:min(380px,calc(100% - 84px))}
-.ke-search__box{display:flex;align-items:center;gap:8px;height:48px;padding:0 8px 0 14px;border-radius:16px}
-.ke-search__icon{flex:none;opacity:.6}
-.ke-search__box input{flex:1;min-width:0;height:100%;border:0;background:transparent;color:inherit;font:inherit;font-size:15px;outline:none}
-.ke-search__box input::placeholder{color:var(--g-muted)}
-.ke-search__box input::-webkit-search-cancel-button{display:none}
-.ke-search__box:focus-within{box-shadow:var(--g-shadow),0 0 0 2px #29abe2}
-.ke-search__clear{width:30px;height:30px;border-radius:50%;border:0;background:var(--g-hover);color:inherit;display:grid;place-items:center;cursor:pointer}
-.ke-search__list{list-style:none;margin:8px 0 0;padding:6px;border-radius:16px;max-height:min(420px,55vh);overflow:auto}
-.ke-search__item{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:12px;cursor:pointer}
-.ke-search__item[aria-selected=true]{background:var(--g-hover)}
-.ke-search__text{display:grid;min-width:0}
-.ke-search__text strong{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ke-search__text small{font-size:12px;color:var(--g-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ke-search__empty{padding:10px 12px;font-size:13px;color:var(--g-muted)}
 .ke-drop{width:22px;height:30px;background:no-repeat center/contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 30'%3E%3Cpath d='M11 29C11 29 2 17.5 2 10.5A9 9 0 0 1 20 10.5C20 17.5 11 29 11 29Z' fill='%23e5484d' stroke='white' stroke-width='2'/%3E%3Ccircle cx='11' cy='10.5' r='3.4' fill='white'/%3E%3C/svg%3E");filter:drop-shadow(0 3px 4px rgba(0,0,0,.35));animation:ke-drop .35s cubic-bezier(.2,.9,.3,1.3)}
 @keyframes ke-drop{from{transform:translateY(-18px);opacity:0}to{transform:none;opacity:1}}
 .ke-card__fine{font-size:11.5px;opacity:.85}
@@ -583,7 +568,6 @@ const CSS = `
   .ke-map{height:clamp(420px,68vh,640px);border-radius:20px}
   .ke-map__legend{display:none}
   .ke-map__chip{top:70px;max-width:calc(100% - 84px)}
-  .ke-search{width:calc(100% - 84px)}
   .ke-map__card{left:0;right:0;bottom:0;width:auto;border-radius:22px 22px 0 0;padding-bottom:20px}
   .ke-map__note{bottom:46px;right:14px;max-width:none}
 }

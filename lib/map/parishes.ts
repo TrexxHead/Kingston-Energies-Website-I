@@ -56,3 +56,22 @@ export function geometryBounds(geometry: { type: string; coordinates: unknown })
   walk(geometry.coordinates)
   return Number.isFinite(w) ? [w, s, e, n] : null
 }
+
+function inRing(pt: [number, number], ring: number[][]): boolean {
+  let c = false
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i]
+    const [xj, yj] = ring[j]
+    if (yi > pt[1] !== yj > pt[1] && pt[0] < ((xj - xi) * (pt[1] - yi)) / (yj - yi) + xi) c = !c
+  }
+  return c
+}
+
+/** Which parish (from the parish boundaries GeoJSON) a point falls in; null if none. */
+export function parishAt(geo: { features: { properties: { id: string }; geometry: { type: string; coordinates: unknown } }[] }, lng: number, lat: number): ParishId | null {
+  for (const f of geo.features) {
+    const polys = (f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates) as number[][][][]
+    if (polys.some((p) => inRing([lng, lat], p[0]) && !p.slice(1).some((h) => inRing([lng, lat], h)))) return isParishId(f.properties.id) ? f.properties.id : null
+  }
+  return null
+}

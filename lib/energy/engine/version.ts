@@ -7,5 +7,10 @@
  * 1.0.0 (2026-10-12) — initial shared engine: loads, cooling, battery
  *   runtime, continuous/surge checks, bill period comparison, tariff
  *   marginal vs average cost, scenario aggregation.
+ * 1.1.0 (2026-10-14) — rooftop solar: footprint area, roof sizing with
+ *   stated usable-share and module assumptions, production from PVGIS
+ *   specific yield (±1 SD range), marginal-rate savings with a daytime-use
+ *   bound; export credit not valued. Default usable roof share 45% flat /
+ *   40% pitched; system sized to the household's use, capped by the roof.
  */
-export const CALC_ENGINE_VERSION = '1.0.0'
+export const CALC_ENGINE_VERSION = '1.1.0'

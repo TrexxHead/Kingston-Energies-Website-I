@@ -9,24 +9,6 @@
 // route handlers — the browser never talks to either directly, so allowing
 // them in connect-src (a directive that only matters for browser
 // fetch/XHR/WebSocket) served no purpose and was pure attack surface.
-// Hosts the Kingston Energies map (MapLibre + OpenStreetMap tiles + terrain)
-// fetches from. Mirrors lib/map/openStyle.ts: OpenFreeMap and AWS Terrain
-// Tiles by default, or the hosts set in NEXT_PUBLIC_OPEN_MAP_TILES_URL /
-// _GLYPHS_URL / _TERRAIN_URL ("off" disables).
-function openMapOrigins() {
-  const pick = (raw, fallback) => {
-    const v = (raw || '').trim()
-    if (v.toLowerCase() === 'off') return null
-    return v || fallback
-  }
-  const urls = [
-    pick(process.env.NEXT_PUBLIC_OPEN_MAP_TILES_URL, 'https://tiles.openfreemap.org/planet'),
-    pick(process.env.NEXT_PUBLIC_OPEN_MAP_GLYPHS_URL, ''),
-    pick(process.env.NEXT_PUBLIC_OPEN_MAP_TERRAIN_URL, 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'),
-  ]
-  return [...new Set(urls.filter((u) => u && /^https:\/\//.test(u)).map((u) => new URL(u.replace(/\{[^}]+\}/g, 'x')).origin))]
-}
-
 function buildCsp({ googleMaps = false } = {}) {
   // Google's allowlist for the Maps JavaScript API includes 'unsafe-eval' and
   // blob: workers; it is granted on the map page only, never site-wide.
@@ -37,7 +19,7 @@ function buildCsp({ googleMaps = false } = {}) {
     "style-src 'self' 'unsafe-inline'" + (googleMaps ? ' https://fonts.googleapis.com' : ''),
     "img-src 'self' https: data: blob:",
     "font-src 'self' data:" + (googleMaps ? ' https://fonts.gstatic.com' : ''),
-    "connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com" + (googleMaps ? ' https://*.googleapis.com https://*.gstatic.com https://*.google.com data: blob: ' + openMapOrigins().join(' ') : ''),
+    "connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com" + (googleMaps ? ' https://*.googleapis.com https://*.gstatic.com https://*.google.com data: blob:' : ''),
     "frame-src 'self' https://jm.wipayfinancial.com https://accounts.google.com" + (googleMaps ? ' https://*.google.com' : ''),
     "frame-ancestors 'none'",
     "base-uri 'self'",
@@ -49,9 +31,9 @@ function buildCsp({ googleMaps = false } = {}) {
   ].join('; ')
 }
 const csp = buildCsp()
-// The Jamaica Energy Map page alone loads the Google Maps JavaScript API and
-// OpenStreetMap vector tiles for the Kingston Energies map, and may ask (on a
-// tap of "Nearby") for the visitor's location — so only that route widens
+// The Jamaica Energy Map page alone loads the Google Maps JavaScript API (the
+// Kingston Energies map is fully self-hosted) and may ask (on a tap of
+// "Nearby") for the visitor's location — so only that route widens
 // script/connect sources and allows same-origin geolocation.
 const mapCsp = buildCsp({ googleMaps: true })
 
@@ -88,12 +70,21 @@ const nextConfig = {
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(self), payment=()' },
         ],
       },
-      // MapLibre fetches street tiles from inside its web worker, and a worker
-      // runs under its own script's CSP — so the worker files need the map
-      // policy too, or every tile request is silently blocked.
+      // A web worker runs under its own script's CSP; MapLibre's worker gets
+      // the map page's policy so anything the map may fetch is allowed there.
       {
         source: '/maps/vendor/:path*',
         headers: [{ key: 'Content-Security-Policy', value: mapCsp }],
+      },
+      // Self-hosted Jamaica map data: file names carry the data version
+      // (lib/map/mapData.ts), so browsers and the CDN may keep them a year.
+      {
+        source: '/maps/data/:path*',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
+      },
+      {
+        source: '/maps/fonts/:path*',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=2592000' }],
       },
       // Order/account/admin pages carry another person's data if a shared or
       // CDN cache ever stored a response for them — never let that happen.

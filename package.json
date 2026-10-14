@@ -33,6 +33,7 @@
     "maplibre-gl": "6.11.2",
     "next": "^15.5.22",
     "next-auth": "^4.24.15",
+    "pmtiles": "4.4.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "sharp": "^0.35.3",

@@ -1,4 +1,4 @@
-import { SHIELD_IMAGES, POI_KINDS, type MapTheme, type PoiKind } from './openStyle'
+import { POI_KINDS, POI_COLOR, type MapTheme, type PoiKind } from './openStyle'
 
 /**
  * Icons for the Kingston Energies map, drawn on a canvas in the browser so
@@ -32,34 +32,6 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
   ctx.arcTo(x, y + h, x, y, r)
   ctx.arcTo(x, y, x + w, y, r)
   ctx.closePath()
-}
-
-/** Stretchable road-number shield (icon-text-fit): yellow for highways, plain for others. */
-function shield(fill: string, stroke: string) {
-  const W = 20
-  const H = 18
-  const { el, ctx } = canvas(W, H)
-  roundRect(ctx, 1, 1, W - 2, H - 2, 4)
-  ctx.fillStyle = fill
-  ctx.fill()
-  ctx.lineWidth = 1.2
-  ctx.strokeStyle = stroke
-  ctx.stroke()
-  return {
-    image: pixels(el),
-    opts: { pixelRatio: PR, stretchX: [[6 * PR, 14 * PR]], stretchY: [[6 * PR, 12 * PR]], content: [4 * PR, 3 * PR, 16 * PR, 15 * PR] },
-  }
-}
-
-const POI_COLOR: Record<PoiKind, string> = {
-  health: '#e5484d',
-  edu: '#a86a1f',
-  food: '#ef7d00',
-  shop: '#8e4ec6',
-  fuel: '#2f6fb3',
-  stay: '#5b5bd6',
-  airport: '#2f80ed',
-  place: '#8b8d98',
 }
 
 /** A filled circle with a simple white glyph per kind. */
@@ -99,6 +71,10 @@ function poi(kind: PoiKind) {
       ctx.lineTo(c - 2.5, c + 4.5)
       ctx.moveTo(c + 2.5, c - 4.5)
       ctx.lineTo(c + 2.5, c + 4.5)
+      ctx.moveTo(c - 4, c - 4.5)
+      ctx.lineTo(c - 4, c - 1.5)
+      ctx.moveTo(c - 1, c - 4.5)
+      ctx.lineTo(c - 1, c - 1.5)
       ctx.stroke()
       break
     case 'shop':
@@ -121,6 +97,58 @@ function poi(kind: PoiKind) {
       ctx.fillRect(c - 5, c - 1, 10, 3.5)
       ctx.fillRect(c - 5, c - 4, 2, 7.5)
       ctx.fillRect(c - 2.5, c - 3, 3.5, 2)
+      break
+    case 'bank':
+      ctx.font = `bold 10px system-ui, sans-serif`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText('$', c, c + 0.5)
+      break
+    case 'worship':
+      ctx.fillRect(c - 0.9, c - 5, 1.8, 10)
+      ctx.fillRect(c - 3.5, c - 2.6, 7, 1.8)
+      break
+    case 'gov':
+      ctx.beginPath()
+      ctx.moveTo(c - 5, c - 1.5)
+      ctx.lineTo(c, c - 5)
+      ctx.lineTo(c + 5, c - 1.5)
+      ctx.closePath()
+      ctx.fill()
+      ctx.fillRect(c - 4, c - 1, 1.6, 4.5)
+      ctx.fillRect(c - 0.8, c - 1, 1.6, 4.5)
+      ctx.fillRect(c + 2.4, c - 1, 1.6, 4.5)
+      ctx.fillRect(c - 5, c + 3.5, 10, 1.4)
+      break
+    case 'attraction':
+      ctx.beginPath()
+      for (let i = 0; i < 10; i++) {
+        const r = i % 2 ? 2 : 5
+        const a = -Math.PI / 2 + (i * Math.PI) / 5
+        ctx.lineTo(c + r * Math.cos(a), c + r * Math.sin(a))
+      }
+      ctx.closePath()
+      ctx.fill()
+      break
+    case 'park':
+      ctx.beginPath()
+      ctx.moveTo(c, c - 5)
+      ctx.lineTo(c + 4.5, c + 2)
+      ctx.lineTo(c - 4.5, c + 2)
+      ctx.closePath()
+      ctx.fill()
+      ctx.fillRect(c - 0.9, c + 1.5, 1.8, 3.5)
+      break
+    case 'auto':
+      roundRect(ctx, c - 5, c - 1.5, 10, 4, 1.5)
+      ctx.fill()
+      ctx.fillRect(c - 3, c - 4, 6, 3)
+      break
+    case 'transport':
+      roundRect(ctx, c - 4, c - 5, 8, 9, 1.8)
+      ctx.fill()
+      ctx.fillStyle = POI_COLOR.transport
+      ctx.fillRect(c - 2.8, c - 3.4, 5.6, 3)
       break
     case 'airport':
       ctx.beginPath()
@@ -146,14 +174,30 @@ function poi(kind: PoiKind) {
   return { image: pixels(el), opts: { pixelRatio: PR } }
 }
 
+/** A small brown triangle for mountain peaks. */
+function peak() {
+  const { el, ctx } = canvas(12, 10)
+  ctx.beginPath()
+  ctx.moveTo(6, 1)
+  ctx.lineTo(11, 9)
+  ctx.lineTo(1, 9)
+  ctx.closePath()
+  ctx.fillStyle = '#8a7155'
+  ctx.fill()
+  ctx.lineWidth = 1
+  ctx.strokeStyle = 'rgba(255,255,255,.9)'
+  ctx.stroke()
+  return { image: pixels(el), opts: { pixelRatio: PR } }
+}
+
 /** Register every runtime image the style uses. Safe to call again after a style change. */
-export function addMapImages(map: { hasImage: (id: string) => boolean; addImage: AddImage }, theme: MapTheme) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function addMapImages(map: { hasImage: (id: string) => boolean; addImage: AddImage }, _theme: MapTheme) {
   const add = (id: string, made: { image: { width: number; height: number; data: Uint8ClampedArray }; opts: any }) => {
     if (!map.hasImage(id)) map.addImage(id, made.image, made.opts)
   }
-  add(SHIELD_IMAGES.motorway, shield('#fcd57e', '#c8962f'))
-  add(SHIELD_IMAGES.road, theme === 'dark' ? shield('#2c3531', '#55625c') : shield('#ffffff', '#b9b3a8'))
   for (const k of POI_KINDS) add(`ke-poi-${k}`, poi(k))
+  add('ke-peak', peak())
 }
 
 /** SVG markup for a station pin (bolt in a teardrop), coloured by status. */

@@ -1,27 +1,39 @@
 'use client'
 
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
 import { Plus, Minus, LocateFixed, Navigation2, Sun, Moon, Mountain, Maximize2, Minimize2, X, Navigation, List } from 'lucide-react'
+import { Protocol } from 'pmtiles'
 import { JAMAICA_BOUNDS, geometryBounds } from '@/lib/map/parishes'
 import { DISPLAY_LABEL } from '@/lib/map/status'
-import { buildOpenStyle, openMapSources, stationMarkerState, STATE_MARKER_COLOR, SHIELD_IMAGES, type MapTheme } from '@/lib/map/openStyle'
+import { buildOpenStyle, openMapSources, stationMarkerState, STATE_MARKER_COLOR, POI_LAYERS, POI_LABEL, type MapTheme, type OpenMapSources, type PoiKind } from '@/lib/map/openStyle'
+import { MAP_DATA } from '@/lib/map/mapData'
+import { zoomForKind, type SearchHit } from '@/lib/map/search'
+import MapSearch, { hitLabel } from './MapSearch'
 import { clusterStations } from '@/lib/map/cluster'
 import { addMapImages, stationPinSvg } from '@/lib/map/mapImages'
 import type { MapViewHandle, MapViewProps } from './types'
 
 /**
- * Kingston Energies' own map: MapLibre GL + OpenStreetMap data, no Google key.
- * Map style: lib/map/openStyle.ts. Icons: lib/map/mapImages.ts. The chrome
- * (controls, legend, station card) is plain React/CSS below.
+ * Kingston Energies' own map: MapLibre GL over self-hosted Jamaica data
+ * (OpenStreetMap / Overture), no Google key and no third-party tile host.
+ * Map style: lib/map/openStyle.ts. Icons: lib/map/mapImages.ts. Search:
+ * MapSearch.tsx. The chrome (controls, legend, cards) is plain React/CSS below.
  */
 
-const SOURCES = openMapSources({
-  tiles: process.env.NEXT_PUBLIC_OPEN_MAP_TILES_URL,
-  glyphs: process.env.NEXT_PUBLIC_OPEN_MAP_GLYPHS_URL,
-  terrain: process.env.NEXT_PUBLIC_OPEN_MAP_TERRAIN_URL,
-})
-const PARISH_URL = '/maps/jamaica-parishes.geojson'
+const PARISH_URL = MAP_DATA.parishes
+let protocolAdded = false
+
+/** Hand-offs to the visitor's navigation app. */
+export const googleDirections = (lat: number, lng: number) => `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
+export const wazeDirections = (lat: number, lng: number) => `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`
+
+interface PlaceInfo {
+  name: string
+  label: string
+  lng: number
+  lat: number
+}
 const THEME_KEY = 'ke-map-theme'
 const ISLAND: [[number, number], [number, number]] = [
   [JAMAICA_BOUNDS.west, JAMAICA_BOUNDS.south],
@@ -112,6 +124,9 @@ const KingstonMap = forwardRef<MapViewHandle, MapViewProps>(function KingstonMap
   const [tilted, setTilted] = useState(false)
   const [fullscreen, setFullscreen] = useState(false)
   const [canFullscreen, setCanFullscreen] = useState(false)
+  const [place, setPlace] = useState<PlaceInfo | null>(null)
+  const sources = useRef<OpenMapSources | null>(null)
+  const placeMarker = useRef<any>(null)
 
   const station = stations.find((s) => s.id === selected) ?? null
 
@@ -130,9 +145,14 @@ const KingstonMap = forwardRef<MapViewHandle, MapViewProps>(function KingstonMap
         lib.current = ml
         geo.current = parishes
         ml.setWorkerUrl(`/maps/vendor/maplibre-${ml.getVersion()}/maplibre-gl-worker.mjs`)
+        if (!protocolAdded) {
+          ml.addProtocol('pmtiles', new Protocol().tile)
+          protocolAdded = true
+        }
+        sources.current = openMapSources(window.location.origin)
         const m = new ml.Map({
           container: el.current,
-          style: buildOpenStyle(SOURCES, parishes, themeRef.current),
+          style: buildOpenStyle(sources.current, parishes, themeRef.current),
           bounds: ISLAND,
           fitBoundsOptions: { padding: 24 },
           maxBounds: MAX_BOUNDS,
@@ -144,11 +164,26 @@ const KingstonMap = forwardRef<MapViewHandle, MapViewProps>(function KingstonMap
         m.addControl(new ml.ScaleControl({ unit: 'metric', maxWidth: 90 }), 'bottom-right')
         m.on('styleimagemissing', () => addMapImages(m, themeRef.current))
         m.on('error', (e: any) => {
-          if (e?.sourceId === 'osm' || /openfreemap|\.pbf|tiles/i.test(String(e?.error?.message ?? ''))) setDetailDown(true)
+          console.warn('[Kingston map]', e?.error?.message ?? e)
+          if (e?.sourceId === 'jamaica' || /pmtiles/i.test(String(e?.error?.message ?? ''))) setDetailDown(true)
         })
         m.on('rotate', () => setBearing(m.getBearing()))
         m.on('pitch', () => setTilted(m.getPitch() > 1))
-        m.on('click', () => onSelectRef.current(null))
+        // Tap a business or landmark for its card; tap empty map to close cards.
+        m.on('click', (e: any) => {
+          const f = m.queryRenderedFeatures(e.point, { layers: [...POI_LAYERS] })[0]
+          onSelectRef.current(null)
+          if (f) {
+            const [lng, lat] = (f.geometry as any).coordinates
+            const k = f.properties.kind as PoiKind
+            const cat = String(f.properties.cat ?? '').replace(/_/g, ' ')
+            setPlace({ name: f.properties.name, label: cat ? cat.replace(/\b\w/g, (x: string) => x.toUpperCase()) : POI_LABEL[k] ?? 'Place', lng, lat })
+          } else setPlace(null)
+        })
+        for (const id of POI_LAYERS) {
+          m.on('mouseenter', id, () => (m.getCanvas().style.cursor = 'pointer'))
+          m.on('mouseleave', id, () => (m.getCanvas().style.cursor = ''))
+        }
         m.on('load', () => {
           addMapImages(m, themeRef.current)
           if (!cancelled) setState('ready')
@@ -172,8 +207,10 @@ const KingstonMap = forwardRef<MapViewHandle, MapViewProps>(function KingstonMap
 
   const applyTerrain = useCallback((on: boolean) => {
     const m = map.current
-    if (!m || !SOURCES.terrain) return
+    if (!m) return
     m.setTerrain(on ? { source: 'terrain', exaggeration: 1.5 } : null)
+    if (m.getLayer('building-3d')) m.setLayoutProperty('building-3d', 'visibility', on ? 'visible' : 'none')
+    if (m.getLayer('building')) m.setLayoutProperty('building', 'visibility', on ? 'none' : 'visible')
   }, [])
 
   // Theme switch: swap the style in place and redraw theme-specific icons.
@@ -189,9 +226,8 @@ const KingstonMap = forwardRef<MapViewHandle, MapViewProps>(function KingstonMap
       return
     }
     const m = map.current
-    if (!m || !geo.current) return
-    if (m.hasImage(SHIELD_IMAGES.road)) m.removeImage(SHIELD_IMAGES.road)
-    m.setStyle(buildOpenStyle(SOURCES, geo.current, theme), { diff: true })
+    if (!m || !geo.current || !sources.current) return
+    m.setStyle(buildOpenStyle(sources.current, geo.current, theme), { diff: true })
     m.once('styledata', () => {
       addMapImages(m, theme)
       applyTerrain(is3D)
@@ -309,6 +345,43 @@ const KingstonMap = forwardRef<MapViewHandle, MapViewProps>(function KingstonMap
     applyTerrain(false)
   }
 
+  // Registry chargers are searchable alongside places.
+  const chargerHits = useMemo<SearchHit[]>(
+    () => stations.map((s) => ({ id: s.id, name: s.name, kind: 'charger', lng: s.lng, lat: s.lat, parish: null, category: s.subtitle || null })),
+    [stations],
+  )
+
+  function pickHit(hit: SearchHit) {
+    const m = map.current
+    if (!m) return
+    if (hit.kind === 'charger') {
+      setPlace(null)
+      onSelect(hit.id)
+      return
+    }
+    onSelect(null)
+    setPlace({ name: hit.name, label: hitLabel(hit), lng: hit.lng, lat: hit.lat })
+    const narrow = (wrap.current?.clientWidth ?? 800) < 600
+    m.flyTo({ center: [hit.lng, hit.lat], zoom: zoomForKind(hit.kind), offset: narrow ? [0, -90] : [170, 0], duration: 1600, essential: true })
+  }
+
+  // Red "dropped pin" for the place being looked at.
+  useEffect(() => {
+    const ml = lib.current
+    const m = map.current
+    placeMarker.current?.remove()
+    placeMarker.current = null
+    if (!place || !ml || !m) return
+    const dot = document.createElement('div')
+    dot.className = 'ke-drop'
+    dot.setAttribute('aria-hidden', 'true')
+    placeMarker.current = new ml.Marker({ element: dot, anchor: 'bottom' }).setLngLat([place.lng, place.lat]).addTo(m)
+  }, [place])
+
+  useEffect(() => {
+    if (selected) setPlace(null)
+  }, [selected])
+
   function toggleFullscreen() {
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {})
     else wrap.current?.requestFullscreen().catch(() => {})
@@ -322,7 +395,9 @@ const KingstonMap = forwardRef<MapViewHandle, MapViewProps>(function KingstonMap
 
       {state === 'ready' && (
         <>
-          <div className="ke-map__legend ke-glass" aria-label="Map key">
+          <MapSearch chargers={chargerHits} onPick={pickHit} />
+
+          <div className={`ke-map__legend ke-glass${station || place ? ' is-hidden' : ''}`} aria-label="Map key">
             {LEGEND.map((l) => (
               <span key={l.label}>
                 <i style={{ background: l.color }} aria-hidden /> {l.label}
@@ -345,11 +420,9 @@ const KingstonMap = forwardRef<MapViewHandle, MapViewProps>(function KingstonMap
               <button type="button" className="ke-ctrl" aria-label="Show my location" onClick={onLocate}>
                 <LocateFixed size={18} aria-hidden />
               </button>
-              {SOURCES.terrain && (
-                <button type="button" className="ke-ctrl" aria-label="3D view" aria-pressed={is3D} onClick={toggle3D}>
-                  <Mountain size={18} aria-hidden />
-                </button>
-              )}
+              <button type="button" className="ke-ctrl" aria-label="3D view" aria-pressed={is3D} onClick={toggle3D}>
+                <Mountain size={18} aria-hidden />
+              </button>
               <button type="button" className="ke-ctrl" aria-label={theme === 'dark' ? 'Light map' : 'Dark map'} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
                 {theme === 'dark' ? <Sun size={18} aria-hidden /> : <Moon size={18} aria-hidden />}
               </button>
@@ -387,9 +460,31 @@ const KingstonMap = forwardRef<MapViewHandle, MapViewProps>(function KingstonMap
                 <a className="ke-btn ke-btn--primary" href={station.directionsUrl} target="_blank" rel="noopener noreferrer">
                   <Navigation size={15} aria-hidden /> Directions
                 </a>
+                <a className="ke-btn" href={wazeDirections(station.lat, station.lng)} target="_blank" rel="noopener noreferrer">
+                  Waze
+                </a>
                 <button type="button" className="ke-btn" onClick={() => onShowDetails(station.id)}>
                   <List size={15} aria-hidden /> Details
                 </button>
+              </div>
+            </section>
+          )}
+
+          {place && !station && (
+            <section key={`${place.lng},${place.lat}`} className="ke-map__card ke-glass" aria-label={`${place.name} details`}>
+              <button type="button" className="ke-card__close" aria-label="Close" onClick={() => setPlace(null)}>
+                <X size={16} aria-hidden />
+              </button>
+              <h3 className="ke-card__title">{place.name}</h3>
+              <p className="ke-card__sub">{place.label}</p>
+              <p className="ke-card__sub ke-card__fine">Map data: OpenStreetMap / Overture. Not a Kingston Energies charger listing.</p>
+              <div className="ke-card__actions">
+                <a className="ke-btn ke-btn--primary" href={googleDirections(place.lat, place.lng)} target="_blank" rel="noopener noreferrer">
+                  <Navigation size={15} aria-hidden /> Directions
+                </a>
+                <a className="ke-btn" href={wazeDirections(place.lat, place.lng)} target="_blank" rel="noopener noreferrer">
+                  Waze
+                </a>
               </div>
             </section>
           )}
@@ -397,9 +492,9 @@ const KingstonMap = forwardRef<MapViewHandle, MapViewProps>(function KingstonMap
       )}
 
       {state === 'failed' && <p className="ke-map__chip ke-glass" role="alert">This map couldn’t start in your browser. Every location below still has directions.</p>}
-      {state === 'ready' && detailDown && SOURCES.tiles && !station && (
+      {state === 'ready' && detailDown && !station && !place && (
         <p className="ke-map__note ke-glass" role="status">
-          Street detail couldn’t load right now — parishes and chargers are still shown.
+          Some map detail couldn’t load — parishes and chargers are still shown.
         </p>
       )}
     </div>
@@ -425,11 +520,30 @@ const CSS = `
 .ke-ctrl:hover{background:var(--g-hover)}
 .ke-ctrl[aria-pressed=true]{color:#5fae2e}
 .ke-ctrl:focus-visible,.ke-btn:focus-visible,.ke-card__close:focus-visible,.ke-pin:focus-visible{outline:2px solid #29abe2;outline-offset:2px}
-.ke-map__legend{position:absolute;left:14px;top:14px;z-index:2;display:flex;flex-wrap:wrap;gap:4px 14px;padding:8px 14px;border-radius:999px;font-size:12px;font-weight:500}
+.ke-search{position:absolute;left:14px;top:14px;z-index:4;width:min(380px,calc(100% - 84px))}
+.ke-search__box{display:flex;align-items:center;gap:8px;height:48px;padding:0 8px 0 14px;border-radius:16px}
+.ke-search__icon{flex:none;opacity:.6}
+.ke-search__box input{flex:1;min-width:0;height:100%;border:0;background:transparent;color:inherit;font:inherit;font-size:15px;outline:none}
+.ke-search__box input::placeholder{color:var(--g-muted)}
+.ke-search__box input::-webkit-search-cancel-button{display:none}
+.ke-search__box:focus-within{box-shadow:var(--g-shadow),0 0 0 2px #29abe2}
+.ke-search__clear{width:30px;height:30px;border-radius:50%;border:0;background:var(--g-hover);color:inherit;display:grid;place-items:center;cursor:pointer}
+.ke-search__list{list-style:none;margin:8px 0 0;padding:6px;border-radius:16px;max-height:min(420px,55vh);overflow:auto}
+.ke-search__item{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:12px;cursor:pointer}
+.ke-search__item[aria-selected=true]{background:var(--g-hover)}
+.ke-search__text{display:grid;min-width:0}
+.ke-search__text strong{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ke-search__text small{font-size:12px;color:var(--g-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ke-search__empty{padding:10px 12px;font-size:13px;color:var(--g-muted)}
+.ke-drop{width:22px;height:30px;background:no-repeat center/contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 30'%3E%3Cpath d='M11 29C11 29 2 17.5 2 10.5A9 9 0 0 1 20 10.5C20 17.5 11 29 11 29Z' fill='%23e5484d' stroke='white' stroke-width='2'/%3E%3Ccircle cx='11' cy='10.5' r='3.4' fill='white'/%3E%3C/svg%3E");filter:drop-shadow(0 3px 4px rgba(0,0,0,.35));animation:ke-drop .35s cubic-bezier(.2,.9,.3,1.3)}
+@keyframes ke-drop{from{transform:translateY(-18px);opacity:0}to{transform:none;opacity:1}}
+.ke-card__fine{font-size:11.5px;opacity:.85}
+.ke-map__legend.is-hidden{display:none}
+.ke-map__legend{position:absolute;left:14px;bottom:14px;z-index:2;display:flex;flex-wrap:wrap;gap:4px 14px;padding:8px 14px;border-radius:999px;font-size:12px;font-weight:500}
 .ke-map__legend span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .ke-map__legend i,.ke-card__status i{width:9px;height:9px;border-radius:50%;display:inline-block;box-shadow:0 0 0 2px rgba(255,255,255,.7);flex:none}
-.ke-map__chip{position:absolute;left:50%;top:64px;transform:translateX(-50%);z-index:2;margin:0;padding:8px 16px;border-radius:999px;font-size:13px;font-weight:500;white-space:nowrap;max-width:calc(100% - 28px);overflow:hidden;text-overflow:ellipsis}
-.ke-map__note{position:absolute;left:14px;bottom:14px;z-index:2;margin:0;padding:8px 14px;border-radius:12px;font-size:12.5px;max-width:calc(100% - 140px)}
+.ke-map__chip{position:absolute;left:14px;top:72px;z-index:2;margin:0;padding:8px 16px;border-radius:999px;font-size:13px;font-weight:500;white-space:nowrap;max-width:calc(100% - 28px);overflow:hidden;text-overflow:ellipsis}
+.ke-map__note{position:absolute;left:14px;bottom:58px;z-index:2;margin:0;padding:8px 14px;border-radius:12px;font-size:12.5px;max-width:calc(100% - 140px)}
 .ke-map__card{position:absolute;left:14px;bottom:14px;z-index:3;width:min(360px,calc(100% - 28px));padding:18px 18px 16px;border-radius:22px;animation:ke-rise .32s cubic-bezier(.2,.8,.2,1)}
 .ke-card__title{margin:0 28px 2px 0;font-family:var(--font-display),system-ui,sans-serif;font-size:18px;font-weight:700;letter-spacing:-.01em;line-height:1.25}
 .ke-card__sub{margin:4px 0 0;font-size:13px;color:var(--g-muted);line-height:1.45}
@@ -464,7 +578,8 @@ const CSS = `
 @media (max-width:600px){
   .ke-map{height:clamp(420px,68vh,640px);border-radius:20px}
   .ke-map__legend{display:none}
-  .ke-map__chip{top:14px;left:14px;transform:none;max-width:calc(100% - 84px)}
+  .ke-map__chip{top:70px;max-width:calc(100% - 84px)}
+  .ke-search{width:calc(100% - 84px)}
   .ke-map__card{left:0;right:0;bottom:0;width:auto;border-radius:22px 22px 0 0;padding-bottom:20px}
   .ke-map__note{bottom:46px;right:14px;max-width:none}
 }

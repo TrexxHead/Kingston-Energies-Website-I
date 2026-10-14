@@ -15,13 +15,12 @@ To get a shareable staging site:
 | Schema | Engineer | `DATABASE_URL=… DIRECT_URL=… npx prisma db push` against staging, then run `prisma/enable-rls.sql` in the staging SQL editor. |
 | Separate Google keys for staging | Owner | See §2 — referrer restriction for the staging domain. |
 
-## 2a. Kingston Energies map (OpenStreetMap — no account needed)
+## 2a. Kingston Energies map (self-hosted — no account needed)
 
-The default tab on `/energy-map`. Nothing to sign up for.
-- Street detail: OpenStreetMap vector tiles from **OpenFreeMap** (free, no key, no usage agreement). To self-host or switch provider later, set `NEXT_PUBLIC_OPEN_MAP_TILES_URL` (TileJSON, OpenMapTiles schema) and `NEXT_PUBLIC_OPEN_MAP_GLYPHS_URL` (fonts), then redeploy — the map page CSP picks the hosts up automatically. `off` shows only our own layers.
-- Terrain (hill shading, 3D): AWS Terrain Tiles (open data, no key); `NEXT_PUBLIC_OPEN_MAP_TERRAIN_URL` to swap, `off` for flat.
-- Parish boundaries and the coastline mask are self-hosted (`public/maps/`).
-- Licence: OpenStreetMap data is ODbL — keep "© OpenStreetMap contributors" visible (built in). Missing roads/places can be added at openstreetmap.org from your own knowledge or site visits — **never copied from Google Maps**.
+The default tab on `/energy-map`. Nothing to sign up for and no keys: every file is served from this site (`public/maps/`).
+- Data: Overture Maps Foundation (OpenStreetMap-derived roads, water, land use, places, buildings — ODbL; Overture places — CDLA-Permissive-2.0) and AWS Terrain Tiles for elevation. Attribution is shown on the map and must stay.
+- Refreshing the data: `scripts/map-data/README.md` (a few minutes; bump the versioned file names in `lib/map/mapData.ts`).
+- Missing roads/places can be added at openstreetmap.org from your own knowledge or site visits — **never copied from Google Maps** — and appear after the next data refresh.
 
 ## 2. Google Maps Platform (Energy Map — M01, M04)
 

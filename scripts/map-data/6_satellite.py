@@ -29,9 +29,9 @@ import urllib.request
 
 import numpy as np
 import rasterio
+import rasterio.warp
 from rasterio.enums import Resampling
 from rasterio.features import geometry_mask
-from rasterio.vrt import WarpedVRT
 from rasterio.warp import transform_geom
 from rasterio.windows import from_bounds
 from shapely.geometry import shape, mapping
@@ -189,12 +189,33 @@ def tile_xy(z, lng, lat):
     return int((lng + 180) / 360 * n), int((1 - math.log(math.tan(r) + 1 / math.cos(r)) / math.pi) / 2 * n)
 
 
+Z_RES = 2 * 20037508.34 / (256 * 2 ** MAXZOOM)  # Web Mercator metres per pixel at MAXZOOM
+
+
+def to_mercator(path):
+    """Reproject one grid tile to Web Mercator, snapped to the MAXZOOM pixel grid (done once, then cut)."""
+    out = path.replace('.tif', '.3857.tif')
+    if os.path.exists(out):
+        return out
+    from rasterio.warp import calculate_default_transform, reproject
+    with rasterio.open(path) as src:
+        _, w0, h0 = calculate_default_transform(src.crs, 'EPSG:3857', src.width, src.height, *src.bounds, resolution=Z_RES)
+        l, b, r, t = rasterio.warp.transform_bounds(src.crs, 'EPSG:3857', *src.bounds)
+        l = math.floor((l + 20037508.34) / Z_RES) * Z_RES - 20037508.34
+        t = 20037508.34 - math.floor((20037508.34 - t) / Z_RES) * Z_RES
+        w = int(math.ceil((r - l) / Z_RES))
+        h = int(math.ceil((t - b) / Z_RES))
+        transform = rasterio.transform.from_origin(l, t, Z_RES, Z_RES)
+        profile = dict(driver='GTiff', width=w, height=h, count=4, dtype='uint8', crs='EPSG:3857', transform=transform, compress='deflate', tiled=True)
+        with rasterio.open(out, 'w', **profile) as dst:
+            for band in range(1, 5):
+                reproject(rasterio.band(src, band), rasterio.band(dst, band), resampling=Resampling.bilinear, dst_nodata=0)
+    return out
+
+
 def cut_tiles(paths):
     W, S, E, N = -78.45, 17.65, -76.15, 18.58
-    vrts = []
-    for p in paths:
-        src = rasterio.open(p)
-        vrts.append((src, WarpedVRT(src, crs='EPSG:3857', resampling=Resampling.bilinear)))
+    srcs = [rasterio.open(to_mercator(p)) for p in paths]
     tiles = {}
     for z in range(MINZOOM, MAXZOOM + 1):
         x0, y0 = tile_xy(z, W, N)
@@ -203,12 +224,12 @@ def cut_tiles(paths):
             for y in range(y0, y1 + 1):
                 b = tile_bounds(z, x, y)
                 canvas = np.zeros((4, 256, 256), dtype=np.float32)
-                for _, v in vrts:
+                for v in srcs:
                     vb = v.bounds
                     if vb.right <= b[0] or vb.left >= b[2] or vb.top <= b[1] or vb.bottom >= b[3]:
                         continue
                     win = from_bounds(*b, transform=v.transform)
-                    part = v.read(window=win, out_shape=(4, 256, 256), resampling=Resampling.bilinear, boundless=True, fill_value=0).astype(np.float32)
+                    part = v.read(window=win, out_shape=(4, 256, 256), resampling=Resampling.average if z < MAXZOOM else Resampling.nearest, boundless=True, fill_value=0).astype(np.float32)
                     a = part[3:4] / 255
                     # Composite over what's there (grid tiles overlap at their edges).
                     canvas[:3] = part[:3] * a + canvas[:3] * (1 - a)
@@ -219,7 +240,7 @@ def cut_tiles(paths):
                 buf = io.BytesIO()
                 im.save(buf, 'WEBP', quality=72, method=6)
                 tiles[zxy_to_tileid(z, x, y)] = buf.getvalue()
-        print(f'z{z}: {sum(1 for t in tiles)} tiles so far', flush=True)
+        print(f'z{z}: {len(tiles)} tiles so far, {sum(len(t) for t in tiles.values()) // 1024} KB', flush=True)
     return tiles
 
 

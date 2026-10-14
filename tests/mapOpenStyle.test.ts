@@ -149,7 +149,7 @@ describe('style validity', () => {
       expect(errs.map((e: { message: string }) => e.message)).toEqual([])
     }
   })
-  it('the satellite hybrid view is valid, sits under roads and hides flat buildings', async () => {
+  it('the satellite hybrid view is valid, sits under roads and hands over to the street map up close', async () => {
     const { validateStyleMin } = await import('@maplibre/maplibre-gl-style-spec')
     const s = { ...openMapSources('https://kingstonenergies.com'), satellite: 'pmtiles://https://kingstonenergies.com/maps/data/sat.pmtiles' }
     const style = buildOpenStyle(s, { type: 'FeatureCollection', features: [] }, 'light', { satellite: true })
@@ -157,7 +157,9 @@ describe('style validity', () => {
     const ids: string[] = style.layers.map((l: { id: string }) => l.id)
     expect(ids.indexOf('satellite')).toBeGreaterThan(ids.indexOf('water'))
     expect(ids.indexOf('satellite')).toBeLessThan(ids.indexOf('road-primary'))
-    expect(style.layers.find((l: { id: string }) => l.id === 'building').layout.visibility).toBe('none')
+    // Flat buildings only fade in once the imagery has faded out (it's 10–20 m data).
+    expect(style.layers.find((l: { id: string }) => l.id === 'building').paint['fill-opacity']).toEqual(['interpolate', ['linear'], ['zoom'], 14.5, 0, 15.5, 1])
+    expect(style.layers.find((l: { id: string }) => l.id === 'satellite').paint['raster-opacity']).toEqual(['interpolate', ['linear'], ['zoom'], 14, 1, 15.5, 0])
     expect(style.sources.satellite.attribution).toMatch(/Copernicus Sentinel/)
     // Without the option (or without data) there's no satellite layer.
     expect(buildOpenStyle(s, '/x.geojson').layers.some((l: { id: string }) => l.id === 'satellite')).toBe(false)

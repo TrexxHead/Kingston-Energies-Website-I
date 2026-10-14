@@ -89,7 +89,7 @@ Smart-plug / meter readings per device upgrade the evidence basis from assumed t
 ## 4. Larger projects
 
 ### L1 · Trip planner ✅ planner + energy model built (`/trip-planner`, unlisted) · 🔒 needs a routing server (`OSRM_BASE_URL`: self-hosted OSRM on the Jamaica extract); elevation along the route is the next step
-### L2 · Satellite view ⬜ — cloud-free Sentinel-2 mosaic of Jamaica as self-hosted raster tiles.
+### L2 · Satellite view ✅ built — cloud-free Sentinel-2 mosaic (5 MB, z8–13) as a hybrid view on the Kingston map. Sharper imagery (aerial / commercial) would need a licensed source.
 ### L3 · Operator live status ✅ OCPI adapter built · 🔒 needs an agreement + OCPI credentials from JPS Charge ’n Go / Evergo (owner to authorise contact)
 
 ---

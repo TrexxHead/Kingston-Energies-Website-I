@@ -14,8 +14,8 @@ export const MAP_DATA = {
   search: '/maps/data/jamaica-search-2026-09-r2.json',
   glyphs: '/maps/fonts/{fontstack}/{range}.pbf',
   parishes: '/maps/jamaica-parishes.geojson',
-  /** Sentinel-2 cloud-free mosaic (scripts/map-data/6_satellite.py); null until built. */
-  satellite: null as string | null,
+  /** Sentinel-2 cloud-free mosaic, dry seasons Dec 2023–Apr 2025, z8–13 (scripts/map-data/6_satellite.py). */
+  satellite: '/maps/data/jamaica-satellite-2025-r1.pmtiles' as string | null,
 } as const
 
 export const DATA_ATTRIBUTION =

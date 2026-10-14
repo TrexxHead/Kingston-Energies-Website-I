@@ -271,8 +271,8 @@ const ROADS: { id: string; kinds: string[]; minzoom: number; width: [number, num
 /**
  * `satellite`: hybrid view — the Sentinel-2 mosaic over the land and near
  * shore, with roads, places and labels on top in the dark palette (light
- * text on imagery reads like Google's hybrid view). Flat building fills are
- * hidden so the roofs show.
+ * text on imagery reads like Google's hybrid view). The imagery is 10–20 m
+ * Sentinel-2, so past z14 it fades out and the street map and buildings return.
  */
 export function buildOpenStyle(s: OpenMapSources, parishData: string | object, theme: MapTheme = 'light', opts: { satellite?: boolean } = {}): any {
   const sat = Boolean(opts.satellite && s.satellite)
@@ -376,7 +376,8 @@ export function buildOpenStyle(s: OpenMapSources, parishData: string | object, t
         layout: { 'line-cap': 'round', 'line-join': 'round' },
         paint: { 'line-color': c.water, 'line-width': byKind('river', [[9, 0.8, 0.3], [13, 2.2, 0.8], [17, 8, 2.6]]) },
       }),
-      ...(sat ? [{ id: 'satellite', type: 'raster', source: 'satellite', paint: { 'raster-fade-duration': 150, 'raster-saturation': 0.08, 'raster-contrast': 0.06 } }] : []),
+      // Sentinel-2 is 10–20 m imagery: sharp to about z14, then it fades out and the street map takes over.
+      ...(sat ? [{ id: 'satellite', type: 'raster', source: 'satellite', paint: { 'raster-fade-duration': 150, 'raster-saturation': 0.08, 'raster-contrast': 0.06, 'raster-opacity': ['interpolate', ['linear'], ['zoom'], 14, 1, 15.5, 0] } }] : []),
       v('aeroway', 'aeroway', 'line', { filter: ['==', ['geometry-type'], 'LineString'], paint: { 'line-color': c.airport, 'line-width': byKind('runway', [[11, 3, 0.5], [14, 20, 4], [17, 80, 24]]) } }),
       v('pier', 'pier', 'line', { paint: { 'line-color': c.land, 'line-width': zoomWidth([[13, 1], [17, 8]]) } }),
       road('path', kind('footway', 'path', 'pedestrian', 'steps', 'cycleway', 'bridleway'), c.path, zoomWidth([[14, 0.6], [18, 2.6]]), 14.5, { 'line-dasharray': [2, 1.4] }),
@@ -389,8 +390,7 @@ export function buildOpenStyle(s: OpenMapSources, parishData: string | object, t
         source: 'buildings',
         'source-layer': 'buildings',
         minzoom: 14,
-        layout: { visibility: sat ? 'none' : 'visible' },
-        paint: { 'fill-color': c.building, 'fill-outline-color': c.buildingLine, 'fill-opacity': ['interpolate', ['linear'], ['zoom'], 14, 0.5, 15, 1] },
+        paint: { 'fill-color': c.building, 'fill-outline-color': c.buildingLine, 'fill-opacity': sat ? ['interpolate', ['linear'], ['zoom'], 14.5, 0, 15.5, 1] : ['interpolate', ['linear'], ['zoom'], 14, 0.5, 15, 1] },
       },
       // Shown only in the 3D view (the map component toggles visibility).
       {

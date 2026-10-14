@@ -213,7 +213,7 @@ const KingstonMap = forwardRef<MapViewHandle, MapViewProps>(function KingstonMap
     if (!m) return
     m.setTerrain(on ? { source: 'terrain', exaggeration: 1.5 } : null)
     if (m.getLayer('building-3d')) m.setLayoutProperty('building-3d', 'visibility', on ? 'visible' : 'none')
-    if (m.getLayer('building')) m.setLayoutProperty('building', 'visibility', on || satRef.current ? 'none' : 'visible')
+    if (m.getLayer('building')) m.setLayoutProperty('building', 'visibility', on ? 'none' : 'visible')
   }, [])
 
   // Theme switch: swap the style in place and redraw theme-specific icons.

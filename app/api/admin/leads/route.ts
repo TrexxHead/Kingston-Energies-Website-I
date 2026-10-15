@@ -13,6 +13,7 @@ const createQuoteSchema = z.object({
   items: z
     .array(z.object({ name: z.string().min(1).max(160), price: z.number().min(0), qty: z.number().int().min(1).max(999) }))
     .min(1),
+  ccEmails: z.array(z.string().email()).max(10).optional(),
 })
 
 /** Leads captured via the contact form (app/api/contact/route.ts) — no admin surface existed for these before. */
@@ -37,6 +38,7 @@ export async function GET() {
       quoteInterests: l.quoteInterests,
       quoteArea: l.quoteArea,
       quoteTimeframe: l.quoteTimeframe,
+      quoteCcEmails: l.quoteCcEmails,
       convertedOrderId: l.convertedOrderId,
       convertedOrderNo: l.convertedOrder?.orderNo ?? null,
       convertedAt: l.convertedAt ? l.convertedAt.toISOString() : null,
@@ -53,7 +55,7 @@ export async function POST(request: Request) {
   const parsed = createQuoteSchema.safeParse(await request.json().catch(() => null))
   if (!parsed.success) return NextResponse.json({ error: 'Invalid quotation' }, { status: 400 })
 
-  const { name, email, phone, quoteShoppingFor, quoteArea, quoteTimeframe, items } = parsed.data
+  const { name, email, phone, quoteShoppingFor, quoteArea, quoteTimeframe, items, ccEmails } = parsed.data
   const itemLines = items.map((i) => `${i.name} × ${i.qty}`).join(', ')
 
   const lead = await prisma.lead.create({
@@ -67,6 +69,7 @@ export async function POST(request: Request) {
       quoteShoppingFor: quoteShoppingFor ?? null,
       quoteArea: quoteArea ?? null,
       quoteTimeframe: quoteTimeframe ?? null,
+      quoteCcEmails: ccEmails ?? [],
     },
   })
 

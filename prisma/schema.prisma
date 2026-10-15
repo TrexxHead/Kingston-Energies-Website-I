@@ -305,6 +305,9 @@ model Lead {
   quoteInterests   String[] @default([])
   quoteArea        String?
   quoteTimeframe   String?
+  // Extra recipients for the quotation email besides the primary `email` —
+  // e.g. a spouse or an office admin who should also get the quote.
+  quoteCcEmails    String[] @default([])
   // Set once an admin converts this quote into a real Order — the order
   // then carries the sale forward through the normal pipeline (payment,
   // fulfillment, invoicing) exactly like any other.

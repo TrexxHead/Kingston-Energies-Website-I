@@ -5,7 +5,7 @@ import { buildBreadcrumbs } from '@/lib/structuredData'
 import Finder from './Finder'
 
 export const metadata = {
-  title: 'Find my power: Kingston Energies',
+  title: 'Find my power',
   description: 'Three quick questions to point you at the right power bank, charger or power station.',
 }
 

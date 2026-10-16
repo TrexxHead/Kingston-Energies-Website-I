@@ -7,7 +7,7 @@ import JsonLd from '@/components/JsonLd'
 import { buildBreadcrumbs } from '@/lib/structuredData'
 
 export const metadata = {
-  title: 'Bulk & corporate orders: Kingston Energies',
+  title: 'Bulk & corporate orders',
   description: 'Kitting out a team, an office or a storefront? Bulk pricing on power banks, chargers and power stations, Kingston-wide delivery included.',
 }
 

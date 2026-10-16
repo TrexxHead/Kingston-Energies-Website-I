@@ -2,9 +2,12 @@
 
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { MousePointerClick, PenLine, Check, Undo2, X, Sun, Send } from 'lucide-react'
+import Link from 'next/link'
+import { MousePointerClick, PenLine, Check, Undo2, X, Sun, Send, Maximize2, Minimize2, Satellite, Map as MapIcon } from 'lucide-react'
 import { createKingstonMap } from '@/app/energy-map/_components/maps/mapSetup'
 import MapSearch from '@/app/energy-map/_components/maps/MapSearch'
+import { GOOGLE_BROWSER_KEY } from '@/app/energy-map/_components/maps/googleKeys'
+import { loadGoogleMaps } from '@/app/energy-map/_components/maps/loadGoogleMaps'
 import { zoomForKind, type SearchHit } from '@/lib/map/search'
 import { PARISHES, parishAt } from '@/lib/map/parishes'
 import { card, label, input, muted, h2, Btn, fmt } from '@/app/my-energy/_components/ui'
@@ -16,6 +19,9 @@ import {
   estimateSavings,
   recommendSystem,
   aspectText,
+  ROOF_TYPES,
+  ROOF_LABEL,
+  isSloped,
   type RoofType,
   type SpecificYield,
 } from '@/lib/energy/engine/solar'
@@ -62,9 +68,23 @@ export default function SolarEstimator() {
   const [draft, setDraft] = useState<[number, number][]>([])
   const [roof, setRoof] = useState<Roof | null>(null)
   const [hint, setHint] = useState<string | null>(null)
+  // Bigger map: a full-window overlay (works on phones too, unlike the Fullscreen API on iOS).
+  const [full, setFull] = useState(false)
+  // Satellite: Google's imagery (roof-level detail), in its own Google map. Roofs and outlines are
+  // ours, drawn on top; Google imagery is never copied into the Kingston map.
+  const [view, setView] = useState<'map' | 'satellite'>('map')
+  const viewRef = useRef(view)
+  viewRef.current = view
+  const [gState, setGState] = useState<'off' | 'loading' | 'ready' | 'failed' | 'rejected'>('off')
+  const gStateRef = useRef(gState)
+  gStateRef.current = gState
+  const gEl = useRef<HTMLDivElement>(null)
+  const gMap = useRef<any>(null)
+  const gShapes = useRef<{ roof: any; draft: any; dots: any[] }>({ roof: null, draft: null, dots: [] })
 
   // Roof settings and assumptions.
   const [roofType, setRoofType] = useState<RoofType>('flat')
+  const [roofCondition, setRoofCondition] = useState<'good' | 'worn' | 'unsure'>('unsure')
   const [facing, setFacing] = useState(0)
   const [pitch, setPitch] = useState(String(SOLAR_DEFAULTS.pitchedTiltDeg))
   const [usablePct, setUsablePct] = useState('')
@@ -89,7 +109,7 @@ export default function SolarEstimator() {
         const { ml, map: m, parishes: geo } = await createKingstonMap(el.current, 'light', { center: [-76.79, 18.01], zoom: 12, bounds: undefined })
         if (cancelled) return m.remove()
         parishes.current = geo
-        m.addControl(new ml.NavigationControl({ showCompass: false }), 'top-right')
+        m.addControl(new ml.NavigationControl({ showCompass: false }), 'bottom-right')
         m.on('load', () => {
           m.addSource('roof', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
           m.addLayer({ id: 'roof-fill', type: 'fill', source: 'roof', paint: { 'fill-color': '#f7b500', 'fill-opacity': 0.45 } })
@@ -111,15 +131,7 @@ export default function SolarEstimator() {
             m.easeTo({ center: e.lngLat, zoom: 17, duration: 900 })
             return
           }
-          const f = m.queryRenderedFeatures(e.point, { layers: ['building'] })[0]
-          if (!f) {
-            setHint('No building outline here — use “Draw my roof” to trace it.')
-            return
-          }
-          const g = f.geometry as Roof['geometry']
-          const c = centroid(outerRing(g))
-          setHint(null)
-          setRoof({ geometry: g, areaM2: footprintAreaM2(g), center: c, parish: parishAt(parishes.current, c.lng, c.lat), source: 'map_footprint' })
+          pickFeature(m.queryRenderedFeatures(e.point, { layers: ['building'] })[0])
         })
         map.current = m
       } catch {
@@ -147,6 +159,119 @@ export default function SolarEstimator() {
     m.getSource('draft')?.setData({ type: 'FeatureCollection', features: feats })
   }, [draft, mapState])
 
+  function pickFeature(f: any) {
+    if (!f) {
+      setHint('No building outline here — use “Draw my roof” and tap its corners.')
+      return
+    }
+    const g = f.geometry as Roof['geometry']
+    const c = centroid(outerRing(g))
+    setHint(null)
+    setRoof({ geometry: g, areaM2: footprintAreaM2(g), center: c, parish: parishes.current ? parishAt(parishes.current, c.lng, c.lat) : null, source: 'map_footprint' })
+  }
+
+  // ── Bigger map ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    const m = map.current
+    requestAnimationFrame(() => m?.resize())
+    if (!full) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setFull(false)
+    window.addEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = prev
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [full])
+  useEffect(() => {
+    gMap.current?.setOptions({ gestureHandling: full ? 'greedy' : 'cooperative' })
+  }, [full, gState])
+
+  // ── Satellite (Google) ─────────────────────────────────────────────────
+  // Tapping a roof on the imagery uses OUR building outline at that spot: the
+  // (hidden) Kingston map is moved there and asked which building is under it.
+  const pickAt = useCallback(async (lng: number, lat: number, googleZoom: number) => {
+    const m = map.current
+    if (!m) return
+    m.jumpTo({ center: [lng, lat], zoom: Math.max(16.5, googleZoom - 1) })
+    await new Promise<void>((resolve) => {
+      const t = setTimeout(resolve, 4000)
+      m.once('idle', () => (clearTimeout(t), resolve()))
+    })
+    pickFeature(m.queryRenderedFeatures(m.project([lng, lat]), { layers: ['building'] })[0])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function showSatellite() {
+    setView('satellite')
+    const m = map.current
+    const c = m?.getCenter()
+    const z = m ? Math.round(m.getZoom() + 1) : 17
+    if (gMap.current) {
+      if (c) gMap.current.moveCamera({ center: { lat: c.lat, lng: c.lng }, zoom: z })
+      return
+    }
+    setGState('loading')
+    window.gm_authFailure = () => setGState('rejected')
+    try {
+      const g = await loadGoogleMaps()
+      if (gStateRef.current === 'rejected') return
+      if (!gEl.current) return
+      const gm = new g.maps.Map(gEl.current, {
+        center: c ? { lat: c.lat, lng: c.lng } : { lat: 18.01, lng: -76.79 },
+        zoom: z,
+        mapTypeId: 'satellite',
+        tilt: 0,
+        heading: 0,
+        rotateControl: false,
+        streetViewControl: false,
+        mapTypeControl: false,
+        fullscreenControl: false,
+        clickableIcons: false,
+        gestureHandling: full ? 'greedy' : 'cooperative',
+      })
+      gm.addListener('click', (e: any) => {
+        const lng = e.latLng.lng()
+        const lat = e.latLng.lat()
+        if (modeRef.current === 'draw') return setDraft((d) => [...d, [lng, lat]])
+        if (gm.getZoom() < 17) {
+          setHint('Zoom in until you can see your roof, then tap it.')
+          gm.moveCamera({ center: { lat, lng }, zoom: 19 })
+          return
+        }
+        pickAt(lng, lat, gm.getZoom())
+      })
+      gMap.current = gm
+      setGState((st) => (st === 'rejected' ? st : 'ready'))
+    } catch {
+      setGState('failed')
+    }
+  }
+  function showMap() {
+    setView('map')
+    const gm = gMap.current
+    const m = map.current
+    // A map Google refused (bad key) has no camera to hand back.
+    const c = gState === 'ready' ? gm?.getCenter?.() : null
+    if (c && m) m.jumpTo({ center: [c.lng(), c.lat()], zoom: (gm.getZoom() ?? 18) - 1 })
+  }
+
+  // Our roof and the outline being drawn, on top of the imagery.
+  useEffect(() => {
+    const g = window.google
+    const gm = gMap.current
+    if (gState !== 'ready' || !g || !gm) return
+    const sh = gShapes.current
+    sh.roof?.setMap(null)
+    sh.draft?.setMap(null)
+    sh.dots.forEach((d) => d.setMap(null))
+    sh.dots = []
+    const ll = ([lng, lat]: [number, number]) => ({ lat, lng })
+    sh.roof = roof ? new g.maps.Polygon({ map: gm, paths: outerRing(roof.geometry).map(ll), strokeColor: '#ffc83d', strokeWeight: 2.5, fillColor: '#ffc83d', fillOpacity: 0.28, clickable: false }) : null
+    sh.draft = draft.length > 1 ? new g.maps.Polyline({ map: gm, path: (draft.length > 2 ? [...draft, draft[0]] : draft).map(ll), strokeColor: '#4da3ff', strokeWeight: 2, clickable: false }) : null
+    sh.dots = draft.map((p) => new g.maps.Marker({ map: gm, position: ll(p), clickable: false, icon: { path: g.maps.SymbolPath.CIRCLE, scale: 5, fillColor: '#fff', fillOpacity: 1, strokeColor: '#2f80ed', strokeWeight: 2 } }))
+  }, [roof, draft, gState])
+
   const finishDraw = useCallback(() => {
     if (draft.length < 3) return setHint('Tap at least three corners of your roof.')
     const ring = [...draft, draft[0]]
@@ -159,7 +284,8 @@ export default function SolarEstimator() {
   }, [draft])
 
   function pickSearch(hit: SearchHit) {
-    map.current?.flyTo({ center: [hit.lng, hit.lat], zoom: Math.max(17, zoomForKind(hit.kind)), duration: 1600, essential: true })
+    map.current?.flyTo({ center: [hit.lng, hit.lat], zoom: Math.max(17, zoomForKind(hit.kind)), duration: viewRef.current === 'map' ? 1600 : 0, essential: true })
+    if (viewRef.current === 'satellite') gMap.current?.moveCamera({ center: { lat: hit.lat, lng: hit.lng }, zoom: Math.max(18, zoomForKind(hit.kind) + 1) })
     setHint('Now tap your roof.')
   }
 
@@ -217,10 +343,31 @@ export default function SolarEstimator() {
   return (
     <div style={{ display: 'grid', gap: 20 }}>
       <style>{CSS}</style>
-      <section className="ke-solar-map" aria-label="Choose your roof">
-        <div ref={el} style={{ position: 'absolute', inset: 0 }} role="region" aria-label="Map — tap your roof" />
+      <section className={`ke-solar-map${full ? ' is-full' : ''}`} aria-label="Choose your roof">
+        <div ref={el} style={{ position: 'absolute', inset: 0, visibility: view === 'map' ? 'visible' : 'hidden' }} role="region" aria-label="Map — tap your roof" aria-hidden={view !== 'map'} />
+        {view === 'satellite' && gState !== 'ready' && (
+          <div className="ke-solar-gmsg" role="status">
+            {gState === 'loading' ? 'Loading satellite imagery…' : gState === 'rejected' ? 'Google refused the map key, so satellite imagery isn’t available right now.' : 'Satellite imagery couldn’t load.'}
+          </div>
+        )}
+        <div ref={gEl} style={{ position: 'absolute', inset: 0, visibility: view === 'satellite' ? 'visible' : 'hidden' }} role="region" aria-label="Satellite imagery — tap your roof" aria-hidden={view !== 'satellite'} />
         {mapState === 'ready' && (
           <>
+            <div className="ke-solar-views">
+              {GOOGLE_BROWSER_KEY && (
+                <div className="ke-solar-seg" role="group" aria-label="Map style">
+                  <button type="button" aria-pressed={view === 'map'} onClick={showMap}>
+                    <MapIcon size={15} aria-hidden /> Map
+                  </button>
+                  <button type="button" aria-pressed={view === 'satellite'} onClick={showSatellite}>
+                    <Satellite size={15} aria-hidden /> Satellite
+                  </button>
+                </div>
+              )}
+              <button type="button" className="ke-solar-full" onClick={() => setFull(!full)} aria-label={full ? 'Exit full screen' : 'Full screen map'} aria-pressed={full}>
+                {full ? <Minimize2 size={16} aria-hidden /> : <Maximize2 size={16} aria-hidden />}
+              </button>
+            </div>
             <div data-theme="light">
               <MapSearch chargers={[]} onPick={pickSearch} />
             </div>
@@ -282,14 +429,27 @@ export default function SolarEstimator() {
             <fieldset style={{ border: 0, padding: 0, margin: 0, display: 'grid', gap: 8 }}>
               <legend style={label}>Roof type</legend>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {(['flat', 'pitched'] as const).map((t) => (
+                {ROOF_TYPES.map((t) => (
                   <button key={t} type="button" className="ke-chip" aria-pressed={roofType === t} onClick={() => setRoofType(t)}>
-                    {t === 'flat' ? 'Flat (concrete)' : 'Pitched (sloped)'}
+                    {ROOF_LABEL[t]}
                   </button>
                 ))}
               </div>
             </fieldset>
-            {roofType === 'pitched' && (
+            {roofType === 'zinc' && (
+              <fieldset style={{ border: 0, padding: 0, margin: 0, display: 'grid', gap: 8 }}>
+                <legend style={label}>What state is the zinc in?</legend>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {([['good', 'Good — no rust or leaks'], ['worn', 'Rusty or leaking'], ['unsure', 'Not sure']] as const).map(([v, t]) => (
+                    <button key={v} type="button" className="ke-chip" aria-pressed={roofCondition === v} onClick={() => setRoofCondition(v)}>
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+            )}
+            <RoofNote type={roofType} condition={roofCondition} />
+            {isSloped(roofType) && (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <div>
                   <label htmlFor="s-facing" style={label}>Best face points</label>
@@ -326,7 +486,7 @@ export default function SolarEstimator() {
                 </div>
               </div>
               <p style={{ ...muted, fontSize: 12.5, margin: '8px 0 0' }}>
-                Usable share allows for edge setbacks, water tanks, AC units and row spacing ({SOLAR_DEFAULTS.usableFractionFlat * 100}% flat, {SOLAR_DEFAULTS.usableFractionPitched * 100}% pitched by default). Flat roofs are assumed racked at {SOLAR_DEFAULTS.flatTiltDeg}° facing south.
+                Usable share allows for edge setbacks, water tanks, AC units and row spacing ({SOLAR_DEFAULTS.usableFractionFlat * 100}% flat, {SOLAR_DEFAULTS.usableFractionPitched * 100}% zinc or sloped by default). Flat roofs are assumed racked at {SOLAR_DEFAULTS.flatTiltDeg}° facing south; on zinc and sloped roofs panels follow the roof.
               </p>
             </details>
           </section>
@@ -440,7 +600,7 @@ export default function SolarEstimator() {
             ) : null}
           </section>
 
-          <QuoteForm roof={roof} roofType={roofType} sizing={system} annualKwh={production?.ok ? production.value.annualKwh.base : null} usage={usage.trim() ? usageKwh : null} />
+          <QuoteForm roof={roof} roofType={roofType} roofCondition={roofType === 'zinc' ? roofCondition : null} sizing={system} annualKwh={production?.ok ? production.value.annualKwh.base : null} usage={usage.trim() ? usageKwh : null} />
         </div>
       )}
       <p style={{ ...muted, fontSize: 12 }}>
@@ -450,7 +610,33 @@ export default function SolarEstimator() {
   )
 }
 
-function QuoteForm({ roof, roofType, sizing, annualKwh, usage }: { roof: Roof; roofType: RoofType; sizing: { modules: number; kwp: number } | null; annualKwh: number | null; usage: number | null }) {
+/** What the roof type means for getting panels — plain guidance, no promises; the site visit decides. */
+function RoofNote({ type, condition }: { type: RoofType; condition: 'good' | 'worn' | 'unsure' }) {
+  const box = { margin: 0, padding: '12px 14px', borderRadius: 12, background: 'rgba(255,200,87,.07)', border: '1px solid rgba(255,200,87,.25)', fontSize: 13.5, lineHeight: 1.55, color: 'var(--ke-dark-text)' } as const
+  if (type === 'flat')
+    return <p style={box}>Panels sit on tilted frames fixed to the slab. If the slab leaks, it should be sealed first — panels make the roof harder to reach later.</p>
+  if (type === 'pitched')
+    return <p style={box}>Panels follow the slope on rails fixed into the rafters, with flashing so the roof stays watertight.</p>
+  return (
+    <div style={{ ...box, display: 'grid', gap: 6 }}>
+      <p style={{ margin: 0 }}>
+        <strong>Zinc roofs can take panels.</strong> The rails are fixed through the sheets into the purlins or rafters with sealed fasteners, so what really matters is the wood or steel underneath — it has to be sound, strong enough, and held down well enough for hurricane winds. An installer checks this on a site visit.
+      </p>
+      {condition === 'worn' && (
+        <p style={{ margin: 0 }}>
+          Rusty or leaking zinc is normally replaced <em>before</em> panels go on: once they’re up, re-roofing means taking them off first. Plan for new sheets as part of the job.
+        </p>
+      )}
+      {condition === 'unsure' && <p style={{ margin: 0 }}>Not sure what shape it’s in? We’ll look at the sheets and the structure on the visit.</p>}
+      <p style={{ margin: 0, color: 'var(--ke-dark-text-muted)' }}>
+        Renting, or sharing the roof with neighbours? The owner has to agree before anything is fixed to it. If the roof can’t take panels, a{' '}
+        <Link href="/shop?category=stations" style={{ color: 'var(--ke-green-400)', fontWeight: 600 }}>power station with portable solar panels</Link> needs no roof work.
+      </p>
+    </div>
+  )
+}
+
+function QuoteForm({ roof, roofType, roofCondition, sizing, annualKwh, usage }: { roof: Roof; roofType: RoofType; roofCondition: 'good' | 'worn' | 'unsure' | null; sizing: { modules: number; kwp: number } | null; annualKwh: number | null; usage: number | null }) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -469,7 +655,7 @@ function QuoteForm({ roof, roofType, sizing, annualKwh, usage }: { roof: Roof; r
         email,
         phone: phone || undefined,
         note: note || undefined,
-        estimate: { lat: roof.center.lat, lng: roof.center.lng, parish: roof.parish, roofType, footprintM2: roof.areaM2, modules: sizing.modules, kwp: sizing.kwp, annualKwhBase: annualKwh, monthlyUsageKwh: usage, roofSource: roof.source },
+        estimate: { lat: roof.center.lat, lng: roof.center.lng, parish: roof.parish, roofType, roofCondition, footprintM2: roof.areaM2, modules: sizing.modules, kwp: sizing.kwp, annualKwhBase: annualKwh, monthlyUsageKwh: usage, roofSource: roof.source },
       }),
     })
     const d = await res.json().catch(() => ({}))
@@ -523,7 +709,7 @@ function QuoteForm({ roof, roofType, sizing, annualKwh, usage }: { roof: Roof; r
 }
 
 const CSS = `
-.ke-solar-map{position:relative;height:clamp(420px,62vh,640px);border-radius:24px;overflow:hidden;background:#a7d3ee;box-shadow:0 18px 50px -20px rgba(0,0,0,.6)}
+.ke-solar-map{position:relative;height:clamp(460px,72vh,820px);border-radius:24px;overflow:hidden;background:#a7d3ee;box-shadow:0 18px 50px -20px rgba(0,0,0,.6)}
 .ke-solar-skeleton{position:absolute;inset:0;background:linear-gradient(100deg,rgba(255,255,255,0) 30%,rgba(255,255,255,.35) 50%,rgba(255,255,255,0) 70%) #cfe3ee;background-size:200% 100%;animation:ke-shimmer 1.4s linear infinite}
 .ke-solar-tools{position:absolute;left:14px;bottom:14px;z-index:4;display:flex;gap:6px;flex-wrap:wrap;padding:6px;border-radius:16px;background:rgba(255,255,255,.88);box-shadow:0 8px 28px rgba(0,0,0,.18);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
 .ke-solar-tools button{display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 12px;border-radius:11px;border:0;background:transparent;color:#1f1f23;font-weight:600;font-size:13.5px;cursor:pointer}
@@ -546,6 +732,15 @@ const CSS = `
 .ke-bar b{position:absolute;bottom:calc(100% + 2px);left:50%;transform:translateX(-50%);white-space:nowrap;font-size:11.5px;font-weight:600;color:#fff;background:#111e1a;border:1px solid var(--ke-dark-hairline);padding:3px 7px;border-radius:8px;opacity:0;pointer-events:none;transition:opacity .12s}
 .ke-bar:hover b{opacity:1}
 .ke-bar:hover i{filter:brightness(1.15)}
+
+.ke-solar-map.is-full{position:fixed;inset:0;z-index:1000;height:auto;border-radius:0;box-shadow:none}
+.ke-solar-views{position:absolute;top:14px;right:14px;z-index:5;display:flex;gap:8px;align-items:center}
+.ke-solar-seg{display:flex;padding:4px;border-radius:14px;background:rgba(255,255,255,.9);box-shadow:0 8px 28px rgba(0,0,0,.18)}
+.ke-solar-seg button{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border:0;border-radius:10px;background:transparent;color:#1f1f23;font-weight:600;font-size:13.5px;cursor:pointer}
+.ke-solar-seg button[aria-pressed=true]{background:#1f1f23;color:#fff}
+.ke-solar-full{display:grid;place-items:center;width:42px;height:42px;border:0;border-radius:14px;background:rgba(255,255,255,.9);color:#1f1f23;box-shadow:0 8px 28px rgba(0,0,0,.18);cursor:pointer}
+.ke-solar-gmsg{position:absolute;inset:0;z-index:1;display:grid;place-items:center;background:#1b2a24;color:#fff;font-size:14px;padding:20px;text-align:center}
+@media (max-width:600px){.ke-solar-views{top:66px;right:8px}}
 @keyframes ke-shimmer{from{background-position:150% 0}to{background-position:-50% 0}}
 @media (max-width:600px){.ke-solar-tools{left:8px;right:8px;bottom:8px;justify-content:center}.ke-solar-hint{bottom:70px}}
 `

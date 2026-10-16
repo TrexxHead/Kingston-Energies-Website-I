@@ -139,3 +139,17 @@ describe('sizing to the household', () => {
     expect(recommendSystem(roof, yieldData, 0).ok).toBe(false)
   })
 })
+
+import { ROOF_TYPES, ROOF_LABEL, isSloped } from '@/lib/energy/engine/solar'
+
+describe('roof types', () => {
+  it('zinc roofs use the sloped-roof defaults', () => {
+    const zinc = sizeRoof({ footprintM2: 120, roofType: 'zinc' })
+    const pitched = sizeRoof({ footprintM2: 120, roofType: 'pitched' })
+    expect(zinc.ok && pitched.ok && zinc.value.modules).toBe(pitched.ok && pitched.value.modules)
+    expect(zinc.ok && zinc.assumptions[0].description).toMatch(/zinc/i)
+    expect(isSloped('zinc')).toBe(true)
+    expect(isSloped('flat')).toBe(false)
+    expect(ROOF_TYPES.every((t) => ROOF_LABEL[t])).toBe(true)
+  })
+})

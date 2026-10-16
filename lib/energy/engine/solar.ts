@@ -15,13 +15,24 @@ import { type TariffVersion, marginalSaving } from './tariff'
  * the engine reports production only.
  */
 
-export type RoofType = 'flat' | 'pitched'
+/**
+ * flat:    concrete slab — panels on tilted racks facing south.
+ * zinc:    corrugated metal sheeting (most common on Jamaican homes) — panels
+ *          follow the roof slope on rails fixed through the sheets into the
+ *          purlins/rafters, so the structure underneath decides suitability.
+ * pitched: sloped shingle or tile roof — panels follow the slope.
+ * Zinc and pitched share the sloped-roof geometry defaults.
+ */
+export type RoofType = 'flat' | 'zinc' | 'pitched'
+export const ROOF_TYPES: RoofType[] = ['flat', 'zinc', 'pitched']
+export const ROOF_LABEL: Record<RoofType, string> = { flat: 'Flat concrete', zinc: 'Zinc (corrugated metal)', pitched: 'Sloped shingle or tile' }
+export const isSloped = (t: RoofType) => t !== 'flat'
 
 /** Default assumptions — shown to the visitor and editable. */
 export const SOLAR_DEFAULTS = {
   /** Share of a flat roof usable after edge setbacks, tanks, AC units and row spacing. */
   usableFractionFlat: 0.45,
-  /** Share of a pitched roof's footprint on faces that suit panels. */
+  /** Share of a sloped roof's footprint (zinc or shingle/tile) on faces that suit panels. */
   usableFractionPitched: 0.4,
   /** A common residential module (~1.95 m², ~430 W). */
   moduleAreaM2: 1.95,
@@ -73,7 +84,7 @@ export interface RoofSizing {
 export function sizeRoof(r: RoofInput): CalcResult<RoofSizing> {
   if (!isPositive(r.footprintM2)) return refuse('missing_input', ['footprintM2'], 'Choose a roof on the map or draw its outline.')
   if (r.footprintM2 > 50_000) return refuse('invalid_input', ['footprintM2'], 'That outline is larger than any single roof — redraw it around one building.')
-  const fraction = r.usableFraction ?? (r.roofType === 'flat' ? SOLAR_DEFAULTS.usableFractionFlat : SOLAR_DEFAULTS.usableFractionPitched)
+  const fraction = r.usableFraction ?? (isSloped(r.roofType) ? SOLAR_DEFAULTS.usableFractionPitched : SOLAR_DEFAULTS.usableFractionFlat)
   if (!(fraction > 0 && fraction <= 1)) return refuse('invalid_input', ['usableFraction'], 'Usable share must be between 1% and 100%.')
   const area = r.moduleAreaM2 ?? SOLAR_DEFAULTS.moduleAreaM2
   const watts = r.moduleWatts ?? SOLAR_DEFAULTS.moduleWatts
@@ -82,7 +93,7 @@ export function sizeRoof(r: RoofInput): CalcResult<RoofSizing> {
   const usable = r.footprintM2 * fraction
   const modules = Math.floor(usable / area)
   const assumptions: Assumption[] = [
-    { id: 'solar.usable_fraction', description: `${Math.round(fraction * 100)}% of the ${r.roofType} roof is usable for panels.`, value: fraction },
+    { id: 'solar.usable_fraction', description: `${Math.round(fraction * 100)}% of the ${ROOF_LABEL[r.roofType].toLowerCase()} roof is usable for panels.`, value: fraction },
     { id: 'solar.module', description: `Modules of ${area} m² and ${watts} W.`, value: watts, unit: 'W' },
   ]
   if (modules < 1) return refuse('invalid_input', ['footprintM2'], 'The usable area is too small for even one panel.')

@@ -6,6 +6,7 @@ import { sendQuoteRequestEmails } from '@/lib/email'
 import { logServerError } from '@/lib/clientLog'
 import { PARISHES } from '@/lib/map/parishes'
 import { CALC_ENGINE_VERSION } from '@/lib/energy/engine/version'
+import { ROOF_LABEL } from '@/lib/energy/engine/solar'
 
 const schema = z.object({
   name: z.string().trim().min(1).max(120),
@@ -16,7 +17,8 @@ const schema = z.object({
     lat: z.number(),
     lng: z.number(),
     parish: z.string().max(40).nullable(),
-    roofType: z.enum(['flat', 'pitched']),
+    roofType: z.enum(['flat', 'zinc', 'pitched']),
+    roofCondition: z.enum(['good', 'worn', 'unsure']).nullable().optional(),
     footprintM2: z.number().positive().max(50_000),
     modules: z.number().int().positive().max(5000),
     kwp: z.number().positive().max(2000),
@@ -41,7 +43,7 @@ export async function POST(request: Request) {
   const lines = [
     'Rooftop solar estimate request.',
     `Location: ${e.lat.toFixed(5)}, ${e.lng.toFixed(5)}${parishName ? ` (${parishName})` : ''} — https://www.google.com/maps?q=${e.lat},${e.lng}`,
-    `Roof: ${e.roofType}, ~${Math.round(e.footprintM2)} m² footprint (${e.roofSource === 'map_footprint' ? 'map building outline' : 'drawn by customer'}).`,
+    `Roof: ${ROOF_LABEL[e.roofType]}${e.roofCondition ? ` — condition: ${{ good: 'good, no rust or leaks', worn: 'rusty or leaking (likely needs re-roofing first)', unsure: 'customer not sure' }[e.roofCondition]}` : ''}, ~${Math.round(e.footprintM2)} m² footprint (${e.roofSource === 'map_footprint' ? 'map building outline' : 'drawn by customer'}).`,
     `Estimated system: ${e.modules} panels, ${e.kwp.toFixed(2)} kWp${e.annualKwhBase != null ? `, ~${Math.round(e.annualKwhBase).toLocaleString('en-JM')} kWh/yr (PVGIS)` : ''}.`,
     e.monthlyUsageKwh != null ? `Customer's usage: ${Math.round(e.monthlyUsageKwh)} kWh/month.` : 'Customer did not enter usage.',
     `Calculator version ${CALC_ENGINE_VERSION}. Estimate only — needs a site visit (shading, roof condition, structure).`,

@@ -26,5 +26,8 @@
  *   kWh/100 km; hills m·g·h at 85% drivetrain efficiency, 60% regen, only
  *   with vehicle mass) and charge stops at the last charger before a
  *   shortfall (80%, raised to 100% if needed).
+ * 1.4.0 (2026-10-16) — solar roof type 'zinc' (corrugated metal) added; it
+ *   uses the sloped-roof defaults (40% usable, panels follow the roof
+ *   slope, default 20° until the visitor enters the pitch).
  */
-export const CALC_ENGINE_VERSION = '1.3.0'
+export const CALC_ENGINE_VERSION = '1.4.0'

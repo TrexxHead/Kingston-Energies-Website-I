@@ -6,6 +6,7 @@ import { PARISHES, JAMAICA_CENTER } from '@/lib/map/parishes'
 import { embedSearchUrl, keyFingerprint } from '@/lib/map/embed'
 import { muted, h2, card, Btn } from '@/app/my-energy/_components/ui'
 import { GOOGLE_BROWSER_KEY, GOOGLE_EMBED_KEY, GOOGLE_MAP_ID } from './googleKeys'
+import { loadGoogleMaps as loadMaps } from './loadGoogleMaps'
 import type { MapViewHandle, MapViewProps } from './types'
 
 /**
@@ -27,26 +28,6 @@ export interface DiscoveredResults {
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-declare global {
-  interface Window {
-    google?: any
-    __keMapsReady?: () => void
-    gm_authFailure?: () => void
-  }
-}
-
-function loadMaps(): Promise<any> {
-  if (window.google?.maps) return Promise.resolve(window.google)
-  return new Promise((resolve, reject) => {
-    window.__keMapsReady = () => resolve(window.google)
-    const s = document.createElement('script')
-    s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(GOOGLE_BROWSER_KEY)}&v=weekly&loading=async&libraries=marker&callback=__keMapsReady`
-    s.async = true
-    s.onerror = () => reject(new Error('maps failed'))
-    document.head.appendChild(s)
-  })
-}
-
 interface Props extends MapViewProps {
   onDiscovered: (r: DiscoveredResults) => void
 }

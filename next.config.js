@@ -72,6 +72,8 @@ const nextConfig = {
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(self), payment=()' },
         ],
       },
+      // The solar estimator's satellite view uses Google's imagery (Maps JavaScript API).
+      { source: '/solar', headers: [{ key: 'Content-Security-Policy', value: mapCsp }] },
       // A web worker runs under its own script's CSP; MapLibre's worker gets
       // the map page's policy so anything the map may fetch is allowed there.
       {

@@ -98,6 +98,12 @@ export const lenderOfferDataSchema = z
     rateType: z.enum(['fixed', 'variable']),
     maxTermMonths: z.number().int().min(1).max(360).nullable().optional(),
     minDepositPct: z.number().min(0).max(100).nullable().optional(),
+    // Published charges, when the lender states them (blank = not published, never assumed).
+    processingFeePct: z.number().min(0).max(20).nullable().optional(),
+    otherUpfrontFees: z.number().min(0).max(10_000_000).nullable().optional(),
+    monthlyFee: z.number().min(0).max(1_000_000).nullable().optional(),
+    lifeInsurancePctPerYear: z.number().min(0).max(10).nullable().optional(),
+    maxLoan: z.number().min(0).max(1_000_000_000).nullable().optional(),
     notes: z.string().trim().max(500).nullable().optional(),
   })
 

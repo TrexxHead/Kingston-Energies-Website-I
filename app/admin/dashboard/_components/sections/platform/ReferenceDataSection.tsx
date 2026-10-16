@@ -126,7 +126,7 @@ function Summary({ r }: { r: RefRecord }) {
   if (r.kind === 'shelter_list') return <span style={muted}>{(r.data as RefRecord<'shelter_list'>['data']).shelters.length} shelters</span>
   if (r.kind === 'lender_offer') {
     const l = r.data as RefRecord<'lender_offer'>['data']
-    return <span style={muted}>{l.lender} — {l.product}: {l.rateIsFrom ? 'from ' : ''}{l.annualRatePct}% {l.rateType}{l.maxTermMonths ? `, up to ${l.maxTermMonths} months` : ''}{l.minDepositPct != null ? `, ${l.minDepositPct}% deposit` : ''}</span>
+    return <span style={muted}>{l.lender} — {l.product}: {l.rateIsFrom ? 'from ' : ''}{l.annualRatePct}% {l.rateType}{l.maxTermMonths ? `, up to ${l.maxTermMonths} months` : ''}{l.minDepositPct != null ? `, ${l.minDepositPct}% deposit` : ''}{l.processingFeePct != null ? `, ${l.processingFeePct}% processing` : ''}{l.monthlyFee != null ? `, J$${l.monthlyFee}/month fee` : ''}</span>
   }
   const d = r.data as RefRecord<'charging_price'>['data']
   return <span style={muted}>{d.operator}: {d.pricePerKwh != null ? `J$${d.pricePerKwh}/kWh` : 'not per kWh'}{d.notes ? ` — ${d.notes}` : ''}</span>
@@ -162,6 +162,11 @@ function RecordEditor({ kind, onDone }: { kind: RefKind; onDone: () => void }) {
   const [rateType, setRateType] = useState<'fixed' | 'variable'>('fixed')
   const [maxTerm, setMaxTerm] = useState('')
   const [minDeposit, setMinDeposit] = useState('')
+  const [procFee, setProcFee] = useState('')
+  const [otherFees, setOtherFees] = useState('')
+  const [monthlyFee, setMonthlyFee] = useState('')
+  const [lifeIns, setLifeIns] = useState('')
+  const [maxLoan, setMaxLoan] = useState('')
 
   const addComp = (k: TariffComponent['kind']) =>
     setComps([...comps, { kind: k, label: k === 'fixed' ? 'Customer charge' : k === 'energy_blocks' ? 'Energy charge' : k === 'per_kwh' ? 'Fuel & IPP charge' : 'GCT', amount: '', percent: '', blocks: k === 'energy_blocks' ? [{ upTo: '100', rate: '' }, { upTo: '', rate: '' }] : [] }])
@@ -185,7 +190,7 @@ function RecordEditor({ kind, onDone }: { kind: RefKind; onDone: () => void }) {
       }
     if (kind === 'fuel_price') return { basis, currency: 'JMD', grades: grades.filter((g) => g.price.trim()).map((g) => ({ grade: g.grade, pricePerLitre: num(g.price) })) }
     if (kind === 'lender_offer')
-      return { lender, product, annualRatePct: num(rate), rateIsFrom: rateFrom === 'yes', rateType, maxTermMonths: maxTerm.trim() ? num(maxTerm) : null, minDepositPct: minDeposit.trim() ? num(minDeposit) : null, notes: notes.trim() || null }
+      return { lender, product, annualRatePct: num(rate), rateIsFrom: rateFrom === 'yes', rateType, maxTermMonths: maxTerm.trim() ? num(maxTerm) : null, minDepositPct: minDeposit.trim() ? num(minDeposit) : null, processingFeePct: procFee.trim() ? num(procFee) : null, otherUpfrontFees: otherFees.trim() ? num(otherFees) : null, monthlyFee: monthlyFee.trim() ? num(monthlyFee) : null, lifeInsurancePctPerYear: lifeIns.trim() ? num(lifeIns) : null, maxLoan: maxLoan.trim() ? num(maxLoan) : null, notes: notes.trim() || null }
     if (kind === 'charging_price') return { operator, pricePerKwh: perKwh.trim() ? num(perKwh) : null, notes: notes.trim() || null }
     const shelters = csv
       .split('\n')
@@ -289,6 +294,11 @@ function RecordEditor({ kind, onDone }: { kind: RefKind; onDone: () => void }) {
             <TextInput label="Fixed or variable" value={rateType} onChange={(v) => setRateType(v as typeof rateType)} options={['fixed', 'variable']} />
             <TextInput label="Longest term (months)" value={maxTerm} onChange={setMaxTerm} />
             <TextInput label="Minimum deposit %" value={minDeposit} onChange={setMinDeposit} />
+            <TextInput label="Processing fee % of loan" value={procFee} onChange={setProcFee} />
+            <TextInput label="Other upfront fees J$ (legal, stamp duty…)" value={otherFees} onChange={setOtherFees} />
+            <TextInput label="Monthly account / service fee J$" value={monthlyFee} onChange={setMonthlyFee} />
+            <TextInput label="Life insurance % a year of balance" value={lifeIns} onChange={setLifeIns} />
+            <TextInput label="Largest loan J$" value={maxLoan} onChange={setMaxLoan} />
             <TextInput label="Notes (fees, eligibility)" value={notes} onChange={setNotes} />
           </div>
         </div>

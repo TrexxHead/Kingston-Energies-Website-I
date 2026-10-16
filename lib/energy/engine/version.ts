@@ -29,5 +29,9 @@
  * 1.4.0 (2026-10-16) — solar roof type 'zinc' (corrugated metal) added; it
  *   uses the sloped-roof defaults (40% usable, panels follow the roof
  *   slope, default 20° until the visitor enters the pitch).
+ * 1.5.0 (2026-10-16) — detailed loan: fees (upfront / financed / monthly /
+ *   yearly, flat or % of the loan), life insurance on the balance,
+ *   interest-only months, extra payments, rate-rise check, schedule, and an
+ *   APR-style true yearly cost (IRR of all cashflows).
  */
-export const CALC_ENGINE_VERSION = '1.4.0'
+export const CALC_ENGINE_VERSION = '1.5.0'

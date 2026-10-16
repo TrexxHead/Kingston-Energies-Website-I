@@ -23,7 +23,7 @@ export default function FinancingPage() {
             What would it cost each month?
           </h1>
           <p style={{ fontSize: 17, lineHeight: 1.65, color: 'rgba(234,242,236,.72)', margin: '18px 0 0', maxWidth: 680 }}>
-            See the monthly payment and total interest on a loan for solar, batteries or backup power — and, if you know your bill saving, what it really costs you each month.
+            Three quick answers give you the monthly payment. Then, if you want, add the fees, insurance and extra payments from your loan offer to see the true cost — and compare lenders side by side.
           </p>
         </section>
         <section style={{ maxWidth: 1100, margin: '0 auto', padding: '0 20px 80px' }}>

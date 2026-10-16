@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import WhatsAppButton from './WhatsAppButton'
+import { ENERGY_GROUPS } from './nav/energyNav'
 import { ArrowRight, Mail, Phone } from 'lucide-react'
 import { analytics } from '@/lib/analytics'
 
@@ -25,22 +26,14 @@ const SHOP_COLUMN = [
   { href: '/bulk-corporate', label: 'Bulk & corporate' },
 ]
 
+// The energy tools, from the same grouped list as the navbar menu.
+const ENERGY_COLUMN = ENERGY_GROUPS.flatMap((g) => g.links.map((l) => ({ href: l.href, label: l.label })))
+
 const COMPANY_COLUMN = [
   { href: '/about', label: 'About' },
   { href: '/services', label: 'Services' },
   { href: '/faq', label: 'FAQ' },
   { href: '/find-my-power', label: 'Find my power' },
-  { href: '/my-energy', label: 'My Energy' },
-  { href: '/energy-map', label: 'Jamaica Energy Map' },
-  { href: '/solar', label: 'Rooftop solar estimator' },
-  { href: '/bill-explainer', label: 'Bill Explainer' },
-  { href: '/ev-costs', label: 'EV vs petrol costs' },
-  { href: '/storm-ready', label: 'Storm ready' },
-  { href: '/financing', label: 'Financing calculator' },
-  { href: '/net-billing', label: 'Net billing guide' },
-  { href: '/business-tools', label: 'Business & farm tools' },
-  { href: '/installers', label: 'Licensed installers' },
-  { href: '/book', label: 'Book a visit' },
   { href: '/back-in-stock', label: 'Back in stock' },
 ]
 
@@ -227,7 +220,7 @@ export default function Footer({ showCta = true }: { showCta?: boolean }) {
           margin: '0 auto',
           padding: showCta ? '48px 32px 40px' : 'clamp(56px,8vw,88px) 32px 40px',
           display: 'grid',
-          gridTemplateColumns: '1.4fr 1fr 1fr 1fr',
+          gridTemplateColumns: '1.4fr 1fr 1fr 1fr 1fr',
           gap: 40,
         }}
         className="ke-footer-grid"
@@ -270,6 +263,7 @@ export default function Footer({ showCta = true }: { showCta?: boolean }) {
         </div>
 
         <FooterColumn title="Shop" links={SHOP_COLUMN} />
+        <FooterColumn title="My Energy" links={ENERGY_COLUMN} />
         <FooterColumn title="Company" links={COMPANY_COLUMN} />
         <FooterColumn title="Legal" links={LEGAL_COLUMN} />
       </div>

@@ -8,6 +8,8 @@ import { useSession } from 'next-auth/react'
 import { ChevronLeft, ShoppingBag } from 'lucide-react'
 import { useCart } from '@/components/cart/CartContext'
 import ProfileNav from '@/components/ProfileNav'
+import EnergyMenu from '@/components/nav/EnergyMenu'
+import MobileMenu from '@/components/nav/MobileMenu'
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false)
@@ -56,6 +58,7 @@ export default function Navbar() {
           <button
             type="button"
             onClick={() => router.back()}
+            className="ke-nav-back"
             aria-label="Go back"
             style={{
               width: 40,
@@ -79,6 +82,7 @@ export default function Navbar() {
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <Image src="/images/logo-mark.png" alt="Kingston Energies" width={26} height={26} style={{ objectFit: 'contain' }} />
           <span
+            className="ke-nav-word"
             style={{
               fontFamily: 'var(--font-display)',
               fontWeight: 800,
@@ -92,7 +96,7 @@ export default function Navbar() {
           </span>
         </Link>
 
-        <div className="kad-hide-sm" style={{ display: 'flex', gap: 22, marginLeft: 12, whiteSpace: 'nowrap' }}>
+        <div className="kad-hide-sm" style={{ display: 'flex', gap: 22, marginLeft: 12, whiteSpace: 'nowrap', alignItems: 'center' }}>
           <Link href="/shop" style={{ fontSize: 13.5, color: 'rgba(234,242,236,.72)' }}>
             Shop
           </Link>
@@ -102,18 +106,14 @@ export default function Navbar() {
           <Link href="/about" style={{ fontSize: 13.5, color: 'rgba(234,242,236,.72)' }}>
             About
           </Link>
-          <Link href="/my-energy" style={{ fontSize: 13.5, color: 'rgba(234,242,236,.72)' }}>
-            My Energy
-          </Link>
-          <Link href="/energy-map" style={{ fontSize: 13.5, color: 'rgba(234,242,236,.72)' }}>
-            Energy Map
-          </Link>
+          <EnergyMenu />
           <Link href="/#ke-roadmap" style={{ fontSize: 13.5, color: 'rgba(234,242,236,.72)' }}>
             Roadmap
           </Link>
         </div>
 
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 22 }}>
+          <MobileMenu />
           <a
             href="tel:+18763389958"
             className="kad-hide-sm kad-hide-md"
@@ -130,6 +130,7 @@ export default function Navbar() {
 
           <Link
             href="/shop"
+            className="ke-nav-cta"
             style={{
               height: 36,
               display: 'flex',

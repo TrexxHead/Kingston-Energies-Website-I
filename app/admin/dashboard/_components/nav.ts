@@ -235,6 +235,51 @@ export const NAV: NavGroup[] = [
     ],
   },
   {
+    id: 'platform',
+    label: 'Energy platform',
+    icon: 'zap',
+    href: `${BASE}/platform`,
+    description: 'Verified product specs and the Jamaica Energy Map',
+    children: [
+      {
+        href: `${BASE}/platform`,
+        label: 'Catalogue evidence',
+        description: 'Record and verify exact product specifications before anything is recommended',
+        keywords: 'sku specs datasheet verify evidence catalogue backup match',
+      },
+      {
+        href: `${BASE}/platform/map`,
+        label: 'Map stations',
+        description: 'Add, verify and publish EV charging locations',
+        keywords: 'ev charger station registry energy map publish',
+      },
+      {
+        href: `${BASE}/platform/reference-data`,
+        label: 'Reference data',
+        description: 'Tariffs, fuel prices, charging prices and shelters the calculators use',
+        keywords: 'tariff jps our fuel petrojam price shelter odpem reference data approve',
+      },
+      {
+        href: `${BASE}/platform/bookings`,
+        label: 'Bookings',
+        description: 'Service bookings, deposits, and the services and capacity customers can book',
+        keywords: 'booking visit install appointment deposit fygaro capacity service schedule',
+      },
+      {
+        href: `${BASE}/platform/installers`,
+        label: 'Installer directory',
+        description: 'Licensed installers: record licence evidence, verify and publish',
+        keywords: 'installer electrician licence gei directory verify',
+      },
+      {
+        href: `${BASE}/platform/map-reports`,
+        label: 'Map reports & coverage',
+        description: 'Moderate driver reports and record parish coverage reviews',
+        keywords: 'moderation community report missing charger parish coverage',
+      },
+    ],
+  },
+  {
     id: 'analytics',
     label: 'Analytics',
     icon: 'chart-scatter',

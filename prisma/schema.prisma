@@ -11,20 +11,20 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  username      String?   @unique
-  email         String    @unique
-  emailVerified DateTime?
-  password      String
-  role          Role      @default(USER)
-  phone         String?
-  segment       CustomerSegment?
-  loyaltyTier   String?
-  primaryNeed   CustomerNeed?
-  referralCode  String?   @unique // personal share code, e.g. KEG-24-JFEARON
-  pointsRedeemed Int      @default(0) // lifetime points spent at checkout — available balance is loyaltyPoints() minus this
-  lastActiveAt  DateTime? // last time the user engaged (drives admin online status)
+  id                String           @id @default(cuid())
+  name              String?
+  username          String?          @unique
+  email             String           @unique
+  emailVerified     DateTime?
+  password          String
+  role              Role             @default(USER)
+  phone             String?
+  segment           CustomerSegment?
+  loyaltyTier       String?
+  primaryNeed       CustomerNeed?
+  referralCode      String?          @unique // personal share code, e.g. KEG-24-JFEARON
+  pointsRedeemed    Int              @default(0) // lifetime points spent at checkout — available balance is loyaltyPoints() minus this
+  lastActiveAt      DateTime? // last time the user engaged (drives admin online status)
   // Notification toggles from Hub → Settings, keyed by preference id (e.g.
   // "promos", "tips") → boolean. A missing key means "use the default" —
   // see DEFAULT_NOTIFICATION_PREFS in lib/notificationPrefs.ts — so this
@@ -34,36 +34,38 @@ model User {
   // blocked and the address is suppressed from every automated send, but
   // nothing else about the account (orders, points, reviews) is touched —
   // this is a deactivation, not an erasure of their history with us.
-  deletedAt     DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  deletedAt         DateTime?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 
-  accounts      Account[]
-  sessions      Session[]
-  subscriptions Subscription[]
-  leads         Lead[]
-  orders        Order[]
-  tickets       SupportTicket[]
-  npsResponses  NpsResponse[]
-  reviews       Review[]
-  favorites     Favorite[]
-  notifications Notification[]
-  addresses     Address[]
-  registeredUnits ProductUnit[]
-  energyCheckups  EnergyCheckup[]
+  accounts         Account[]
+  sessions         Session[]
+  subscriptions    Subscription[]
+  leads            Lead[]
+  orders           Order[]
+  tickets          SupportTicket[]
+  npsResponses     NpsResponse[]
+  reviews          Review[]
+  favorites        Favorite[]
+  notifications    Notification[]
+  addresses        Address[]
+  registeredUnits  ProductUnit[]
+  energyCheckups   EnergyCheckup[]
+  energyProperties EnergyProperty[]
+  calculationRuns  CalculationRun[]
 }
 
 // Server-side cart snapshots — powers abandoned-cart tracking and conversion
 // rate. Keyed by an anonymous cart id (cookie) and linked to a user/email when
 // known. Marked CONVERTED when an order is placed.
 model Cart {
-  id        String   @id // client-generated cart id (also stored in a cookie)
-  userId    String?
-  email     String?
-  items     Json     // [{ name, price, qty }]
-  itemCount Int      @default(0)
-  total     Float    @default(0)
-  status    String   @default("ACTIVE") // ACTIVE | CONVERTED
+  id                  String    @id // client-generated cart id (also stored in a cookie)
+  userId              String?
+  email               String?
+  items               Json // [{ name, price, qty }]
+  itemCount           Int       @default(0)
+  total               Float     @default(0)
+  status              String    @default("ACTIVE") // ACTIVE | CONVERTED
   // When a recovery email was sent for this abandonment — null means not yet
   // sent, so the cron can find candidates and never send a second one for the
   // same abandonment. Reset to null on every /api/cart/sync upsert (any visit
@@ -72,8 +74,8 @@ model Cart {
   // eligible for another reminder once the inactivity window re-elapses,
   // which is normal behavior for this kind of email, not a bug).
   recoveryEmailSentAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   @@index([status, updatedAt])
   @@index([userId])
@@ -84,7 +86,7 @@ model Cart {
 model Address {
   id        String   @id @default(cuid())
   userId    String
-  label     String?  // e.g. "Home", "Office"
+  label     String? // e.g. "Home", "Office"
   name      String
   phone     String?
   street    String
@@ -103,7 +105,7 @@ model Address {
 model Notification {
   id        String   @id @default(cuid())
   userId    String
-  category  String   // ORDER | SHIPPING | NEW_PRODUCT | RESTOCK | DISCOUNT | PROMOTION | WARRANTY | EVENT | ANNOUNCEMENT
+  category  String // ORDER | SHIPPING | NEW_PRODUCT | RESTOCK | DISCOUNT | PROMOTION | WARRANTY | EVENT | ANNOUNCEMENT
   title     String
   body      String?  @db.Text
   href      String?
@@ -131,18 +133,18 @@ model Favorite {
 }
 
 model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String?  @db.Text
-  access_token       String?  @db.Text
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String?  @db.Text
-  session_state      String?
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -166,42 +168,42 @@ model VerificationToken {
 }
 
 model Product {
-  id          String   @id @default(cuid())
+  id               String           @id @default(cuid())
   // Stable link to the matching lib/catalog.ts entry this row overlays, if
   // any — set once (see scripts/backfillCatalogIds.ts) and never derived
   // from `name`, so renaming a product in admin can never fork it into a
   // second, duplicate storefront listing the way name-based matching did.
-  catalogId   String?  @unique
-  name        String
-  description String   @db.Text
-  shortDescription String? @db.Text // storefront card / summary copy
-  price       Float
-  salePrice   Float?   // optional sale price shown struck-through against price
-  cost        Float?   // unit cost, for COGS / margin in the P&L
-  icon        String?
-  images      String[] // ordered storefront gallery URLs; images[0] = thumbnail
-  features    String[]
-  specs       Json?    // [{ label, value }] technical specifications
-  brand       String?
-  weight      String?
-  dimensions  String?
-  warranty    String?
-  tags        String[] // search / merchandising tags
-  sku         String?  @unique
-  barcode     String?
-  category    ProductCategory?
-  spec        String?
-  stock       Int      @default(0)
-  threshold   Int      @default(5) // reorder threshold
-  badge       String?
-  archived    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  catalogId        String?          @unique
+  name             String
+  description      String           @db.Text
+  shortDescription String?          @db.Text // storefront card / summary copy
+  price            Float
+  salePrice        Float? // optional sale price shown struck-through against price
+  cost             Float? // unit cost, for COGS / margin in the P&L
+  icon             String?
+  images           String[] // ordered storefront gallery URLs; images[0] = thumbnail
+  features         String[]
+  specs            Json? // [{ label, value }] technical specifications
+  brand            String?
+  weight           String?
+  dimensions       String?
+  warranty         String?
+  tags             String[] // search / merchandising tags
+  sku              String?          @unique
+  barcode          String?
+  category         ProductCategory?
+  spec             String?
+  stock            Int              @default(0)
+  threshold        Int              @default(5) // reorder threshold
+  badge            String?
+  archived         Boolean          @default(false)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 
-  subscriptions Subscription[]
-  orderItems    OrderItem[]
+  subscriptions    Subscription[]
+  orderItems       OrderItem[]
   stockAdjustments StockAdjustment[]
-  units         ProductUnit[]
+  units            ProductUnit[]
 
   // getShopProducts()/metrics filter archived products out on every shop
   // and dashboard load.
@@ -246,8 +248,8 @@ model SerialCounter {
 model StockAdjustment {
   id            String   @id @default(cuid())
   productId     String
-  type          String   // SET | ADD | SUBTRACT
-  delta         Int      // signed change actually applied
+  type          String // SET | ADD | SUBTRACT
+  delta         Int // signed change actually applied
   previousStock Int
   newStock      Int
   reason        String?  @db.Text
@@ -260,14 +262,14 @@ model StockAdjustment {
 }
 
 model Subscription {
-  id        String   @id @default(cuid())
+  id        String             @id @default(cuid())
   userId    String
   productId String
   status    SubscriptionStatus @default(ACTIVE)
-  startDate DateTime @default(now())
+  startDate DateTime           @default(now())
   endDate   DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id])
@@ -287,22 +289,22 @@ model EnergyData {
 }
 
 model Lead {
-  id        String   @id @default(cuid())
-  userId    String?
-  email     String
-  name      String
-  phone     String?
-  message   String   @db.Text
-  status    LeadStatus @default(NEW)
+  id               String     @id @default(cuid())
+  userId           String?
+  email            String
+  name             String
+  phone            String?
+  message          String     @db.Text
+  status           LeadStatus @default(NEW)
   // Structured detail from the /contact "request a quote" flow, kept
   // alongside the free-text message rather than instead of it — present
   // only when the enquiry came in with a product list attached, so a plain
   // contact-form message still works with all of these null. Item prices
   // are the real catalog price at submission time (resolved server-side in
   // app/api/contact/route.ts), never trusted from the client.
-  quoteItems       Json?   // { name: string; price: number; qty: number }[]
+  quoteItems       Json? // { name: string; price: number; qty: number }[]
   quoteShoppingFor String?
-  quoteInterests   String[] @default([])
+  quoteInterests   String[]   @default([])
   quoteArea        String?
   quoteTimeframe   String?
   // Extra recipients for the quotation email besides the primary `email` —
@@ -311,13 +313,13 @@ model Lead {
   // Set once an admin converts this quote into a real Order — the order
   // then carries the sale forward through the normal pipeline (payment,
   // fulfillment, invoicing) exactly like any other.
-  convertedOrderId String?  @unique
+  convertedOrderId String?    @unique
   convertedAt      DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
 
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
-  convertedOrder Order? @relation(fields: [convertedOrderId], references: [id], onDelete: SetNull)
+  user           User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  convertedOrder Order?          @relation(fields: [convertedOrderId], references: [id], onDelete: SetNull)
   energyCheckups EnergyCheckup[]
 }
 
@@ -378,7 +380,7 @@ model EnergyCheckup {
   leadChannel  String? // "email" | "whatsapp"
   reportSentAt DateTime?
   leadId       String?
-  lead         Lead?   @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  lead         Lead?     @relation(fields: [leadId], references: [id], onDelete: SetNull)
 
   // Attribution, so Checkup completions can be tied back to the content or
   // channel that drove them.
@@ -396,50 +398,50 @@ model EnergyCheckup {
 }
 
 model Order {
-  id           String      @id @default(cuid())
-  orderNo       String      @unique
-  userId        String?
-  customerName  String
-  status        OrderStatus @default(PENDING)
-  source        OrderChannel @default(WEBSITE)
-  contact       String?     // WhatsApp number / Instagram handle for off-site orders
-  email         String?     // captured at checkout — used for guest invoices/receipts
-  phone         String?
-  shippingAddress String?   @db.Text
-  billingAddress  String?   @db.Text
-  paymentMethod String?
-  paid          Boolean     @default(false) // payment received/confirmed
+  id                 String       @id @default(cuid())
+  orderNo            String       @unique
+  userId             String?
+  customerName       String
+  status             OrderStatus  @default(PENDING)
+  source             OrderChannel @default(WEBSITE)
+  contact            String? // WhatsApp number / Instagram handle for off-site orders
+  email              String? // captured at checkout — used for guest invoices/receipts
+  phone              String?
+  shippingAddress    String?      @db.Text
+  billingAddress     String?      @db.Text
+  paymentMethod      String?
+  paid               Boolean      @default(false) // payment received/confirmed
   // The discount code redeemed on this order, if any — kept even though the
   // discount itself was already folded into `total`/line items, because
   // without it there's no way to know which code (or which campaign, via
   // Campaign.discountCodeId) actually drove a sale. See lib/campaignAttribution.ts.
-  promoCode     String?
+  promoCode          String?
   // Last-click campaign attribution: set when a customer's most recent
   // campaign-link click (within the attribution window — see
   // lib/campaignClick.ts) precedes this order. Covers campaigns that don't
   // have a linked discount code, which promoCode-based attribution can't see.
-  campaignId    String?
-  campaign      Campaign?   @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-  invoicedAt    DateTime?   // when an invoice was issued/sent (prevents dupes)
-  cancelReason  String?
-  cancelledAt   DateTime?
-  stage         Int         @default(0) // 0-7 position in the 8-stage delivery pipeline
-  estimatedDelivery DateTime? // admin-set / auto ETA shown to the customer
+  campaignId         String?
+  campaign           Campaign?    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  invoicedAt         DateTime? // when an invoice was issued/sent (prevents dupes)
+  cancelReason       String?
+  cancelledAt        DateTime?
+  stage              Int          @default(0) // 0-7 position in the 8-stage delivery pipeline
+  estimatedDelivery  DateTime? // admin-set / auto ETA shown to the customer
   // Set when an admin defers the order (stock-out, supplier delay, etc.) —
   // independent of `status`/`stage` so a delayed order still shows where it
   // actually is in the pipeline, just with a visible reason attached.
-  delayed       Boolean     @default(false)
-  delayReason   String?     @db.Text
-  delayedAt     DateTime?
-  total         Float       @default(0)
+  delayed            Boolean      @default(false)
+  delayReason        String?      @db.Text
+  delayedAt          DateTime?
+  total              Float        @default(0)
   proofOfPaymentPath String? // private storage path — customer-uploaded receipt/screenshot
   proofOfPaymentAt   DateTime?
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
 
-  user   User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
-  items  OrderItem[]
-  events OrderEvent[]
+  user       User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  items      OrderItem[]
+  events     OrderEvent[]
   // The quote this order was converted from, if it started life as a
   // request-a-quote submission rather than a direct checkout/manual sale.
   sourceLead Lead?
@@ -461,7 +463,7 @@ model Order {
 model OrderEvent {
   id        String   @id @default(cuid())
   orderId   String
-  type      String   // STATUS | CANCELLED | NOTE
+  type      String // STATUS | CANCELLED | NOTE
   label     String?
   note      String?  @db.Text
   adminOnly Boolean  @default(false)
@@ -491,8 +493,8 @@ model OrderItem {
   qty       Int     @default(1)
   price     Float
 
-  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  order   Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product?      @relation(fields: [productId], references: [id], onDelete: SetNull)
   units   ProductUnit[]
 }
 
@@ -512,10 +514,10 @@ model Supplier {
 }
 
 model PurchaseOrder {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   supplierId String
   reference  String
-  status     POStatus @default(OPEN)
+  status     POStatus  @default(OPEN)
   amount     Float?
   notes      String?
   // Buying-side mirror of Order's paid/invoicedAt — tracked independently of
@@ -524,8 +526,8 @@ model PurchaseOrder {
   invoicedAt DateTime?
   paid       Boolean   @default(false)
   paidAt     DateTime?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   supplier Supplier          @relation(fields: [supplierId], references: [id], onDelete: Cascade)
   files    ProcurementFile[]
@@ -537,15 +539,15 @@ model PurchaseOrder {
 // supplier and/or a purchase order. Covers invoices, quotes, price lists,
 // contracts and reference links ("anything relevant to procurement").
 model ProcurementFile {
-  id              String            @id @default(cuid())
+  id              String          @id @default(cuid())
   label           String
-  kind            ProcurementKind   @default(OTHER)
-  url             String?           // external link — null when it's an uploaded file
-  storagePath     String?           // Supabase Storage key — null when it's a link
-  fileName        String?           // original filename, for display/download
+  kind            ProcurementKind @default(OTHER)
+  url             String? // external link — null when it's an uploaded file
+  storagePath     String? // Supabase Storage key — null when it's a link
+  fileName        String? // original filename, for display/download
   supplierId      String?
   purchaseOrderId String?
-  createdAt       DateTime          @default(now())
+  createdAt       DateTime        @default(now())
 
   supplier      Supplier?      @relation(fields: [supplierId], references: [id], onDelete: Cascade)
   purchaseOrder PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
@@ -580,7 +582,7 @@ model SupportTicket {
 
 model Review {
   id        String   @id @default(cuid())
-  productId String   // catalog product id (e.g. "pb10") — the shop reads lib/catalog.ts, not Product
+  productId String // catalog product id (e.g. "pb10") — the shop reads lib/catalog.ts, not Product
   userId    String?
   author    String
   location  String?
@@ -611,7 +613,7 @@ model CustomerAlias {
 
 model RestockRequest {
   id        String   @id @default(cuid())
-  productId String   // catalog product id (e.g. "pb10")
+  productId String // catalog product id (e.g. "pb10")
   email     String
   createdAt DateTime @default(now())
 
@@ -668,9 +670,9 @@ enum NpsSource {
 model PolicyDoc {
   id          String   @id @default(cuid())
   title       String
-  url         String?  // external link (Drive etc.) — null when it's an uploaded file
-  storagePath String?  // Supabase Storage key — null when it's an external link
-  fileName    String?  // original filename, for display/download
+  url         String? // external link (Drive etc.) — null when it's an uploaded file
+  storagePath String? // Supabase Storage key — null when it's an external link
+  fileName    String? // original filename, for display/download
   category    String?
   createdAt   DateTime @default(now())
 
@@ -727,8 +729,8 @@ model LedgerAccount {
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
 
-  parent   LedgerAccount? @relation("AccountTree", fields: [parentId], references: [id], onDelete: SetNull)
-  children LedgerAccount[] @relation("AccountTree")
+  parent          LedgerAccount?   @relation("AccountTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children        LedgerAccount[]  @relation("AccountTree")
   lines           JournalLine[]
   reconciliations Reconciliation[]
   bankConnections BankConnection[]
@@ -750,17 +752,17 @@ enum JournalSource {
 }
 
 model JournalEntry {
-  id        String        @id @default(cuid())
-  entryNo   String        @unique // JE-000123
-  date      DateTime
-  memo      String?       @db.Text
-  source    JournalSource @default(MANUAL)
+  id           String        @id @default(cuid())
+  entryNo      String        @unique // JE-000123
+  date         DateTime
+  memo         String?       @db.Text
+  source       JournalSource @default(MANUAL)
   // Operational row this entry was posted from (Order.id, Expense.id, …).
   // Combined with `source` it makes posting idempotent — we never double-post.
-  sourceId  String?
-  createdBy String? // admin email
-  reversedById String? @unique // the entry that reverses this one, if any
-  createdAt DateTime      @default(now())
+  sourceId     String?
+  createdBy    String? // admin email
+  reversedById String?       @unique // the entry that reverses this one, if any
+  createdAt    DateTime      @default(now())
 
   // Which part of the business this belongs to. Null means unassigned rather
   // than a separate ledger — reports filter on it, they don't split on it.
@@ -786,20 +788,20 @@ model JournalEntry {
 }
 
 model JournalLine {
-  id        String @id @default(cuid())
-  entryId   String
-  accountId String
+  id               String  @id @default(cuid())
+  entryId          String
+  accountId        String
   // Stored as separate debit/credit columns (never a single signed amount) so
   // the ledger reads the way an accountant expects and imbalances are obvious.
-  debit     Float  @default(0)
-  credit    Float  @default(0)
-  memo      String?
+  debit            Float   @default(0)
+  credit           Float   @default(0)
+  memo             String?
   // Set once this line has been ticked off against a bank statement.
   reconciliationId String?
 
-  entry   JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
-  account LedgerAccount @relation(fields: [accountId], references: [id], onDelete: Restrict)
-  reconciliation Reconciliation? @relation(fields: [reconciliationId], references: [id], onDelete: SetNull)
+  entry          JournalEntry        @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  account        LedgerAccount       @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  reconciliation Reconciliation?     @relation(fields: [reconciliationId], references: [id], onDelete: SetNull)
   bankLines      BankStatementLine[]
 
   @@index([entryId])
@@ -853,15 +855,15 @@ enum ScheduleKind {
 }
 
 model ScheduleRun {
-  id        String       @id @default(cuid())
-  kind      ScheduleKind
+  id         String       @id @default(cuid())
+  kind       ScheduleKind
   // FixedAsset.id | PrepaidExpense.id | RevenueSchedule.id
-  refId     String
+  refId      String
   // First day of the period this run covers, e.g. 2026-07-01.
   periodDate DateTime
-  amount    Float
-  entryId   String?
-  createdAt DateTime     @default(now())
+  amount     Float
+  entryId    String?
+  createdAt  DateTime     @default(now())
 
   // One run per schedule per period — makes posting idempotent, so a monthly
   // run can be triggered twice without double-charging depreciation.
@@ -870,51 +872,51 @@ model ScheduleRun {
 }
 
 model FixedAsset {
-  id              String    @id @default(cuid())
-  name            String
-  description     String?   @db.Text
-  cost            Float
-  salvageValue    Float     @default(0)
-  usefulLifeMonths Int
-  acquiredAt      DateTime
+  id                      String    @id @default(cuid())
+  name                    String
+  description             String?   @db.Text
+  cost                    Float
+  salvageValue            Float     @default(0)
+  usefulLifeMonths        Int
+  acquiredAt              DateTime
   // Ledger accounts this asset posts against (codes, resolved at post time).
-  assetAccountCode        String @default("1500")
-  accumDepAccountCode     String @default("1590")
-  depreciationExpenseCode String @default("6800")
-  disposedAt      DateTime?
-  disposalProceeds Float?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  assetAccountCode        String    @default("1500")
+  accumDepAccountCode     String    @default("1590")
+  depreciationExpenseCode String    @default("6800")
+  disposedAt              DateTime?
+  disposalProceeds        Float?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
 
   @@index([acquiredAt])
 }
 
 model PrepaidExpense {
-  id            String   @id @default(cuid())
-  description   String
-  totalAmount   Float
-  startDate     DateTime
-  months        Int
-  prepaidAccountCode String @default("1300")
-  expenseAccountCode String @default("6900")
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  description        String
+  totalAmount        Float
+  startDate          DateTime
+  months             Int
+  prepaidAccountCode String   @default("1300")
+  expenseAccountCode String   @default("6900")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   @@index([startDate])
 }
 
 model RevenueSchedule {
-  id            String   @id @default(cuid())
-  description   String
-  customerName  String?
-  orderId       String?
-  totalAmount   Float
-  startDate     DateTime
-  months        Int
-  deferredAccountCode String @default("2400")
-  revenueAccountCode  String @default("4000")
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                  String   @id @default(cuid())
+  description         String
+  customerName        String?
+  orderId             String?
+  totalAmount         Float
+  startDate           DateTime
+  months              Int
+  deferredAccountCode String   @default("2400")
+  revenueAccountCode  String   @default("4000")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   @@index([startDate])
 }
@@ -936,7 +938,7 @@ model Expense {
   // Every correction made after this expense was first logged — append-only,
   // never overwritten, so a figure can be fixed without the original ever
   // being silently lost.
-  edits ExpenseEdit[]
+  edits    ExpenseEdit[]
 
   @@index([spentAt])
 }
@@ -945,8 +947,8 @@ model Expense {
 // instead of — reversing and reposting the expense's ledger entry, so the
 // journal and this log always agree on what changed and why.
 model ExpenseEdit {
-  id          String   @id @default(cuid())
-  expenseId   String
+  id        String @id @default(cuid())
+  expenseId String
 
   beforeCategory    String
   beforeDescription String?
@@ -958,7 +960,7 @@ model ExpenseEdit {
   afterAmount      Float
   afterSpentAt     DateTime
 
-  reason    String  @db.Text
+  reason    String   @db.Text
   editedBy  String?
   createdAt DateTime @default(now())
 
@@ -980,15 +982,15 @@ model DiscountCode {
   id          String       @id @default(cuid())
   code        String       @unique
   type        DiscountType @default(PERCENT)
-  value       Float        // percent (0–100) for PERCENT, J$ off for FIXED
-  minSpend    Float?       // minimum cart subtotal to qualify
+  value       Float // percent (0–100) for PERCENT, J$ off for FIXED
+  minSpend    Float? // minimum cart subtotal to qualify
   active      Boolean      @default(true)
   expiresAt   DateTime?
   description String?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
-  campaigns   Campaign[]
+  campaigns Campaign[]
 }
 
 enum DiscountType {
@@ -1015,23 +1017,23 @@ model Campaign {
 
   // Optional audience: a saved Segment instead of "every subscriber".
   segmentId      String?
-  segment        Segment?        @relation(fields: [segmentId], references: [id], onDelete: SetNull)
+  segment        Segment?      @relation(fields: [segmentId], references: [id], onDelete: SetNull)
   // Optional linked discount code — the mechanism campaign-to-revenue
   // attribution uses: orders that redeemed this code count as this
   // campaign's results. A campaign without one has no attributed revenue,
   // shown honestly as "not tracked" rather than a fabricated number.
   discountCodeId String?
-  discountCode   DiscountCode?   @relation(fields: [discountCodeId], references: [id], onDelete: SetNull)
+  discountCode   DiscountCode? @relation(fields: [discountCodeId], references: [id], onDelete: SetNull)
   // Optional manual spend entry (e.g. a paid boost) so ROI can be shown
   // alongside attributed revenue when the admin knows the cost. Editable
   // freely while the campaign hasn't sent yet; once it sends with spend > 0
   // it's posted as a real Expense (see lib/campaigns.ts) and locked, so the
   // number in Marketing always matches what Finance actually recorded.
   spend          Float?
-  expenseId      String?         @unique
-  expense        Expense?        @relation(fields: [expenseId], references: [id], onDelete: SetNull)
+  expenseId      String?       @unique
+  expense        Expense?      @relation(fields: [expenseId], references: [id], onDelete: SetNull)
 
-  orders         Order[]
+  orders Order[]
 
   @@index([createdAt])
   @@index([segmentId])
@@ -1070,14 +1072,14 @@ enum CampaignStatus {
 // against Customer/Order data at read time — no membership snapshot to keep
 // in sync, so a segment is always current.
 model Segment {
-  id          String     @id @default(cuid())
+  id          String   @id @default(cuid())
   name        String
   description String?
   criteria    Json
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  campaigns   Campaign[]
+  campaigns Campaign[]
 }
 
 // Emails that must never receive a marketing send again — unsubscribed via
@@ -1176,26 +1178,26 @@ enum EmployeeStatus {
 }
 
 model Employee {
-  id            String         @id @default(cuid())
-  employeeNo    String         @unique
-  firstName     String
-  lastName      String
-  email         String?
-  phone         String?
+  id             String         @id @default(cuid())
+  employeeNo     String         @unique
+  firstName      String
+  lastName       String
+  email          String?
+  phone          String?
   // Jamaican statutory identifiers.
-  trn           String? // Taxpayer Registration Number
-  nisNumber     String?
-  jobTitle      String?
-  department    String?
+  trn            String? // Taxpayer Registration Number
+  nisNumber      String?
+  jobTitle       String?
+  department     String?
   // Gross pay for one period at the stated frequency.
   grossPerPeriod Float
-  frequency     PayFrequency   @default(MONTHLY)
-  status        EmployeeStatus @default(ACTIVE)
-  startedAt     DateTime
-  endedAt       DateTime?
-  bankAccount   String? // reference only — nothing is paid from here
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  frequency      PayFrequency   @default(MONTHLY)
+  status         EmployeeStatus @default(ACTIVE)
+  startedAt      DateTime
+  endedAt        DateTime?
+  bankAccount    String? // reference only — nothing is paid from here
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
   payslips   Payslip[]
   teamMember TeamMember?
@@ -1210,22 +1212,22 @@ enum PayrollRunStatus {
 }
 
 model PayrollRun {
-  id          String           @id @default(cuid())
-  runNo       String           @unique
-  periodStart DateTime
-  periodEnd   DateTime
-  payDate     DateTime
-  status      PayrollRunStatus @default(DRAFT)
+  id           String           @id @default(cuid())
+  runNo        String           @unique
+  periodStart  DateTime
+  periodEnd    DateTime
+  payDate      DateTime
+  status       PayrollRunStatus @default(DRAFT)
   // Rates in force when this run was calculated, frozen as JSON so a historic
   // payslip always reproduces exactly, even after rates are changed.
   rateSnapshot Json
-  approvedAt  DateTime?
-  approvedBy  String?
-  paidAt      DateTime?
-  entryId     String? // journal entry posted on approval
-  notes       String?          @db.Text
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  approvedAt   DateTime?
+  approvedBy   String?
+  paidAt       DateTime?
+  entryId      String? // journal entry posted on approval
+  notes        String?          @db.Text
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
 
   payslips Payslip[]
 
@@ -1237,14 +1239,14 @@ model Payslip {
   runId      String
   employeeId String
 
-  gross      Float
+  gross           Float
   // Employee-side deductions.
-  paye       Float @default(0)
-  nisEmployee Float @default(0)
-  nhtEmployee Float @default(0)
-  edTaxEmployee Float @default(0)
+  paye            Float @default(0)
+  nisEmployee     Float @default(0)
+  nhtEmployee     Float @default(0)
+  edTaxEmployee   Float @default(0)
   otherDeductions Float @default(0)
-  net        Float
+  net             Float
 
   // Employer-side contributions — a cost to the business, not deducted from pay.
   nisEmployer   Float @default(0)
@@ -1284,17 +1286,17 @@ enum TeamMemberStatus {
 }
 
 model TeamMember {
-  id         String            @id @default(cuid())
-  memberNo   String            @unique
+  id         String           @id @default(cuid())
+  memberNo   String           @unique
   firstName  String
   lastName   String
   email      String?
   phone      String?
-  photoPath  String?           // Supabase Storage key, admin-files bucket
+  photoPath  String? // Supabase Storage key, admin-files bucket
   type       TeamMemberType
-  role       String?           // job title / engagement title
+  role       String? // job title / engagement title
   department String?
-  status     TeamMemberStatus  @default(ACTIVE)
+  status     TeamMemberStatus @default(ACTIVE)
 
   managerId String?
   manager   TeamMember?  @relation("Reports", fields: [managerId], references: [id], onDelete: SetNull)
@@ -1302,7 +1304,7 @@ model TeamMember {
 
   // Payroll link — EMPLOYEE type only, and optional even then (not everyone
   // who works here needs to be on a pay run to have an HR profile).
-  employeeId String?  @unique
+  employeeId String?   @unique
   employee   Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
 
   // Free-text terms, plus a structured rate Payroll can list/sum — for
@@ -1311,9 +1313,9 @@ model TeamMember {
   rateAmount       Float?
   rateFrequency    PayFrequency?
 
-  address                String?
-  emergencyContactName   String?
-  emergencyContactPhone  String?
+  address               String?
+  emergencyContactName  String?
+  emergencyContactPhone String?
 
   startedAt DateTime
   endedAt   DateTime?
@@ -1347,9 +1349,9 @@ model HrFolder {
 }
 
 model HrDocument {
-  id          String    @id @default(cuid())
+  id          String      @id @default(cuid())
   folderId    String?
-  folder      HrFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  folder      HrFolder?   @relation(fields: [folderId], references: [id], onDelete: SetNull)
   name        String
   storagePath String
   fileName    String
@@ -1358,8 +1360,8 @@ model HrDocument {
   uploadedBy  String?
   ownerId     String?
   owner       TeamMember? @relation(fields: [ownerId], references: [id], onDelete: SetNull)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
   @@index([folderId])
 }
@@ -1420,11 +1422,11 @@ model BankStatementLine {
   id           String @id @default(cuid())
   connectionId String
 
-  postedAt    DateTime
-  description String   @db.Text
-  reference   String?
+  postedAt       DateTime
+  description    String   @db.Text
+  reference      String?
   // Signed against the bank account: positive is money in, negative is money out.
-  amount      Float
+  amount         Float
   runningBalance Float?
 
   // Hash of the source row. Re-importing an overlapping statement is a no-op
@@ -1483,12 +1485,12 @@ model DocumentScan {
   contentType String
   sizeBytes   Int
 
-  status ScanStatus @default(NEEDS_REVIEW)
+  status     ScanStatus @default(NEEDS_REVIEW)
   // Which extractor produced the draft fields, or null when they were typed in.
-  provider String?
+  provider   String?
   // Whatever the provider returned, kept verbatim so a bad extraction can be
   // investigated rather than guessed at.
-  raw      Json?
+  raw        Json?
   // Per-field confidence from the provider, so weak reads can be flagged
   // instead of presented with the same certainty as strong ones.
   confidence Json?
@@ -1541,15 +1543,15 @@ model Branch {
 }
 
 model ExchangeRate {
-  id       String   @id @default(cuid())
+  id        String   @id @default(cuid())
   // ISO code of the foreign currency; the quote is always against JMD.
-  currency String
+  currency  String
   // How many JMD one unit of `currency` buys.
-  rate     Float
-  asOf     DateTime
+  rate      Float
+  asOf      DateTime
   // Where the rate came from — "BOJ", "bank advice", a person's name. Recorded
   // because "which rate did you use" is the first question anyone asks.
-  source   String?
+  source    String?
   enteredBy String?
   createdAt DateTime @default(now())
 
@@ -1611,11 +1613,11 @@ model BankRule {
 
   // How often this rule has actually fired, so a rule that never matches is
   // visible as dead weight rather than assumed to be working.
-  matchCount Int      @default(0)
+  matchCount  Int       @default(0)
   lastMatchAt DateTime?
-  createdBy  String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdBy   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   account LedgerAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
@@ -1634,22 +1636,22 @@ enum ActivityType {
 }
 
 model ActivityLog {
-  id        String       @id @default(cuid())
-  type      ActivityType
+  id         String       @id @default(cuid())
+  type       ActivityType
   // What happened, in one line — shown as the row's headline.
-  label     String
+  label      String
   // Optional longer detail (a commit message, a PO number, a reason).
-  detail    String?      @db.Text
+  detail     String?      @db.Text
   // The entity this touched, if any (e.g. "order", "expense") plus its id —
   // lets a future "view related record" link be added without a new column.
-  entity    String?
-  entityId  String?
+  entity     String?
+  entityId   String?
   // Email of the admin who did this, or null for system-generated rows (DEPLOY).
   actorEmail String?
   // Deploys are deduped on this (the commit SHA) so a cold start on an
   // already-logged build doesn't create a repeat entry.
-  dedupeKey String?      @unique
-  createdAt DateTime     @default(now())
+  dedupeKey  String?      @unique
+  createdAt  DateTime     @default(now())
 
   @@index([type, createdAt])
 }
@@ -1677,4 +1679,403 @@ model ClientLog {
   createdAt DateTime  @default(now())
 
   @@index([source, level, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Shared energy profile (backlog F03) — one customer model reused by every
+// tool. See docs/platform/IMPLEMENTATION_CHECKLIST.md.
+//
+// A visitor can build a profile anonymously in the browser; on sign-in it is
+// merged here. `clientId` is the id the browser assigned, so a repeated merge
+// updates the same rows instead of duplicating equipment.
+// ---------------------------------------------------------------------------
+
+enum EnergyPropertyKind {
+  HOME
+  BUSINESS
+}
+
+model EnergyProperty {
+  id        String             @id @default(cuid())
+  userId    String
+  clientId  String?
+  name      String
+  kind      EnergyPropertyKind @default(HOME)
+  parish    String?
+  occupants Int?
+  notes     String?            @db.Text
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  devices         EnergyDevice[]
+  scenarios       EnergyScenario[]
+  calculationRuns CalculationRun[]
+
+  @@unique([userId, clientId])
+  @@index([userId])
+}
+
+// One piece of equipment (or N identical ones). `load` is the calculation
+// engine's LoadModel — the evidence basis travels with every number in it —
+// validated by lib/energy/profileSchema.ts before it is written.
+model EnergyDevice {
+  id           String   @id @default(cuid())
+  propertyId   String
+  clientId     String?
+  name         String
+  category     String
+  quantity     Int      @default(1)
+  brand        String?
+  model        String?
+  load         Json
+  motorLoad    Boolean  @default(false)
+  startupWatts Float?
+  startupBasis String?
+  notes        String?  @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  property      EnergyProperty      @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  measurements  DeviceMeasurement[]
+  scenarioItems ScenarioItem[]
+
+  @@unique([propertyId, clientId])
+  @@index([propertyId])
+}
+
+// A dated meter reading — the evidence behind a "measured" basis.
+model DeviceMeasurement {
+  id            String   @id @default(cuid())
+  deviceId      String
+  kind          String // power_w | energy_kwh
+  value         Float
+  durationHours Float?
+  method        String // plug_meter | clamp_meter | label | other
+  observedAt    DateTime
+  notes         String?  @db.Text
+  createdAt     DateTime @default(now())
+
+  device EnergyDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([deviceId])
+}
+
+model EnergyScenario {
+  id              String   @id @default(cuid())
+  propertyId      String
+  clientId        String?
+  name            String
+  kind            String // everyday | workday | overnight | storm | custom
+  targetHours     Float?
+  reserveFraction Float?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  property EnergyProperty   @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  items    ScenarioItem[]
+  runs     CalculationRun[]
+
+  @@unique([propertyId, clientId])
+  @@index([propertyId])
+}
+
+// A device's role in one scenario. Unique per (scenario, device): a device
+// can't be counted twice in the same scenario.
+model ScenarioItem {
+  id               String  @id @default(cuid())
+  scenarioId       String
+  deviceId         String
+  quantityOverride Int?
+  simultaneous     Boolean @default(true)
+  essential        Boolean @default(true)
+
+  scenario EnergyScenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  device   EnergyDevice   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@unique([scenarioId, deviceId])
+}
+
+// Immutable record of one result (engine version + exact inputs + outputs).
+// Corrections create a new run pointing at the one they supersede; nothing
+// rewrites a run already shown to a customer. Deleted with its property
+// (customer-initiated deletion removes the private inputs it snapshots).
+model CalculationRun {
+  id            String   @id @default(cuid())
+  userId        String?
+  propertyId    String?
+  scenarioId    String?
+  kind          String
+  engineVersion String
+  inputHash     String
+  inputSnapshot Json
+  outputs       Json
+  supersedesId  String?
+  createdBy     String? // staff email for adviser corrections
+  createdAt     DateTime @default(now())
+
+  user        User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  property    EnergyProperty?  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  scenario    EnergyScenario?  @relation(fields: [scenarioId], references: [id], onDelete: SetNull)
+  supersedes  CalculationRun?  @relation("RunCorrections", fields: [supersedesId], references: [id], onDelete: SetNull)
+  correctedBy CalculationRun[] @relation("RunCorrections")
+
+  @@index([userId])
+  @@index([propertyId])
+  @@index([inputHash])
+}
+
+// ---------------------------------------------------------------------------
+// Verified product catalogue (backlog F05). One row per EXACT regional SKU;
+// every spec value is a SpecEvidence row with a source and review state.
+// lib/catalogue/evidence.ts decides what is publishable.
+// ---------------------------------------------------------------------------
+
+model CatalogueSku {
+  id            String   @id @default(cuid())
+  catalogId     String?  @unique // lib/catalog.ts storefront id, when sold on the site
+  kind          String // power_station | power_bank | solar_panel | charger | cable | accessory
+  displayName   String
+  manufacturer  String?
+  model         String?
+  regionVariant String?
+  status        String   @default("draft") // draft | in_review | published | retired
+  notes         String?  @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  evidence SpecEvidence[]
+
+  @@index([status])
+}
+
+model SpecEvidence {
+  id           String    @id @default(cuid())
+  skuId        String
+  field        String
+  valueNum     Float?
+  valueText    String?
+  unit         String?
+  sourceType   String // manufacturer_doc | test_record | label_photo | supplier_doc | listing_claim
+  sourceUrl    String?
+  documentPath String? // private storage key for an uploaded datasheet/label photo
+  sourceNote   String?   @db.Text
+  reviewState  String    @default("unverified") // unverified | verified | rejected | superseded
+  createdBy    String?
+  verifiedBy   String?
+  verifiedAt   DateTime?
+  expiresAt    DateTime?
+  createdAt    DateTime  @default(now())
+
+  sku CatalogueSku @relation(fields: [skuId], references: [id], onDelete: Cascade)
+
+  @@index([skuId, field])
+}
+
+// ---------------------------------------------------------------------------
+// Jamaica Energy Map registry (backlog M03). Only facts we have a permissible
+// source for are stored. Google Places content is NEVER stored here — only
+// a place ID as a cross-reference (googlePlaceId).
+// ---------------------------------------------------------------------------
+
+model EvOperator {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  website   String?
+  appInfo   String?  @db.Text
+  contact   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  stations EvStation[]
+}
+
+model EvStation {
+  id                String    @id @default(cuid())
+  name              String
+  operatorId        String?
+  parish            String
+  address           String?
+  lat               Float
+  lng               Float
+  access            String    @default("public") // public | customers_only | restricted | private | unknown
+  accessNotes       String?   @db.Text
+  hours             String?
+  paymentNotes      String?   @db.Text
+  pricingNotes      String?   @db.Text
+  pricingObservedAt DateTime?
+  status            String    @default("draft") // draft | published | closed | retired
+  googlePlaceId     String?   @unique
+  /// The operator's own id for this site in their live feed (OCPI location id).
+  operatorLocationId String?
+  verifiedAt        DateTime?
+  verificationNote  String?   @db.Text
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  operator        EvOperator?         @relation(fields: [operatorId], references: [id], onDelete: SetNull)
+  connectorGroups EvConnectorGroup[]
+  sources         EvSourceRecord[]
+  reports         EvCommunityReport[]
+
+  @@index([parish, status])
+}
+
+// Google's model aggregates connectors; a group is not a port. `count` is
+// connectors, which may share ports and can't necessarily charge at once.
+model EvConnectorGroup {
+  id            String   @id @default(cuid())
+  stationId     String
+  connectorType String
+  currentType   String // AC | DC
+  maxPowerKw    Float?
+  count         Int?
+  portsShared   Boolean?
+  notes         String?  @db.Text
+
+  station      EvStation             @relation(fields: [stationId], references: [id], onDelete: Cascade)
+  observations EvStatusObservation[]
+
+  @@index([stationId])
+}
+
+// Where each persistent fact came from and what we're allowed to do with it.
+model EvSourceRecord {
+  id              String    @id @default(cuid())
+  stationId       String
+  sourceName      String
+  sourceType      String // operator_agreement | operator_public | site_owner | field_visit | community | open_data | staff_list
+  licence         String?
+  permissionScope String?   @db.Text
+  url             String?
+  contact         String?
+  observedAt      DateTime?
+  retrievedAt     DateTime?
+  verifiedAt      DateTime?
+  expiresAt       DateTime?
+  reviewState     String    @default("unverified")
+  notes           String?   @db.Text
+  createdAt       DateTime  @default(now())
+
+  station EvStation @relation(fields: [stationId], references: [id], onDelete: Cascade)
+
+  @@index([stationId])
+}
+
+// Stored only for providers whose agreement permits retaining status
+// history (licensed operator feeds). Google status is processed transiently.
+model EvStatusObservation {
+  id                String    @id @default(cuid())
+  connectorGroupId  String
+  source            String // operator_feed | site_owner
+  observedAt        DateTime?
+  retrievedAt       DateTime
+  availableCount    Int?
+  outOfServiceCount Int?
+  inUseCount        Int?
+  supportsInUse     Boolean   @default(false)
+  createdAt         DateTime  @default(now())
+
+  connectorGroup EvConnectorGroup @relation(fields: [connectorGroupId], references: [id], onDelete: Cascade)
+
+  @@index([connectorGroupId, observedAt])
+}
+
+// Moderated driver reports. An unreviewed report never changes a station's
+// status; approved "successful_charge" reports show as community evidence.
+model EvCommunityReport {
+  id            String    @id @default(cuid())
+  stationId     String?
+  kind          String // could_not_find | access_blocked | connector_missing | equipment_fault | successful_charge | new_station
+  observedAt    DateTime
+  message       String?   @db.Text
+  proposedName  String?
+  proposedLat   Float?
+  proposedLng   Float?
+  parish        String?
+  contactEmail  String?
+  userId        String?
+  moderation    String    @default("pending") // pending | approved | rejected
+  moderatorNote String?   @db.Text
+  moderatedBy   String?
+  moderatedAt   DateTime?
+  createdAt     DateTime  @default(now())
+
+  station EvStation? @relation(fields: [stationId], references: [id], onDelete: SetNull)
+
+  @@index([moderation, createdAt])
+  @@index([stationId])
+}
+
+// Coverage review per parish, so "searched, none confirmed" differs from "not reviewed".
+model MapCoverageReview {
+  parish          String    @id
+  state           String    @default("unreviewed") // unreviewed | in_progress | reviewed_none_confirmed | reviewed_sites_confirmed
+  sourcesReviewed String[]  @default([])
+  notes           String?   @db.Text
+  reviewedAt      DateTime?
+  reviewedBy      String?
+  updatedAt       DateTime  @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Service bookings with optional deposits (roadmap W5 / backlog C01–C03).
+// Services, prices and daily capacity are owner-entered settings
+// (SiteSetting "services:v1"); each booking snapshots what was offered.
+// A deposit is confirmed only by the signed Fygaro webhook, never a redirect.
+// ---------------------------------------------------------------------------
+
+model ServiceBooking {
+  id            String    @id @default(cuid())
+  bookingNo     String    @unique // BK-XXXXXX, also the Fygaro client_reference
+  serviceId     String
+  serviceName   String
+  date          String // YYYY-MM-DD (Jamaica)
+  window        String // morning | afternoon
+  customerName  String
+  email         String?
+  phone         String
+  parish        String
+  address       String?   @db.Text
+  notes         String?   @db.Text
+  userId        String?
+  whatsappOptIn Boolean   @default(false) // customer agreed to WhatsApp updates about this booking
+  status        String    @default("requested") // requested | confirmed | completed | cancelled
+  depositAmount Float     @default(0)
+  depositStatus String    @default("none") // none | pending | paid | refunded
+  depositPaidAt DateTime?
+  staffNote     String?   @db.Text
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([date, window, status])
+  @@index([status, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Verified installer directory (roadmap W4). A listing is public only when
+// staff have seen and recorded the licence evidence and it hasn't expired.
+// ---------------------------------------------------------------------------
+
+model Installer {
+  id             String    @id @default(cuid())
+  name           String
+  business       String?
+  parishes       String[]  @default([])
+  services       String[]  @default([])
+  phone          String?
+  email          String?
+  website        String?
+  licenceType    String? // e.g. "Licensed electrician (Government Electrical Inspectorate)"
+  licenceNumber  String?
+  licenceExpires DateTime?
+  evidenceNote   String?   @db.Text // what staff saw, where, when
+  status         String    @default("draft") // draft | published | suspended
+  createdBy      String?
+  verifiedBy     String?
+  verifiedAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([status])
 }

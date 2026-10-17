@@ -23,6 +23,8 @@ import {
   X,
   Gauge,
   CloudLightning,
+  Zap,
+  Map as MapIcon,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react'
@@ -42,6 +44,8 @@ const ICONS: Record<string, typeof LayoutDashboard> = {
   settings: Settings,
   gauge: Gauge,
   'cloud-lightning': CloudLightning,
+  zap: Zap,
+  map: MapIcon,
 }
 
 const COLLAPSE_KEY = 'ke-hub-sidebar-collapsed'

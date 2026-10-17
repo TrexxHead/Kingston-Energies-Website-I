@@ -271,6 +271,11 @@
   }
 }
 
+/* Storefront header: drop the phone number before the menu gets crowded. */
+@media (max-width:1280px){
+  .kad-hide-md{ display:none !important; }
+}
+
 @media (max-width:1000px){
   .kad-hide-sm{ display:none !important; }
   .kad-kanban{ grid-template-columns:repeat(5,240px) !important; overflow-x:auto; }

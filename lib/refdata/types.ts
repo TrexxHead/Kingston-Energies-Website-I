@@ -9,7 +9,7 @@ import type { TariffVersion, TariffComponent } from '@/lib/energy/engine/tariff'
  * with none, they refuse rather than guess.
  */
 
-export const REF_KINDS = ['tariff', 'fuel_price', 'shelter_list', 'charging_price', 'lender_offer'] as const
+export const REF_KINDS = ['tariff', 'fuel_price', 'shelter_list', 'charging_price', 'lender_offer', 'install_price'] as const
 export type RefKind = (typeof REF_KINDS)[number]
 export const REF_STATUS = ['draft', 'approved', 'retired'] as const
 export type RefStatus = (typeof REF_STATUS)[number]
@@ -20,6 +20,7 @@ export const REF_KIND_LABEL: Record<RefKind, string> = {
   shelter_list: 'Emergency shelters',
   charging_price: 'Public charging price',
   lender_offer: 'Lender offer',
+  install_price: 'Solar installed price',
 }
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD.')
@@ -126,12 +127,34 @@ export const lenderOfferDataSchema = z
     notes: z.string().trim().max(500).nullable().optional(),
   })
 
+/**
+ * Installed solar prices: what a typical grid-tied system costs per kWp,
+ * fitted (panels, inverter, mounting, labour), as a low–high range from our
+ * own price list or a dated survey of installer quotes. Feeds the solar
+ * estimator's price range; never shown as a quote.
+ */
+export const installPriceDataSchema = z
+  .object({
+    /** Where the range comes from, e.g. "Kingston Energies price list" or "Survey of 5 installer quotes". */
+    basis: z.string().trim().min(3).max(160),
+    perKwpLow: money,
+    perKwpHigh: money,
+    minimumJob: money.nullable().optional(),
+    batteryPerKwhLow: money.nullable().optional(),
+    batteryPerKwhHigh: money.nullable().optional(),
+    /** What the range includes / excludes, e.g. "Excludes roof repairs and JPS net-billing fees". */
+    includes: z.string().trim().max(500).nullable().optional(),
+  })
+  .refine((d) => d.perKwpLow > 0 && d.perKwpHigh >= d.perKwpLow, 'The high price must be at least the low price.')
+  .refine((d) => (d.batteryPerKwhLow == null) === (d.batteryPerKwhHigh == null) && (d.batteryPerKwhLow == null || d.batteryPerKwhHigh! >= d.batteryPerKwhLow), 'Enter both battery prices, high at least low.')
+
 export const DATA_SCHEMA = {
   tariff: tariffDataSchema,
   fuel_price: fuelPriceDataSchema,
   shelter_list: shelterListDataSchema,
   charging_price: chargingPriceDataSchema,
   lender_offer: lenderOfferDataSchema,
+  install_price: installPriceDataSchema,
 } as const
 
 export type RefData = {
@@ -140,6 +163,7 @@ export type RefData = {
   shelter_list: z.infer<typeof shelterListDataSchema>
   charging_price: z.infer<typeof chargingPriceDataSchema>
   lender_offer: z.infer<typeof lenderOfferDataSchema>
+  install_price: z.infer<typeof installPriceDataSchema>
 }
 
 export interface RefRecord<K extends RefKind = RefKind> {

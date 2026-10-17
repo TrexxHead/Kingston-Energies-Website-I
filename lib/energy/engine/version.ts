@@ -33,5 +33,8 @@
  *   yearly, flat or % of the loan), life insurance on the balance,
  *   interest-only months, extra payments, rate-rise check, schedule, and an
  *   APR-style true yearly cost (IRR of all cashflows).
+ * 1.6.0 (2026-10-17) — installed solar price range from an approved price
+ *   record (J$/kWp low–high, smallest job, battery J$/kWh) and a simple
+ *   payback range (price ÷ yearly saving, before financing).
  */
-export const CALC_ENGINE_VERSION = '1.5.0'
+export const CALC_ENGINE_VERSION = '1.6.0'

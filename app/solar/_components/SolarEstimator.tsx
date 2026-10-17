@@ -26,6 +26,7 @@ import {
   type SpecificYield,
 } from '@/lib/energy/engine/solar'
 import { CALC_ENGINE_VERSION } from '@/lib/energy/engine/version'
+import { installPriceRange } from '@/lib/energy/engine/installPrice'
 import { useActiveRecord } from '@/lib/refdata/useRefData'
 import { tariffFromPublic } from '@/lib/refdata/types'
 
@@ -99,6 +100,8 @@ export default function SolarEstimator() {
   const [usage, setUsage] = useState('')
   const [daytimePct, setDaytimePct] = useState('40')
   const { record: tariffRecord } = useActiveRecord('tariff', 'residential')
+  const { record: priceRecord } = useActiveRecord('install_price')
+  const [batteryKwh, setBatteryKwh] = useState('')
 
   // ── Map ────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -335,6 +338,20 @@ export default function SolarEstimator() {
   const savings = useMemo(
     () => (production?.ok && tariff && usage.trim() && usageKwh >= 0 ? estimateSavings(tariff, production.value, [usageKwh], Math.min(100, Math.max(0, Number(daytimePct))) / 100, new Date().toISOString().slice(0, 10)) : null),
     [production, tariff, usage, usageKwh, daytimePct],
+  )
+
+  const hasBatteryPrice = priceRecord?.data.batteryPerKwhLow != null
+  const cost = useMemo(
+    () =>
+      system && priceRecord
+        ? installPriceRange({
+            kwp: system.kwp,
+            rates: priceRecord.data,
+            batteryKwh: hasBatteryPrice && Number(batteryKwh) > 0 ? Number(batteryKwh) : undefined,
+            annualSaving: savings?.ok ? { low: savings.value.annualDaytime, high: savings.value.annualUpper } : undefined,
+          })
+        : null,
+    [system?.kwp, priceRecord, batteryKwh, hasBatteryPrice, savings], // eslint-disable-line react-hooks/exhaustive-deps
   )
 
   const defaultUsable = Math.round((roofType === 'flat' ? SOLAR_DEFAULTS.usableFractionFlat : SOLAR_DEFAULTS.usableFractionPitched) * 100)
@@ -590,14 +607,54 @@ export default function SolarEstimator() {
                     <li key={a.id}>{a.description}</li>
                   ))}
                 </ul>
-                <p style={{ ...muted, fontSize: 13, margin: 0 }}>
-                  {/* The lower, daytime-only saving — the cautious figure to plan repayments around. */}
-                  <a href={`/financing?saving=${Math.round(savings.value.annualDaytime / 12)}`} style={{ color: 'var(--ke-green-400)', fontWeight: 600, textDecoration: 'none' }}>
-                    See what financing would cost each month →
-                  </a>
-                </p>
               </>
             ) : null}
+
+            <h2 id="cost-title" style={{ ...h2, marginTop: 8 }}>What it could cost</h2>
+            {priceRecord === undefined ? (
+              <p style={muted}>Checking our price list…</p>
+            ) : !priceRecord ? (
+              <p style={{ ...muted, margin: 0 }}>A likely price range will appear here once our team has entered and approved current installed prices. We don’t guess prices — ask for a free quote below.</p>
+            ) : !system ? (
+              <p style={{ ...muted, margin: 0 }}>Pick or draw your roof to see a price range.</p>
+            ) : cost && !cost.ok ? (
+              <p role="alert" style={muted}>{cost.message}</p>
+            ) : cost?.ok ? (
+              <div data-testid="solar-cost" style={{ display: 'grid', gap: 8 }}>
+                <p style={{ ...muted, margin: 0 }}>
+                  About <strong style={{ color: '#fff' }}>J${fmt(cost.value.total.low, 0)}–{fmt(cost.value.total.high, 0)}</strong> fitted for {fmt(system.kwp, 1)} kWp
+                  {cost.value.battery ? <> plus a {fmt(Number(batteryKwh), 1)} kWh battery (J${fmt(cost.value.battery.low, 0)}–{fmt(cost.value.battery.high, 0)} of it)</> : null}.
+                  {cost.value.paybackYears && (
+                    <>
+                      {' '}
+                      Savings would repay it in roughly <strong style={{ color: '#fff' }}>{fmt(cost.value.paybackYears.low, 1)}–{fmt(cost.value.paybackYears.high, 1)} years</strong>, before any loan interest.
+                    </>
+                  )}
+                </p>
+                {hasBatteryPrice && (
+                  <div style={{ maxWidth: 220 }}>
+                    <label htmlFor="s-bat" style={label}>Add a battery (usable kWh)</label>
+                    <input id="s-bat" style={input} inputMode="decimal" placeholder="e.g. 10" value={batteryKwh} onChange={(e) => setBatteryKwh(e.target.value.replace(/[^\d.]/g, ''))} />
+                  </div>
+                )}
+                <p style={{ ...muted, fontSize: 12.5, margin: 0 }}>
+                  {priceRecord.data.basis}, checked {new Date(`${priceRecord.source.retrievedAt}T12:00:00Z`).toLocaleDateString('en-JM', { day: 'numeric', month: 'short', year: 'numeric' })}. {priceRecord.data.includes ? `${priceRecord.data.includes}. ` : ''}
+                  {cost.warnings[0]}
+                </p>
+              </div>
+            ) : null}
+            {(savings?.ok || cost?.ok) && (
+              <p style={{ ...muted, fontSize: 13, margin: 0 }}>
+                {/* Cautious figures to plan repayments around: the top of the price range and the daytime-only saving. */}
+                <a
+                  href={`/financing?${new URLSearchParams({ ...(cost?.ok ? { price: String(Math.round(cost.value.total.high)) } : {}), ...(savings?.ok ? { saving: String(Math.round(savings.value.annualDaytime / 12)) } : {}) })}`}
+                  style={{ color: 'var(--ke-green-400)', fontWeight: 600, textDecoration: 'none' }}
+                >
+                  See what financing would cost each month →
+                </a>
+                {cost?.ok && <span> (uses the top of the range)</span>}
+              </p>
+            )}
           </section>
 
           <QuoteForm roof={roof} roofType={roofType} roofCondition={roofType === 'zinc' ? roofCondition : null} sizing={system} annualKwh={production?.ok ? production.value.annualKwh.base : null} usage={usage.trim() ? usageKwh : null} />

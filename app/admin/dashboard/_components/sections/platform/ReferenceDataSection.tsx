@@ -44,7 +44,7 @@ export default function ReferenceDataSection() {
 
   if (adding) return <RecordEditor kind={adding} onDone={async () => { setAdding(null); await load() }} />
 
-  const kinds: RefKind[] = ['tariff', 'fuel_price', 'charging_price', 'lender_offer', 'shelter_list']
+  const kinds: RefKind[] = ['tariff', 'fuel_price', 'charging_price', 'lender_offer', 'install_price', 'shelter_list']
   return (
     <div style={{ display: 'grid', gap: 16 }}>
       <div style={{ ...cardStyle, display: 'grid', gap: 10 }}>
@@ -125,6 +125,10 @@ function Summary({ r }: { r: RefRecord }) {
     return <span style={muted}>{d.basis === 'pump_average' ? 'Average pump prices' : 'Ex-refinery prices (exclude taxes and retail margin)'}: {d.grades.map((g) => `${g.grade} J$${g.pricePerLitre}/L`).join(' · ')}</span>
   }
   if (r.kind === 'shelter_list') return <span style={muted}>{(r.data as RefRecord<'shelter_list'>['data']).shelters.length} shelters</span>
+  if (r.kind === 'install_price') {
+    const d = r.data as RefRecord<'install_price'>['data']
+    return <span style={muted}>{d.basis}: J${d.perKwpLow.toLocaleString()}–{d.perKwpHigh.toLocaleString()} per kWp{d.minimumJob ? `, smallest job J$${d.minimumJob.toLocaleString()}` : ''}{d.batteryPerKwhLow != null ? `, battery J$${d.batteryPerKwhLow.toLocaleString()}–${d.batteryPerKwhHigh?.toLocaleString()} per kWh` : ''}</span>
+  }
   if (r.kind === 'lender_offer') {
     const l = r.data as RefRecord<'lender_offer'>['data']
     return <span style={muted}>{l.lender} — {l.product}: {l.rateIsFrom ? 'from ' : ''}{l.annualRatePct}% {l.rateType}{l.maxTermMonths ? `, up to ${l.maxTermMonths} months` : ''}{l.minDepositPct != null ? `, ${l.minDepositPct}% deposit` : ''}{l.processingFeePct != null ? `, ${l.processingFeePct}% processing` : ''}{l.monthlyFee != null ? `, J$${l.monthlyFee}/month fee` : ''}</span>
@@ -157,6 +161,14 @@ function RecordEditor({ kind, onDone }: { kind: RefKind; onDone: () => void }) {
   const [sessionFee, setSessionFee] = useState('')
   const [idleFee, setIdleFee] = useState('')
   const [idleGrace, setIdleGrace] = useState('')
+  // install price
+  const [ipBasis, setIpBasis] = useState('Kingston Energies price list')
+  const [kwpLow, setKwpLow] = useState('')
+  const [kwpHigh, setKwpHigh] = useState('')
+  const [minJob, setMinJob] = useState('')
+  const [batLow, setBatLow] = useState('')
+  const [batHigh, setBatHigh] = useState('')
+  const [includes, setIncludes] = useState('')
   // shelters
   const [csv, setCsv] = useState('')
   // lender
@@ -196,6 +208,16 @@ function RecordEditor({ kind, onDone }: { kind: RefKind; onDone: () => void }) {
     if (kind === 'fuel_price') return { basis, currency: 'JMD', grades: grades.filter((g) => g.price.trim()).map((g) => ({ grade: g.grade, pricePerLitre: num(g.price) })) }
     if (kind === 'lender_offer')
       return { lender, product, annualRatePct: num(rate), rateIsFrom: rateFrom === 'yes', rateType, maxTermMonths: maxTerm.trim() ? num(maxTerm) : null, minDepositPct: minDeposit.trim() ? num(minDeposit) : null, processingFeePct: procFee.trim() ? num(procFee) : null, otherUpfrontFees: otherFees.trim() ? num(otherFees) : null, monthlyFee: monthlyFee.trim() ? num(monthlyFee) : null, lifeInsurancePctPerYear: lifeIns.trim() ? num(lifeIns) : null, maxLoan: maxLoan.trim() ? num(maxLoan) : null, notes: notes.trim() || null }
+    if (kind === 'install_price')
+      return {
+        basis: ipBasis,
+        perKwpLow: num(kwpLow),
+        perKwpHigh: num(kwpHigh),
+        minimumJob: minJob.trim() ? num(minJob) : null,
+        batteryPerKwhLow: batLow.trim() ? num(batLow) : null,
+        batteryPerKwhHigh: batHigh.trim() ? num(batHigh) : null,
+        includes: includes.trim() || null,
+      }
     if (kind === 'charging_price')
       return {
         operator,
@@ -319,6 +341,21 @@ function RecordEditor({ kind, onDone }: { kind: RefKind; onDone: () => void }) {
                 + Add time band
               </Button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {kind === 'install_price' && (
+        <div style={{ display: 'grid', gap: 8 }}>
+          <p style={{ ...muted, margin: 0 }}>What a typical grid-tied system costs fitted (panels, inverter, mounting, labour), per kWp of panels. Use your own price list or a dated survey of real quotes. The solar estimator multiplies this by the system size and shows it as a range — never as a quote.</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 10 }}>
+            <TextInput label="Where the range comes from" value={ipBasis} onChange={setIpBasis} />
+            <TextInput label="Low J$ per kWp" value={kwpLow} onChange={setKwpLow} />
+            <TextInput label="High J$ per kWp" value={kwpHigh} onChange={setKwpHigh} />
+            <TextInput label="Smallest job J$ (optional)" value={minJob} onChange={setMinJob} />
+            <TextInput label="Battery low J$ per kWh (optional)" value={batLow} onChange={setBatLow} />
+            <TextInput label="Battery high J$ per kWh (optional)" value={batHigh} onChange={setBatHigh} />
+            <TextInput label="Includes / excludes" value={includes} onChange={setIncludes} placeholder="Excludes roof repairs and JPS fees" />
           </div>
         </div>
       )}

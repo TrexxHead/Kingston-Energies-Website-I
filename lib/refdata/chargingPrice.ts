@@ -111,4 +111,6 @@ export interface OperatorPrice {
   effectiveFrom: string
   source: { title: string; url?: string | null; retrievedAt: string }
   data: Charging
+  /** Set when the price comes live from the operator's own system (OCPI tariffs), with when we fetched it. */
+  live?: { retrievedAt: string }
 }

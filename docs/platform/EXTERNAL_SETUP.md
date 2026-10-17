@@ -34,6 +34,14 @@ The default tab on `/energy-map`. Nothing to sign up for and no keys: every file
 - Once JPS Charge ’n Go / Evergo agree to share status, ask for **OCPI 2.2.1 Locations** access (a URL and a token). Put them in Vercel as `OCPI_FEEDS` = `[{"operator":"Evergo","url":"https://…/ocpi/2.2.1/locations","token":"…"}]` (operator name exactly as on our stations).
 - For each station, enter the operator’s location id in Admin → Energy Map → station → “Operator location id”.
 - Status is fetched live (≈1 min cache) and not stored. Check the agreement allows display on our site.
+- **Live prices:** also ask for the **OCPI 2.2.1 Tariffs** module and add its URL to the same entry as `"tariffsUrl":"https://…/ocpi/2.2.1/tariffs"`. JMD tariffs then show on the map as “Live from <operator>’s system” (≈1 h cache), ahead of any price entered by hand. Tariffs that depend on charging power, energy or duration are left out and flagged.
+
+## 2d-2. Price sheets (automatic price sync) — no account needed
+- Make a Google Sheet with one tab per kind (fuel prices, public charging prices, lender offers, solar installed price, JPS fuel & IPP rate). Admin → Reference data → **Automatic price sync** → “Column headings for each tab” gives the header row to paste into each tab.
+- Publish each tab: File → Share → **Publish to web** → choose the tab → **Comma-separated values (.csv)** → Publish. Paste each link into the panel and Save. Only `docs.google.com` / `googleusercontent.com` links are accepted.
+- Every row needs `source_title` (where you read the price). The daily job runs at 6 am Jamaica time (Vercel Cron → `/api/cron/price-sync`, needs `CRON_SECRET`, already set for the other crons). **Sync now** runs it at once.
+- Changed prices arrive as **drafts** to approve. Tick **auto-approve** only for a sheet you alone edit; auto-approved prices retire the version they replace.
+- Note: anyone with the published link can read the sheet. Don’t put anything private in it.
 
 ## 2e. Road routing for the trip planner
 - `/trip-planner` needs an OSRM-compatible routing server: `OSRM_BASE_URL`. Recommended: self-host OSRM on the Jamaica OpenStreetMap extract (small — a basic VPS is enough); the public OSRM demo server is not for production use. Until set, the page is unlisted and says planning isn’t on yet. When it’s live, add it to the footer and sitemap.

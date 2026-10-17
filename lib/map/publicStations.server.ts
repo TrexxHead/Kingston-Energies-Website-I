@@ -1,7 +1,8 @@
 import { prisma } from '@/lib/prisma'
 import type { Prisma } from '@prisma/client'
 import { liveOperatorLocations, configuredFeeds } from './operatorFeeds.server'
-import { groupObservation } from './ocpi'
+import { groupObservation, locationTariffIds, type OcpiChargingPrice } from './ocpi'
+import { stableStringify } from '@/lib/energy/engine/stable'
 import { listRecords } from '@/lib/refdata/store.server'
 import { inEffect, type RefRecord } from '@/lib/refdata/types'
 import { sameOperator, type OperatorPrice } from '@/lib/refdata/chargingPrice'
@@ -36,8 +37,25 @@ export async function loadPublicStations(where: Prisma.EvStationWhereInput = {},
   // Live operator status, only when a feed is configured and a station is linked to it.
   const live = configuredFeeds().length && stations.some((s) => s.operatorLocationId) ? await liveOperatorLocations() : null
 
+  const livePrice = (t: OcpiChargingPrice, at: string): OperatorPrice => ({
+    name: `${t.operator} live tariff`,
+    effectiveFrom: today,
+    source: { title: `${t.operator}’s live price feed`, url: null, retrievedAt: today },
+    data: t,
+    live: { retrievedAt: at },
+  })
+
   return stations.map((s) => {
     const liveLoc = live && s.operatorLocationId && s.operator ? live.locations.get(s.operator.name.trim().toLowerCase())?.get(s.operatorLocationId) : undefined
+    // Live tariffs: one price for the station when every connector shares it, otherwise one per connector group.
+    const tariffs = liveLoc && live && s.operator ? live.tariffs.get(s.operator.name.trim().toLowerCase()) : undefined
+    const liveTariffs = tariffs && liveLoc ? locationTariffIds(liveLoc).flatMap((id) => (tariffs.get(id) ? [tariffs.get(id)!] : [])) : []
+    const distinct = [...new Map(liveTariffs.map((t) => [stableStringify(t), t])).values()]
+    const groupLivePrice = (connectorType: string) => {
+      if (distinct.length < 2 || !liveLoc || !tariffs || !live) return null
+      const t = locationTariffIds(liveLoc, connectorType).map((id) => tariffs.get(id)).find(Boolean)
+      return t ? livePrice(t, live.retrievedAt) : null
+    }
     const community: CommunitySignal[] = s.reports.map((r) => ({ kind: r.kind as CommunitySignal['kind'], observedAt: r.observedAt.toISOString(), moderation: 'approved' }))
     const groups = s.connectorGroups.map((g) => {
       const observations: StatusObservation[] = g.observations.map((o) => ({
@@ -59,6 +77,7 @@ export async function loadPublicStations(where: Prisma.EvStationWhereInput = {},
         count: g.count,
         portsShared: g.portsShared,
         status: s.status === 'closed' ? null : deriveGroupStatus(g.count, observations, community, now),
+        price: s.status === 'closed' ? null : groupLivePrice(g.connectorType),
       }
     })
     return {
@@ -75,7 +94,7 @@ export async function loadPublicStations(where: Prisma.EvStationWhereInput = {},
       paymentNotes: s.paymentNotes,
       pricingNotes: s.pricingNotes,
       pricingObservedAt: s.pricingObservedAt,
-      price: s.status === 'closed' ? null : priceFor(s.operator?.name),
+      price: s.status === 'closed' ? null : distinct.length === 1 && live ? livePrice(distinct[0], live.retrievedAt) : priceFor(s.operator?.name),
       closed: s.status === 'closed',
       verifiedAt: s.verifiedAt,
       updatedAt: s.updatedAt,

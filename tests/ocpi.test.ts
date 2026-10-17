@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseOcpiLocations, groupObservation } from '@/lib/map/ocpi'
+import { parseOcpiLocations, groupObservation, parseOcpiTariffs, locationTariffIds } from '@/lib/map/ocpi'
 import { deriveGroupStatus } from '@/lib/map/status'
 
 // Shape per OCPI 2.2.1, module Locations (Location → EVSE → Connector).
@@ -50,5 +50,38 @@ describe('OCPI locations', () => {
     expect(deriveGroupStatus(1, [groupObservation(loc, 'Type 2', retrieved)!], [], now).state).toBe('status_unknown')
     // 5-minute operator freshness: 20 minutes later it's no longer current.
     expect(deriveGroupStatus(2, [groupObservation(loc, 'CCS', retrieved)!], [], new Date('2026-10-14T15:20:00Z')).state).toBe('status_unknown')
+  })
+})
+
+describe('OCPI tariffs → charging prices', () => {
+  const tariffs = {
+    status_code: 1000,
+    data: [
+      {
+        id: 'T1',
+        currency: 'JMD',
+        elements: [
+          { price_components: [{ type: 'ENERGY', price: 100, vat: 15, step_size: 1 }], restrictions: { start_time: '18:00', end_time: '06:00' } },
+          { price_components: [{ type: 'ENERGY', price: 50, vat: 15, step_size: 1 }, { type: 'FLAT', price: 100, vat: 15, step_size: 1 }, { type: 'PARKING_TIME', price: 600, vat: 15, step_size: 60 }] },
+          { price_components: [{ type: 'ENERGY', price: 10, step_size: 1 }], restrictions: { min_power: 50 } },
+        ],
+      },
+      { id: 'USD1', currency: 'USD', elements: [{ price_components: [{ type: 'ENERGY', price: 0.4, step_size: 1 }] }] },
+    ],
+  }
+  it('maps energy, session and idle prices with GCT, and time bands', () => {
+    const m = parseOcpiTariffs(tariffs, 'TEST Op')
+    expect(m.has('USD1')).toBe(false)
+    const t = m.get('T1')!
+    expect(t.pricePerKwh).toBe(57.5)
+    expect(t.sessionFee).toBe(115)
+    expect(t.idleFeePerMin).toBe(11.5)
+    expect(t.periods).toEqual([{ label: 'Peak', start: '18:00', end: '06:00', pricePerKwh: 115 }])
+    expect(t.notes).toMatch(/charging power/)
+  })
+  it('reads tariff ids from connectors', () => {
+    const [loc] = parseOcpiLocations({ data: [{ id: 'L1', evses: [{ uid: 'E1', status: 'AVAILABLE', last_updated: '2026-10-17T10:00:00Z', connectors: [{ standard: 'CHADEMO', tariff_ids: ['T1'] }] }] }] })!
+    expect(locationTariffIds(loc)).toEqual(['T1'])
+    expect(locationTariffIds(loc, 'CCS')).toEqual([])
   })
 })

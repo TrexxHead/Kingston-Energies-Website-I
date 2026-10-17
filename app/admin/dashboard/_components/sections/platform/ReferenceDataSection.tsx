@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { priceSummary } from '@/lib/refdata/chargingPrice'
+import { SYNC_ACTOR } from '@/lib/refdata/priceSheets'
+import PriceSyncPanel from './PriceSyncPanel'
 import { cardStyle, h3Style } from '../../ui/card'
 import Badge from '../../ui/Badge'
 import Button from '../../ui/Button'
@@ -60,6 +62,7 @@ export default function ReferenceDataSection() {
         </div>
         {msg && <p role="alert" style={{ ...muted, color: '#c0392b', margin: 0 }}>{msg}</p>}
       </div>
+      <PriceSyncPanel onSynced={load} />
       {kinds.map((k) => {
         const list = records.filter((r) => r.kind === k)
         return (
@@ -87,7 +90,11 @@ export default function ReferenceDataSection() {
                 </span>
                 <span style={muted}>
                   Entered by {r.createdBy ?? 'unknown'}
-                  {r.reviewedBy ? ` · approved by ${r.reviewedBy}${r.reviewedBy === r.createdBy ? ' (same person — ask a second admin to double-check when possible)' : ''}` : ''}
+                  {r.reviewedBy
+                    ? r.createdBy === SYNC_ACTOR && r.reviewedBy === SYNC_ACTOR
+                      ? ' · auto-approved (the sheet is set to auto-approve)'
+                      : ` · approved by ${r.reviewedBy}${r.reviewedBy === r.createdBy ? ' (same person — ask a second admin to double-check when possible)' : ''}`
+                    : ''}
                 </span>
                 <Summary r={r} />
               </div>

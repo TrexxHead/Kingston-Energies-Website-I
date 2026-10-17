@@ -18,6 +18,8 @@ export interface MapStation {
   directionsUrl: string
   /** The operator's approved published price, when we have one. */
   price?: OperatorPrice | null
+  /** True when live prices differ by connector (shown in the station's details). */
+  pricesByConnector?: boolean
 }
 
 /** Shared props, so the two maps can be swapped behind one tab bar. */

@@ -97,6 +97,8 @@ export default async function StationPage({ params }: { params: Promise<{ slug: 
           <ChargePrice price={s.price} />
           {notesText && <div className="ke-st__fine">{notesText}</div>}
         </>
+      ) : s.connectorGroups.some((g) => g.price) ? (
+        'Live prices differ by connector — shown with each connector above.'
       ) : (
         notesText ?? 'Not confirmed'
       ),
@@ -139,6 +141,11 @@ export default async function StationPage({ params }: { params: Promise<{ slug: 
                         {g.status && (
                           <div className="ke-st__detail">
                             {DISPLAY_LABEL[g.status.state]} — {g.status.detail}
+                          </div>
+                        )}
+                        {g.price && (
+                          <div className="ke-st__detail">
+                            <ChargePrice price={g.price} compact />
                           </div>
                         )}
                       </li>

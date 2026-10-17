@@ -37,9 +37,17 @@ export function ChargePrice({ price, compact = false }: { price: OperatorPrice; 
           )}
         </p>
       ) : null}
-      {(!compact || !p) && summary && <p className="ke-price__list">{summary}</p>}
+      {(!compact || !p || !!price.data.sessionFee || !!price.data.idleFeePerMin) && summary && <p className="ke-price__list">{summary}</p>}
+      {!compact && price.data.notes && <p className="ke-price__list">{price.data.notes}</p>}
       <p className="ke-price__src">
-        {price.data.operator}’s published price · {price.source.url ? <a href={price.source.url} target="_blank" rel="noopener noreferrer">{price.source.title}</a> : price.source.title} · checked {seen}. Confirm in the operator’s app before you charge.
+        {price.live ? (
+          <>Live from {price.data.operator}’s system · updated {new Date(price.live.retrievedAt).toLocaleTimeString('en-JM', { timeZone: 'America/Jamaica', hour: 'numeric', minute: '2-digit' })}.</>
+        ) : (
+          <>
+            {price.data.operator}’s published price · {price.source.url ? <a href={price.source.url} target="_blank" rel="noopener noreferrer">{price.source.title}</a> : price.source.title} · checked {seen}.
+          </>
+        )}{' '}
+        Confirm in the operator’s app before you charge.
       </p>
       {bands && !compact && <EveningWhy />}
       <style>{PRICE_CSS}</style>

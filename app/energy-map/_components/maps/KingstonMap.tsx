@@ -475,6 +475,7 @@ const KingstonMap = forwardRef<MapViewHandle, MapViewProps>(function KingstonMap
                   <ChargePrice price={station.price} compact />
                 </div>
               )}
+              {!station.price && station.pricesByConnector && <p className="ke-card__sub">Prices differ by connector — see Details.</p>}
               <QuickReport key={station.id} stationId={station.id} />
               <div className="ke-card__actions">
                 <a className="ke-btn ke-btn--primary" href={station.directionsUrl} target="_blank" rel="noopener noreferrer">

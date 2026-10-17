@@ -35,6 +35,8 @@ export interface OcpiEvse {
   status: string
   lastUpdated: string
   connectorTypes: string[]
+  /** The operator's tariff ids on this EVSE's connectors (OCPI `tariff_ids`). */
+  tariffIds: string[]
 }
 
 export interface OcpiLocation {
@@ -56,8 +58,12 @@ export function parseOcpiLocations(json: any): OcpiLocation[] | null {
       const t = typeof e.last_updated === 'string' && !Number.isNaN(Date.parse(e.last_updated)) ? new Date(e.last_updated).toISOString() : null
       if (!t) continue
       const types = new Set<string>()
-      for (const c of Array.isArray(e.connectors) ? e.connectors : []) for (const name of STANDARD_TO_TYPE[c?.standard] ?? []) types.add(name)
-      evses.push({ uid: e.uid, status: e.status, lastUpdated: t, connectorTypes: [...types] })
+      const tariffs = new Set<string>()
+      for (const c of Array.isArray(e.connectors) ? e.connectors : []) {
+        for (const name of STANDARD_TO_TYPE[c?.standard] ?? []) types.add(name)
+        for (const id of Array.isArray(c?.tariff_ids) ? c.tariff_ids : []) if (typeof id === 'string') tariffs.add(id)
+      }
+      evses.push({ uid: e.uid, status: e.status, lastUpdated: t, connectorTypes: [...types], tariffIds: [...tariffs] })
     }
     out.push({ id: loc.id, evses })
   }
@@ -79,4 +85,68 @@ export function groupObservation(loc: OcpiLocation, connectorType: string, retri
     inUseCount: count(['CHARGING', 'BLOCKED', 'RESERVED']),
     supportsInUse: true,
   }
+}
+
+/** The tariff ids used by the EVSEs at a location offering `connectorType` (all types when omitted). */
+export function locationTariffIds(loc: OcpiLocation, connectorType?: string): string[] {
+  return [...new Set(loc.evses.filter((e) => !connectorType || e.connectorTypes.includes(connectorType)).flatMap((e) => e.tariffIds))]
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// OCPI 2.2.1 Tariffs → our charging price shape. Only JMD tariffs are used.
+// Prices in OCPI exclude VAT; when the tariff gives `vat` we add it (GCT),
+// otherwise we say the price may exclude GCT. Elements restricted by
+// anything other than time of day and weekday (power, kWh, duration,
+// dates) can't be shown as a simple price, so they're left out and noted.
+
+const OCPI_DAYS = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY']
+const UNSUPPORTED_RESTRICTIONS = ['start_date', 'end_date', 'min_kwh', 'max_kwh', 'min_current', 'max_current', 'min_power', 'max_power', 'min_duration', 'max_duration', 'reservation']
+
+export interface OcpiChargingPrice {
+  operator: string
+  pricePerKwh: number | null
+  periods?: { label: string; start: string; end: string; days?: number[]; pricePerKwh: number }[]
+  sessionFee: number | null
+  idleFeePerMin: number | null
+  notes: string | null
+}
+
+export function parseOcpiTariffs(json: any, operator: string): Map<string, OcpiChargingPrice> {
+  const out = new Map<string, OcpiChargingPrice>()
+  const raw = Array.isArray(json?.data) ? json.data : json?.data && typeof json.data === 'object' ? [json.data] : []
+  for (const t of raw) {
+    if (typeof t?.id !== 'string' || t?.currency !== 'JMD' || !Array.isArray(t?.elements)) continue
+    const notes = new Set<string>()
+    let base: number | null = null
+    let session: number | null = null
+    let idle: number | null = null
+    const bands: { start: string; end: string; days?: number[]; price: number }[] = []
+    for (const el of t.elements) {
+      const comps = Array.isArray(el?.price_components) ? el.price_components : []
+      const r = el?.restrictions ?? {}
+      if (UNSUPPORTED_RESTRICTIONS.some((k) => r[k] != null)) {
+        notes.add('Some prices depend on charging power, energy or duration — see the operator’s app.')
+        continue
+      }
+      const timed = typeof r.start_time === 'string' && typeof r.end_time === 'string'
+      const days = Array.isArray(r.day_of_week) ? r.day_of_week.map((d: string) => OCPI_DAYS.indexOf(d)).filter((d: number) => d >= 0) : undefined
+      for (const c of comps) {
+        const price = Number(c?.price)
+        if (!Number.isFinite(price) || price < 0) continue
+        const withVat = typeof c?.vat === 'number' ? price * (1 + c.vat / 100) : price
+        if (typeof c?.vat !== 'number') notes.add('Prices may exclude GCT.')
+        const amount = Math.round(withVat * 100) / 100
+        if (c.type === 'ENERGY') {
+          if (timed || days?.length) bands.push({ start: timed ? r.start_time : '00:00', end: timed ? r.end_time : '00:00', ...(days?.length ? { days } : {}), price: amount })
+          else if (base == null) base = amount
+        } else if (c.type === 'FLAT' && !timed && session == null) session = amount
+        else if (c.type === 'PARKING_TIME' && !timed && idle == null) idle = Math.round((withVat / 60) * 100) / 100
+        else if (c.type === 'TIME') notes.add(`Plus J$${amount.toLocaleString('en-JM')} an hour while charging${timed ? ' at some times' : ''}.`)
+        else if (timed) notes.add('Some fees change by time of day — see the operator’s app.')
+      }
+    }
+    const periods = bands.map((b) => ({ label: base == null ? 'Time band' : b.price > base ? 'Peak' : b.price < base ? 'Off-peak' : 'Time band', start: b.start, end: b.end, ...(b.days ? { days: b.days } : {}), pricePerKwh: b.price }))
+    out.set(t.id, { operator, pricePerKwh: base, ...(periods.length ? { periods: periods.slice(0, 8) } : {}), sessionFee: session, idleFeePerMin: idle, notes: notes.size ? [...notes].join(' ') : null })
+  }
+  return out
 }

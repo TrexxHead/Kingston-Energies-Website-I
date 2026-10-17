@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { parseData, type RefKind, type RefRecord, type RefStatus } from './types'
+import { recordKey, sameData, type SheetRecord } from './priceSheets'
 
 /**
  * Reference data lives in one SiteSetting row (no schema migration). Writes
@@ -115,4 +116,53 @@ export async function deleteDraft(id: string): Promise<void> {
   if (!existing) throw new Error('Not found.')
   if (existing.status !== 'draft') throw new Error('Only drafts can be deleted. Retire it instead.')
   await write(raw, { records: data.records.filter((r) => r.id !== id) })
+}
+
+export interface SyncOutcome {
+  added: string[]
+  unchanged: number
+}
+
+/**
+ * Apply records from a price sheet in one write. A record identical to the
+ * latest approved one (or to a pending draft) for the same thing is skipped.
+ * New prices become drafts — or, for an auto-approve sheet, approved
+ * records that retire the version they replace. Older drafts the sync itself
+ * left for the same thing are replaced, so drafts don't pile up daily.
+ */
+export async function applySheetRecords(incoming: SheetRecord[], opts: { autoApprove: boolean; actor: string }): Promise<SyncOutcome> {
+  const { raw, data } = await read()
+  let records = [...data.records]
+  const outcome: SyncOutcome = { added: [], unchanged: 0 }
+  const now = new Date().toISOString()
+  for (const inc of incoming) {
+    const same = records.filter((r) => r.kind === inc.kind && r.status !== 'retired' && recordKey(r) === inc.key)
+    const latestApproved = same.filter((r) => r.status === 'approved').sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom))[0]
+    if ((latestApproved && sameData(latestApproved.data, inc.data)) || same.some((r) => r.status === 'draft' && sameData(r.data, inc.data) && r.effectiveFrom === inc.effectiveFrom)) {
+      outcome.unchanged++
+      continue
+    }
+    const record = {
+      id: randomUUID(),
+      kind: inc.kind,
+      name: inc.name,
+      effectiveFrom: inc.effectiveFrom,
+      effectiveTo: null,
+      source: inc.source,
+      status: opts.autoApprove ? 'approved' : 'draft',
+      createdBy: opts.actor,
+      createdAt: now,
+      reviewedBy: opts.autoApprove ? opts.actor : null,
+      reviewedAt: opts.autoApprove ? now : null,
+      data: inc.data,
+    } as RefRecord
+    const supersededDraft = (r: RefRecord) => r.status === 'draft' && r.createdBy === opts.actor && same.includes(r)
+    records = records
+      .filter((r) => !supersededDraft(r))
+      .map((r) => (opts.autoApprove && same.includes(r) && r.status === 'approved' && r.effectiveFrom <= inc.effectiveFrom ? ({ ...r, status: 'retired' } as RefRecord) : r))
+    records.push(record)
+    outcome.added.push(`${inc.name}${opts.autoApprove ? '' : ' (draft)'}`)
+  }
+  if (outcome.added.length) await write(raw, { records })
+  return outcome
 }

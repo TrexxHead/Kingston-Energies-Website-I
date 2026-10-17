@@ -33,6 +33,8 @@ interface Group {
   maxPowerKw: number | null
   count: number | null
   status: GroupStatus | null
+  /** Live operator price for this connector type, when it differs between connectors. */
+  price?: OperatorPrice | null
 }
 interface Station {
   id: string
@@ -175,6 +177,7 @@ export default function EnergyMapClient() {
           .join('  |  '),
         directionsUrl: directionsUrl(s.lat, s.lng),
         price: s.price,
+        pricesByConnector: !s.price && s.connectorGroups.some((g) => g.price),
       })),
     [sorted],
   )
@@ -347,6 +350,11 @@ export default function EnergyMapClient() {
                     </span>
                   </span>
                   <StatusLine s={g.status} />
+                  {g.price && (
+                    <div style={{ ...muted, gridColumn: '1 / -1' }}>
+                      <ChargePrice price={g.price} compact />
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>

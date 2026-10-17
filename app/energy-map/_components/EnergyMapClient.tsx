@@ -14,6 +14,8 @@ import { stationMarkerState } from '@/lib/map/openStyle'
 import GoogleMapPanel, { type DiscoveredResults } from './maps/GoogleMapPanel'
 import { GOOGLE_EMBED_KEY, GOOGLE_EMBED_ONLY } from './maps/googleKeys'
 import type { MapStation, MapViewHandle } from './maps/types'
+import { ChargePrice } from '@/components/energy/ChargePrice'
+import type { OperatorPrice } from '@/lib/refdata/chargingPrice'
 
 // MapLibre touches window/WebGL — load it in the browser only.
 const KingstonMap = dynamic(() => import('./maps/KingstonMap'), { ssr: false, loading: () => <div style={{ height: 'min(60vh, 520px)', borderRadius: 20, background: '#0b2634' }} /> })
@@ -46,6 +48,7 @@ interface Station {
   paymentNotes: string | null
   pricingNotes: string | null
   pricingObservedAt: string | null
+  price: OperatorPrice | null
   closed: boolean
   verifiedAt: string | null
   sources: { sourceName: string; sourceType: string; verifiedAt: string | null }[]
@@ -171,6 +174,7 @@ export default function EnergyMapClient() {
           .map((g) => [g.connectorType, g.currentType, g.maxPowerKw != null ? `up to ${g.maxPowerKw} kW` : null, g.count != null ? `${g.count}×` : null].filter(Boolean).join(' · '))
           .join('  |  '),
         directionsUrl: directionsUrl(s.lat, s.lng),
+        price: s.price,
       })),
     [sorted],
   )
@@ -346,6 +350,11 @@ export default function EnergyMapClient() {
                 </li>
               ))}
             </ul>
+            {s.price && (
+              <div style={{ ...muted, marginTop: 12 }}>
+                <ChargePrice price={s.price} />
+              </div>
+            )}
             {(s.accessNotes || s.hours || s.paymentNotes || s.pricingNotes) && (
               <dl style={{ ...muted, display: 'grid', gridTemplateColumns: 'max-content 1fr', gap: '4px 12px', margin: '12px 0 0' }}>
                 {s.hours && (<><dt>Hours</dt><dd style={{ margin: 0 }}>{s.hours}</dd></>)}

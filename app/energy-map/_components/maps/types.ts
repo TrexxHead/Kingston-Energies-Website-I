@@ -1,4 +1,5 @@
 import type { DisplayState } from '@/lib/map/status'
+import type { OperatorPrice } from '@/lib/refdata/chargingPrice'
 
 /** What a map view needs to plot (and summarise) one registry station. */
 export interface MapStation {
@@ -15,6 +16,8 @@ export interface MapStation {
   /** e.g. "Type 2 · AC · up to 7 kW · 2 connectors". */
   connectorsLine: string
   directionsUrl: string
+  /** The operator's approved published price, when we have one. */
+  price?: OperatorPrice | null
 }
 
 /** Shared props, so the two maps can be swapped behind one tab bar. */

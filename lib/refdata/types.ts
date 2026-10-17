@@ -76,10 +76,29 @@ export const shelterSchema = z.object({
 })
 export const shelterListDataSchema = z.object({ shelters: z.array(shelterSchema).min(1).max(2000) })
 
+const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Use 24-hour HH:MM.')
+
+/** A time-of-day price band, e.g. 18:00–06:00 at J$X/kWh. Wraps past midnight when end ≤ start. */
+export const pricePeriodSchema = z.object({
+  label: z.string().trim().min(1).max(40),
+  start: hhmm,
+  end: hhmm,
+  /** Days the band starts on (0 = Sunday … 6 = Saturday); all days when omitted. */
+  days: z.array(z.number().int().min(0).max(6)).max(7).optional(),
+  pricePerKwh: money,
+})
+
 export const chargingPriceDataSchema = z.object({
   operator: z.string().trim().min(2).max(120),
-  /** JMD per kWh (or per session/minute if the operator prices that way — then explain in notes). */
+  /** JMD per kWh outside any time band (or the only price). Null when the operator doesn't price per kWh. */
   pricePerKwh: money.nullable(),
+  /** Time-of-day bands that override the base price while they apply. */
+  periods: z.array(pricePeriodSchema).max(8).optional(),
+  /** Charged once per charging session, J$. */
+  sessionFee: money.nullable().optional(),
+  /** Idle / overstay fee per minute after charging finishes, J$, and the free minutes before it starts. */
+  idleFeePerMin: money.nullable().optional(),
+  idleGraceMin: z.number().int().min(0).max(240).nullable().optional(),
   notes: z.string().trim().max(500).nullable().optional(),
 })
 

@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import type { ReactNode } from 'react'
+import { ChargePrice } from '@/components/energy/ChargePrice'
 import { notFound, permanentRedirect } from 'next/navigation'
 import { CircleCheck, CircleHelp, CircleX, Navigation, ExternalLink, MapPin, ArrowLeft } from 'lucide-react'
 import Navbar from '@/components/Navbar'
@@ -83,11 +85,22 @@ export default async function StationPage({ params }: { params: Promise<{ slug: 
   }
   const crumbs = buildBreadcrumbs([{ name: 'Home', path: '/' }, { name: 'Jamaica Energy Map', path: '/energy-map' }, { name: s.name }])
 
-  const facts: [string, string | null][] = [
+  const notesText = s.pricingNotes ? `${s.pricingNotes}${s.pricingObservedAt ? ` (seen ${new Date(s.pricingObservedAt).toLocaleDateString('en-JM', { day: 'numeric', month: 'short', year: 'numeric' })})` : ''}` : null
+  const facts: [string, ReactNode][] = [
     ['Access', [ACCESS_TEXT[s.access] ?? s.access, s.accessNotes].filter(Boolean).join(' — ')],
     ['Hours', s.hours ?? 'Not confirmed'],
     ['Paying', s.paymentNotes ?? 'Not confirmed'],
-    ['Price', s.pricingNotes ? `${s.pricingNotes}${s.pricingObservedAt ? ` (seen ${new Date(s.pricingObservedAt).toLocaleDateString('en-JM', { day: 'numeric', month: 'short', year: 'numeric' })})` : ''}` : 'Not confirmed'],
+    [
+      'Price',
+      s.price ? (
+        <>
+          <ChargePrice price={s.price} />
+          {notesText && <div className="ke-st__fine">{notesText}</div>}
+        </>
+      ) : (
+        notesText ?? 'Not confirmed'
+      ),
+    ],
   ]
 
   return (

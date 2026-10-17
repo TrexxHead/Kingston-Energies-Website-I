@@ -2,6 +2,9 @@ import { prisma } from '@/lib/prisma'
 import type { Prisma } from '@prisma/client'
 import { liveOperatorLocations, configuredFeeds } from './operatorFeeds.server'
 import { groupObservation } from './ocpi'
+import { listRecords } from '@/lib/refdata/store.server'
+import { inEffect, type RefRecord } from '@/lib/refdata/types'
+import { sameOperator, type OperatorPrice } from '@/lib/refdata/chargingPrice'
 import { deriveGroupStatus, stationStatusSummary, type StatusObservation, type CommunitySignal, type StatusSource } from './status'
 
 /**
@@ -20,6 +23,16 @@ export async function loadPublicStations(where: Prisma.EvStationWhereInput = {},
     },
     orderBy: { name: 'asc' },
   })
+  // The operator's approved price record (owner-entered, sourced, dated) — matched by operator name.
+  const today = new Date(now.getTime() - 5 * 3_600_000).toISOString().slice(0, 10)
+  const records: RefRecord[] = await listRecords().catch(() => [])
+  const prices = records.filter(
+    (r): r is RefRecord<'charging_price'> => r.kind === 'charging_price' && r.status === 'approved' && inEffect(r, today),
+  )
+  const priceFor = (operator: string | undefined): OperatorPrice | null => {
+    const r = operator ? prices.filter((p) => sameOperator(p.data.operator, operator)).sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom))[0] : undefined
+    return r ? { name: r.name, effectiveFrom: r.effectiveFrom, source: r.source, data: r.data } : null
+  }
   // Live operator status, only when a feed is configured and a station is linked to it.
   const live = configuredFeeds().length && stations.some((s) => s.operatorLocationId) ? await liveOperatorLocations() : null
 
@@ -62,6 +75,7 @@ export async function loadPublicStations(where: Prisma.EvStationWhereInput = {},
       paymentNotes: s.paymentNotes,
       pricingNotes: s.pricingNotes,
       pricingObservedAt: s.pricingObservedAt,
+      price: s.status === 'closed' ? null : priceFor(s.operator?.name),
       closed: s.status === 'closed',
       verifiedAt: s.verifiedAt,
       updatedAt: s.updatedAt,

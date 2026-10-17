@@ -14,6 +14,7 @@ import { clusterStations } from '@/lib/map/cluster'
 import { addMapImages, stationPinSvg } from '@/lib/map/mapImages'
 import type { MapViewHandle, MapViewProps } from './types'
 import QuickReport from '../QuickReport'
+import { ChargePrice } from '@/components/energy/ChargePrice'
 
 /**
  * Kingston Energies' own map: MapLibre GL over self-hosted Jamaica data
@@ -469,6 +470,11 @@ const KingstonMap = forwardRef<MapViewHandle, MapViewProps>(function KingstonMap
               </p>
               {station.statusDetail && <p className="ke-card__sub ke-card__fine">{station.statusDetail}</p>}
               {station.connectorsLine && <p className="ke-card__sub">{station.connectorsLine}</p>}
+              {station.price && (
+                <div className="ke-card__sub">
+                  <ChargePrice price={station.price} compact />
+                </div>
+              )}
               <QuickReport key={station.id} stationId={station.id} />
               <div className="ke-card__actions">
                 <a className="ke-btn ke-btn--primary" href={station.directionsUrl} target="_blank" rel="noopener noreferrer">

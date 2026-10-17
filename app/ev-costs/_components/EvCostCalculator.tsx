@@ -5,6 +5,8 @@ import { card, label, input, muted, h2, fmt } from '@/app/my-energy/_components/
 import { evCostComparison } from '@/lib/energy/engine/ev'
 import { useActiveRecord } from '@/lib/refdata/useRefData'
 import { tariffFromPublic, type PublicRecord } from '@/lib/refdata/types'
+import { EveningWhy } from '@/components/energy/ChargePrice'
+import { periodText } from '@/lib/refdata/chargingPrice'
 
 /**
  * EV vs petrol energy-cost calculator (roadmap P3). Prices come from
@@ -40,11 +42,20 @@ export default function EvCostCalculator() {
   const [publicOp, setPublicOp] = useState('')
   const [ownPublic, setOwnPublic] = useState('')
   const [premium, setPremium] = useState('')
+  const [when, setWhen] = useState('std')
 
   const selectedGrade = pumpGrades.find((g) => g.grade === grade) ?? pumpGrades[0]
   const petrolPrice = num(ownPetrol) ?? selectedGrade?.pricePerLitre
   const op = chargingPrices.find((c) => c.id === publicOp)
-  const publicPrice = num(ownPublic) ?? op?.data.pricePerKwh ?? undefined
+  // Operators with time-of-day prices: the visitor picks when they usually charge.
+  const times = op
+    ? [
+        ...(op.data.pricePerKwh != null ? [{ key: 'std', label: op.data.periods?.length ? 'Standard hours' : 'Any time', price: op.data.pricePerKwh }] : []),
+        ...(op.data.periods ?? []).map((b, i) => ({ key: `b${i}`, label: periodText(b), price: b.pricePerKwh })),
+      ]
+    : []
+  const timeChoice = times.find((t) => t.key === when) ?? times[0]
+  const publicPrice = num(ownPublic) ?? timeChoice?.price ?? undefined
   const tariff = tariffRec ? tariffFromPublic(tariffRec) : undefined
 
   const result = useMemo(
@@ -113,18 +124,35 @@ export default function EvCostCalculator() {
           {homeShare < 100 && (
             <div>
               <label htmlFor="ev-op" style={label}>Public charging price (J$ per kWh)</label>
-              {chargingPrices.filter((c) => c.data.pricePerKwh != null).length > 0 && (
-                <select id="ev-op" style={{ ...input, marginBottom: 8 }} value={publicOp} onChange={(e) => setPublicOp(e.target.value)}>
+              {chargingPrices.filter(hasKwhPrice).length > 0 && (
+                <select id="ev-op" style={{ ...input, marginBottom: 8 }} value={publicOp} onChange={(e) => { setPublicOp(e.target.value); setWhen('std') }}>
                   <option value="">Choose an operator…</option>
-                  {chargingPrices
-                    .filter((c) => c.data.pricePerKwh != null)
-                    .map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.data.operator} — J${fmt(c.data.pricePerKwh ?? 0, 2)}/kWh
-                      </option>
-                    ))}
+                  {chargingPrices.filter(hasKwhPrice).map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.data.operator} — {c.data.pricePerKwh != null ? `J$${fmt(c.data.pricePerKwh, 2)}/kWh` : 'time-of-day prices'}
+                      {c.data.periods?.length ? ' (varies by time)' : ''}
+                    </option>
+                  ))}
                 </select>
               )}
+              {op && times.length > 1 && !ownPublic.trim() && (
+                <>
+                  <label htmlFor="ev-when" style={label}>When do you usually charge in public?</label>
+                  <select id="ev-when" style={{ ...input, marginBottom: 8 }} value={timeChoice?.key} onChange={(e) => setWhen(e.target.value)}>
+                    {times.map((t) => (
+                      <option key={t.key} value={t.key}>
+                        {t.label} — J${fmt(t.price, 2)}/kWh
+                      </option>
+                    ))}
+                  </select>
+                </>
+              )}
+              {op && !ownPublic.trim() && (op.data.sessionFee || op.data.idleFeePerMin) ? (
+                <p style={{ ...muted, fontSize: 12.5, margin: '0 0 8px' }}>
+                  {op.data.operator} also charges {[op.data.sessionFee ? `J$${fmt(op.data.sessionFee, 0)} per session` : null, op.data.idleFeePerMin ? `J$${fmt(op.data.idleFeePerMin, 2)} a minute if you stay plugged in after charging${op.data.idleGraceMin ? ` (after ${op.data.idleGraceMin} free minutes)` : ''}` : null].filter(Boolean).join(' and ')} — not included in the yearly figure below.
+                </p>
+              ) : null}
+              {op?.data.periods?.length ? <EveningWhy calculatorLink={false} /> : null}
               <input aria-label="Your own public charging price, J$ per kWh" style={input} inputMode="decimal" placeholder="Or type a price" value={ownPublic} onChange={(e) => setOwnPublic(e.target.value.replace(/[^\d.,]/g, ''))} />
             </div>
           )}
@@ -196,3 +224,5 @@ const CSS = `
 .ke-ev-bar__value small{font-weight:500;color:var(--ke-dark-text-muted);font-size:12.5px}
 @media (max-width:600px){.ke-ev-bar{grid-template-columns:64px 1fr}.ke-ev-bar__value{grid-column:2}}
 `
+
+const hasKwhPrice = (c: PublicRecord<'charging_price'>) => c.data.pricePerKwh != null || !!c.data.periods?.length

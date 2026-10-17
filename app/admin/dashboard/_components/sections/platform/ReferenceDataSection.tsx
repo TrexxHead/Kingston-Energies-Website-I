@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
+import { priceSummary } from '@/lib/refdata/chargingPrice'
 import { cardStyle, h3Style } from '../../ui/card'
 import Badge from '../../ui/Badge'
 import Button from '../../ui/Button'
@@ -129,7 +130,7 @@ function Summary({ r }: { r: RefRecord }) {
     return <span style={muted}>{l.lender} — {l.product}: {l.rateIsFrom ? 'from ' : ''}{l.annualRatePct}% {l.rateType}{l.maxTermMonths ? `, up to ${l.maxTermMonths} months` : ''}{l.minDepositPct != null ? `, ${l.minDepositPct}% deposit` : ''}{l.processingFeePct != null ? `, ${l.processingFeePct}% processing` : ''}{l.monthlyFee != null ? `, J$${l.monthlyFee}/month fee` : ''}</span>
   }
   const d = r.data as RefRecord<'charging_price'>['data']
-  return <span style={muted}>{d.operator}: {d.pricePerKwh != null ? `J$${d.pricePerKwh}/kWh` : 'not per kWh'}{d.notes ? ` — ${d.notes}` : ''}</span>
+  return <span style={muted}>{d.operator}: {priceSummary(d) || 'not per kWh'}{d.notes ? ` — ${d.notes}` : ''}</span>
 }
 
 type CompDraft = { kind: TariffComponent['kind']; label: string; amount: string; percent: string; blocks: { upTo: string; rate: string }[] }
@@ -152,6 +153,10 @@ function RecordEditor({ kind, onDone }: { kind: RefKind; onDone: () => void }) {
   // charging
   const [operator, setOperator] = useState('')
   const [perKwh, setPerKwh] = useState('')
+  const [bands, setBands] = useState<{ label: string; start: string; end: string; days: string; price: string }[]>([])
+  const [sessionFee, setSessionFee] = useState('')
+  const [idleFee, setIdleFee] = useState('')
+  const [idleGrace, setIdleGrace] = useState('')
   // shelters
   const [csv, setCsv] = useState('')
   // lender
@@ -191,7 +196,16 @@ function RecordEditor({ kind, onDone }: { kind: RefKind; onDone: () => void }) {
     if (kind === 'fuel_price') return { basis, currency: 'JMD', grades: grades.filter((g) => g.price.trim()).map((g) => ({ grade: g.grade, pricePerLitre: num(g.price) })) }
     if (kind === 'lender_offer')
       return { lender, product, annualRatePct: num(rate), rateIsFrom: rateFrom === 'yes', rateType, maxTermMonths: maxTerm.trim() ? num(maxTerm) : null, minDepositPct: minDeposit.trim() ? num(minDeposit) : null, processingFeePct: procFee.trim() ? num(procFee) : null, otherUpfrontFees: otherFees.trim() ? num(otherFees) : null, monthlyFee: monthlyFee.trim() ? num(monthlyFee) : null, lifeInsurancePctPerYear: lifeIns.trim() ? num(lifeIns) : null, maxLoan: maxLoan.trim() ? num(maxLoan) : null, notes: notes.trim() || null }
-    if (kind === 'charging_price') return { operator, pricePerKwh: perKwh.trim() ? num(perKwh) : null, notes: notes.trim() || null }
+    if (kind === 'charging_price')
+      return {
+        operator,
+        pricePerKwh: perKwh.trim() ? num(perKwh) : null,
+        periods: bands.filter((b) => b.price.trim()).map((b) => ({ label: b.label.trim() || 'Peak', start: b.start, end: b.end, ...(b.days === 'Mon–Fri' ? { days: [1, 2, 3, 4, 5] } : b.days === 'Sat–Sun' ? { days: [0, 6] } : {}), pricePerKwh: num(b.price) })),
+        sessionFee: sessionFee.trim() ? num(sessionFee) : null,
+        idleFeePerMin: idleFee.trim() ? num(idleFee) : null,
+        idleGraceMin: idleGrace.trim() ? num(idleGrace) : null,
+        notes: notes.trim() || null,
+      }
     const shelters = csv
       .split('\n')
       .map((l) => l.split(',').map((x) => x.trim()))
@@ -278,8 +292,34 @@ function RecordEditor({ kind, onDone }: { kind: RefKind; onDone: () => void }) {
       {kind === 'charging_price' && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 10 }}>
           <TextInput label="Operator" value={operator} onChange={setOperator} placeholder="JPS Charge 'n Go" />
-          <TextInput label="J$ per kWh (blank if not per kWh)" value={perKwh} onChange={setPerKwh} />
-          <TextInput label="Notes (session fees, idle fees…)" value={notes} onChange={setNotes} />
+          <TextInput label="Standard J$ per kWh (blank if not per kWh)" value={perKwh} onChange={setPerKwh} />
+          <TextInput label="J$ per session (blank if none)" value={sessionFee} onChange={setSessionFee} />
+          <TextInput label="Idle fee J$ per minute" value={idleFee} onChange={setIdleFee} />
+          <TextInput label="Free minutes before idle fee" value={idleGrace} onChange={setIdleGrace} />
+          <TextInput label="Notes" value={notes} onChange={setNotes} />
+          <div style={{ gridColumn: '1 / -1', display: 'grid', gap: 8 }}>
+            <p style={{ ...muted, margin: 0 }}>Time-of-day prices (Jamaica time). A band that ends at or before it starts runs past midnight, e.g. 18:00 → 06:00. Outside every band the standard price applies.</p>
+            {bands.map((b, i) => {
+              const set = (patch: Partial<typeof b>) => setBands(bands.map((x, j) => (j === i ? { ...x, ...patch } : x)))
+              return (
+                <div key={i} style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr 1.2fr 1fr auto', gap: 8, alignItems: 'end' }}>
+                  <TextInput label="Band name" value={b.label} onChange={(v) => set({ label: v })} placeholder="Evening" />
+                  <TextInput label="From (HH:MM)" value={b.start} onChange={(v) => set({ start: v })} />
+                  <TextInput label="To (HH:MM)" value={b.end} onChange={(v) => set({ end: v })} />
+                  <TextInput label="Days" value={b.days} onChange={(v) => set({ days: v })} options={['every day', 'Mon–Fri', 'Sat–Sun']} />
+                  <TextInput label="J$ per kWh" value={b.price} onChange={(v) => set({ price: v })} />
+                  <Button size="sm" variant="outline" ariaLabel={`Remove band ${i + 1}`} onClick={() => setBands(bands.filter((_, j) => j !== i))}>
+                    <Trash2 size={14} />
+                  </Button>
+                </div>
+              )
+            })}
+            <div>
+              <Button size="sm" variant="outline" onClick={() => setBands([...bands, { label: 'Evening', start: '18:00', end: '06:00', days: 'every day', price: '' }])}>
+                + Add time band
+              </Button>
+            </div>
+          </div>
         </div>
       )}
 

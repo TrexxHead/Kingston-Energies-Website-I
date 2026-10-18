@@ -44,6 +44,9 @@ export interface ActiveStorm {
   advisoryNumber: string | null
   advisoryUrl: string | null
   graphicsUrl: string | null
+  /** NHC's forecast cone and track (KMZ), when issued for this system. */
+  coneKmzUrl: string | null
+  trackKmzUrl: string | null
   distanceFromKingstonKm: number
 }
 
@@ -136,6 +139,8 @@ export function parseCurrentStorms(json: any): { storms: ActiveStorm[]; dropped:
       advisoryNumber: typeof s.publicAdvisory?.advNum === 'string' ? s.publicAdvisory.advNum : null,
       advisoryUrl: httpsUrl(s.publicAdvisory?.url),
       graphicsUrl: httpsUrl(s.forecastGraphics?.url),
+      coneKmzUrl: httpsUrl(s.trackCone?.kmzFile),
+      trackKmzUrl: httpsUrl(s.forecastTrack?.kmzFile),
       distanceFromKingstonKm: Math.round(haversineKm(KINGSTON, { lat, lng })),
     })
   }

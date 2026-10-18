@@ -1,9 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { ExternalLink, Wind, RefreshCw } from 'lucide-react'
 import { card, muted, h2, fmt } from '@/app/my-energy/_components/ui'
 import type { ActiveStorm } from '@/lib/storm/nhc'
+
+const StormConeMap = dynamic(() => import('./StormConeMap'), { ssr: false })
 
 /**
  * Active Atlantic systems as the National Hurricane Center lists them.
@@ -23,6 +26,7 @@ const time = (iso: string) => new Date(iso).toLocaleString('en-JM', { timeZone: 
 
 export default function StormWatch() {
   const [state, setState] = useState<State>({ kind: 'loading' })
+  const [coneFor, setConeFor] = useState<string | null>(null)
   const load = () => {
     setState({ kind: 'loading' })
     fetch('/api/storm/active')
@@ -98,6 +102,11 @@ export default function StormWatch() {
                 )}
               </dl>
               <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+                {s.coneKmzUrl && (
+                  <button type="button" className="ke-sr-link" aria-expanded={coneFor === s.id} onClick={() => setConeFor(coneFor === s.id ? null : s.id)}>
+                    {coneFor === s.id ? 'Hide the map' : 'Show the forecast cone on the map'}
+                  </button>
+                )}
                 {s.graphicsUrl && (
                   <a className="ke-sr-link" href={s.graphicsUrl} target="_blank" rel="noopener noreferrer">
                     Forecast cone <ExternalLink size={13} aria-hidden />
@@ -109,6 +118,7 @@ export default function StormWatch() {
                   </a>
                 )}
               </div>
+              {coneFor === s.id && <StormConeMap id={s.id} name={s.name} />}
             </li>
           ))}
         </ul>

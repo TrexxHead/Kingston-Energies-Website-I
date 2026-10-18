@@ -7,7 +7,7 @@ import { MousePointerClick, PenLine, Check, Undo2, X, Sun, Send, Maximize2, Mini
 import { createKingstonMap } from '@/app/energy-map/_components/maps/mapSetup'
 import MapSearch from '@/app/energy-map/_components/maps/MapSearch'
 import { GOOGLE_BROWSER_KEY } from '@/app/energy-map/_components/maps/googleKeys'
-import { loadGoogleMaps } from '@/app/energy-map/_components/maps/loadGoogleMaps'
+import { loadGoogleMaps, googleMapsErrorCode, googleMapsErrorHelp } from '@/app/energy-map/_components/maps/loadGoogleMaps'
 import { zoomForKind, type SearchHit } from '@/lib/map/search'
 import { PARISHES, parishAt } from '@/lib/map/parishes'
 import { card, label, input, muted, h2, Btn, fmt } from '@/app/my-energy/_components/ui'
@@ -78,6 +78,7 @@ export default function SolarEstimator() {
   viewRef.current = view
   const [gState, setGState] = useState<'off' | 'loading' | 'ready' | 'failed' | 'rejected'>('off')
   const gStateRef = useRef(gState)
+  const [gReason, setGReason] = useState<string | null>(null)
   gStateRef.current = gState
   const gEl = useRef<HTMLDivElement>(null)
   const gMap = useRef<any>(null)
@@ -207,6 +208,12 @@ export default function SolarEstimator() {
 
   async function showSatellite() {
     setView('satellite')
+    if (!GOOGLE_BROWSER_KEY) {
+      // Keys are baked in at build time; without one there's no imagery source to load.
+      setGState('failed')
+      setGReason('no Google Maps key is set on this deployment. Add NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY in Vercel (Production and Preview), then redeploy.')
+      return
+    }
     const m = map.current
     const c = m?.getCenter()
     const z = m ? Math.round(m.getZoom() + 1) : 17
@@ -215,7 +222,11 @@ export default function SolarEstimator() {
       return
     }
     setGState('loading')
-    window.gm_authFailure = () => setGState('rejected')
+    window.gm_authFailure = () => {
+      setGState('rejected')
+      // Google logs the reason just before or after calling this.
+      setTimeout(() => setGReason(googleMapsErrorHelp(googleMapsErrorCode(), window.location.origin)), 300)
+    }
     try {
       const g = await loadGoogleMaps()
       if (gStateRef.current === 'rejected') return
@@ -233,6 +244,8 @@ export default function SolarEstimator() {
         clickableIcons: false,
         gestureHandling: full ? 'greedy' : 'cooperative',
       })
+      clampToImagery(g, gm)
+      gm.addListener('idle', () => clampToImagery(g, gm))
       gm.addListener('click', (e: any) => {
         const lng = e.latLng.lng()
         const lat = e.latLng.lat()
@@ -246,8 +259,13 @@ export default function SolarEstimator() {
       })
       gMap.current = gm
       setGState((st) => (st === 'rejected' ? st : 'ready'))
-    } catch {
+    } catch (e) {
       setGState('failed')
+      setGReason(
+        (e as Error).message === 'timeout'
+          ? 'Google’s map didn’t respond. Check your connection and try again.'
+          : 'the Google Maps script was blocked — a browser extension, network filter or the site’s security policy may be stopping it.',
+      )
     }
   }
   function showMap() {
@@ -364,23 +382,29 @@ export default function SolarEstimator() {
         <div ref={el} style={{ position: 'absolute', inset: 0, visibility: view === 'map' ? 'visible' : 'hidden' }} role="region" aria-label="Map — tap your roof" aria-hidden={view !== 'map'} />
         {view === 'satellite' && gState !== 'ready' && (
           <div className="ke-solar-gmsg" role="status">
-            {gState === 'loading' ? 'Loading satellite imagery…' : gState === 'rejected' ? 'Google refused the map key, so satellite imagery isn’t available right now.' : 'Satellite imagery couldn’t load.'}
+            {gState === 'loading' ? (
+              'Loading satellite imagery…'
+            ) : (
+              <>
+                {gState === 'rejected' ? 'Google refused the map key, so satellite imagery isn’t available right now.' : 'Satellite imagery couldn’t load.'}
+                {gReason && <small style={{ display: 'block', marginTop: 6, opacity: 0.85 }}>Why: {gReason}</small>}
+                <small style={{ display: 'block', marginTop: 6, opacity: 0.85 }}>The map view still works — tap Map above.</small>
+              </>
+            )}
           </div>
         )}
         <div ref={gEl} style={{ position: 'absolute', inset: 0, visibility: view === 'satellite' ? 'visible' : 'hidden' }} role="region" aria-label="Satellite imagery — tap your roof" aria-hidden={view !== 'satellite'} />
         {mapState === 'ready' && (
           <>
             <div className="ke-solar-views">
-              {GOOGLE_BROWSER_KEY && (
-                <div className="ke-solar-seg" role="group" aria-label="Map style">
-                  <button type="button" aria-pressed={view === 'map'} onClick={showMap}>
-                    <MapIcon size={15} aria-hidden /> Map
-                  </button>
-                  <button type="button" aria-pressed={view === 'satellite'} onClick={showSatellite}>
-                    <Satellite size={15} aria-hidden /> Satellite
-                  </button>
-                </div>
-              )}
+              <div className="ke-solar-seg" role="group" aria-label="Map style">
+                <button type="button" aria-pressed={view === 'map'} onClick={showMap}>
+                  <MapIcon size={15} aria-hidden /> Map
+                </button>
+                <button type="button" aria-pressed={view === 'satellite'} onClick={showSatellite}>
+                  <Satellite size={15} aria-hidden /> Satellite
+                </button>
+              </div>
               <button type="button" className="ke-solar-full" onClick={() => setFull(!full)} aria-label={full ? 'Exit full screen' : 'Full screen map'} aria-pressed={full}>
                 {full ? <Minimize2 size={16} aria-hidden /> : <Maximize2 size={16} aria-hidden />}
               </button>
@@ -801,3 +825,25 @@ const CSS = `
 @keyframes ke-shimmer{from{background-position:150% 0}to{background-position:-50% 0}}
 @media (max-width:600px){.ke-solar-tools{left:8px;right:8px;bottom:8px;justify-content:center}.ke-solar-hint{bottom:70px}}
 `
+
+/**
+ * Google has satellite imagery to a different depth in different places
+ * (often z19–20 in Jamaica); past it, tiles read "no imagery". Ask Google how
+ * deep it goes here and zoom back out to that.
+ */
+let maxZoomBusy = false
+function clampToImagery(g: any, gm: any) {
+  if (maxZoomBusy || !g?.maps?.MaxZoomService) return
+  const at = gm.getCenter?.()
+  if (!at) return
+  maxZoomBusy = true
+  new g.maps.MaxZoomService()
+    .getMaxZoomAtLatLng(at)
+    .then((r: any) => {
+      if (r?.zoom && gm.getZoom() > r.zoom) gm.setZoom(r.zoom)
+    })
+    .catch(() => {})
+    .finally(() => {
+      maxZoomBusy = false
+    })
+}

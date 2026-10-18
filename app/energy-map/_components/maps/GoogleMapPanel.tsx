@@ -6,7 +6,7 @@ import { PARISHES, JAMAICA_CENTER } from '@/lib/map/parishes'
 import { embedSearchUrl, keyFingerprint } from '@/lib/map/embed'
 import { muted, h2, card, Btn } from '@/app/my-energy/_components/ui'
 import { GOOGLE_BROWSER_KEY, GOOGLE_EMBED_KEY, GOOGLE_MAP_ID } from './googleKeys'
-import { loadGoogleMaps as loadMaps } from './loadGoogleMaps'
+import { loadGoogleMaps as loadMaps, googleMapsErrorCode, googleMapsErrorHelp } from './loadGoogleMaps'
 import type { MapViewHandle, MapViewProps } from './types'
 
 /**
@@ -55,7 +55,7 @@ const GoogleMapPanel = forwardRef<MapViewHandle, Props>(function GoogleMapPanel(
   useEffect(() => {
     if (!GOOGLE_BROWSER_KEY || !mapEl.current || map.current) return
     // Google calls this global when it rejects the key (referrer restriction, API not enabled, billing).
-    window.gm_authFailure = () => setMapState('rejected')
+    window.gm_authFailure = () => setTimeout(() => setMapState('rejected'), 300) // after Google logs the reason
     loadMaps()
       .then((g) => {
         if (!mapEl.current) return
@@ -126,7 +126,9 @@ const GoogleMapPanel = forwardRef<MapViewHandle, Props>(function GoogleMapPanel(
         {mapState === 'failed' && <p role="alert" style={muted}>The Google map could not load. Every location below still has directions.</p>}
         {mapState === 'rejected' && (
           <p role="alert" style={muted}>
-            Google refused the map key. If Google says the key is invalid, the value saved in the hosting settings doesn’t match the key in Google Cloud. If it says the site isn’t authorised, add this site to the key’s website restrictions and confirm the Maps JavaScript API and billing are enabled. Key this page received: {keyFingerprint(GOOGLE_BROWSER_KEY)}. Every location below still has directions.
+            Google refused the map key.{' '}
+            {googleMapsErrorHelp(googleMapsErrorCode(), typeof window === 'undefined' ? '' : window.location.origin) ? <>Why: {googleMapsErrorHelp(googleMapsErrorCode(), window.location.origin)} </> : null}
+            If Google says the key is invalid, the value saved in the hosting settings doesn’t match the key in Google Cloud. If it says the site isn’t authorised, add this site to the key’s website restrictions and confirm the Maps JavaScript API and billing are enabled. Key this page received: {keyFingerprint(GOOGLE_BROWSER_KEY)}. Every location below still has directions.
           </p>
         )}
         {mapState === 'ready' && discoverAvailable && (

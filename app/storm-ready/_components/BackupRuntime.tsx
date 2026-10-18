@@ -4,7 +4,10 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Plus, Trash2 } from 'lucide-react'
 import { card, label, input, muted, h2, fmt, StatusTag, BasisChip } from '@/app/my-energy/_components/ui'
-import { loadLocalProfile } from '@/lib/energy/localProfile'
+import { useProfileSnapshot } from '@/lib/energy/useEnergyProfile'
+import { vehicleBackup } from '@/lib/energy/engine/ev'
+import { evaluateScenario } from '@/lib/energy/engine/scenario'
+import { primaryVehicle, vehicleName } from '@/lib/vehicles/vehicle'
 import { scenarioDevices, type EnergyProfile } from '@/lib/energy/profileSchema'
 import { backupEstimate, quickDevices, type QuickLoad } from '@/lib/storm/backup'
 import type { CapacityBasis, ScenarioDevice } from '@/lib/energy/engine'
@@ -36,17 +39,21 @@ export default function BackupRuntime() {
   const [surge, setSurge] = useState('')
   const [reserve, setReserve] = useState('10')
 
+  // The shared profile (this browser, or the account when signed in).
+  const { profile: snapshot } = useProfileSnapshot()
   useEffect(() => {
-    const p = loadLocalProfile()
-    setProfile(p)
+    if (!snapshot) return
+    setProfile(snapshot)
     // Prefer a storm scenario the visitor already built in My Energy.
-    for (const prop of p.properties) {
+    for (const prop of snapshot.properties) {
       const s = prop.scenarios.find((x) => x.kind === 'storm') ?? null
       if (s) {
         setSource(`${prop.clientId}:${s.clientId}`)
         break
       }
     }
+  }, [snapshot])
+  useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem(KEY) ?? 'null')
       if (saved && Array.isArray(saved.rows)) {
@@ -92,6 +99,21 @@ export default function BackupRuntime() {
       }),
     [devices, cap, basis, path, cont, surge, reserve],
   )
+
+  // My Garage: a car with vehicle-to-load can run these devices too.
+  const car = primaryVehicle((profile?.vehicles ?? []).filter((v) => v.specs.v2lKw && v.specs.batteryKwh))
+  const [carCharge, setCarCharge] = useState('80')
+  const [carKeep, setCarKeep] = useState('30')
+  // Loads alone (no power station needed) for the car's runtime.
+  const loads = useMemo(() => evaluateScenario(devices), [devices])
+  const carRun = useMemo(
+    () =>
+      car && loads.ok && loads.value.averageWatts.base > 0
+        ? vehicleBackup({ batteryKwh: car.specs.batteryKwh!.value, v2lKw: car.specs.v2lKw!.value, chargePct: Math.min(100, num(carCharge) ?? 0), keepForDrivingPct: Math.min(90, num(carKeep) ?? 0), loadW: loads.value.averageWatts.base })
+        : null,
+    [car, loads, carCharge, carKeep],
+  )
+  const carPeakOver = !!car && loads.ok && loads.value.simultaneousWatts > car.specs.v2lKw!.value * 1000
 
   const setRow = (id: string, patch: Partial<Row>) => setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)))
   const digits = (v: string) => v.replace(/[^\d.,]/g, '')
@@ -255,6 +277,28 @@ export default function BackupRuntime() {
           </>
         )}
       </div>
+      {car && (
+        <div className="ke-sr-car" data-testid="v2l-runtime">
+          <strong style={{ color: '#fff' }}>Your {vehicleName(car)} could help</strong>
+          <span style={muted}>
+            Charged to{' '}
+            <input aria-label="Car charged to (%)" className="ke-sr-mini" inputMode="numeric" value={carCharge} onChange={(e) => setCarCharge(digits(e.target.value))} />% and keeping{' '}
+            <input aria-label="Keep for driving (%)" className="ke-sr-mini" inputMode="numeric" value={carKeep} onChange={(e) => setCarKeep(digits(e.target.value))} />% for driving,
+            {!carRun ? (
+              <> add the watts for your devices above to see how long its {car.specs.v2lKw!.value} kW vehicle-to-load socket could run them.</>
+            ) : carRun.ok ? (
+              <>
+                {' '}
+                its {car.specs.v2lKw!.value} kW vehicle-to-load socket could run these devices for about <strong style={{ color: '#fff' }}>{hoursText(carRun.value.hours)}</strong> ({fmt(carRun.value.usableKwh, 1)} kWh).
+              </>
+            ) : (
+              <> {carRun.message}</>
+            )}
+          </span>
+          {carPeakOver && <small style={{ ...muted, color: '#f6c66b' }}>Everything on at once ({fmt(loads.ok ? loads.value.simultaneousWatts : 0, 0)} W) is more than the socket’s {car.specs.v2lKw!.value} kW — run the big loads one at a time.</small>}
+          {carRun?.ok && <small style={muted}>{carRun.warnings[0]}</small>}
+        </div>
+      )}
     </section>
   )
 }

@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { ChargePrice } from '@/components/energy/ChargePrice'
+import StationForMyCar from '@/components/garage/StationForMyCar'
 import { notFound, permanentRedirect } from 'next/navigation'
 import { CircleCheck, CircleHelp, CircleX, Navigation, ExternalLink, MapPin, ArrowLeft } from 'lucide-react'
 import Navbar from '@/components/Navbar'
@@ -153,6 +154,7 @@ export default async function StationPage({ params }: { params: Promise<{ slug: 
                   </ul>
                 )}
                 <p className="ke-st__fine">“Available” means confirmed working recently, not that a connector is free right now.</p>
+                {!s.closed && <StationForMyCar groups={s.connectorGroups} price={s.price ?? s.connectorGroups.find((g) => g.price)?.price ?? null} />}
                 {!s.closed && <QuickReport stationId={s.id} />}
               </section>
 

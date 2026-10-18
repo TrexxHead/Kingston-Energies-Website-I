@@ -470,6 +470,7 @@ const KingstonMap = forwardRef<MapViewHandle, MapViewProps>(function KingstonMap
               </p>
               {station.statusDetail && <p className="ke-card__sub ke-card__fine">{station.statusDetail}</p>}
               {station.connectorsLine && <p className="ke-card__sub">{station.connectorsLine}</p>}
+              {station.fitText && <p className="ke-card__sub" style={{ fontWeight: 600 }}>{station.fitText}</p>}
               {station.price && (
                 <div className="ke-card__sub">
                   <ChargePrice price={station.price} compact />

@@ -36,5 +36,10 @@
  * 1.6.0 (2026-10-17) — installed solar price range from an approved price
  *   record (J$/kWp low–high, smallest job, battery J$/kWh) and a simple
  *   payback range (price ÷ yearly saving, before financing).
+ * 1.7.0 (2026-10-18) — charging session: energy to battery and drawn (90%
+ *   efficiency), rate = lower of charger and car, time from full rate to
+ *   half rate, cost at the price now plus session fee; vehicle-to-load
+ *   backup runtime (vehicleBackup); home charging options (volts × amps,
+ *   80% continuous, hours per day vs the overnight window).
  */
-export const CALC_ENGINE_VERSION = '1.6.0'
+export const CALC_ENGINE_VERSION = '1.7.0'

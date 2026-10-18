@@ -7,6 +7,7 @@ import { useActiveRecord } from '@/lib/refdata/useRefData'
 import { tariffFromPublic, type PublicRecord } from '@/lib/refdata/types'
 import { EveningWhy } from '@/components/energy/ChargePrice'
 import { periodText } from '@/lib/refdata/chargingPrice'
+import { useMyVehicle, VehicleChip } from '@/components/garage/useMyVehicle'
 
 /**
  * EV vs petrol energy-cost calculator (roadmap P3). Prices come from
@@ -43,6 +44,20 @@ export default function EvCostCalculator() {
   const [ownPublic, setOwnPublic] = useState('')
   const [premium, setPremium] = useState('')
   const [when, setWhen] = useState('std')
+
+  // My Garage: an EV fills the electric side; a hybrid fills the petrol side (your hybrid vs an EV).
+  const { vehicles, vehicle, setPick } = useMyVehicle()
+  useEffect(() => {
+    if (!vehicle) return
+    const sp = vehicle.specs
+    if (vehicle.kmPerWeek) setKmPerWeek(String(vehicle.kmPerWeek))
+    if (vehicle.powertrain === 'hev') {
+      if (sp.litresPer100km) setLPer100(String(sp.litresPer100km.value))
+      return
+    }
+    if (sp.kwhPer100km) setKwhPer100(String(sp.kwhPer100km.value))
+    if (vehicle.homeCharging === 'none') setHomePct('0')
+  }, [vehicle?.clientId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const selectedGrade = pumpGrades.find((g) => g.grade === grade) ?? pumpGrades[0]
   const petrolPrice = num(ownPetrol) ?? selectedGrade?.pricePerLitre
@@ -87,6 +102,8 @@ export default function EvCostCalculator() {
 
   return (
     <div style={{ display: 'grid', gap: 20 }}>
+      <VehicleChip vehicles={vehicles} vehicle={vehicle} onPick={setPick} returnTo="/ev-costs" emptyText="Add your EV or hybrid in My Garage and its figures fill in here." />
+      {vehicle?.powertrain === 'hev' && <p style={{ ...muted, margin: 0 }}>Your hybrid’s petrol use is filled in on the petrol side, so this compares it with going fully electric.</p>}
       <style>{CSS}</style>
       <div className="ke-ev-grid">
         <section style={{ ...card, display: 'grid', gap: 12, alignContent: 'start' }} aria-labelledby="drive-title">

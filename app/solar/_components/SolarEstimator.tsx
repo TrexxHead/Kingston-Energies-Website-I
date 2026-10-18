@@ -27,6 +27,8 @@ import {
 } from '@/lib/energy/engine/solar'
 import { CALC_ENGINE_VERSION } from '@/lib/energy/engine/version'
 import { installPriceRange } from '@/lib/energy/engine/installPrice'
+import { useMyVehicle } from '@/components/garage/useMyVehicle'
+import { plugsIn, vehicleName } from '@/lib/vehicles/vehicle'
 import { useActiveRecord } from '@/lib/refdata/useRefData'
 import { tariffFromPublic } from '@/lib/refdata/types'
 
@@ -99,6 +101,10 @@ export default function SolarEstimator() {
 
   // Savings.
   const [usage, setUsage] = useState('')
+  // My Garage: optionally add the car's home charging to the use solar is sized for.
+  const { vehicle: ev } = useMyVehicle((v) => plugsIn(v.powertrain) && v.homeCharging !== 'none')
+  const [addEv, setAddEv] = useState(false)
+  const evMonthlyKwh = ev?.kmPerWeek && ev.specs.kwhPer100km ? Math.round(((ev.kmPerWeek * 52) / 12) * (ev.specs.kwhPer100km.value / 100)) : null
   const [daytimePct, setDaytimePct] = useState('40')
   const { record: tariffRecord } = useActiveRecord('tariff', 'residential')
   const { record: priceRecord } = useActiveRecord('install_price')
@@ -344,7 +350,7 @@ export default function SolarEstimator() {
         : null,
     [roof, roofType, usablePct, moduleW, moduleM2],
   )
-  const usageKwh = Number(usage)
+  const usageKwh = Number(usage) + (addEv && evMonthlyKwh ? evMonthlyKwh : 0)
   // With the household's use, size to that (capped by the roof); without it, show what the roof can hold.
   const recommendation = useMemo(
     () => (sizing?.ok && yieldState.status === 'ok' && yieldState.data && usage.trim() && usageKwh > 0 ? recommendSystem(sizing.value, yieldState.data, usageKwh, Number(moduleW) || SOLAR_DEFAULTS.moduleWatts) : null),
@@ -610,6 +616,20 @@ export default function SolarEstimator() {
                 <input id="s-day" style={input} inputMode="numeric" value={daytimePct} onChange={(e) => setDaytimePct(e.target.value.replace(/[^\d.]/g, ''))} />
               </div>
             </div>
+            {ev && (
+              <label style={{ ...muted, display: 'flex', gap: 8, alignItems: 'flex-start' }} data-testid="solar-add-ev">
+                <input type="checkbox" checked={addEv} disabled={!evMonthlyKwh} onChange={(e) => setAddEv(e.target.checked)} style={{ marginTop: 3 }} />
+                <span>
+                  {evMonthlyKwh ? (
+                    <>
+                      Add charging my {vehicleName(ev)} at home — about <strong style={{ color: '#fff' }}>{evMonthlyKwh.toLocaleString('en-JM')} kWh a month</strong> ({ev.kmPerWeek} km a week at {ev.specs.kwhPer100km!.value} kWh/100 km, from My Garage). Charging in the evening uses grid power unless you add a battery; charging at midday uses the sun.
+                    </>
+                  ) : (
+                    <>Add your {vehicleName(ev)}’s weekly kilometres and energy use in My Garage to include its charging.</>
+                  )}
+                </span>
+              </label>
+            )}
             {tariffRecord === undefined ? (
               <p style={muted}>Checking the current JPS tariff…</p>
             ) : !tariff ? (

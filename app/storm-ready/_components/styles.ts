@@ -1,6 +1,8 @@
 export const STORM_READY_CSS = `
 .ke-sr-two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:20px;align-items:start}
 .ke-sr-h3{font-family:var(--font-display);font-weight:700;font-size:14px;letter-spacing:.02em;color:var(--ke-dark-text);margin:0 0 6px;padding:0}
+.ke-sr-car{display:grid;gap:6px;padding:12px 14px;border-radius:14px;background:rgba(62,207,142,.06);border:1px solid rgba(62,207,142,.22)}
+.ke-sr-mini{width:46px;height:26px;padding:0 6px;border-radius:7px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.05);color:#fff;text-align:center}
 .ke-sr-link{display:inline-flex;align-items:center;gap:5px;background:none;border:0;padding:0;color:var(--ke-green-400);font:inherit;font-size:13.5px;font-weight:600;text-decoration:none;cursor:pointer}
 .ke-sr-link:hover{text-decoration:underline}
 .ke-sr-note{margin:0;padding:12px 14px;border-radius:12px;background:rgba(255,200,87,.08);border:1px solid rgba(255,200,87,.28);color:var(--ke-dark-text);font-size:14px;line-height:1.55}

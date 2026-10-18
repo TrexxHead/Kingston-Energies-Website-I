@@ -64,3 +64,48 @@ describe('plug fit', () => {
     expect(primaryVehicle([])).toBeNull()
   })
 })
+
+import { chargeSession, vehicleBackup } from '@/lib/energy/engine'
+describe('charging session and vehicle backup', () => {
+  it('uses the lower of charger and car, with losses and a time range', () => {
+    const r = chargeSession({ batteryKwh: 60, fromPct: 20, toPct: 80, current: 'AC', chargerKw: 22, carKw: 7.2, pricePerKwh: 50, sessionFee: 100 })
+    if (!r.ok) throw new Error(r.message)
+    expect(r.value.kwhToBattery).toBe(36)
+    expect(r.value.kwhDrawn).toBeCloseTo(40)
+    expect(r.value.limitedBy).toBe('car')
+    expect(r.value.minutes.fast).toBeCloseTo((40 / 7.2) * 60)
+    expect(r.value.minutes.slow).toBeCloseTo(r.value.minutes.fast * 2)
+    expect(r.value.cost).toBeCloseTo(40 * 50 + 100)
+  })
+  it('refuses without a battery size and warns when the car limit is unknown', () => {
+    expect(chargeSession({ batteryKwh: 0, fromPct: 20, toPct: 80, current: 'DC', chargerKw: 50 }).ok).toBe(false)
+    const r = chargeSession({ batteryKwh: 40, fromPct: 10, toPct: 90, current: 'DC', chargerKw: 50 })
+    expect(r.ok && r.warnings.length).toBe(2)
+    expect(r.ok && r.value.cost).toBeNull()
+  })
+  it('works out V2L runtime and refuses loads above the socket limit', () => {
+    const r = vehicleBackup({ batteryKwh: 60, chargePct: 80, keepForDrivingPct: 30, v2lKw: 2.2, loadW: 500 })
+    expect(r.ok && r.value.usableKwh).toBe(30)
+    expect(r.ok && r.value.hours).toBeCloseTo((30 * 1000 * 0.9) / 500)
+    expect(vehicleBackup({ batteryKwh: 60, chargePct: 80, keepForDrivingPct: 30, v2lKw: 2.2, loadW: 3000 }).ok).toBe(false)
+  })
+})
+
+import { homeChargingOptions } from '@/lib/energy/engine'
+describe('home charging options', () => {
+  it('works out hours per day, caps at the car, and recommends the cheapest that fits', () => {
+    const r = homeChargingOptions({ dailyKwh: 12, batteryKwh: 40, carAcKw: 6.6, windowHours: 10 })
+    if (!r.ok) throw new Error(r.message)
+    const o = Object.fromEntries(r.value.options.map((x) => [x.id, x]))
+    expect(o.outlet.chargerKw).toBeCloseTo(1.44)
+    expect(o.outlet.hoursPerDay).toBeCloseTo(12 / 1.44)
+    expect(o.outlet.fitsWindow).toBe(true)
+    expect(o.l2_32.rateKw).toBe(6.6)
+    expect(o.l2_32.limitedByCar).toBe(true)
+    expect(o.l2_16.fullHours).toBeCloseTo((40 * 0.8) / 0.9 / 3.84)
+    expect(r.value.recommended).toBe('outlet')
+    const far = homeChargingOptions({ dailyKwh: 30, carAcKw: 11, windowHours: 8 })
+    expect(far.ok && far.value.recommended).toBe('l2_16')
+    expect(homeChargingOptions({ dailyKwh: 0, windowHours: 8 }).ok).toBe(false)
+  })
+})

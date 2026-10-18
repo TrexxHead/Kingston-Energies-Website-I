@@ -16,6 +16,10 @@ import { GOOGLE_EMBED_KEY, GOOGLE_EMBED_ONLY } from './maps/googleKeys'
 import type { MapStation, MapViewHandle } from './maps/types'
 import { ChargePrice } from '@/components/energy/ChargePrice'
 import type { OperatorPrice } from '@/lib/refdata/chargingPrice'
+import { useMyVehicle, VehicleChip } from '@/components/garage/useMyVehicle'
+import { ChargeEstimate, FitBadge } from '@/components/garage/ChargeEstimate'
+import { stationFit } from '@/lib/vehicles/connectors'
+import { plugsIn } from '@/lib/vehicles/vehicle'
 
 // MapLibre touches window/WebGL — load it in the browser only.
 const KingstonMap = dynamic(() => import('./maps/KingstonMap'), { ssr: false, loading: () => <div style={{ height: 'min(60vh, 520px)', borderRadius: 20, background: '#0b2634' }} /> })
@@ -115,6 +119,13 @@ export default function EnergyMapClient() {
   const [current, setCurrent] = useState('')
   const [minKw, setMinKw] = useState('')
   const [publicOnly, setPublicOnly] = useState(true)
+  // My Garage: show which chargers fit the car, and optionally only those (?fits=1 from the garage).
+  const { vehicles, vehicle, setPick } = useMyVehicle((v) => plugsIn(v.powertrain))
+  const [onlyFits, setOnlyFits] = useState(false)
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('fits') === '1') setOnlyFits(true)
+  }, [])
+  const hasPorts = !!vehicle && !!(vehicle.acInlet || vehicle.dcInlet)
   const [me, setMe] = useState<{ lat: number; lng: number } | null>(null)
   const [geoMsg, setGeoMsg] = useState<string | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
@@ -156,7 +167,10 @@ export default function EnergyMapClient() {
   }, [parish, connector, current, minKw, publicOnly])
 
   const connectorOptions = useMemo(() => [...new Set(stations.flatMap((s) => s.connectorGroups.map((g) => g.connectorType)))].sort(), [stations])
-  const sorted = useMemo(() => (me ? [...stations].sort((a, b) => distanceKm(me, a) - distanceKm(me, b)) : stations), [stations, me])
+  const sorted = useMemo(() => {
+    const list = hasPorts && onlyFits ? stations.filter((s) => stationFit(vehicle!, s.connectorGroups.map((g) => g.connectorType)) !== 'no') : stations
+    return me ? [...list].sort((a, b) => distanceKm(me, a) - distanceKm(me, b)) : list
+  }, [stations, me, hasPorts, onlyFits, vehicle])
 
   const mapStations = useMemo<MapStation[]>(
     () =>
@@ -177,9 +191,10 @@ export default function EnergyMapClient() {
           .join('  |  '),
         directionsUrl: directionsUrl(s.lat, s.lng),
         price: s.price,
+        fitText: hasPorts ? { yes: 'Fits your car', check: 'Check the plug fits your car', no: 'Doesn’t fit your car' }[stationFit(vehicle!, s.connectorGroups.map((g) => g.connectorType))] : undefined,
         pricesByConnector: !s.price && s.connectorGroups.some((g) => g.price),
       })),
-    [sorted],
+    [sorted, hasPorts, vehicle],
   )
   const showDetails = useCallback((id: string) => {
     setSelected(id)
@@ -242,8 +257,14 @@ export default function EnergyMapClient() {
           <label style={{ ...muted, display: 'flex', gap: 8, alignItems: 'center' }}>
             <input type="checkbox" checked={publicOnly} onChange={(e) => setPublicOnly(e.target.checked)} /> Public access only
           </label>
+          {hasPorts && (
+            <label style={{ ...muted, display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input type="checkbox" checked={onlyFits} onChange={(e) => setOnlyFits(e.target.checked)} /> Only chargers that fit my car
+            </label>
+          )}
         </div>
         <p style={{ ...muted, margin: 0, fontSize: 12.5 }}>Chargers missing a filtered detail stay in the list and are marked unknown rather than hidden.</p>
+        <VehicleChip vehicles={vehicles} vehicle={vehicle} onPick={setPick} returnTo="/energy-map" emptyText="Add your EV in My Garage to see which chargers fit it and how long a charge takes." />
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
           <Btn variant="ghost" onClick={nearby}>
             <LocateFixed size={14} aria-hidden /> Nearby
@@ -339,6 +360,12 @@ export default function EnergyMapClient() {
               </span>
             </div>
             <p style={{ margin: '10px 0', color: '#fff', fontWeight: 600, fontSize: 14 }}>{s.statusSummary}</p>
+            {vehicle && !s.closed && (
+              <div style={{ display: 'grid', gap: 6, margin: '0 0 12px', padding: '10px 12px', borderRadius: 12, background: 'rgba(255,255,255,.03)' }}>
+                {hasPorts && <FitBadge vehicle={vehicle} groups={s.connectorGroups} />}
+                <ChargeEstimate vehicle={vehicle} groups={s.connectorGroups} price={s.price ?? s.connectorGroups.find((g) => g.price)?.price ?? null} />
+              </div>
+            )}
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 10 }}>
               {s.connectorGroups.map((g, i) => (
                 <li key={g.id ?? i} style={{ display: 'grid', gridTemplateColumns: 'minmax(140px,200px) 1fr', gap: 10 }}>

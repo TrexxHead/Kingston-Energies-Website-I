@@ -20,6 +20,8 @@ export interface MapStation {
   price?: OperatorPrice | null
   /** True when live prices differ by connector (shown in the station's details). */
   pricesByConnector?: boolean
+  /** “Fits your car” etc., when the visitor has a car in My Garage. */
+  fitText?: string
 }
 
 /** Shared props, so the two maps can be swapped behind one tab bar. */

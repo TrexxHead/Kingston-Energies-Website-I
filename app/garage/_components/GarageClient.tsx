@@ -11,7 +11,7 @@ import VehicleForm from './VehicleForm'
 
 const VehicleModel3D = dynamic(() => import('@/components/garage/VehicleModel3D'), { ssr: false, loading: () => <div style={{ height: 380 }} /> })
 
-export default function GarageClient() {
+export default function GarageClient({ tripPlanner = false }: { tripPlanner?: boolean }) {
   const { profile, persist, ready, sync, signedIn, notice } = useEnergyProfile()
   const vehicles = profile.vehicles ?? []
   const [selId, setSelId] = useState<string | null>(null)
@@ -106,14 +106,14 @@ export default function GarageClient() {
               ))}
             </div>
           )}
-          {selected && <Showcase v={selected} onEdit={() => edit(selected)} onRemove={() => remove(selected)} onPrimary={() => makePrimary(selected)} onPaint={(c) => repaint(selected, c)} single={vehicles.length === 1} />}
+          {selected && <Showcase tripPlanner={tripPlanner} v={selected} onEdit={() => edit(selected)} onRemove={() => remove(selected)} onPrimary={() => makePrimary(selected)} onPaint={(c) => repaint(selected, c)} single={vehicles.length === 1} />}
         </>
       )}
     </div>
   )
 }
 
-function Showcase({ v, onEdit, onRemove, onPrimary, onPaint, single }: { v: Vehicle; onEdit: () => void; onRemove: () => void; onPrimary: () => void; onPaint: (c: string) => void; single: boolean }) {
+function Showcase({ v, onEdit, onRemove, onPrimary, onPaint, single, tripPlanner }: { tripPlanner: boolean; v: Vehicle; onEdit: () => void; onRemove: () => void; onPrimary: () => void; onPaint: (c: string) => void; single: boolean }) {
   const s = v.specs
   const ev = plugsIn(v.powertrain)
   return (
@@ -184,7 +184,7 @@ function Showcase({ v, onEdit, onRemove, onPrimary, onPaint, single }: { v: Vehi
                 </Link>
               </li>
             )}
-            {ev && (
+            {ev && tripPlanner && (
               <li>
                 <Link href="/trip-planner">
                   <Route size={16} aria-hidden /> Plan a trip

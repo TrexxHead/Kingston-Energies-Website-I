@@ -8,6 +8,9 @@ import MapSearch from '@/app/energy-map/_components/maps/MapSearch'
 import { tripPlan, type RoutePoint } from '@/lib/energy/engine/trip'
 import { stationSlug } from '@/lib/map/stationSlug'
 import type { SearchHit } from '@/lib/map/search'
+import { useMyVehicle, VehicleChip } from '@/components/garage/useMyVehicle'
+import { stationFit } from '@/lib/vehicles/connectors'
+import { plugsIn } from '@/lib/vehicles/vehicle'
 
 const TripMap = dynamic(() => import('./TripMap'), { ssr: false, loading: () => <div className="ke-tp-map" /> })
 
@@ -29,6 +32,15 @@ export default function TripPlannerClient() {
   const [route, setRoute] = useState<RouteResp | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // My Garage: plug-in cars fill the energy use and battery, and chargers that don't fit are skipped.
+  const { vehicles, vehicle, setPick } = useMyVehicle((v) => plugsIn(v.powertrain))
+  const [onlyFits, setOnlyFits] = useState(true)
+  useEffect(() => {
+    if (!vehicle) return
+    const sp = vehicle.specs
+    setCar((c) => ({ ...c, ...(sp.kwhPer100km ? { kwh100: String(sp.kwhPer100km.value) } : {}), ...(sp.batteryKwh ? { battery: String(sp.batteryKwh.value) } : {}) }))
+  }, [vehicle?.clientId]) // eslint-disable-line react-hooks/exhaustive-deps
+  const canFilter = !!vehicle && !!(vehicle.acInlet || vehicle.dcInlet)
 
   useEffect(() => {
     try {
@@ -59,12 +71,17 @@ export default function TripPlannerClient() {
     } else setRoute(d)
   }
 
+  const fitsById = useMemo(() => new Map(route?.chargers.map((c) => [c.id, vehicle ? stationFit(vehicle, c.connectors) : 'check']) ?? []), [route, vehicle])
+  const points = useMemo(
+    () => (route ? (canFilter && onlyFits ? route.points.map((p) => (p.charger && fitsById.get(p.charger.id) === 'no' ? { ...p, charger: null } : p)) : route.points) : []),
+    [route, canFilter, onlyFits, fitsById],
+  )
   const result = useMemo(
     () =>
       route
-        ? tripPlan({ points: route.points, kwhPer100km: num(car.kwh100) ?? 0, batteryKwh: num(car.battery) ?? 0, startPct: num(car.start) ?? 0, reservePct: num(car.reserve) ?? 0, vehicleMassKg: num(car.mass) })
+        ? tripPlan({ points, kwhPer100km: num(car.kwh100) ?? 0, batteryKwh: num(car.battery) ?? 0, startPct: num(car.start) ?? 0, reservePct: num(car.reserve) ?? 0, vehicleMassKg: num(car.mass) })
         : null,
-    [route, car],
+    [route, car, points],
   )
   const set = (k: keyof typeof car) => (e: { target: { value: string } }) => setCar({ ...car, [k]: digits(e.target.value) })
   const chargerById = new Map(route?.chargers.map((c) => [c.id, c]) ?? [])
@@ -90,6 +107,12 @@ export default function TripPlannerClient() {
         </section>
         <section style={{ ...card, display: 'grid', gap: 12, alignContent: 'start' }} aria-labelledby="tp-car">
           <h2 id="tp-car" style={h2}>Your car</h2>
+          <VehicleChip vehicles={vehicles} vehicle={vehicle} onPick={setPick} returnTo="/trip-planner" emptyText="Add your EV in My Garage to fill this in." />
+          {canFilter && (
+            <label style={{ ...muted, display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input type="checkbox" checked={onlyFits} onChange={(e) => setOnlyFits(e.target.checked)} /> Only stop at chargers that fit my car
+            </label>
+          )}
           <div className="ke-tp-fields">
             <div><label htmlFor="tp-kwh" style={label}>Energy use (kWh/100 km)</label><input id="tp-kwh" style={input} inputMode="decimal" placeholder="From the dashboard" value={car.kwh100} onChange={set('kwh100')} /></div>
             <div><label htmlFor="tp-bat" style={label}>Usable battery (kWh)</label><input id="tp-bat" style={input} inputMode="decimal" value={car.battery} onChange={set('battery')} /></div>

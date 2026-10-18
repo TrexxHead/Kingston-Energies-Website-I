@@ -3,6 +3,7 @@ import Footer from '@/components/Footer'
 import JsonLd from '@/components/JsonLd'
 import { buildBreadcrumbs } from '@/lib/structuredData'
 import GarageClient from './_components/GarageClient'
+import { routingConfigured } from '@/lib/map/routing'
 
 export const metadata = {
   title: 'My Garage — your EV or hybrid, in 3D',
@@ -27,7 +28,7 @@ export default function GaragePage() {
           </p>
         </section>
         <section style={{ maxWidth: 1180, margin: '0 auto', padding: '0 20px 80px' }}>
-          <GarageClient />
+          <GarageClient tripPlanner={routingConfigured()} />
         </section>
       </main>
       <Footer />

@@ -43,6 +43,10 @@ The default tab on `/energy-map`. Nothing to sign up for and no keys: every file
 - Changed prices arrive as **drafts** to approve. Tick **auto-approve** only for a sheet you alone edit; auto-approved prices retire the version they replace.
 - Note: anyone with the published link can read the sheet. Don’t put anything private in it.
 
+## 2d-3. Bill photo reading (Anthropic)
+- Uses the same `ANTHROPIC_API_KEY` as the chat assistant (set it for Preview too). Optional `BILL_READ_DAILY_CAP` (default 300 reads/day across the site) bounds cost.
+- Bill photos/PDFs are sent to Anthropic to be read and are not stored by us; the page says so. Review Anthropic’s data-retention terms for your account.
+
 ## 2e. Road routing for the trip planner
 - `/trip-planner` needs an OSRM-compatible routing server: `OSRM_BASE_URL`. Recommended: self-host OSRM on the Jamaica OpenStreetMap extract (small — a basic VPS is enough); the public OSRM demo server is not for production use. Until set, the page is unlisted and says planning isn’t on yet. When it’s live, add it to the footer and sitemap.
 

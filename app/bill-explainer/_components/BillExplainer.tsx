@@ -6,6 +6,9 @@ import { card, label, input, muted, h2, Btn, fmt } from '@/app/my-energy/_compon
 import { summariseBill, compareBills, type BillInput, type ReadingType } from '@/lib/energy/engine/bills'
 import { periodCost, marginalSaving } from '@/lib/energy/engine/tariff'
 import { tariffFromPublic, type PublicRecord } from '@/lib/refdata/types'
+import type { BillReading } from '@/lib/bills/billReading'
+import BillPhotoReader from './BillPhotoReader'
+import BillHistory, { type HistoryBill } from './BillHistory'
 
 /**
  * Bill Explainer (roadmap P2). Explains a JPS bill from the numbers printed
@@ -45,19 +48,27 @@ function toInput(f: BillForm): BillInput {
 }
 const filled = (f: BillForm) => !!(f.periodStart && f.periodEnd && f.kwh && f.currentCharges)
 
-function BillFields({ id, f, set }: { id: string; f: BillForm; set: (f: BillForm) => void }) {
+type Flags = Partial<Record<keyof BillForm, { confidence: 'high' | 'medium' | 'low'; seen: string | null }>>
+
+function BillFields({ id, f, set, flags }: { id: string; f: BillForm; set: (f: BillForm) => void; flags?: Flags }) {
   const field = (k: keyof BillForm, text: string, opts: { type?: string; hint?: string } = {}) => (
     <div>
       <label htmlFor={`${id}-${k}`} style={label}>{text}</label>
       <input
         id={`${id}-${k}`}
-        style={input}
+        style={{ ...input, ...(flags?.[k] && flags[k]!.confidence !== 'high' ? { borderColor: '#f6c66b', boxShadow: '0 0 0 1px #f6c66b' } : {}) }}
+        aria-describedby={flags?.[k] && flags[k]!.confidence !== 'high' ? `${id}-${k}-chk` : undefined}
         type={opts.type ?? 'text'}
         inputMode={opts.type ? undefined : 'decimal'}
         placeholder={opts.hint}
         value={f[k]}
         onChange={(e) => set({ ...f, [k]: opts.type ? e.target.value : e.target.value.replace(/[^\d.,]/g, '') })}
       />
+      {flags?.[k] && flags[k]!.confidence !== 'high' && (
+        <small id={`${id}-${k}-chk`} style={{ display: 'block', marginTop: 4, fontSize: 11.5, color: '#f6c66b' }}>
+          {flags[k]!.seen ? `Read as “${flags[k]!.seen}” — check this` : 'Couldn’t read this — check your bill'}
+        </small>
+      )}
     </div>
   )
   return (
@@ -85,6 +96,26 @@ export default function BillExplainer() {
   const [current, setCurrent] = useState<BillForm>(EMPTY)
   const [previous, setPrevious] = useState<BillForm>(EMPTY)
   const [showPrev, setShowPrev] = useState(false)
+  const [read, setRead] = useState<{ target: 'cur' | 'prev'; flags: Flags; checks: string[]; notes: string | null; fuelRate: number | null } | null>(null)
+  const applyReading = (target: 'cur' | 'prev') => (r: BillReading, checks: string[]) => {
+    const str = (v: number | null) => (v == null ? '' : String(v))
+    const form: BillForm = {
+      periodStart: r.periodStart.value ?? '',
+      periodEnd: r.periodEnd.value ?? '',
+      kwh: str(r.kwh.value),
+      readingType: r.readingType.value ?? 'unknown',
+      currentCharges: str(r.currentCharges.value),
+      fixedCharges: str(r.fixedCharges.value),
+      arrears: str(r.arrears.value),
+      credits: str(r.credits.value),
+    }
+    const flags: Flags = { periodStart: r.periodStart, periodEnd: r.periodEnd, kwh: r.kwh, readingType: r.readingType, currentCharges: r.currentCharges, fixedCharges: r.fixedCharges, arrears: r.arrears, credits: r.credits }
+    // Optional lines that simply aren't on the bill aren't worth a warning.
+    for (const k of ['fixedCharges', 'arrears', 'credits'] as const) if (r[k].value == null) delete flags[k]
+    if (target === 'cur') setCurrent(form)
+    else setPrevious(form)
+    setRead({ target, flags, checks, notes: r.notes, fuelRate: r.fuelRatePerKwh.value })
+  }
   // Every approved tariff in effect (residential, commercial…) — residential first by default.
   const [tariffs, setTariffs] = useState<PublicRecord<'tariff'>[] | undefined>(undefined)
   const [tariffId, setTariffId] = useState('')
@@ -145,9 +176,11 @@ export default function BillExplainer() {
       <section style={{ ...card, display: 'grid', gap: 14 }} aria-labelledby="cur-title">
         <div>
           <h2 id="cur-title" style={h2}>Your latest bill</h2>
-          <p style={{ ...muted, margin: '4px 0 0' }}>Copy the numbers from your JPS bill. “Current charges” means this period’s charges only — not any balance carried over.</p>
+          <p style={{ ...muted, margin: '4px 0 0' }}>Copy the numbers from your JPS bill — or let us read them. “Current charges” means this period’s charges only — not any balance carried over.</p>
         </div>
-        <BillFields id="cur" f={current} set={setCurrent} />
+        <BillPhotoReader onRead={applyReading('cur')} />
+        {read?.target === 'cur' && <ReadSummary read={read} onDone={() => setRead(null)} />}
+        <BillFields id="cur" f={current} set={setCurrent} flags={read?.target === 'cur' ? read.flags : undefined} />
         {!showPrev ? (
           <div>
             <Btn variant="ghost" onClick={() => setShowPrev(true)}>Compare with my previous bill</Btn>
@@ -158,10 +191,12 @@ export default function BillExplainer() {
               <h3 style={{ ...h2, fontSize: 17 }}>Previous bill</h3>
               <Btn variant="ghost" onClick={() => (setShowPrev(false), setPrevious(EMPTY))}>Remove</Btn>
             </div>
-            <BillFields id="prev" f={previous} set={setPrevious} />
+            <BillPhotoReader onRead={applyReading('prev')} />
+            {read?.target === 'prev' && <ReadSummary read={read} onDone={() => setRead(null)} />}
+            <BillFields id="prev" f={previous} set={setPrevious} flags={read?.target === 'prev' ? read.flags : undefined} />
           </div>
         )}
-        <p style={{ ...muted, fontSize: 12.5, margin: 0 }}>Your bill numbers stay on this device — nothing is sent to Kingston Energies.</p>
+        <p style={{ ...muted, fontSize: 12.5, margin: 0 }}>Numbers you type stay on this device. A photo or PDF is sent only when you use “Read my bill”, just to read it.</p>
       </section>
 
       {summary && !summary.ok && <p role="alert" style={{ ...card, ...muted, margin: 0 }}>{summary.message}</p>}
@@ -282,6 +317,32 @@ export default function BillExplainer() {
           ))}
         </section>
       )}
+      <BillHistory
+        candidate={summary?.ok ? { periodStart: current.periodStart, periodEnd: current.periodEnd, kwh: summary.value.kwh, days: summary.value.days, currentCharges: n(current.currentCharges) ?? 0, readingType: current.readingType } : null}
+        onCompare={(b: HistoryBill) => {
+          setPrevious({ ...EMPTY, periodStart: b.periodStart, periodEnd: b.periodEnd, kwh: String(b.kwh), currentCharges: String(b.currentCharges), readingType: b.readingType })
+          setShowPrev(true)
+        }}
+      />
+    </div>
+  )
+}
+
+function ReadSummary({ read, onDone }: { read: { checks: string[]; notes: string | null; fuelRate: number | null; flags: Flags }; onDone: () => void }) {
+  const unsure = Object.values(read.flags).filter((x) => x && x.confidence !== 'high').length
+  return (
+    <div role="status" style={{ display: 'grid', gap: 6, padding: '12px 14px', borderRadius: 14, background: unsure || read.checks.length ? 'rgba(246,198,107,.08)' : 'rgba(62,207,142,.08)', border: `1px solid ${unsure || read.checks.length ? 'rgba(246,198,107,.35)' : 'rgba(62,207,142,.3)'}` }} data-testid="bill-read-summary">
+      <strong style={{ color: '#fff', fontSize: 14 }}>{unsure ? `Filled in — please check the ${unsure} highlighted figure${unsure === 1 ? '' : 's'}` : 'Filled in from your bill — check it matches'}</strong>
+      {read.checks.map((c) => (
+        <span key={c} style={{ ...muted, fontSize: 13 }}>{c}</span>
+      ))}
+      {read.notes && <span style={{ ...muted, fontSize: 13 }}>{read.notes}</span>}
+      {read.fuelRate != null && <span style={{ ...muted, fontSize: 13 }}>Fuel &amp; IPP rate on this bill: J${fmt(read.fuelRate, 4)} per kWh.</span>}
+      <div>
+        <button type="button" onClick={onDone} style={{ background: 'none', border: 0, padding: 0, color: 'var(--ke-green-400)', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>
+          Looks right — hide this
+        </button>
+      </div>
     </div>
   )
 }

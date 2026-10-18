@@ -9,6 +9,7 @@ import { useEnergyProfile, type ProfileSync } from '@/lib/energy/useEnergyProfil
 import { QUICK_ITEMS, quickAddDevice } from '@/lib/energy/quickAdd'
 import DeviceForm from './DeviceForm'
 import ScenarioResults from './ScenarioResults'
+import EnergyOverview from './EnergyOverview'
 import { card, label, input, muted, h2, Btn, BasisChip } from './ui'
 
 
@@ -144,6 +145,7 @@ export default function MyEnergyClient() {
         )}
       </div>
       {notice && <p role="status" style={{ ...card, padding: 14, margin: 0, ...muted }}>{notice}</p>}
+      {ready && <EnergyOverview profile={profile} />}
 
       {profile.properties.length === 0 && (
         <section style={{ ...card, display: 'grid', gap: 12, borderColor: 'var(--ke-green-500)' }} aria-labelledby="start-title">
@@ -157,7 +159,7 @@ export default function MyEnergyClient() {
       )}
 
       {/* Properties */}
-      <section style={{ ...card, display: 'grid', gap: 14 }} aria-labelledby="props-title">
+      <section id="properties" style={{ ...card, display: 'grid', gap: 14, scrollMarginTop: 84 }} aria-labelledby="props-title">
         <h2 id="props-title" style={h2}>Your properties</h2>
         {profile.properties.length > 0 && (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>

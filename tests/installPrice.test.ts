@@ -28,3 +28,22 @@ describe('installed solar price range', () => {
     expect(installPriceDataSchema.safeParse({ basis: 'TEST', perKwpLow: 200, perKwpHigh: 300 }).success).toBe(true)
   })
 })
+
+import { solarBattery } from '@/lib/energy/engine'
+describe('solar + battery', () => {
+  const production = { kwp: 4, annualKwh: { low: 5000, base: 6000, high: 7000 }, monthlyKwh: Array(12).fill(500) }
+  it('suggests a size from the average day’s surplus and raises the covered share', () => {
+    // 500 kWh/month solar ≈ 16.4/day; use 400/month ≈ 13.2/day, 40% daytime → 5.3 day, 7.9 evening.
+    const none = solarBattery(production, 400, 0.4, 0)
+    const sug = solarBattery(production, 400, 0.4)
+    if (!none.ok || !sug.ok) throw new Error('refused')
+    expect(none.value.coveredShare).toBeCloseTo(0.4, 2)
+    expect(sug.value.suggestedKwh).toBe(9) // min(11.2 surplus, 7.9/0.9 = 8.8) → 8.8 → nearest 0.5 = 9
+    expect(sug.value.coveredShare).toBeGreaterThan(0.95)
+    const small = solarBattery(production, 400, 0.4, 3)
+    expect(small.ok && small.value.shiftedKwhPerYear).toBeCloseTo(3 * 0.9 * 30.4 * 12, 0)
+  })
+  it('refuses without usage', () => {
+    expect(solarBattery(production, 0, 0.4).ok).toBe(false)
+  })
+})

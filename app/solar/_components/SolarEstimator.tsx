@@ -17,7 +17,9 @@ import {
   sizeRoof,
   estimateProduction,
   estimateSavings,
+  solarBattery,
   recommendSystem,
+  type SolarSavings,
   aspectText,
   ROOF_TYPES,
   ROOF_LABEL,
@@ -26,8 +28,9 @@ import {
   type SpecificYield,
 } from '@/lib/energy/engine/solar'
 import { CALC_ENGINE_VERSION } from '@/lib/energy/engine/version'
-import { installPriceRange } from '@/lib/energy/engine/installPrice'
+import { installPriceRange, type InstallPriceOutput } from '@/lib/energy/engine/installPrice'
 import { useMyVehicle } from '@/components/garage/useMyVehicle'
+import { encodeSnapshot, saveEstimate, simplifyRing, type SolarSnapshot } from '@/lib/solar/report'
 import { plugsIn, vehicleName } from '@/lib/vehicles/vehicle'
 import { useActiveRecord } from '@/lib/refdata/useRefData'
 import { tariffFromPublic } from '@/lib/refdata/types'
@@ -365,18 +368,46 @@ export default function SolarEstimator() {
   )
 
   const hasBatteryPrice = priceRecord?.data.batteryPerKwhLow != null
-  const cost = useMemo(
-    () =>
-      system && priceRecord
-        ? installPriceRange({
-            kwp: system.kwp,
-            rates: priceRecord.data,
-            batteryKwh: hasBatteryPrice && Number(batteryKwh) > 0 ? Number(batteryKwh) : undefined,
-            annualSaving: savings?.ok ? { low: savings.value.annualDaytime, high: savings.value.annualUpper } : undefined,
-          })
-        : null,
-    [system?.kwp, priceRecord, batteryKwh, hasBatteryPrice, savings], // eslint-disable-line react-hooks/exhaustive-deps
+  const dayFrac = Math.min(100, Math.max(0, Number(daytimePct))) / 100
+  // Solar + battery: suggested size (or the visitor's), and the savings when the battery moves midday surplus to the evening.
+  const battery = useMemo(
+    () => (production?.ok && usage.trim() && usageKwh > 0 ? solarBattery(production.value, usageKwh, dayFrac, Number(batteryKwh) > 0 ? Number(batteryKwh) : undefined) : null),
+    [production, usage, usageKwh, dayFrac, batteryKwh],
   )
+  const batterySavings = useMemo(
+    () => (battery?.ok && production?.ok && tariff && battery.value.batteryKwh > 0 ? estimateSavings(tariff, production.value, [usageKwh], battery.value.coveredShare, new Date().toISOString().slice(0, 10)) : null),
+    [battery, production, tariff, usageKwh],
+  )
+  const priceFor = (bat: number | undefined, sv: typeof savings) =>
+    system && priceRecord
+      ? installPriceRange({ kwp: system.kwp, rates: priceRecord.data, batteryKwh: bat, annualSaving: sv?.ok ? { low: sv.value.annualDaytime, high: sv.value.annualUpper } : undefined })
+      : null
+  const cost = useMemo(() => priceFor(undefined, savings), [system?.kwp, priceRecord, savings]) // eslint-disable-line react-hooks/exhaustive-deps
+  const batteryCost = useMemo(
+    () => (hasBatteryPrice && battery?.ok && battery.value.batteryKwh > 0 ? priceFor(battery.value.batteryKwh, batterySavings) : null),
+    [hasBatteryPrice, battery, batterySavings, system?.kwp, priceRecord], // eslint-disable-line react-hooks/exhaustive-deps
+  )
+
+  // A portable snapshot of this estimate, for the printable report and “save to My Energy”.
+  const snapshot = (): SolarSnapshot | null =>
+    roof && system
+      ? {
+          v: 1,
+          date: new Date().toISOString().slice(0, 10),
+          engine: CALC_ENGINE_VERSION,
+          place: { parish: roof.parish ? (PARISHES.find((p) => p.id === roof.parish)?.name ?? null) : null, lat: Math.round(roof.center.lat * 1e5) / 1e5, lng: Math.round(roof.center.lng * 1e5) / 1e5 },
+          roof: { type: ROOF_LABEL[roofType], areaM2: Math.round(roof.areaM2), source: roof.source, ring: simplifyRing(outerRing(roof.geometry)) },
+          system: { modules: system.modules, kwp: system.kwp, tiltDeg: tilt, facing: aspectText(aspect), lossPct: loss },
+          production: production?.ok ? { low: production.value.annualKwh.low, base: production.value.annualKwh.base, high: production.value.annualKwh.high, monthly: production.value.monthlyKwh.map((m) => Math.round(m)), source: 'PVGIS (EU Joint Research Centre)' } : null,
+          usage: usage.trim() ? { monthlyKwh: usageKwh, daytimePct: Math.round(dayFrac * 100), evKwh: addEv ? evMonthlyKwh : null } : null,
+          savings: savings?.ok && tariffRecord ? { daytime: savings.value.annualDaytime, upper: savings.value.annualUpper, tariff: tariffRecord.name } : null,
+          battery: battery?.ok && battery.value.batteryKwh > 0 ? { kwh: battery.value.batteryKwh, daytime: batterySavings?.ok ? batterySavings.value.annualDaytime : null, upper: batterySavings?.ok ? batterySavings.value.annualUpper : null } : null,
+          price: cost?.ok && priceRecord ? { low: cost.value.total.low, high: cost.value.total.high, paybackLow: cost.value.paybackYears?.low ?? null, paybackHigh: cost.value.paybackYears?.high ?? null, source: `${priceRecord.data.basis}, checked ${priceRecord.source.retrievedAt}` } : null,
+          batteryPrice: batteryCost?.ok ? { low: batteryCost.value.total.low, high: batteryCost.value.total.high, paybackLow: batteryCost.value.paybackYears?.low ?? null, paybackHigh: batteryCost.value.paybackYears?.high ?? null } : null,
+          assumptions: [...(production?.ok ? production.assumptions : []), ...(savings?.ok ? savings.assumptions : [])].map((a) => a.description).slice(0, 10),
+        }
+      : null
+  const [savedNote, setSavedNote] = useState<string | null>(null)
 
   const defaultUsable = Math.round((roofType === 'flat' ? SOLAR_DEFAULTS.usableFractionFlat : SOLAR_DEFAULTS.usableFractionPitched) * 100)
   const maxMonth = production?.ok ? Math.max(...production.value.monthlyKwh) : 0
@@ -666,8 +697,7 @@ export default function SolarEstimator() {
             ) : cost?.ok ? (
               <div data-testid="solar-cost" style={{ display: 'grid', gap: 8 }}>
                 <p style={{ ...muted, margin: 0 }}>
-                  About <strong style={{ color: '#fff' }}>J${fmt(cost.value.total.low, 0)}–{fmt(cost.value.total.high, 0)}</strong> fitted for {fmt(system.kwp, 1)} kWp
-                  {cost.value.battery ? <> plus a {fmt(Number(batteryKwh), 1)} kWh battery (J${fmt(cost.value.battery.low, 0)}–{fmt(cost.value.battery.high, 0)} of it)</> : null}.
+                  About <strong style={{ color: '#fff' }}>J${fmt(cost.value.total.low, 0)}–{fmt(cost.value.total.high, 0)}</strong> fitted for {fmt(system.kwp, 1)} kWp.
                   {cost.value.paybackYears && (
                     <>
                       {' '}
@@ -675,18 +705,25 @@ export default function SolarEstimator() {
                     </>
                   )}
                 </p>
-                {hasBatteryPrice && (
-                  <div style={{ maxWidth: 220 }}>
-                    <label htmlFor="s-bat" style={label}>Add a battery (usable kWh)</label>
-                    <input id="s-bat" style={input} inputMode="decimal" placeholder="e.g. 10" value={batteryKwh} onChange={(e) => setBatteryKwh(e.target.value.replace(/[^\d.]/g, ''))} />
-                  </div>
-                )}
                 <p style={{ ...muted, fontSize: 12.5, margin: 0 }}>
                   {priceRecord.data.basis}, checked {new Date(`${priceRecord.source.retrievedAt}T12:00:00Z`).toLocaleDateString('en-JM', { day: 'numeric', month: 'short', year: 'numeric' })}. {priceRecord.data.includes ? `${priceRecord.data.includes}. ` : ''}
                   {cost.warnings[0]}
                 </p>
               </div>
             ) : null}
+            {battery?.ok && battery.value.suggestedKwh > 0 && (savings?.ok || cost?.ok) && (
+              <BatteryCompare
+                suggested={battery.value.suggestedKwh}
+                size={battery.value.batteryKwh}
+                sizeText={batteryKwh}
+                onSize={setBatteryKwh}
+                shifted={battery.value.shiftedKwhPerYear}
+                solar={{ saving: savings?.ok ? savings.value : null, cost: cost?.ok ? cost.value : null }}
+                withBattery={{ saving: batterySavings?.ok ? batterySavings.value : null, cost: batteryCost?.ok ? batteryCost.value : null }}
+                hasPrice={!!priceRecord}
+                hasBatteryPrice={hasBatteryPrice}
+              />
+            )}
             {(savings?.ok || cost?.ok) && (
               <p style={{ ...muted, fontSize: 13, margin: 0 }}>
                 {/* Cautious figures to plan repayments around: the top of the price range and the daytime-only saving. */}
@@ -699,6 +736,30 @@ export default function SolarEstimator() {
                 {cost?.ok && <span> (uses the top of the range)</span>}
               </p>
             )}
+          </section>
+
+          <section style={{ ...card, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }} aria-label="Keep this estimate">
+            <Btn
+              variant="ghost"
+              onClick={() => {
+                const snap = snapshot()
+                if (snap) window.open(`/solar/report#${encodeSnapshot(snap)}`, '_blank', 'noopener')
+              }}
+            >
+              Printable report (save as PDF)
+            </Btn>
+            <Btn
+              variant="ghost"
+              onClick={() => {
+                const snap = snapshot()
+                if (!snap) return
+                saveEstimate(snap)
+                setSavedNote('Saved on this device — it shows in My Energy.')
+              }}
+            >
+              Save to My Energy
+            </Btn>
+            {savedNote && <span role="status" style={{ ...muted, fontSize: 13 }}>{savedNote}</span>}
           </section>
 
           <QuoteForm roof={roof} roofType={roofType} roofCondition={roofType === 'zinc' ? roofCondition : null} sizing={system} annualKwh={production?.ok ? production.value.annualKwh.base : null} usage={usage.trim() ? usageKwh : null} />
@@ -733,6 +794,37 @@ function RoofNote({ type, condition }: { type: RoofType; condition: 'good' | 'wo
         Renting, or sharing the roof with neighbours? The owner has to agree before anything is fixed to it. If the roof can’t take panels, a{' '}
         <Link href="/shop?category=stations" style={{ color: 'var(--ke-green-400)', fontWeight: 600 }}>power station with portable solar panels</Link> needs no roof work.
       </p>
+    </div>
+  )
+}
+
+/** Solar only vs solar + battery: yearly saving, price and payback side by side. */
+function BatteryCompare({ suggested, size, sizeText, onSize, shifted, solar, withBattery, hasPrice, hasBatteryPrice }: { suggested: number; size: number; sizeText: string; onSize: (v: string) => void; shifted: number; solar: { saving: SolarSavings | null; cost: InstallPriceOutput | null }; withBattery: { saving: SolarSavings | null; cost: InstallPriceOutput | null }; hasPrice: boolean; hasBatteryPrice: boolean }) {
+  const J = (n: number) => `J$${fmt(Math.round(n / 1000) * 1000, 0)}`
+  const range = (lo: number, hi: number) => (Math.abs(hi - lo) < 1000 ? J(lo) : `${J(lo)}–${fmt(Math.round(hi / 1000) * 1000, 0)}`)
+  const col = (title: string, x: { saving: SolarSavings | null; cost: InstallPriceOutput | null }, note?: string) => (
+    <div className="ke-solar-col">
+      <strong>{title}</strong>
+      <span>{x.saving ? <>{range(x.saving.annualDaytime, x.saving.annualUpper)} a year saved</> : 'Savings need the approved tariff'}</span>
+      {hasPrice && <span>{x.cost ? <>{range(x.cost.total.low, x.cost.total.high)} fitted</> : note ?? '—'}</span>}
+      {x.cost?.paybackYears && <span>Repays in about {fmt(x.cost.paybackYears.low, 1)}–{fmt(x.cost.paybackYears.high, 1)} years</span>}
+    </div>
+  )
+  return (
+    <div style={{ display: 'grid', gap: 10, borderTop: '1px solid var(--ke-dark-hairline)', paddingTop: 12 }} data-testid="solar-battery">
+      <h3 style={{ ...h2, fontSize: 16 }}>Add a battery?</h3>
+      <p style={{ ...muted, margin: 0 }}>
+        A battery stores midday output you don’t use and gives it back in the evening. For your use, about <strong style={{ color: '#fff' }}>{fmt(suggested, 1)} kWh</strong> would catch most of it (≈{fmt(shifted, 0)} kWh a year moved to the evening).
+      </p>
+      <div style={{ maxWidth: 240 }}>
+        <label htmlFor="s-bat" style={label}>Battery size (usable kWh)</label>
+        <input id="s-bat" style={input} inputMode="decimal" placeholder={`Suggested ${fmt(suggested, 1)}`} value={sizeText} onChange={(e) => onSize(e.target.value.replace(/[^\d.]/g, ''))} />
+      </div>
+      <div className="ke-solar-cmp">
+        {col('Solar only', solar)}
+        {col(`Solar + ${fmt(size, 1)} kWh battery`, withBattery, hasBatteryPrice ? undefined : 'Battery prices not entered yet')}
+      </div>
+      <p style={{ ...muted, fontSize: 12, margin: 0 }}>Battery round trip ≈90%. A savings battery isn’t automatically a storm-backup battery — check what it would run on Storm ready.</p>
     </div>
   )
 }
@@ -810,6 +902,10 @@ function QuoteForm({ roof, roofType, roofCondition, sizing, annualKwh, usage }: 
 }
 
 const CSS = `
+.ke-solar-cmp{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ke-solar-col{display:grid;gap:4px;align-content:start;padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.08);font-size:13.5px;color:var(--ke-dark-text-muted)}
+.ke-solar-col strong{color:#fff;font-size:14px}
+@media (max-width:520px){.ke-solar-cmp{grid-template-columns:1fr}}
 .ke-solar-map{position:relative;height:clamp(460px,72vh,820px);border-radius:24px;overflow:hidden;background:#a7d3ee;box-shadow:0 18px 50px -20px rgba(0,0,0,.6)}
 .ke-solar-skeleton{position:absolute;inset:0;background:linear-gradient(100deg,rgba(255,255,255,0) 30%,rgba(255,255,255,.35) 50%,rgba(255,255,255,0) 70%) #cfe3ee;background-size:200% 100%;animation:ke-shimmer 1.4s linear infinite}
 .ke-solar-tools{position:absolute;left:14px;bottom:14px;z-index:4;display:flex;gap:6px;flex-wrap:wrap;padding:6px;border-radius:16px;background:rgba(255,255,255,.88);box-shadow:0 8px 28px rgba(0,0,0,.18);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}

@@ -41,5 +41,8 @@
  *   half rate, cost at the price now plus session fee; vehicle-to-load
  *   backup runtime (vehicleBackup); home charging options (volts × amps,
  *   80% continuous, hours per day vs the overnight window).
+ * 1.8.0 (2026-10-18) — solar + battery: midday surplus stored up to the
+ *   battery size and returned in the evening at 90% round trip; suggested
+ *   size = average day's shiftable energy; covered share feeds savings.
  */
-export const CALC_ENGINE_VERSION = '1.7.0'
+export const CALC_ENGINE_VERSION = '1.8.0'

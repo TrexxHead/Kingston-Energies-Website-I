@@ -106,7 +106,7 @@ export default function Camille() {
   }
 
   return (
-    <div className="ke-root" style={{ fontFamily: 'var(--font-body)' }}>
+    <div className="ke-root ke-no-print" style={{ fontFamily: 'var(--font-body)' }}>
       {/* Launcher */}
       <button
         type="button"

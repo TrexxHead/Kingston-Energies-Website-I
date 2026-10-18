@@ -220,3 +220,53 @@ export function recommendSystem(roof: RoofSizing, y: SpecificYield, monthlyUsage
     warnings: [],
   }
 }
+
+/**
+ * Solar + battery (engine 1.8.0). Each month, the battery stores the midday
+ * output you don't use (up to its size) and gives it back in the evening (up
+ * to what you use then), losing ~10% on the round trip. Returns a suggested
+ * size (the average day's shiftable energy) and the share of your use the
+ * sun then covers — which feeds estimateSavings like the daytime share does.
+ */
+export interface SolarBatteryResult {
+  suggestedKwh: number
+  batteryKwh: number
+  /** Share of yearly use met directly or via the battery. */
+  coveredShare: number
+  shiftedKwhPerYear: number
+}
+
+export const BATTERY_ROUND_TRIP = 0.9
+
+export function solarBattery(production: ProductionEstimate, monthlyUsageKwh: number, daytimeShare: number, batteryKwh?: number): CalcResult<SolarBatteryResult> {
+  if (!isPositive(monthlyUsageKwh)) return refuse('missing_input', ['monthlyUsageKwh'], 'Enter your monthly kWh to size a battery.')
+  if (!(daytimeShare >= 0 && daytimeShare <= 1)) return refuse('invalid_input', ['daytimeShare'], 'Daytime share must be between 0% and 100%.')
+  const dailyUse = monthlyUsageKwh / 30.4
+  const dayUse = dailyUse * daytimeShare
+  const eveningUse = dailyUse - dayUse
+  const perMonth = production.monthlyKwh.map((m) => {
+    const solar = m / 30.4
+    const excess = Math.max(0, solar - dayUse)
+    return { solar, excess, store: Math.min(excess, eveningUse / BATTERY_ROUND_TRIP) }
+  })
+  const suggestedKwh = Math.round((perMonth.reduce((a, x) => a + x.store, 0) / 12) * 2) / 2
+  const size = isNonNegative(batteryKwh) ? (batteryKwh as number) : suggestedKwh
+  let covered = 0
+  let shifted = 0
+  for (const x of perMonth) {
+    const out = Math.min(x.excess, size) * BATTERY_ROUND_TRIP
+    const back = Math.min(out, eveningUse)
+    covered += (Math.min(x.solar, dayUse) + back) * 30.4
+    shifted += back * 30.4
+  }
+  return {
+    ok: true,
+    value: { suggestedKwh, batteryKwh: size, coveredShare: Math.min(1, covered / (monthlyUsageKwh * 12)), shiftedKwhPerYear: shifted },
+    basis: 'assumed',
+    assumptions: [
+      { id: 'battery.round_trip', description: `About ${Math.round(BATTERY_ROUND_TRIP * 100)}% of what the battery stores comes back out.` },
+      { id: 'battery.daily', description: 'The battery fills from midday output you don’t use and empties in the evening, each day; month-to-month weather averages out.' },
+    ],
+    warnings: ['A battery sized for savings is different from one sized for outages — for storm backup, use the backup calculator on Storm ready.'],
+  }
+}

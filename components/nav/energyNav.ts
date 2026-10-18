@@ -1,4 +1,4 @@
-import { Gauge, Sun, Receipt, Landmark, FileCheck2, MapPin, Car, CloudLightning, Tractor, BadgeCheck, CalendarCheck, type LucideIcon } from 'lucide-react'
+import { Warehouse, Gauge, Sun, Receipt, Landmark, FileCheck2, MapPin, Car, CloudLightning, Tractor, BadgeCheck, CalendarCheck, type LucideIcon } from 'lucide-react'
 
 /** The My Energy tools, grouped — one source for the navbar dropdown, the phone menu and the footer. */
 export interface EnergyLink {
@@ -22,6 +22,7 @@ export const ENERGY_GROUPS: { title: string; links: EnergyLink[] }[] = [
   {
     title: 'On the road',
     links: [
+      { href: '/garage', label: 'My Garage', blurb: 'Your EV or hybrid, in 3D', Icon: Warehouse },
       { href: '/energy-map', label: 'Jamaica Energy Map', blurb: 'EV chargers and their status', Icon: MapPin },
       { href: '/ev-costs', label: 'EV vs petrol', blurb: 'What an electric car costs to run', Icon: Car },
     ],

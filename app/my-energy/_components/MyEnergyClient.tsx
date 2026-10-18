@@ -1,18 +1,16 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
-import { useSession } from 'next-auth/react'
 import { Plus, Trash2, Cloud, HardDrive, Pencil, Zap } from 'lucide-react'
 import { PARISHES } from '@/lib/map/parishes'
-import { EMPTY_PROFILE, newClientId, pruneScenario, type EnergyProfile, type ProfileDevice, type ProfileProperty, type ProfileScenario } from '@/lib/energy/profileSchema'
-import { loadLocalProfile, saveLocalProfile, clearLocalProfile } from '@/lib/energy/localProfile'
+import { newClientId, pruneScenario, type ProfileDevice, type ProfileProperty, type ProfileScenario } from '@/lib/energy/profileSchema'
+import { useEnergyProfile, type ProfileSync } from '@/lib/energy/useEnergyProfile'
 import { QUICK_ITEMS, quickAddDevice } from '@/lib/energy/quickAdd'
 import DeviceForm from './DeviceForm'
 import ScenarioResults from './ScenarioResults'
 import { card, label, input, muted, h2, Btn, BasisChip } from './ui'
 
-type Sync = 'local' | 'loading' | 'saving' | 'saved' | 'error'
 
 const MODEL_TEXT: Record<ProfileDevice['load']['kind'], string> = {
   steady: 'Steady',
@@ -26,81 +24,13 @@ function defaultScenario(): ProfileScenario {
 }
 
 export default function MyEnergyClient() {
-  const { status } = useSession()
-  const signedIn = status === 'authenticated'
-  const [profile, setProfile] = useState<EnergyProfile>(EMPTY_PROFILE)
-  const [ready, setReady] = useState(false)
-  const [sync, setSync] = useState<Sync>('local')
-  const [notice, setNotice] = useState<string | null>(null)
+  const { profile, setProfile, persist, ready, sync, signedIn, notice, setNotice } = useEnergyProfile()
   const [propId, setPropId] = useState<string | null>(null)
   const [scnId, setScnId] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
   const [editing, setEditing] = useState<string | null>(null)
   const [preset, setPreset] = useState<{ name: string; category: ProfileDevice['category']; model: 'cooling'; motor: boolean } | undefined>()
   const [newProp, setNewProp] = useState({ name: 'Home', kind: 'home' as 'home' | 'business', parish: '' })
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  // Load: anonymous → browser storage; signed in → merge anything local into the account, then use the account copy.
-  useEffect(() => {
-    if (status === 'loading') return
-    let cancelled = false
-    async function load() {
-      const local = loadLocalProfile()
-      if (status !== 'authenticated') {
-        setProfile(local)
-        setSync('local')
-        setReady(true)
-        return
-      }
-      setSync('loading')
-      try {
-        const res = local.properties.length
-          ? await fetch('/api/energy/profile/merge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ local }) })
-          : await fetch('/api/energy/profile', { cache: 'no-store' })
-        const data = await res.json()
-        if (!res.ok) throw new Error(data.error)
-        if (cancelled) return
-        if (local.properties.length) {
-          clearLocalProfile()
-          const a = data.added
-          setNotice(`Saved this browser’s profile to your account (${a.devices} new device${a.devices === 1 ? '' : 's'}${data.skippedDuplicates ? `, ${data.skippedDuplicates} duplicate${data.skippedDuplicates === 1 ? '' : 's'} skipped` : ''}).`)
-        }
-        setProfile(data.profile)
-        setSync('saved')
-      } catch {
-        if (cancelled) return
-        setProfile(local)
-        setSync('error')
-        setNotice('Could not reach your account — changes are kept in this browser for now.')
-      }
-      setReady(true)
-    }
-    load()
-    return () => {
-      cancelled = true
-    }
-  }, [status])
-
-  const persist = useCallback(
-    (next: EnergyProfile) => {
-      setProfile(next)
-      if (!signedIn) {
-        saveLocalProfile(next)
-        return
-      }
-      setSync('saving')
-      if (saveTimer.current) clearTimeout(saveTimer.current)
-      saveTimer.current = setTimeout(async () => {
-        try {
-          const res = await fetch('/api/energy/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(next) })
-          setSync(res.ok ? 'saved' : 'error')
-        } catch {
-          setSync('error')
-        }
-      }, 700)
-    },
-    [signedIn],
-  )
 
   const property = profile.properties.find((p) => p.clientId === propId) ?? profile.properties[0] ?? null
   const scenario = property ? property.scenarios.find((s) => s.clientId === scnId) ?? property.scenarios[0] ?? null : null
@@ -193,7 +123,7 @@ export default function MyEnergyClient() {
   if (!ready) return <p style={muted}>Loading your energy profile…</p>
 
   const SyncIcon = signedIn ? Cloud : HardDrive
-  const syncText: Record<Sync, string> = {
+  const syncText: Record<ProfileSync, string> = {
     local: 'Saved in this browser only',
     loading: 'Loading your account…',
     saving: 'Saving to your account…',

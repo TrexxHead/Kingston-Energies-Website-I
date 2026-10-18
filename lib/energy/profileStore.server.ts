@@ -1,6 +1,7 @@
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { PROFILE_VERSION, pruneScenario, type EnergyProfile, type ProfileDevice, type ProfileProperty } from './profileSchema'
+import { vehicleSchema, type Vehicle } from '@/lib/vehicles/vehicle'
 
 /**
  * Database persistence for the shared energy profile. The API always
@@ -12,6 +13,12 @@ import { PROFILE_VERSION, pruneScenario, type EnergyProfile, type ProfileDevice,
 type Tx = Prisma.TransactionClient
 
 export async function loadProfile(userId: string): Promise<EnergyProfile> {
+  const vehicleRows = await prisma.energyVehicle.findMany({ where: { userId }, orderBy: { createdAt: 'asc' } })
+  // A row that no longer matches the schema (an older shape) is skipped rather than breaking the profile.
+  const vehicles = vehicleRows.flatMap((r) => {
+    const v = vehicleSchema.safeParse({ ...(r.data as object), clientId: r.clientId })
+    return v.success ? [v.data] : []
+  })
   const props = await prisma.energyProperty.findMany({
     where: { userId },
     orderBy: { createdAt: 'asc' },
@@ -22,6 +29,7 @@ export async function loadProfile(userId: string): Promise<EnergyProfile> {
   })
   return {
     version: PROFILE_VERSION,
+    vehicles,
     properties: props.map((p) => ({
       clientId: p.clientId ?? p.id,
       name: p.name,
@@ -125,6 +133,7 @@ export async function saveProfile(userId: string, profile: EnergyProfile): Promi
       await tx.energyProperty.deleteMany({
         where: { userId, OR: [{ clientId: null }, { clientId: { notIn: profile.properties.map((p) => p.clientId) } }] },
       })
+      if (profile.vehicles) await saveVehicles(tx, userId, profile.vehicles)
     },
     { timeout: 20_000 },
   )
@@ -133,4 +142,13 @@ export async function saveProfile(userId: string, profile: EnergyProfile): Promi
 export async function deleteProperty(userId: string, clientId: string): Promise<boolean> {
   const r = await prisma.energyProperty.deleteMany({ where: { userId, clientId } })
   return r.count > 0
+}
+
+/** Replace the user's garage. Only called when the saved profile includes `vehicles`. */
+async function saveVehicles(tx: Tx, userId: string, vehicles: Vehicle[]) {
+  for (const v of vehicles) {
+    const data = v as unknown as Prisma.InputJsonValue
+    await tx.energyVehicle.upsert({ where: { userId_clientId: { userId, clientId: v.clientId } }, create: { userId, clientId: v.clientId, data }, update: { data } })
+  }
+  await tx.energyVehicle.deleteMany({ where: { userId, clientId: { notIn: vehicles.map((v) => v.clientId) } } })
 }

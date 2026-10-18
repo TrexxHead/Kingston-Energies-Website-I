@@ -64,7 +64,7 @@ describe('one device entered once, reused by tools', () => {
 describe('mergeProfiles', () => {
   it('adds an anonymous profile to an empty account', () => {
     const r = mergeProfiles(EMPTY_PROFILE, profile([fridge, router]))
-    expect(r.added).toEqual({ properties: 1, devices: 2, scenarios: 1 })
+    expect(r.added).toEqual({ properties: 1, devices: 2, scenarios: 1, vehicles: 0 })
   })
 
   it('merging the same local profile twice does not duplicate equipment', () => {
@@ -72,7 +72,7 @@ describe('mergeProfiles', () => {
     const twice = mergeProfiles(once, profile([fridge, router]))
     expect(twice.profile.properties).toHaveLength(1)
     expect(twice.profile.properties[0].devices).toHaveLength(2)
-    expect(twice.added).toEqual({ properties: 0, devices: 0, scenarios: 0 })
+    expect(twice.added).toEqual({ properties: 0, devices: 0, scenarios: 0, vehicles: 0 })
   })
 
   it('an identical device from another browser (different ids) is not added again', () => {
@@ -124,5 +124,22 @@ describe('quick add', async () => {
     const pump = quickAddDevice('pump')!
     expect(pump.motorLoad).toBe(true)
     expect(pump.startupWatts).toBeUndefined()
+  })
+})
+
+describe('vehicles in the profile', () => {
+  const car = { clientId: 'veh_1', powertrain: 'bev' as const, make: 'TEST', model: 'Car', year: 2024, bodyStyle: 'hatchback' as const, colour: '#1d4f91', specs: {}, primary: true }
+  it('merges vehicles by id and skips the same car added in another browser', () => {
+    const server = { version: 1 as const, properties: [], vehicles: [car] }
+    const local = { version: 1 as const, properties: [], vehicles: [{ ...car, clientId: 'veh_2' }, { ...car, clientId: 'veh_3', model: 'Other', primary: true }] }
+    const r = mergeProfiles(server, local)
+    expect(r.profile.vehicles?.map((v) => v.clientId)).toEqual(['veh_1', 'veh_3'])
+    expect(r.skippedDuplicates).toBe(1)
+    // Only one primary car survives.
+    expect(r.profile.vehicles?.filter((v) => v.primary)).toHaveLength(1)
+  })
+  it('keeps vehicles optional so an older page saving without them is valid', () => {
+    expect(profileSchema.safeParse({ version: 1, properties: [] }).success).toBe(true)
+    expect(profileSchema.safeParse({ version: 1, properties: [], vehicles: [{ ...car, vin: 'BAD' }] }).success).toBe(false)
   })
 })

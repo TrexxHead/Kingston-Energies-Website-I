@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import type { LoadModel, ScenarioDevice, Evidenced } from './engine'
 import { stableStringify } from './engine/stable'
+import { vehicleSchema, vehicleFingerprint, VEHICLE_LIMIT, type Vehicle } from '@/lib/vehicles/vehicle'
 
 /**
  * The shared energy profile contract (backlog F03): one shape used by the
@@ -68,6 +69,11 @@ export const propertySchema = z.object({
 export const profileSchema = z.object({
   version: z.literal(PROFILE_VERSION),
   properties: z.array(propertySchema).max(LIMITS.properties),
+  /**
+   * My Garage. Optional on purpose: a save that leaves it out (an older page
+   * still open in a tab) keeps the stored vehicles rather than deleting them.
+   */
+  vehicles: z.array(vehicleSchema).max(VEHICLE_LIMIT).optional(),
   updatedAt: z.string().max(40).optional(),
 })
 
@@ -76,7 +82,10 @@ export type ProfileScenario = z.infer<typeof scenarioSchema>
 export type ProfileProperty = z.infer<typeof propertySchema>
 export type EnergyProfile = z.infer<typeof profileSchema>
 
-export const EMPTY_PROFILE: EnergyProfile = { version: PROFILE_VERSION, properties: [] }
+export const EMPTY_PROFILE: EnergyProfile = { version: PROFILE_VERSION, properties: [], vehicles: [] }
+
+/** True when there's nothing worth merging into an account. */
+export const isEmptyProfile = (p: EnergyProfile) => p.properties.length === 0 && !(p.vehicles?.length)
 
 /** Scenario items whose device no longer exists are dropped, so a removed appliance can't linger in totals. */
 export function pruneScenario(s: ProfileScenario, devices: ProfileDevice[]): ProfileScenario {
@@ -128,7 +137,7 @@ export function deviceFingerprint(d: ProfileDevice): string {
  *   and scenario items pointing at it are re-pointed to the existing device.
  * Returns the merged profile and counts for the UI.
  */
-export function mergeProfiles(server: EnergyProfile, local: EnergyProfile): { profile: EnergyProfile; added: { properties: number; devices: number; scenarios: number }; skippedDuplicates: number } {
+export function mergeProfiles(server: EnergyProfile, local: EnergyProfile): { profile: EnergyProfile; added: { properties: number; devices: number; scenarios: number; vehicles: number }; skippedDuplicates: number } {
   const props: ProfileProperty[] = server.properties.map((p) => ({ ...p, devices: [...p.devices], scenarios: [...p.scenarios] }))
   const added = { properties: 0, devices: 0, scenarios: 0 }
   let skippedDuplicates = 0
@@ -176,7 +185,19 @@ export function mergeProfiles(server: EnergyProfile, local: EnergyProfile): { pr
       }
     }
   }
-  return { profile: { version: PROFILE_VERSION, properties: props, updatedAt: new Date().toISOString() }, added, skippedDuplicates }
+  // Vehicles: same clientId → local version wins; the same car (make/model/year/nickname) isn't added twice.
+  const vehicles: Vehicle[] = [...(server.vehicles ?? [])]
+  let vehiclesAdded = 0
+  for (const v of local.vehicles ?? []) {
+    const same = vehicles.findIndex((x) => x.clientId === v.clientId)
+    if (same >= 0) vehicles[same] = v
+    else if (vehicles.some((x) => vehicleFingerprint(x) === vehicleFingerprint(v))) skippedDuplicates++
+    else if (vehicles.length < VEHICLE_LIMIT) {
+      vehicles.push({ ...v, primary: v.primary && !vehicles.some((x) => x.primary) })
+      vehiclesAdded++
+    }
+  }
+  return { profile: { version: PROFILE_VERSION, properties: props, vehicles, updatedAt: new Date().toISOString() }, added: { ...added, vehicles: vehiclesAdded }, skippedDuplicates }
 }
 
 export function newClientId(prefix: string): string {

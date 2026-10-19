@@ -69,6 +69,12 @@
   --color-warning:var(--ke-sun-400);   --color-warning-soft:var(--ke-sun-50);
   --color-danger:#d64545;              --color-danger-soft:#fbeaea;
   --color-info:var(--ke-blue-600);     --color-info-soft:var(--ke-blue-50);
+  /* Text-safe variants for small text/icons on surfaces and soft fills
+     (the base hues above are tuned for fills, not 11-13px copy). */
+  --color-primary-strong:var(--ke-green-700);
+  --color-warning-strong:#b45309;
+  --color-text-secondary:var(--ke-gray-600);
+  --color-link:var(--ke-blue-500);
 
   --gradient-brand:linear-gradient(115deg,var(--ke-green-400) 0%,var(--ke-blue-400) 100%);
   --gradient-sun:linear-gradient(135deg,var(--ke-sun-300) 0%,var(--ke-sun-400) 100%);
@@ -188,6 +194,11 @@
   --color-danger:#e88585;              --color-danger-soft:rgba(232,133,133,.14);
   --color-info:var(--ke-blue-400);     --color-info-soft:rgba(41,171,226,.14);
 
+  --color-primary-strong:var(--ke-green-400);
+  --color-warning-strong:var(--ke-sun-300);
+  --color-text-secondary:rgba(234,242,236,.78);
+  --color-link:var(--ke-blue-400);
+
   /* Neutral ramp inverts so grey-scale utilities stay legible. */
   --ke-gray-50:#131f1b;  --ke-gray-100:#182621;
   --ke-gray-200:rgba(255,255,255,.10);
@@ -216,8 +227,11 @@
 :root[data-theme="light"] { color-scheme: light; }
 
 .ke-root * { box-sizing:border-box; }
-.ke-root a { color:var(--ke-green-700); text-decoration:none; }
-.ke-root a:hover { color:var(--ke-green-600); }
+/* Zero-specificity wrapper: any link with its own class (dark-page links,
+   buttons styled as links) keeps its own colour instead of this dark green,
+   which is unreadable on the dark tool pages. */
+:where(.ke-root) a { color:var(--ke-green-700); text-decoration:none; }
+:where(.ke-root) a:hover { color:var(--ke-green-600); }
 
 @keyframes keUp{ from{opacity:0;transform:translateY(34px);} to{opacity:1;transform:none;} }
 @keyframes keFade{ from{opacity:0;} to{opacity:1;} }
@@ -269,6 +283,11 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
+}
+
+/* Storefront header: drop the phone number before the menu gets crowded. */
+@media (max-width:1280px){
+  .kad-hide-md{ display:none !important; }
 }
 
 @media (max-width:1000px){

@@ -7,7 +7,7 @@ type BadgeTone = 'green' | 'blue' | 'orange' | 'neutral'
 const BADGE_TONES: Record<BadgeTone, { bg: string; text: string }> = {
   green: { bg: 'var(--ke-green-50)', text: 'var(--ke-green-700)' },
   blue: { bg: 'var(--ke-blue-50)', text: 'var(--ke-blue-600)' },
-  orange: { bg: 'var(--ke-sun-50)', text: 'var(--ke-sun-500)' },
+  orange: { bg: 'var(--ke-sun-50)', text: 'var(--ke-gold-dark)' },
   neutral: { bg: 'var(--ke-gray-100)', text: 'var(--ke-gray-600)' },
 }
 
@@ -41,7 +41,7 @@ const FEATURE_TONES: Record<FeatureTone, { bg: string; fg: string }> = {
   green: { bg: 'var(--ke-green-50)', fg: 'var(--ke-green-600)' },
   blue: { bg: 'var(--ke-blue-50)', fg: 'var(--ke-blue-600)' },
   teal: { bg: 'var(--ke-teal-100)', fg: 'var(--ke-teal-700)' },
-  orange: { bg: 'var(--ke-sun-50)', fg: 'var(--ke-sun-500)' },
+  orange: { bg: 'var(--ke-sun-50)', fg: 'var(--ke-gold-dark)' },
 }
 
 export function FeatureIcon({ tone = 'green', size = 48, children }: { tone?: FeatureTone; size?: number; children: ReactNode }) {

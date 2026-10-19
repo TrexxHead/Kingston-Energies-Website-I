@@ -59,7 +59,7 @@ export default function DocumentsTab() {
         </div>
 
         {!data.storageConfigured && (
-          <div style={{ fontSize: 13, color: 'var(--ke-sun-600,#b45309)', marginBottom: 12, lineHeight: 1.55 }}>
+          <div style={{ fontSize: 13, color: 'var(--color-warning-strong)', marginBottom: 12, lineHeight: 1.55 }}>
             File storage is not configured, so documents cannot be kept yet. Add the Supabase storage keys and this
             starts working.
           </div>
@@ -286,7 +286,7 @@ function DocumentModal({ id, categories, onClose, onChanged }: { id: string; cat
             href={doc.fileUrl}
             target="_blank"
             rel="noreferrer"
-            style={{ fontSize: 13, color: 'var(--ke-green-700,#15803d)', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            style={{ fontSize: 13, color: 'var(--color-primary-strong)', display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
             Open {doc.filename} <ExternalLink size={13} />
           </a>

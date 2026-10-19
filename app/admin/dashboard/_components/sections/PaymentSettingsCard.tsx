@@ -81,7 +81,7 @@ export default function PaymentSettingsCard() {
         aria-expanded={open}
         style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left' }}
       >
-        <Wallet size={17} color="var(--ke-green-600)" />
+        <Wallet size={17} color="var(--color-primary)" />
         <h3 style={{ ...h3Style, margin: 0 }}>Payment methods</h3>
         <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--color-text-muted)', fontSize: 12.5 }}>
           {[cfg.bank, cfg.lynk, cfg.paypal, cfg.cod, cfg.card, cfg.fygaro].filter((m) => m.enabled).length} active
@@ -135,7 +135,7 @@ export default function PaymentSettingsCard() {
         {/* Card (WiPay) */}
         <MethodBlock title="Debit / credit card (WiPay)" enabled={cfg.card.enabled} onToggle={(v) => set('card', { enabled: v })}>
           {wipayConfigured ? (
-            <p style={{ fontSize: 12.5, color: 'var(--ke-green-700)', margin: 0 }}>WiPay is connected. Cards will appear at checkout when this is on.</p>
+            <p style={{ fontSize: 12.5, color: 'var(--color-primary-strong)', margin: 0 }}>WiPay is connected. Cards will appear at checkout when this is on.</p>
           ) : (
             <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: 0 }}>
               Card payments stay hidden until WiPay is connected (set WIPAY_ACCOUNT_NUMBER &amp; WIPAY_API_KEY, see DEPLOY.md).
@@ -147,7 +147,7 @@ export default function PaymentSettingsCard() {
         {/* Fygaro */}
         <MethodBlock title="Fygaro" enabled={cfg.fygaro.enabled} onToggle={(v) => set('fygaro', { enabled: v })}>
           {fygaroConfigured ? (
-            <p style={{ fontSize: 12.5, color: 'var(--ke-green-700)', margin: 0 }}>Fygaro is connected. It will appear at checkout when this is on.</p>
+            <p style={{ fontSize: 12.5, color: 'var(--color-primary-strong)', margin: 0 }}>Fygaro is connected. It will appear at checkout when this is on.</p>
           ) : (
             <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: 0 }}>
               Stays hidden until Fygaro is connected (set FYGARO_LINK_URL &amp; FYGARO_WEBHOOK_SECRET, see DEPLOY.md).
@@ -162,7 +162,7 @@ export default function PaymentSettingsCard() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 18 }}>
         <Button size="sm" variant="primary" onClick={save}>{busy ? 'Saving…' : 'Save payment settings'}</Button>
         {saved && (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12.5, color: 'var(--ke-green-700)' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12.5, color: 'var(--color-primary-strong)' }}>
             <Check size={14} /> Saved
           </span>
         )}
@@ -175,7 +175,7 @@ export default function PaymentSettingsCard() {
 
 function MethodBlock({ title, enabled, onToggle, children }: { title: string; enabled: boolean; onToggle: (v: boolean) => void; children: React.ReactNode }) {
   return (
-    <div style={{ border: '1px solid var(--color-border)', borderRadius: 12, padding: 14, background: enabled ? '#fff' : 'var(--ke-gray-50, #f7f8f7)' }}>
+    <div style={{ border: '1px solid var(--color-border)', borderRadius: 12, padding: 14, background: enabled ? 'var(--color-surface)' : 'var(--ke-gray-50, #f7f8f7)' }}>
       <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', marginBottom: enabled ? 12 : 0 }}>
         <button
           type="button"
@@ -184,7 +184,7 @@ function MethodBlock({ title, enabled, onToggle, children }: { title: string; en
           onClick={() => onToggle(!enabled)}
           style={{
             width: 40, height: 22, borderRadius: 999, border: 'none', cursor: 'pointer', position: 'relative', flexShrink: 0,
-            background: enabled ? 'var(--ke-green-600)' : 'var(--color-border-strong, #cbd2ce)', transition: 'background .15s',
+            background: enabled ? 'var(--color-primary)' : 'var(--color-border-strong, #cbd2ce)', transition: 'background .15s',
           }}
         >
           <span style={{ position: 'absolute', top: 2, left: enabled ? 20 : 2, width: 18, height: 18, borderRadius: '50%', background: 'var(--color-surface)', transition: 'left .15s' }} />

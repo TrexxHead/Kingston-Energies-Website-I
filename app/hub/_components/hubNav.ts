@@ -18,7 +18,9 @@ export const HUB_MAIN_NAV: HubNavItem[] = [
 
 // Tools group — sits below the main account nav, per the Energy Checkup spec.
 export const HUB_TOOLS_NAV: HubNavItem[] = [
+  { icon: 'zap', label: 'My energy', href: '/my-energy' },
   { icon: 'gauge', label: 'Energy checkup', href: '/hub/energy-checkup' },
+  { icon: 'map', label: 'Energy map', href: '/energy-map' },
   { icon: 'cloud-lightning', label: 'Storm prep', href: '/hub/storm-prep' },
 ]
 

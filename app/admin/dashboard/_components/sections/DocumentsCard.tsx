@@ -169,7 +169,7 @@ export default function DocumentsCard() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {visibleDocs.map((d) => (
             <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', border: '1px solid var(--color-border)', borderRadius: 10 }}>
-              {d.isFile ? <FileText size={16} style={{ color: 'var(--ke-green-600)', flexShrink: 0 }} /> : <Link2 size={16} style={{ color: 'var(--ke-green-600)', flexShrink: 0 }} />}
+              {d.isFile ? <FileText size={16} style={{ color: 'var(--color-primary)', flexShrink: 0 }} /> : <Link2 size={16} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13.5 }}>{d.title}</div>
                 <div style={{ fontSize: 11, color: 'var(--color-text-subtle)' }}>
@@ -181,7 +181,7 @@ export default function DocumentsCard() {
                   href={d.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, border: '1px solid var(--ke-green-600)', color: 'var(--ke-green-700)', background: 'var(--ke-green-50, #eef7f0)', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12.5, textDecoration: 'none' }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, border: '1px solid var(--color-primary)', color: 'var(--color-primary-strong)', background: 'var(--color-primary-soft)', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12.5, textDecoration: 'none' }}
                 >
                   {d.isFile ? <Download size={14} /> : <ExternalLink size={14} />} View
                 </a>
@@ -283,9 +283,9 @@ function FolderChip({ label, active, onClick, onDelete }: { label: string; activ
         gap: 6,
         padding: '5px 10px',
         borderRadius: 999,
-        border: `1px solid ${active ? 'var(--ke-green-600)' : 'var(--color-border)'}`,
-        background: active ? 'var(--ke-green-50, #eef7f0)' : '#fff',
-        color: active ? 'var(--ke-green-700)' : 'var(--color-text-muted)',
+        border: `1px solid ${active ? 'var(--color-primary)' : 'var(--color-border)'}`,
+        background: active ? 'var(--color-primary-soft)' : 'var(--color-surface)',
+        color: active ? 'var(--color-primary-strong)' : 'var(--color-text-muted)',
         fontSize: 12,
         fontWeight: 600,
       }}
@@ -316,9 +316,9 @@ function ModeTab({ active, disabled, onClick, icon, label }: { active: boolean; 
         gap: 6,
         padding: '8px 10px',
         borderRadius: 8,
-        border: `1px solid ${active ? 'var(--ke-green-600)' : 'var(--color-border)'}`,
-        background: active ? 'var(--ke-green-50, #eef7f0)' : '#fff',
-        color: disabled ? 'var(--color-text-subtle)' : active ? 'var(--ke-green-700)' : 'var(--color-text-muted)',
+        border: `1px solid ${active ? 'var(--color-primary)' : 'var(--color-border)'}`,
+        background: active ? 'var(--color-primary-soft)' : 'var(--color-surface)',
+        color: disabled ? 'var(--color-text-subtle)' : active ? 'var(--color-primary-strong)' : 'var(--color-text-muted)',
         fontSize: 12.5,
         fontWeight: 600,
         cursor: disabled ? 'not-allowed' : 'pointer',

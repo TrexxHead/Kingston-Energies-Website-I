@@ -237,7 +237,7 @@ export default function PersonProfile({ id }: { id: string }) {
           </div>
           {person.manager && (
             <div style={{ fontSize: 12, color: 'var(--color-text-subtle)', marginTop: 4 }}>
-              Reports to <Link href={`/admin/dashboard/hr/people/${person.manager.id}`} style={{ color: 'var(--ke-green-700)' }}>{person.manager.firstName} {person.manager.lastName}</Link>
+              Reports to <Link href={`/admin/dashboard/hr/people/${person.manager.id}`} style={{ color: 'var(--color-primary-strong)' }}>{person.manager.firstName} {person.manager.lastName}</Link>
             </div>
           )}
         </div>
@@ -292,7 +292,7 @@ export default function PersonProfile({ id }: { id: string }) {
                     <span style={{ color: 'var(--color-text-subtle)' }}>Status</span>
                     <Badge tone={EMP_STATUS_TONE[person.employee.status] ?? 'grey'}>{person.employee.status}</Badge>
                   </div>
-                  <Link href="/admin/dashboard/finance/payroll" style={{ fontSize: 12, color: 'var(--ke-green-700)', marginTop: 2 }}>View in Payroll →</Link>
+                  <Link href="/admin/dashboard/finance/payroll" style={{ fontSize: 12, color: 'var(--color-primary-strong)', marginTop: 2 }}>View in Payroll →</Link>
                 </div>
               ) : (
                 <Button size="sm" variant="outline" onClick={openPayroll}>Set up payroll</Button>

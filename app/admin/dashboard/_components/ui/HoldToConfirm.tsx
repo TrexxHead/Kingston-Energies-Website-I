@@ -15,8 +15,8 @@ interface HoldToConfirmProps {
 }
 
 const TONES = {
-  default: { border: 'var(--ke-green-600,#15803d)', text: 'var(--ke-green-700,#15803d)', fill: 'var(--ke-green-500)' },
-  danger: { border: 'var(--color-danger)', text: 'var(--color-danger)', fill: 'var(--color-danger)' },
+  default: { border: 'var(--color-primary)', text: 'var(--color-primary-strong)', fill: 'var(--ke-green-500)', onFill: '#fff' },
+  danger: { border: 'var(--color-danger)', text: 'var(--color-danger)', fill: 'var(--color-danger)', onFill: 'var(--color-text-inverse)' },
 } as const
 
 /**
@@ -94,7 +94,7 @@ export default function HoldToConfirm({ label, holdingLabel, onConfirm, tone = '
         transition={holding ? { duration: durationMs / 1000, ease: 'linear' } : { duration: 0.12 }}
         style={{ position: 'absolute', inset: 0, transformOrigin: 'left', background: colors.fill }}
       />
-      <span style={{ position: 'relative', color: holding ? '#fff' : colors.text, transition: 'color .12s ease' }}>
+      <span style={{ position: 'relative', color: holding ? colors.onFill : colors.text, transition: 'color .12s ease' }}>
         {holding ? (holdingLabel ?? 'Keep holding…') : label}
       </span>
     </button>

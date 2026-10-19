@@ -43,7 +43,7 @@ export default function SchedulesTab() {
 function Stat({ label, value, warn }: { label: string; value: string; warn?: boolean }) {
   return (
     <div style={{ ...cardStyle, borderRadius: 14, padding: 16 }}>
-      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, letterSpacing: '-.01em', color: warn ? 'var(--ke-sun-600,#b45309)' : undefined }}>{value}</div>
+      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, letterSpacing: '-.01em', color: warn ? 'var(--color-warning-strong)' : undefined }}>{value}</div>
       <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '.1em', color: 'var(--color-text-muted)', marginTop: 6, textTransform: 'uppercase' }}>{label}</div>
     </div>
   )

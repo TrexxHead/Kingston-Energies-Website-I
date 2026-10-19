@@ -127,7 +127,7 @@ export default function LogsSection() {
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {changelogRows.map((a) => (
                 <div key={a.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 0', borderTop: '1px solid var(--color-border)' }}>
-                  <span style={{ width: 28, height: 28, borderRadius: 9, background: 'var(--ke-green-50,#eef7ee)', color: 'var(--ke-green-600)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
+                  <span style={{ width: 28, height: 28, borderRadius: 9, background: 'var(--color-primary-soft)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
                     {ACTIVITY_ICON[a.type]}
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>

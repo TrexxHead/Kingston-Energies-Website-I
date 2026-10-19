@@ -174,7 +174,7 @@ export default function CalendarOrderModal({ defaultDate, onClose, onCreated }: 
         <button
           type="button"
           onClick={addRow}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 8, background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: 'var(--ke-green-700,#15803d)', padding: 0 }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 8, background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: 'var(--color-primary-strong)', padding: 0 }}
         >
           <Plus size={13} /> Add item
         </button>

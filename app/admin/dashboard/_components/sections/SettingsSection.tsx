@@ -91,7 +91,7 @@ export default function SettingsSection({ onNavigate }: { onNavigate?: (tab: Sec
       <div style={cardStyle}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 9, marginBottom: 6 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-            <ShieldCheck size={17} color="var(--ke-green-600)" />
+            <ShieldCheck size={17} color="var(--color-primary)" />
             <h3 style={{ ...h3Style, margin: 0 }}>Administrators</h3>
           </div>
           {isSuperAdmin && (
@@ -110,7 +110,7 @@ export default function SettingsSection({ onNavigate }: { onNavigate?: (tab: Sec
               <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', border: '1px solid var(--color-border)', borderRadius: 12 }}>
                 <span style={{ position: 'relative', width: 36, height: 36, borderRadius: 999, background: 'var(--gradient-brand)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, flexShrink: 0 }}>
                   {initials(a.name ?? a.email)}
-                  <span title={s.label} style={{ position: 'absolute', bottom: -1, right: -1, width: 11, height: 11, borderRadius: 999, background: s.color, border: '2px solid #fff' }} />
+                  <span title={s.label} style={{ position: 'absolute', bottom: -1, right: -1, width: 11, height: 11, borderRadius: 999, background: s.color, border: '2px solid var(--color-surface)' }} />
                 </span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13.5 }}>{a.name ?? a.email}</div>
@@ -156,7 +156,7 @@ export default function SettingsSection({ onNavigate }: { onNavigate?: (tab: Sec
               onClick={() => onNavigate?.(c.tab)}
               style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 12px', border: '1px solid var(--color-border)', borderRadius: 12, background: 'var(--color-surface)', cursor: 'pointer', textAlign: 'left', width: '100%' }}
             >
-              <span style={{ width: 32, height: 32, borderRadius: 9, background: 'var(--ke-green-50)', color: 'var(--ke-green-700)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <span style={{ width: 32, height: 32, borderRadius: 9, background: 'var(--color-primary-soft)', color: 'var(--color-primary-strong)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <c.icon size={16} />
               </span>
               <span style={{ flex: 1, minWidth: 0 }}>

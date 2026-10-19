@@ -65,8 +65,8 @@ export default function MarketingReports() {
             style={{
               height: 30, padding: '0 12px', borderRadius: 999, fontSize: 12.5, fontFamily: 'var(--font-display)', fontWeight: 600,
               border: '1px solid var(--color-border)', cursor: 'pointer',
-              background: days === r ? 'var(--ke-green-600)' : 'var(--color-surface)',
-              color: days === r ? '#fff' : 'var(--color-text-muted)',
+              background: days === r ? 'var(--color-primary)' : 'var(--color-surface)',
+              color: days === r ? 'var(--color-primary-contrast)' : 'var(--color-text-muted)',
             }}
           >
             {r}d
@@ -109,7 +109,7 @@ export default function MarketingReports() {
                   <div style={{ flex: 1, fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13.5 }}>{c.channel}</div>
                   <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{c.campaignsSent} sent</div>
                   <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{c.spend > 0 ? `${money(c.spend)} spend` : 'no spend logged'}</div>
-                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13.5, color: c.roi != null && c.roi >= 0 ? 'var(--ke-green-700)' : c.roi != null ? 'var(--color-danger)' : 'var(--color-text-subtle)' }}>
+                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13.5, color: c.roi != null && c.roi >= 0 ? 'var(--color-primary-strong)' : c.roi != null ? 'var(--color-danger)' : 'var(--color-text-subtle)' }}>
                     {c.roi != null ? `${c.roi >= 0 ? '+' : ''}${(c.roi * 100).toFixed(0)}% ROI` : 'n/a'}
                   </div>
                 </div>

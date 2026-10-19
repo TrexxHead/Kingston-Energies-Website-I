@@ -105,7 +105,7 @@ export default function DiscountCodesCard() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {codes.map((c) => (
             <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', border: '1px solid var(--color-border)', borderRadius: 10 }}>
-              <Tag size={15} style={{ color: 'var(--ke-green-600)', flexShrink: 0 }} />
+              <Tag size={15} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 13.5, letterSpacing: '.03em' }}>{c.code}</div>
                 <div style={{ fontSize: 11.5, color: 'var(--color-text-subtle)' }}>
@@ -113,7 +113,7 @@ export default function DiscountCodesCard() {
                   {c.minSpend ? ` · min ${fmt(c.minSpend)}` : ''}
                   {c.expiresAt ? ` · until ${c.expiresAt}` : ''}
                 </div>
-                <div style={{ fontSize: 11, color: c.redemptions ? 'var(--ke-green-700)' : 'var(--color-text-subtle)', marginTop: 2 }}>
+                <div style={{ fontSize: 11, color: c.redemptions ? 'var(--color-primary-strong)' : 'var(--color-text-subtle)', marginTop: 2 }}>
                   {c.redemptions ? `${c.redemptions} redemption${c.redemptions === 1 ? '' : 's'} · ${fmt(c.revenue)} revenue` : 'Not redeemed yet'}
                 </div>
               </div>

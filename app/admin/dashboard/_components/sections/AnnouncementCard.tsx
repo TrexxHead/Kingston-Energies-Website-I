@@ -62,7 +62,7 @@ export default function AnnouncementCard() {
     <div style={cardStyle}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-          <Megaphone size={17} color="var(--ke-green-600)" />
+          <Megaphone size={17} color="var(--color-primary)" />
           <h3 style={{ ...h3Style, margin: 0 }}>Site announcement</h3>
         </div>
         <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -99,7 +99,7 @@ export default function AnnouncementCard() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 16 }}>
         <Button size="sm" variant="primary" onClick={save}>{busy ? 'Saving…' : 'Save announcement'}</Button>
         {saved && (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12.5, color: 'var(--ke-green-700)' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12.5, color: 'var(--color-primary-strong)' }}>
             <Check size={14} /> Saved: it's live on the site
           </span>
         )}

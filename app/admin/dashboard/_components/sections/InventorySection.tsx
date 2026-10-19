@@ -543,7 +543,7 @@ export default function InventorySection() {
             const m = marginPct(eff, form.cost ? Number(form.cost) : null)
             return m != null ? (
               <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
-                Profit margin: <strong style={{ color: m >= 0 ? 'var(--ke-green-700)' : 'var(--color-danger)' }}>{m}%</strong>
+                Profit margin: <strong style={{ color: m >= 0 ? 'var(--color-primary-strong)' : 'var(--color-danger)' }}>{m}%</strong>
                 {' '}({fmt(Math.round(eff - Number(form.cost)))} per unit)
               </div>
             ) : null
@@ -563,7 +563,7 @@ export default function InventorySection() {
               display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
               padding: '18px 12px', marginBottom: 8, borderRadius: 12, cursor: 'pointer', textAlign: 'center',
               border: `1.5px dashed ${dragOver ? 'var(--ke-green-500)' : 'var(--color-border)'}`,
-              background: dragOver ? 'var(--ke-green-50,#eef7ee)' : 'var(--ke-gray-50,#fafafa)',
+              background: dragOver ? 'var(--color-primary-soft)' : 'var(--ke-gray-50,#fafafa)',
               transition: 'background .15s ease, border-color .15s ease',
             }}
           >
@@ -665,7 +665,7 @@ export default function InventorySection() {
                   display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
                   border: `1.5px solid ${adjustType === opt.id ? 'var(--color-primary)' : 'var(--color-border)'}`,
                   borderRadius: 10, cursor: 'pointer',
-                  background: adjustType === opt.id ? 'var(--color-primary-soft)' : '#fff',
+                  background: adjustType === opt.id ? 'var(--color-primary-soft)' : 'var(--color-surface)',
                 }}
               >
                 <input type="radio" name="adjustType" checked={adjustType === opt.id} onChange={() => setAdjustType(opt.id)} />

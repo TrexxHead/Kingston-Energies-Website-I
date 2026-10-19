@@ -18,7 +18,16 @@ export default function ThemeToggle() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light')
 
   useEffect(() => {
-    const current = (document.documentElement.getAttribute('data-theme') as 'light' | 'dark' | null) ?? 'light'
+    // The inline script only runs on a full page load; arriving by client-side
+    // navigation (e.g. straight after signing in) needs the saved theme applied here.
+    let saved: string | null = null
+    try {
+      saved = localStorage.getItem(KEY)
+    } catch {
+      /* storage unavailable */
+    }
+    const current = saved === 'dark' || saved === 'light' ? saved : ((document.documentElement.getAttribute('data-theme') as 'light' | 'dark' | null) ?? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'))
+    document.documentElement.setAttribute('data-theme', current)
     setTheme(current)
   }, [])
 

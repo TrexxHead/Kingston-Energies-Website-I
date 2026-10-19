@@ -26,9 +26,9 @@ const ICONS: Record<string, LucideIcon> = {
 
 const TONE: Record<Tone, { bg: string; fg: string }> = {
   red: { bg: 'var(--color-danger-soft)', fg: 'var(--color-danger)' },
-  orange: { bg: 'var(--ke-sun-50)', fg: 'var(--ke-sun-500)' },
-  blue: { bg: 'var(--ke-blue-50)', fg: 'var(--ke-blue-600)' },
-  green: { bg: 'var(--ke-green-50)', fg: 'var(--ke-green-700)' },
+  orange: { bg: 'var(--color-warning-soft)', fg: 'var(--ke-sun-500)' },
+  blue: { bg: 'var(--color-info-soft)', fg: 'var(--color-info)' },
+  green: { bg: 'var(--color-primary-soft)', fg: 'var(--color-primary-strong)' },
 }
 
 const TAB_LABEL: Record<string, string> = { orders: 'Orders', inventory: 'Inventory', customers: 'Customers' }
@@ -87,10 +87,10 @@ export default function NotificationsBell({ onNavigate }: { onNavigate?: (tab: S
       {/* Live status pill */}
       <div
         className="kad-hide-sm"
-        style={{ display: 'flex', alignItems: 'center', gap: 8, background: clear ? 'var(--ke-green-50)' : 'var(--ke-sun-50)', borderRadius: 999, padding: '6px 12px' }}
+        style={{ display: 'flex', alignItems: 'center', gap: 8, background: clear ? 'var(--color-primary-soft)' : 'var(--color-warning-soft)', borderRadius: 999, padding: '6px 12px' }}
       >
         <span style={{ width: 7, height: 7, borderRadius: '50%', background: clear ? 'var(--ke-green-500)' : 'var(--ke-sun-400)' }} />
-        <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12.5, color: clear ? 'var(--ke-green-700)' : 'var(--ke-sun-500)' }}>
+        <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12.5, color: clear ? 'var(--color-primary-strong)' : 'var(--ke-sun-500)' }}>
           {clear ? 'All systems normal' : `${total} need${total === 1 ? 's' : ''} attention`}
         </span>
       </div>
@@ -101,13 +101,13 @@ export default function NotificationsBell({ onNavigate }: { onNavigate?: (tab: S
         aria-label={`Notifications${total ? ` (${total})` : ''}`}
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        style={{ position: 'relative', width: 38, height: 38, borderRadius: 10, border: '1px solid var(--color-border)', background: open ? 'var(--ke-gray-50, #f5f7f5)' : '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text)' }}
+        style={{ position: 'relative', width: 38, height: 38, borderRadius: 10, border: '1px solid var(--color-border)', background: open ? 'var(--color-surface-sunk)' : 'var(--color-surface)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text)' }}
       >
         <Bell size={17} />
         {total > 0 && (
           <span
             aria-hidden
-            style={{ position: 'absolute', top: -6, right: -6, minWidth: 18, height: 18, padding: '0 5px', borderRadius: 999, background: 'var(--color-danger)', color: '#fff', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 10.5, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #fff' }}
+            style={{ position: 'absolute', top: -6, right: -6, minWidth: 18, height: 18, padding: '0 5px', borderRadius: 999, background: 'var(--color-danger)', color: 'var(--color-text-inverse)', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 10.5, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #fff' }}
           >
             {total > 99 ? '99+' : total}
           </span>
@@ -130,7 +130,7 @@ export default function NotificationsBell({ onNavigate }: { onNavigate?: (tab: S
           {loading && alerts.length === 0 ? (
             <p style={{ fontSize: 13, color: 'var(--color-text-muted)', padding: '10px 8px' }}>Checking…</p>
           ) : clear ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 9, color: 'var(--ke-green-700)', fontSize: 13, padding: '14px 8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, color: 'var(--color-primary-strong)', fontSize: 13, padding: '14px 8px' }}>
               <CheckCircle2 size={16} /> All clear. Nothing needs action.
             </div>
           ) : (
@@ -171,7 +171,7 @@ export default function NotificationsBell({ onNavigate }: { onNavigate?: (tab: S
                         <button
                           type="button"
                           onClick={() => resolve(a.tab)}
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 8, border: 'none', background: 'var(--color-primary)', color: '#fff', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 8, border: 'none', background: 'var(--color-primary)', color: 'var(--color-primary-contrast)', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}
                         >
                           Go to {TAB_LABEL[a.tab] ?? a.tab} <ArrowRight size={13} />
                         </button>

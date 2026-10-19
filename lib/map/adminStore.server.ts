@@ -1,0 +1,62 @@
+import { prisma } from '@/lib/prisma'
+import type { StationInput } from './registry'
+import type { StatusObservation, StatusSource } from './status'
+
+export const STATION_INCLUDE = {
+  operator: { select: { id: true, name: true } },
+  connectorGroups: { include: { observations: { orderBy: { observedAt: 'desc' as const }, take: 3 } } },
+  sources: { orderBy: { createdAt: 'asc' as const } },
+  _count: { select: { reports: true } },
+}
+
+async function operatorId(name: string | null | undefined): Promise<string | null> {
+  const n = name?.trim()
+  if (!n) return null
+  const op = await prisma.evOperator.upsert({ where: { name: n }, create: { name: n }, update: {} })
+  return op.id
+}
+
+/** Station fields + full replacement of its connector groups. */
+export async function stationData(input: StationInput) {
+  return {
+    name: input.name,
+    operatorId: await operatorId(input.operatorName),
+    parish: input.parish,
+    address: input.address ?? null,
+    lat: input.lat,
+    lng: input.lng,
+    access: input.access,
+    accessNotes: input.accessNotes ?? null,
+    hours: input.hours ?? null,
+    paymentNotes: input.paymentNotes ?? null,
+    pricingNotes: input.pricingNotes ?? null,
+    pricingObservedAt: input.pricingObservedAt ? new Date(input.pricingObservedAt) : null,
+    googlePlaceId: input.googlePlaceId?.trim() || null,
+    operatorLocationId: input.operatorLocationId?.trim() || null,
+    verificationNote: input.verificationNote ?? null,
+  }
+}
+
+export function groupRows(input: StationInput) {
+  return input.connectorGroups.map((g) => ({
+    connectorType: g.connectorType,
+    currentType: g.currentType,
+    maxPowerKw: g.maxPowerKw ?? null,
+    count: g.count ?? null,
+    portsShared: g.portsShared ?? null,
+    notes: g.notes ?? null,
+  }))
+}
+
+/** DB row → status-logic observation (observation time kept separate from retrieval time). */
+export function toObservation(o: { source: string; observedAt: Date | null; retrievedAt: Date; availableCount: number | null; outOfServiceCount: number | null; inUseCount: number | null; supportsInUse: boolean }): StatusObservation {
+  return {
+    source: o.source as StatusSource,
+    observedAt: o.observedAt?.toISOString() ?? null,
+    retrievedAt: o.retrievedAt.toISOString(),
+    availableCount: o.availableCount,
+    outOfServiceCount: o.outOfServiceCount,
+    inUseCount: o.inUseCount,
+    supportsInUse: o.supportsInUse,
+  }
+}

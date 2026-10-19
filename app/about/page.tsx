@@ -150,7 +150,7 @@ export default function About() {
             {STATS.map((s) => (
               <div key={s.label}>
                 <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(32px,4vw,48px)', letterSpacing: '-.03em', color: '#fff', lineHeight: 1 }}>{s.value}</div>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '.22em', color: 'rgba(234,242,236,.45)', marginTop: 10 }}>{s.label}</div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '.22em', color: 'rgba(234,242,236,.62)', marginTop: 10 }}>{s.label}</div>
               </div>
             ))}
           </div>

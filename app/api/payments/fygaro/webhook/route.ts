@@ -6,6 +6,7 @@ import { postOrderPayment } from '@/lib/ledger/post'
 import { sendOrderConfirmation } from '@/lib/email'
 import { trackToken } from '@/lib/trackToken'
 import { fulfillOrderItems } from '@/lib/orderFulfillment'
+import { isBookingNo } from '@/lib/bookings/config'
 
 const POINTS_LINE_RE = /^Rewards points redeemed \((\d+) pts\)$/
 
@@ -41,6 +42,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true })
   }
   if (!event.paid) {
+    return NextResponse.json({ ok: true })
+  }
+
+  // Booking deposits use the booking number as the Fygaro reference.
+  if (isBookingNo(event.orderNo)) {
+    try {
+      const b = await prisma.serviceBooking.findUnique({ where: { bookingNo: event.orderNo } })
+      if (!b || b.depositStatus !== 'pending') return NextResponse.json({ ok: true })
+      if (event.amount !== null && Math.abs(event.amount - b.depositAmount) > 1) {
+        console.error(`[fygaro webhook] deposit mismatch on ${b.bookingNo}: reported ${event.amount}, deposit ${b.depositAmount}`)
+        return NextResponse.json({ error: 'Amount mismatch' }, { status: 409 })
+      }
+      await prisma.serviceBooking.update({ where: { id: b.id }, data: { depositStatus: 'paid', depositPaidAt: new Date() } })
+    } catch (err) {
+      console.error('[fygaro webhook] booking deposit failed:', err)
+      return NextResponse.json({ error: 'Processing failed' }, { status: 500 })
+    }
     return NextResponse.json({ ok: true })
   }
 

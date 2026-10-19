@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { Car, Home, Receipt, Sun, CloudLightning, ArrowRight, PlugZap } from 'lucide-react'
 import { muted, h2, fmt } from './ui'
@@ -10,7 +9,7 @@ import { POWERTRAIN_LABEL, plugsIn, primaryVehicle, vehicleName } from '@/lib/ve
 import { loadSavedEstimates, encodeSnapshot, type SolarSnapshot } from '@/lib/solar/report'
 import { loadChecked } from '@/app/hub/storm-prep/_lib/checklist'
 
-const VehicleModel3D = dynamic(() => import('@/components/garage/VehicleModel3D'), { ssr: false, loading: () => <div style={{ height: 150 }} /> })
+import VehicleIllustration from '@/components/garage/VehicleIllustration'
 
 interface Bill {
   periodEnd: string
@@ -66,7 +65,7 @@ export default function EnergyOverview({ profile }: { profile: EnergyProfile }) 
           {car ? (
             <>
               <div className="ke-ov-car">
-                <VehicleModel3D bodyStyle={car.bodyStyle} colour={car.colour} powertrain={car.powertrain} make={car.make} model={car.model} year={car.year} height={150} />
+                <VehicleIllustration bodyStyle={car.bodyStyle} colour={car.colour} powertrain={car.powertrain} make={car.make} model={car.model} year={car.year} height={150} />
               </div>
               <strong>{vehicleName(car)}</strong>
               <span>

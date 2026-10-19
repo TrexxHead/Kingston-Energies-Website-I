@@ -57,3 +57,19 @@ describe('satellite zoom hand-over', () => {
     expect(zoomForSpan(s.lngDelta, 1000)).toBeCloseTo(18, 9)
   })
 })
+
+describe('2D side view', () => {
+  it('draws every design and every body style without broken numbers', async () => {
+    const { sideGeometry } = await import('@/lib/vehicles/sideGeometry')
+    const { specFor } = await import('@/lib/vehicles/buildSpec')
+    const specs = [...CAR_DESIGNS.map((d) => specFor(d, d.bodyStyle, 'bev')), ...(['hatchback', 'sedan', 'suv', 'crossover', 'pickup', 'van', 'coupe', 'wagon'] as const).map((b) => specFor(null, b, 'hev'))]
+    for (const s of specs) {
+      const g = sideGeometry(s)
+      const all = [g.body, g.windows, g.greenhouse, g.bPillar, g.rocker, g.shoulder, ...g.seams, ...g.head.housing, ...g.head.light, ...g.tail.housing, ...g.tail.light].join(' ')
+      expect(all).not.toMatch(/NaN|Infinity/)
+      expect(g.body.length).toBeGreaterThan(100)
+      expect(g.windows.length).toBeGreaterThan(100)
+      expect(g.wheels[1].x - g.wheels[0].x).toBeCloseTo(s.WB, 6)
+    }
+  })
+})

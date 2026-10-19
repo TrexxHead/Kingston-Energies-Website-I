@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { Plus, Pencil, Trash2, Star, Cloud, HardDrive, Zap, Fuel, BatteryCharging, Map as MapIcon, Route, Sun, CloudLightning, Gauge, Plug } from 'lucide-react'
 import { useEnergyProfile } from '@/lib/energy/useEnergyProfile'
@@ -10,7 +9,7 @@ import { card, muted, h2, Btn } from '@/app/my-energy/_components/ui'
 import VehicleForm from './VehicleForm'
 
 import DesignNote from '@/components/garage/DesignNote'
-const VehicleModel3D = dynamic(() => import('@/components/garage/VehicleModel3D'), { ssr: false, loading: () => <div style={{ height: 380 }} /> })
+import VehicleIllustration, { VEHICLE_VIEW } from '@/components/garage/VehicleIllustration'
 
 export default function GarageClient({ tripPlanner = false }: { tripPlanner?: boolean }) {
   const { profile, persist, ready, sync, signedIn, notice } = useEnergyProfile()
@@ -82,7 +81,7 @@ export default function GarageClient({ tripPlanner = false }: { tripPlanner?: bo
       {vehicles.length === 0 ? (
         <section className="ke-gar-empty" style={card}>
           <div className="ke-gar-empty__art">
-            <VehicleModel3D bodyStyle="crossover" colour="#0f8c8c" powertrain="bev" height={300} />
+            <VehicleIllustration bodyStyle="crossover" colour="#0f8c8c" powertrain="bev" height={300} />
           </div>
           <div style={{ display: 'grid', gap: 12, alignContent: 'center' }}>
             <h2 style={{ ...h2, fontSize: 26 }}>Add your vehicle</h2>
@@ -120,7 +119,7 @@ function Showcase({ v, onEdit, onRemove, onPrimary, onPaint, single, tripPlanner
   return (
     <section className="ke-gar-show" aria-label={vehicleName(v)}>
       <div className="ke-gar-stage">
-        <VehicleModel3D bodyStyle={v.bodyStyle} colour={v.colour} powertrain={v.powertrain} make={v.make} model={v.model} year={v.year} height={420} />
+        <VehicleIllustration bodyStyle={v.bodyStyle} colour={v.colour} powertrain={v.powertrain} make={v.make} model={v.model} year={v.year} height={420} />
         <div className="ke-gar-paint" role="group" aria-label="Paint colour">
           {PAINT.map((p) => (
             <button key={p.hex} type="button" title={p.name} aria-label={p.name} aria-pressed={v.colour.toLowerCase() === p.hex} onClick={() => onPaint(p.hex)} style={{ background: p.hex }} />
@@ -128,7 +127,7 @@ function Showcase({ v, onEdit, onRemove, onPrimary, onPaint, single, tripPlanner
         </div>
         <div className="ke-gar-note">
           <DesignNote make={v.make} model={v.model} year={v.year} bodyStyle={v.bodyStyle} />
-          <span style={{ display: 'block', marginTop: 2 }}>Drag to turn it.</span>
+          {VEHICLE_VIEW === '3d' && <span style={{ display: 'block', marginTop: 2 }}>Drag to turn it.</span>}
         </div>
       </div>
 

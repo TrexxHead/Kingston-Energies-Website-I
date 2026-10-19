@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import dynamic from 'next/dynamic'
 import { Search, ScanLine, PenLine, Zap, Fuel, Leaf } from 'lucide-react'
 import { newClientId } from '@/lib/energy/profileSchema'
 import {
@@ -24,7 +23,7 @@ import { card, label, input, muted, h2, Btn } from '@/app/my-energy/_components/
 
 import DesignNote from '@/components/garage/DesignNote'
 import { designFor } from '@/lib/vehicles/designs'
-const VehicleModel3D = dynamic(() => import('@/components/garage/VehicleModel3D'), { ssr: false, loading: () => <div style={{ height: 300 }} /> })
+import VehicleIllustration from '@/components/garage/VehicleIllustration'
 
 type SpecKey = keyof Vehicle['specs']
 type LookupResult = Pick<EpaVehicle, 'make' | 'model' | 'year' | 'trim' | 'powertrain' | 'specs'> & { bodyStyle: BodyStyle | null }
@@ -139,7 +138,7 @@ export default function VehicleForm({ initial, onSave, onCancel }: { initial: Ve
       {step === 'details' && (
         <div className="ke-vf-grid">
           <div className="ke-vf-preview">
-            <VehicleModel3D bodyStyle={v.bodyStyle} colour={v.colour} powertrain={v.powertrain} make={v.make} model={v.model} year={v.year} height={300} />
+            <VehicleIllustration bodyStyle={v.bodyStyle} colour={v.colour} powertrain={v.powertrain} make={v.make} model={v.model} year={v.year} height={300} />
             <div className="ke-vf-paint" role="group" aria-label="Paint colour">
               {PAINT.map((p) => (
                 <button key={p.hex} type="button" title={p.name} aria-label={p.name} aria-pressed={v.colour.toLowerCase() === p.hex} onClick={() => set({ colour: p.hex })} style={{ background: p.hex }} />

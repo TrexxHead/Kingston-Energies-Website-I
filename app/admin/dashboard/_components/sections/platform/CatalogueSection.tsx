@@ -249,7 +249,7 @@ function SkuDetail({ sku, onBack, onChanged }: { sku: Sku; onBack: () => void; o
                           {e.sourceUrl && (
                             <>
                               {' · '}
-                              <a href={e.sourceUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--ke-blue-500)' }}>source</a>
+                              <a href={e.sourceUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-link)' }}>source</a>
                             </>
                           )}
                           {e.sourceNote ? ` · ${e.sourceNote.split('\n')[0]}` : ''} · recorded by {e.createdBy ?? 'unknown'}

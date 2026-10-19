@@ -30,12 +30,14 @@ interface OrderEntry {
   createdAt: string
 }
 
+// Solid chips carrying white text, so these stay fixed mid-tone hues in both
+// themes rather than following the (lightened-in-dark) semantic tokens.
 const ORDER_CHIP_COLOR: Record<string, string> = {
   PENDING: '#d97706',
   CONFIRMED: 'var(--ke-green-600)',
   OUT_FOR_DELIVERY: '#2563eb',
-  DELIVERED: 'var(--color-text-muted)',
-  CANCELLED: 'var(--color-danger,#dc2626)',
+  DELIVERED: 'var(--ke-gray-500)',
+  CANCELLED: '#d64545',
 }
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -202,7 +204,7 @@ export default function CalendarTab() {
                   padding: '6px 4px',
                   borderRadius: 10,
                   border: isSelected ? '1.5px solid var(--ke-green-500)' : '1px solid transparent',
-                  background: isSelected ? 'var(--ke-green-50, #eef7ee)' : 'transparent',
+                  background: isSelected ? 'var(--color-primary-soft)' : 'transparent',
                   opacity: cell.inMonth ? 1 : 0.35,
                   cursor: 'pointer',
                   display: 'flex',
@@ -227,8 +229,8 @@ export default function CalendarTab() {
                       width: 16,
                       height: 16,
                       borderRadius: 5,
-                      background: 'var(--ke-green-600)',
-                      color: '#fff',
+                      background: 'var(--color-primary)',
+                      color: 'var(--color-primary-contrast)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -241,13 +243,13 @@ export default function CalendarTab() {
                   style={{
                     fontSize: 12.5,
                     fontWeight: isToday ? 800 : 500,
-                    color: isToday ? 'var(--ke-green-700)' : 'var(--color-text)',
+                    color: isToday ? 'var(--color-primary-strong)' : 'var(--color-text)',
                   }}
                 >
                   {cell.day}
                 </span>
                 {d?.income ? (
-                  <span style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--ke-green-600)', lineHeight: 1.2 }}>
+                  <span style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--color-primary)', lineHeight: 1.2 }}>
                     +{fmt(d.income)}
                   </span>
                 ) : null}
@@ -292,7 +294,7 @@ export default function CalendarTab() {
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--color-border)' }}>
-          <Totals label="Income" value={data.totals.income} color="var(--ke-green-600)" />
+          <Totals label="Income" value={data.totals.income} color="var(--color-primary)" />
           <Totals label="Expense" value={data.totals.expense} color="var(--color-danger,#dc2626)" />
           <Totals label="Balance" value={data.totals.balance} color="var(--color-text)" />
         </div>
@@ -305,7 +307,7 @@ export default function CalendarTab() {
             <button
               type="button"
               onClick={() => setColorsOpen(true)}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--ke-green-700,#15803d)', padding: 0 }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--color-primary-strong)', padding: 0 }}
             >
               <Palette size={13} /> Customize colors
             </button>
@@ -361,7 +363,7 @@ export default function CalendarTab() {
                     fontFamily: 'var(--font-display)',
                     fontWeight: 700,
                     fontSize: 14,
-                    color: t.type === 'in' ? 'var(--ke-green-600)' : 'var(--color-danger,#dc2626)',
+                    color: t.type === 'in' ? 'var(--color-primary)' : 'var(--color-danger,#dc2626)',
                   }}
                 >
                   {t.type === 'in' ? '+' : '-'}
@@ -432,7 +434,7 @@ function TransactionTypeModal({ onClose, onPick }: { onClose: () => void; onPick
             border: '1.5px solid var(--color-border)', background: 'var(--color-surface)', cursor: 'pointer', textAlign: 'left',
           }}
         >
-          <span style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--ke-green-50,#eef7ee)', color: 'var(--ke-green-600)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <span style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--color-primary-soft)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <ShoppingCart size={17} />
           </span>
           <span>
@@ -448,7 +450,7 @@ function TransactionTypeModal({ onClose, onPick }: { onClose: () => void; onPick
             border: '1.5px solid var(--color-border)', background: 'var(--color-surface)', cursor: 'pointer', textAlign: 'left',
           }}
         >
-          <span style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(220,38,38,.08)', color: 'var(--color-danger,#dc2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <span style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--color-danger-soft)', color: 'var(--color-danger,#dc2626)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Receipt size={17} />
           </span>
           <span>

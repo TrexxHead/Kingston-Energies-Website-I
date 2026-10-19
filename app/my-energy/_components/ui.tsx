@@ -29,6 +29,8 @@ export const input: CSSProperties = {
   background: 'rgba(255,255,255,.04)',
   color: 'var(--ke-dark-text)',
   fontSize: 14,
+  // Dark pickers and option lists (the storefront itself runs a light colour scheme).
+  colorScheme: 'dark',
 }
 
 export const muted: CSSProperties = { color: 'var(--ke-dark-text-muted)', fontSize: 13.5, lineHeight: 1.55 }

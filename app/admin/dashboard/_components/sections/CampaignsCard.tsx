@@ -201,7 +201,7 @@ export default function CampaignsCard() {
                     {c.status === 'SCHEDULED' && c.scheduledAt ? ` · ${c.scheduledAt.replace('T', ' ')}` : ''}
                   </div>
                   {c.status === 'SENT' && (
-                    <div style={{ fontSize: 11, color: c.attributedRevenue > 0 ? 'var(--ke-green-700)' : 'var(--color-text-subtle)', marginTop: 2 }}>
+                    <div style={{ fontSize: 11, color: c.attributedRevenue > 0 ? 'var(--color-primary-strong)' : 'var(--color-text-subtle)', marginTop: 2 }}>
                       {c.attributedRevenue > 0 ? `${fmt(c.attributedRevenue)} attributed · ${c.attributedOrders} orders` : 'No attributed orders yet'}
                       {c.expenseId ? ` · ${fmt(c.spend ?? 0)} spend logged in Finance` : ''}
                     </div>
@@ -215,7 +215,7 @@ export default function CampaignsCard() {
                   title="Copy tracking link (attributes orders to this campaign when clicked)"
                   style={iconBtn}
                 >
-                  {copiedId === c.id ? <Check size={13} color="var(--ke-green-600)" /> : <Link2 size={13} />}
+                  {copiedId === c.id ? <Check size={13} color="var(--color-primary)" /> : <Link2 size={13} />}
                 </button>
                 {c.status !== 'SENT' && (
                   <button type="button" onClick={() => send(c)} aria-label="Send" title="Send / action now" style={iconBtn}><Send size={13} /></button>

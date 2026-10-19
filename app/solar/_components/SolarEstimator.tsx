@@ -6,8 +6,7 @@ import Link from 'next/link'
 import { MousePointerClick, PenLine, Check, Undo2, X, Sun, Send, Maximize2, Minimize2, Satellite, Map as MapIcon } from 'lucide-react'
 import { createKingstonMap } from '@/app/energy-map/_components/maps/mapSetup'
 import MapSearch from '@/app/energy-map/_components/maps/MapSearch'
-import { GOOGLE_BROWSER_KEY } from '@/app/energy-map/_components/maps/googleKeys'
-import { loadGoogleMaps, googleMapsErrorCode, googleMapsErrorHelp } from '@/app/energy-map/_components/maps/loadGoogleMaps'
+import { availableProviders, createSatellite, type Provider, type SatelliteView } from './satellite'
 import { zoomForKind, type SearchHit } from '@/lib/map/search'
 import { PARISHES, parishAt } from '@/lib/map/parishes'
 import { card, label, input, muted, h2, Btn, fmt } from '@/app/my-energy/_components/ui'
@@ -76,8 +75,8 @@ export default function SolarEstimator() {
   const [hint, setHint] = useState<string | null>(null)
   // Bigger map: a full-window overlay (works on phones too, unlike the Fullscreen API on iOS).
   const [full, setFull] = useState(false)
-  // Satellite: Google's imagery (roof-level detail), in its own Google map. Roofs and outlines are
-  // ours, drawn on top; Google imagery is never copied into the Kingston map.
+  // Satellite: Apple's or Google's imagery (roof-level detail), in that provider's own map. Roofs and
+  // outlines are ours, drawn on top; imagery is never copied into the Kingston map.
   const [view, setView] = useState<'map' | 'satellite'>('map')
   const viewRef = useRef(view)
   viewRef.current = view
@@ -86,8 +85,10 @@ export default function SolarEstimator() {
   const [gReason, setGReason] = useState<string | null>(null)
   gStateRef.current = gState
   const gEl = useRef<HTMLDivElement>(null)
-  const gMap = useRef<any>(null)
-  const gShapes = useRef<{ roof: any; draft: any; dots: any[] }>({ roof: null, draft: null, dots: [] })
+  const sat = useRef<SatelliteView | null>(null)
+  // Apple's imagery first when it's set up (sharper and cleaner over Jamaica), Google otherwise.
+  const providers = useMemo(availableProviders, [])
+  const [provider, setProvider] = useState<Provider | null>(providers[0] ?? null)
 
   // Roof settings and assumptions.
   const [roofType, setRoofType] = useState<RoofType>('flat')
@@ -198,16 +199,16 @@ export default function SolarEstimator() {
     }
   }, [full])
   useEffect(() => {
-    gMap.current?.setOptions({ gestureHandling: full ? 'greedy' : 'cooperative' })
+    sat.current?.setGestures(full)
   }, [full, gState])
 
-  // ── Satellite (Google) ─────────────────────────────────────────────────
+  // ── Satellite (Apple or Google) ────────────────────────────────────────
   // Tapping a roof on the imagery uses OUR building outline at that spot: the
   // (hidden) Kingston map is moved there and asked which building is under it.
-  const pickAt = useCallback(async (lng: number, lat: number, googleZoom: number) => {
+  const pickAt = useCallback(async (lng: number, lat: number, satZoom: number) => {
     const m = map.current
     if (!m) return
-    m.jumpTo({ center: [lng, lat], zoom: Math.max(16.5, googleZoom - 1) })
+    m.jumpTo({ center: [lng, lat], zoom: Math.max(16.5, satZoom - 1) })
     await new Promise<void>((resolve) => {
       const t = setTimeout(resolve, 4000)
       m.once('idle', () => (clearTimeout(t), resolve()))
@@ -215,91 +216,80 @@ export default function SolarEstimator() {
     pickFeature(m.queryRenderedFeatures(m.project([lng, lat]), { layers: ['building'] })[0])
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function showSatellite() {
+  const onSatTap = useCallback(
+    (lng: number, lat: number, zoom: number) => {
+      if (modeRef.current === 'draw') return setDraft((d) => [...d, [lng, lat]])
+      if (zoom < 17) {
+        setHint('Zoom in until you can see your roof, then tap it.')
+        sat.current?.moveTo(lat, lng, 19)
+        return
+      }
+      pickAt(lng, lat, zoom)
+    },
+    [pickAt],
+  )
+
+  async function showSatellite(p: Provider | null = provider) {
     setView('satellite')
-    if (!GOOGLE_BROWSER_KEY) {
+    if (!p) {
       // Keys are baked in at build time; without one there's no imagery source to load.
       setGState('failed')
-      setGReason('no Google Maps key is set on this deployment. Add NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY in Vercel (Production and Preview), then redeploy.')
+      setGReason('no satellite imagery is set up on this deployment. Add NEXT_PUBLIC_MAPKIT_TOKEN (Apple, preferred) or NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY (Google) in Vercel (Production and Preview), then redeploy.')
       return
     }
     const m = map.current
-    const c = m?.getCenter()
-    const z = m ? Math.round(m.getZoom() + 1) : 17
-    if (gMap.current) {
-      if (c) gMap.current.moveCamera({ center: { lat: c.lat, lng: c.lng }, zoom: z })
+    const prev = sat.current && gStateRef.current === 'ready' ? { ...sat.current.center(), zoom: sat.current.zoom() } : null
+    const c = prev ?? (m ? { ...m.getCenter(), zoom: m.getZoom() + 1 } : { lat: 18.01, lng: -76.79, zoom: 17 })
+    if (sat.current?.provider === p && gStateRef.current === 'ready') {
+      if (!prev) sat.current.moveTo(c.lat, c.lng, Math.round(c.zoom))
       return
     }
+    sat.current?.destroy()
+    sat.current = null
+    setProvider(p)
     setGState('loading')
-    window.gm_authFailure = () => {
-      setGState('rejected')
-      // Google logs the reason just before or after calling this.
-      setTimeout(() => setGReason(googleMapsErrorHelp(googleMapsErrorCode(), window.location.origin)), 300)
-    }
+    setGReason(null)
     try {
-      const g = await loadGoogleMaps()
-      if (gStateRef.current === 'rejected') return
       if (!gEl.current) return
-      const gm = new g.maps.Map(gEl.current, {
-        center: c ? { lat: c.lat, lng: c.lng } : { lat: 18.01, lng: -76.79 },
-        zoom: z,
-        mapTypeId: 'satellite',
-        tilt: 0,
-        heading: 0,
-        rotateControl: false,
-        streetViewControl: false,
-        mapTypeControl: false,
-        fullscreenControl: false,
-        clickableIcons: false,
-        gestureHandling: full ? 'greedy' : 'cooperative',
+      const v = await createSatellite(p, {
+        el: gEl.current,
+        lat: c.lat,
+        lng: c.lng,
+        zoom: Math.round(c.zoom),
+        greedy: full,
+        onTap: onSatTap,
+        onRejected: (why) => {
+          setGState('rejected')
+          setGReason(why)
+        },
       })
-      clampToImagery(g, gm)
-      gm.addListener('idle', () => clampToImagery(g, gm))
-      gm.addListener('click', (e: any) => {
-        const lng = e.latLng.lng()
-        const lat = e.latLng.lat()
-        if (modeRef.current === 'draw') return setDraft((d) => [...d, [lng, lat]])
-        if (gm.getZoom() < 17) {
-          setHint('Zoom in until you can see your roof, then tap it.')
-          gm.moveCamera({ center: { lat, lng }, zoom: 19 })
-          return
-        }
-        pickAt(lng, lat, gm.getZoom())
-      })
-      gMap.current = gm
+      sat.current = v
       setGState((st) => (st === 'rejected' ? st : 'ready'))
     } catch (e) {
       setGState('failed')
+      const who = p === 'apple' ? 'Apple’s' : 'Google’s'
       setGReason(
         (e as Error).message === 'timeout'
-          ? 'Google’s map didn’t respond. Check your connection and try again.'
-          : 'the Google Maps script was blocked — a browser extension, network filter or the site’s security policy may be stopping it.',
+          ? `${who} map didn’t respond. Check your connection and try again.`
+          : `the ${p === 'apple' ? 'Apple MapKit' : 'Google Maps'} script was blocked — a browser extension, network filter or the site’s security policy may be stopping it.`,
       )
     }
   }
   function showMap() {
     setView('map')
-    const gm = gMap.current
     const m = map.current
-    // A map Google refused (bad key) has no camera to hand back.
-    const c = gState === 'ready' ? gm?.getCenter?.() : null
-    if (c && m) m.jumpTo({ center: [c.lng(), c.lat()], zoom: (gm.getZoom() ?? 18) - 1 })
+    // A map the provider refused (bad key) has no camera to hand back.
+    const v = gState === 'ready' ? sat.current : null
+    if (v && m) {
+      const c = v.center()
+      m.jumpTo({ center: [c.lng, c.lat], zoom: v.zoom() - 1 })
+    }
   }
 
   // Our roof and the outline being drawn, on top of the imagery.
   useEffect(() => {
-    const g = window.google
-    const gm = gMap.current
-    if (gState !== 'ready' || !g || !gm) return
-    const sh = gShapes.current
-    sh.roof?.setMap(null)
-    sh.draft?.setMap(null)
-    sh.dots.forEach((d) => d.setMap(null))
-    sh.dots = []
-    const ll = ([lng, lat]: [number, number]) => ({ lat, lng })
-    sh.roof = roof ? new g.maps.Polygon({ map: gm, paths: outerRing(roof.geometry).map(ll), strokeColor: '#ffc83d', strokeWeight: 2.5, fillColor: '#ffc83d', fillOpacity: 0.28, clickable: false }) : null
-    sh.draft = draft.length > 1 ? new g.maps.Polyline({ map: gm, path: (draft.length > 2 ? [...draft, draft[0]] : draft).map(ll), strokeColor: '#4da3ff', strokeWeight: 2, clickable: false }) : null
-    sh.dots = draft.map((p) => new g.maps.Marker({ map: gm, position: ll(p), clickable: false, icon: { path: g.maps.SymbolPath.CIRCLE, scale: 5, fillColor: '#fff', fillOpacity: 1, strokeColor: '#2f80ed', strokeWeight: 2 } }))
+    if (gState !== 'ready') return
+    sat.current?.drawShapes(roof ? outerRing(roof.geometry) : null, draft)
   }, [roof, draft, gState])
 
   const finishDraw = useCallback(() => {
@@ -315,7 +305,7 @@ export default function SolarEstimator() {
 
   function pickSearch(hit: SearchHit) {
     map.current?.flyTo({ center: [hit.lng, hit.lat], zoom: Math.max(17, zoomForKind(hit.kind)), duration: viewRef.current === 'map' ? 1600 : 0, essential: true })
-    if (viewRef.current === 'satellite') gMap.current?.moveCamera({ center: { lat: hit.lat, lng: hit.lng }, zoom: Math.max(18, zoomForKind(hit.kind) + 1) })
+    if (viewRef.current === 'satellite') sat.current?.moveTo(hit.lat, hit.lng, Math.max(18, zoomForKind(hit.kind) + 1))
     setHint('Now tap your roof.')
   }
 
@@ -423,14 +413,28 @@ export default function SolarEstimator() {
               'Loading satellite imagery…'
             ) : (
               <>
-                {gState === 'rejected' ? 'Google refused the map key, so satellite imagery isn’t available right now.' : 'Satellite imagery couldn’t load.'}
+                {gState === 'rejected' ? `${provider === 'apple' ? 'Apple' : 'Google'} refused the map key, so this satellite imagery isn’t available right now.` : 'Satellite imagery couldn’t load.'}
                 {gReason && <small style={{ display: 'block', marginTop: 6, opacity: 0.85 }}>Why: {gReason}</small>}
+                {providers.filter((p) => p !== provider).map((p) => (
+                  <button key={p} type="button" className="ke-solar-alt" onClick={() => showSatellite(p)}>
+                    Use {p === 'apple' ? 'Apple' : 'Google'} imagery instead
+                  </button>
+                ))}
                 <small style={{ display: 'block', marginTop: 6, opacity: 0.85 }}>The map view still works — tap Map above.</small>
               </>
             )}
           </div>
         )}
         <div ref={gEl} style={{ position: 'absolute', inset: 0, visibility: view === 'satellite' ? 'visible' : 'hidden' }} role="region" aria-label="Satellite imagery — tap your roof" aria-hidden={view !== 'satellite'} />
+        {view === 'satellite' && providers.length > 1 && (
+          <div className="ke-solar-src" role="group" aria-label="Imagery source">
+            {providers.map((p) => (
+              <button key={p} type="button" aria-pressed={provider === p} onClick={() => showSatellite(p)}>
+                {p === 'apple' ? 'Apple' : 'Google'}
+              </button>
+            ))}
+          </div>
+        )}
         {mapState === 'ready' && (
           <>
             <div className="ke-solar-views">
@@ -438,7 +442,7 @@ export default function SolarEstimator() {
                 <button type="button" aria-pressed={view === 'map'} onClick={showMap}>
                   <MapIcon size={15} aria-hidden /> Map
                 </button>
-                <button type="button" aria-pressed={view === 'satellite'} onClick={showSatellite}>
+                <button type="button" aria-pressed={view === 'satellite'} onClick={() => showSatellite()}>
                   <Satellite size={15} aria-hidden /> Satellite
                 </button>
               </div>
@@ -936,30 +940,12 @@ const CSS = `
 .ke-solar-seg button{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border:0;border-radius:10px;background:transparent;color:#1f1f23;font-weight:600;font-size:13.5px;cursor:pointer}
 .ke-solar-seg button[aria-pressed=true]{background:#1f1f23;color:#fff}
 .ke-solar-full{display:grid;place-items:center;width:42px;height:42px;border:0;border-radius:14px;background:rgba(255,255,255,.9);color:#1f1f23;box-shadow:0 8px 28px rgba(0,0,0,.18);cursor:pointer}
+.ke-solar-src{position:absolute;left:14px;top:66px;z-index:5;display:flex;gap:2px;padding:3px;border-radius:10px;background:rgba(255,255,255,.88);box-shadow:0 6px 20px rgba(0,0,0,.18)}
+.ke-solar-src button{height:26px;padding:0 10px;border:0;border-radius:8px;background:transparent;color:#1f1f23;font-size:12px;font-weight:600;cursor:pointer}
+.ke-solar-src button[aria-pressed=true]{background:#1f1f23;color:#fff}
+.ke-solar-alt{display:block;margin:10px auto 0;padding:8px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.5);background:transparent;color:#fff;font-weight:600;font-size:13px;cursor:pointer}
 .ke-solar-gmsg{position:absolute;inset:0;z-index:1;display:grid;place-items:center;background:#1b2a24;color:#fff;font-size:14px;padding:20px;text-align:center}
 @media (max-width:600px){.ke-solar-views{top:66px;right:8px}}
 @keyframes ke-shimmer{from{background-position:150% 0}to{background-position:-50% 0}}
 @media (max-width:600px){.ke-solar-tools{left:8px;right:8px;bottom:8px;justify-content:center}.ke-solar-hint{bottom:70px}}
 `
-
-/**
- * Google has satellite imagery to a different depth in different places
- * (often z19–20 in Jamaica); past it, tiles read "no imagery". Ask Google how
- * deep it goes here and zoom back out to that.
- */
-let maxZoomBusy = false
-function clampToImagery(g: any, gm: any) {
-  if (maxZoomBusy || !g?.maps?.MaxZoomService) return
-  const at = gm.getCenter?.()
-  if (!at) return
-  maxZoomBusy = true
-  new g.maps.MaxZoomService()
-    .getMaxZoomAtLatLng(at)
-    .then((r: any) => {
-      if (r?.zoom && gm.getZoom() > r.zoom) gm.setZoom(r.zoom)
-    })
-    .catch(() => {})
-    .finally(() => {
-      maxZoomBusy = false
-    })
-}

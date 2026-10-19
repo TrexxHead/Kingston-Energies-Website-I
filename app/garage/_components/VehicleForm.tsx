@@ -22,6 +22,8 @@ import {
 import type { EpaVehicle, MenuItem, VinDecode } from '@/lib/vehicles/lookup'
 import { card, label, input, muted, h2, Btn } from '@/app/my-energy/_components/ui'
 
+import DesignNote from '@/components/garage/DesignNote'
+import { designFor } from '@/lib/vehicles/designs'
 const VehicleModel3D = dynamic(() => import('@/components/garage/VehicleModel3D'), { ssr: false, loading: () => <div style={{ height: 300 }} /> })
 
 type SpecKey = keyof Vehicle['specs']
@@ -46,6 +48,11 @@ export default function VehicleForm({ initial, onSave, onCancel }: { initial: Ve
   const [draft, setDraft] = useState<Partial<Record<SpecKey, string>>>(() => Object.fromEntries(Object.entries(initial?.specs ?? {}).map(([k, s]) => [k, String((s as Spec).value)])))
 
   const set = (patch: Partial<Vehicle>) => setV((x) => ({ ...x, ...patch }))
+  // When we know this model's design, its body style follows (still editable).
+  const design = designFor(v.make, v.model, v.year)
+  useEffect(() => {
+    if (design) setV((x) => (x.bodyStyle === design.bodyStyle ? x : { ...x, bodyStyle: design.bodyStyle }))
+  }, [design?.id]) // eslint-disable-line react-hooks/exhaustive-deps
   const setSpec = (key: SpecKey, text: string) => {
     setDraft((d) => ({ ...d, [key]: text }))
     const n = Number(text.replace(',', '.'))
@@ -132,7 +139,7 @@ export default function VehicleForm({ initial, onSave, onCancel }: { initial: Ve
       {step === 'details' && (
         <div className="ke-vf-grid">
           <div className="ke-vf-preview">
-            <VehicleModel3D bodyStyle={v.bodyStyle} colour={v.colour} powertrain={v.powertrain} make={v.make} model={v.model} height={300} />
+            <VehicleModel3D bodyStyle={v.bodyStyle} colour={v.colour} powertrain={v.powertrain} make={v.make} model={v.model} year={v.year} height={300} />
             <div className="ke-vf-paint" role="group" aria-label="Paint colour">
               {PAINT.map((p) => (
                 <button key={p.hex} type="button" title={p.name} aria-label={p.name} aria-pressed={v.colour.toLowerCase() === p.hex} onClick={() => set({ colour: p.hex })} style={{ background: p.hex }} />
@@ -141,6 +148,7 @@ export default function VehicleForm({ initial, onSave, onCancel }: { initial: Ve
                 <input type="color" value={v.colour} onChange={(e) => set({ colour: e.target.value })} aria-label="Pick any colour" />
               </label>
             </div>
+            <DesignNote make={v.make} model={v.model} year={v.year} bodyStyle={v.bodyStyle} />
             {v.source && v.source.kind !== 'manual' && <p style={{ ...muted, fontSize: 12, textAlign: 'center', margin: 0 }}>Filled in from {v.source.kind === 'epa' ? 'the US EPA list' : 'your VIN'} — check and correct anything that differs on your car.</p>}
           </div>
 

@@ -176,7 +176,7 @@ export default function HrDocuments() {
                   onClick={() => setCurrentFolder(f.id)}
                   style={{ ...cardStyle, borderRadius: 14, padding: 14, textAlign: 'left', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 10 }}
                 >
-                  <Folder size={20} color="var(--ke-sun-400)" fill="var(--ke-sun-50)" />
+                  <Folder size={20} color="var(--ke-sun-400)" fill="var(--color-warning-soft)" />
                   <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span style={{ fontSize: 11, color: 'var(--color-text-subtle)' }}>{f.itemCount} item{f.itemCount === 1 ? '' : 's'}</span>

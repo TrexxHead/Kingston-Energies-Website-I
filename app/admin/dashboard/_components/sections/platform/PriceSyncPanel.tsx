@@ -143,7 +143,7 @@ export default function PriceSyncPanel({ onSynced }: { onSynced: () => Promise<v
               </span>
               {r.added.length > 0 && <span style={muted}>{r.added.join(' · ')}</span>}
               {r.errors.map((e) => (
-                <span key={e} style={{ ...muted, color: '#c0392b' }}>
+                <span key={e} style={{ ...muted, color: 'var(--color-danger)' }}>
                   {e}
                 </span>
               ))}

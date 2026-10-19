@@ -162,7 +162,7 @@ function ServicesEditor({ onSaved }: { onSaved: (m: string) => void }) {
       <TextInput label="Deposit terms shown before paying (refunds, what it covers)" value={cfg.depositTerms} onChange={(v) => setCfg({ ...cfg, depositTerms: v })} multiline />
       <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
         <Button size="sm" onClick={save}>Save services</Button>
-        {err && <span role="alert" style={{ ...muted, color: '#c0392b' }}>{err}</span>}
+        {err && <span role="alert" style={{ ...muted, color: 'var(--color-danger)' }}>{err}</span>}
       </div>
     </div>
   )

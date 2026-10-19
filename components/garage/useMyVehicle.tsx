@@ -33,9 +33,9 @@ export function VehicleChip({ vehicles, vehicle, onPick, emptyText = 'Add your c
           <span style={{ color: '#fff' }}>
             Using {vehicles.length > 1 ? '' : 'your '}
             {vehicles.length > 1 ? (
-              <select aria-label="Which vehicle" value={vehicle.clientId} onChange={(e) => onPick(e.target.value)} style={{ background: 'transparent', color: '#fff', border: '1px solid rgba(255,255,255,.2)', borderRadius: 8, padding: '2px 6px' }}>
+              <select aria-label="Which vehicle" value={vehicle.clientId} onChange={(e) => onPick(e.target.value)} style={{ background: 'transparent', color: '#fff', colorScheme: 'dark', border: '1px solid rgba(255,255,255,.2)', borderRadius: 8, padding: '2px 6px' }}>
                 {vehicles.map((v) => (
-                  <option key={v.clientId} value={v.clientId} style={{ color: '#000' }}>
+                  <option key={v.clientId} value={v.clientId}>
                     {vehicleName(v)}
                   </option>
                 ))}

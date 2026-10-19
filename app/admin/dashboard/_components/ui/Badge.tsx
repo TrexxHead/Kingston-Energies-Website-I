@@ -12,12 +12,12 @@ interface BadgeProps {
 }
 
 const TONE_STYLES: Record<Tone, { bg: string; text: string }> = {
-  green: { bg: 'var(--ke-green-50)', text: 'var(--ke-green-700)' },
-  blue: { bg: 'var(--ke-blue-50)', text: 'var(--ke-blue-600)' },
-  orange: { bg: 'var(--ke-sun-50)', text: 'var(--ke-sun-500)' },
-  neutral: { bg: 'var(--ke-gray-100)', text: 'var(--ke-gray-600)' },
+  green: { bg: 'var(--color-primary-soft)', text: 'var(--color-primary-strong)' },
+  blue: { bg: 'var(--color-info-soft)', text: 'var(--color-info)' },
+  orange: { bg: 'var(--color-warning-soft)', text: 'var(--ke-sun-500)' },
+  neutral: { bg: 'var(--ke-gray-100)', text: 'var(--color-text-secondary)' },
   red: { bg: 'var(--color-danger-soft)', text: 'var(--color-danger)' },
-  grey: { bg: 'var(--ke-gray-100)', text: 'var(--ke-gray-600)' },
+  grey: { bg: 'var(--ke-gray-100)', text: 'var(--color-text-secondary)' },
 }
 
 export default function Badge({ tone = 'neutral', dot = false, children, onClick }: BadgeProps) {

@@ -270,7 +270,7 @@ export default function Footer({ showCta = true }: { showCta?: boolean }) {
 
       <div style={{ borderTop: '1px solid rgba(255,255,255,.06)' }}>
         <div style={{ maxWidth: 1240, margin: '0 auto', padding: '16px 32px', textAlign: 'center' }}>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '.22em', color: 'rgba(234,242,236,.4)' }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '.22em', color: 'rgba(234,242,236,.62)' }}>
             © 2026 KINGSTON ENERGIES: POWERING PROGRESS
           </span>
         </div>

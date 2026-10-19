@@ -60,7 +60,7 @@ export default function ReferenceDataSection() {
             </Button>
           ))}
         </div>
-        {msg && <p role="alert" style={{ ...muted, color: '#c0392b', margin: 0 }}>{msg}</p>}
+        {msg && <p role="alert" style={{ ...muted, color: 'var(--color-danger)', margin: 0 }}>{msg}</p>}
       </div>
       <PriceSyncPanel onSynced={load} />
       {kinds.map((k) => {
@@ -400,7 +400,7 @@ function RecordEditor({ kind, onDone }: { kind: RefKind; onDone: () => void }) {
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
         <Button size="sm" onClick={save}>Save draft</Button>
         <Button size="sm" variant="outline" onClick={onDone}>Cancel</Button>
-        {msg && <span role="alert" style={{ ...muted, color: '#c0392b' }}>{msg}</span>}
+        {msg && <span role="alert" style={{ ...muted, color: 'var(--color-danger)' }}>{msg}</span>}
       </div>
     </div>
   )

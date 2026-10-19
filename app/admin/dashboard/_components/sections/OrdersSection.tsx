@@ -681,7 +681,7 @@ export default function OrdersSection() {
                   <button
                     type="button"
                     onClick={() => { setAdjustingDate(true); setDateInput(detail.createdAt.slice(0, 10)); setDateError('') }}
-                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 11.5, fontWeight: 600, color: 'var(--ke-green-700,#15803d)' }}
+                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 11.5, fontWeight: 600, color: 'var(--color-primary-strong)' }}
                   >
                     Adjust
                   </button>
@@ -729,8 +729,8 @@ export default function OrdersSection() {
           </div>
 
           {possibleDuplicates.length > 0 && (
-            <div style={{ background: 'var(--ke-sun-50,#fff7e6)', border: '1px solid var(--ke-sun-300,#fdb813)', borderRadius: 10, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ke-sun-700,#8a5a00)' }}>
+            <div style={{ background: 'var(--color-warning-soft)', border: '1px solid var(--ke-sun-300,#fdb813)', borderRadius: 10, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--color-warning-strong)' }}>
                 Possible duplicate{possibleDuplicates.length === 1 ? '' : 's'} from {detail.customerName}
               </span>
               {possibleDuplicates.map((dup) => (
@@ -773,11 +773,11 @@ export default function OrdersSection() {
             )}
           </div>
           {detail.delayed && (
-            <div style={{ background: 'var(--ke-sun-50,#fff7e6)', border: '1px solid var(--ke-sun-300,#fdb813)', borderRadius: 10, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, color: 'var(--ke-sun-700,#8a5a00)' }}>
+            <div style={{ background: 'var(--color-warning-soft)', border: '1px solid var(--ke-sun-300,#fdb813)', borderRadius: 10, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, color: 'var(--color-warning-strong)' }}>
                 <Badge tone="orange" dot>Exception · Delayed</Badge>
               </span>
-              <p style={{ margin: 0, fontSize: 12.5, color: 'var(--ke-sun-700,#8a5a00)' }}>{detail.delayReason}</p>
+              <p style={{ margin: 0, fontSize: 12.5, color: 'var(--color-warning-strong)' }}>{detail.delayReason}</p>
               <div>
                 <Button size="sm" variant="outline" onClick={() => setDelay(detail.id, false)} disabled={delayBusy}>
                   {delayBusy ? 'Saving…' : 'Mark delay resolved'}
@@ -810,7 +810,7 @@ export default function OrdersSection() {
             </div>
           )}
           {detail.status === 'CANCELLED' && detail.cancelReason && (
-            <div style={{ background: 'var(--color-danger-bg, #fdf1f0)', border: '1px solid var(--color-danger)', borderRadius: 10, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ background: 'var(--color-danger-soft)', border: '1px solid var(--color-danger)', borderRadius: 10, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
               <Badge tone="grey" dot>Exception · Cancelled</Badge>
               <p style={{ margin: 0, fontSize: 12.5, color: 'var(--color-danger)' }}>{detail.cancelReason}</p>
             </div>
@@ -838,7 +838,7 @@ export default function OrdersSection() {
                   <button
                     type="button"
                     onClick={() => setEditingPaymentMethod(true)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: 'var(--ke-green-700,#15803d)', padding: 0 }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: 'var(--color-primary-strong)', padding: 0 }}
                   >
                     Change
                   </button>
@@ -898,7 +898,7 @@ export default function OrdersSection() {
                 <button
                   type="button"
                   onClick={() => { setAddOpen((v) => !v); setAddQuery(''); setAddProductId(null); setAddQty('1'); setAddName(''); setAddPrice('') }}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: 'var(--ke-green-700,#15803d)', padding: 0 }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: 'var(--color-primary-strong)', padding: 0 }}
                 >
                   + Add line
                 </button>
@@ -930,7 +930,7 @@ export default function OrdersSection() {
                             setEditName(it.name)
                             setEditPrice(String(it.price))
                           }}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: 'var(--ke-green-700,#15803d)', padding: 0 }}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: 'var(--color-primary-strong)', padding: 0 }}
                         >
                           Edit
                         </button>
@@ -1037,9 +1037,9 @@ export default function OrdersSection() {
                       onClick={() => setAddMode(m)}
                       style={{
                         height: 28, padding: '0 12px', borderRadius: 999, fontSize: 11.5, fontWeight: 600, cursor: 'pointer',
-                        border: `1.5px solid ${addMode === m ? 'var(--ke-dark-bg)' : 'var(--color-border)'}`,
-                        background: addMode === m ? 'var(--ke-dark-bg)' : 'var(--color-surface)',
-                        color: addMode === m ? 'var(--ke-dark-text)' : 'var(--color-text)',
+                        border: `1.5px solid ${addMode === m ? 'var(--color-text)' : 'var(--color-border)'}`,
+                        background: addMode === m ? 'var(--color-text)' : 'var(--color-surface)',
+                        color: addMode === m ? 'var(--color-bg)' : 'var(--color-text)',
                       }}
                     >
                       {m === 'product' ? 'Catalog product' : 'Discount or fee'}
@@ -1154,11 +1154,11 @@ export default function OrdersSection() {
                       style={{
                         display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left',
                         padding: '6px 10px', borderRadius: 8, cursor: stageBusy ? 'default' : 'pointer',
-                        background: current ? 'var(--ke-green-50,#eef7ee)' : 'transparent',
+                        background: current ? 'var(--color-primary-soft)' : 'transparent',
                         border: current ? '1px solid var(--ke-green-500)' : '1px solid transparent',
                       }}
                     >
-                      <span style={{ width: 14, height: 14, borderRadius: 999, flexShrink: 0, background: done ? 'var(--ke-green-500)' : '#fff', border: done ? 'none' : '2px solid var(--color-border-strong)', color: '#fff', fontSize: 9, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{done ? '✓' : ''}</span>
+                      <span style={{ width: 14, height: 14, borderRadius: 999, flexShrink: 0, background: done ? 'var(--ke-green-500)' : 'var(--color-surface)', border: done ? 'none' : '2px solid var(--color-border-strong)', color: '#fff', fontSize: 9, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{done ? '✓' : ''}</span>
                       <span style={{ fontSize: 12.5, fontWeight: current ? 700 : 500, color: done ? 'var(--color-text)' : 'var(--color-text-muted)' }}>{s.label}</span>
                     </button>
                   )
@@ -1376,7 +1376,7 @@ export default function OrdersSection() {
             <button
               type="button"
               onClick={() => setNewItems((prev) => [...prev, { name: '', price: '', qty: '1' }])}
-              style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--ke-green-700)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', padding: 0 }}
+              style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--color-primary-strong)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', padding: 0 }}
             >
               <Plus size={13} /> Add item
             </button>

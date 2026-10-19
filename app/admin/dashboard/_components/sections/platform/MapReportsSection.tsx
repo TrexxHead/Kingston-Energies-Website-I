@@ -101,14 +101,14 @@ export default function MapReportsSection() {
                     </>
                   )}
                   {r.station && r.kind !== 'new_station' && (
-                    <Link href={`/admin/dashboard/platform/map?station=${encodeURIComponent(r.station.id)}`} style={{ fontSize: 13, fontWeight: 600, color: 'var(--ke-blue-500)', alignSelf: 'center' }}>
+                    <Link href={`/admin/dashboard/platform/map?station=${encodeURIComponent(r.station.id)}`} style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-link)', alignSelf: 'center' }}>
                       Record a check
                     </Link>
                   )}
                   {r.kind === 'new_station' && (
                     <Link
                       href={`/admin/dashboard/platform/map?new=1&name=${encodeURIComponent(r.proposedName ?? '')}&parish=${encodeURIComponent(r.parish ?? '')}&notes=${encodeURIComponent(`From driver report ${r.id}: ${r.message ?? ''}`)}`}
-                      style={{ fontSize: 13, fontWeight: 600, color: 'var(--ke-blue-500)', alignSelf: 'center' }}
+                      style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-link)', alignSelf: 'center' }}
                     >
                       Start a draft station
                     </Link>

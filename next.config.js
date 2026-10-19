@@ -9,22 +9,25 @@
 // route handlers — the browser never talks to either directly, so allowing
 // them in connect-src (a directive that only matters for browser
 // fetch/XHR/WebSocket) served no purpose and was pure attack surface.
-function buildCsp({ googleMaps = false } = {}) {
+function buildCsp({ googleMaps = false, appleMaps = false } = {}) {
   // Google's allowlist for the Maps JavaScript API includes 'unsafe-eval' and
   // blob: workers; it is granted on the map page only, never site-wide.
   const maps = googleMaps ? " 'unsafe-eval' blob: https://*.googleapis.com https://*.gstatic.com https://*.google.com https://*.ggpht.com" : ''
+  // Apple MapKit JS (solar estimator satellite imagery): its CDN, blob workers
+  // and WebAssembly, per Apple's published CSP guidance.
+  const apple = appleMaps ? ' https://*.apple-mapkit.com' : ''
   return [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com" + maps,
+    "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com" + maps + (appleMaps ? " 'wasm-unsafe-eval' https://cdn.apple-mapkit.com" : ''),
     "style-src 'self' 'unsafe-inline'" + (googleMaps ? ' https://fonts.googleapis.com' : ''),
     "img-src 'self' https: data: blob:",
     "font-src 'self' data:" + (googleMaps ? ' https://fonts.gstatic.com' : ''),
-    "connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com" + (googleMaps ? ' https://*.googleapis.com https://*.gstatic.com https://*.google.com data: blob:' : ''),
-    "frame-src 'self' https://jm.wipayfinancial.com https://accounts.google.com" + (googleMaps ? ' https://*.google.com' : ''),
+    "connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com" + (googleMaps ? ' https://*.googleapis.com https://*.gstatic.com https://*.google.com data: blob:' : '') + (appleMaps ? apple + ' blob:' : ''),
+    "frame-src 'self' https://jm.wipayfinancial.com https://accounts.google.com" + (googleMaps ? ' https://*.google.com' : '') + apple,
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "object-src 'none'",
-    "worker-src 'self'" + (googleMaps ? ' blob:' : ''),
+    "worker-src 'self'" + (googleMaps || appleMaps ? ' blob:' : '') + apple,
     "manifest-src 'self'",
     "form-action 'self' https://jm.wipayfinancial.com",
     'upgrade-insecure-requests',
@@ -36,6 +39,8 @@ const csp = buildCsp()
 // "Nearby") for the visitor's location — so only that route widens
 // script/connect sources and allows same-origin geolocation.
 const mapCsp = buildCsp({ googleMaps: true })
+// The solar estimator can also use Apple's satellite imagery.
+const solarCsp = buildCsp({ googleMaps: true, appleMaps: true })
 
 const securityHeaders = [
   { key: 'Content-Security-Policy', value: csp },
@@ -73,7 +78,7 @@ const nextConfig = {
         ],
       },
       // The solar estimator's satellite view uses Google's imagery (Maps JavaScript API).
-      { source: '/solar', headers: [{ key: 'Content-Security-Policy', value: mapCsp }] },
+      { source: '/solar', headers: [{ key: 'Content-Security-Policy', value: solarCsp }] },
       // A web worker runs under its own script's CSP; MapLibre's worker gets
       // the map page's policy so anything the map may fetch is allowed there.
       {

@@ -79,7 +79,7 @@ export default function InstallersSection() {
                   {i.licenceExpires ? ` · expires ${i.licenceExpires.slice(0, 10)}` : ''}
                   {i.verifiedAt ? ` · verified by ${i.verifiedBy} on ${new Date(i.verifiedAt).toLocaleDateString('en-JM')}` : ' · not verified'}
                 </div>
-                {problem && i.status !== 'suspended' && <div style={{ ...muted, color: '#b26a00' }}>{problem}</div>}
+                {problem && i.status !== 'suspended' && <div style={{ ...muted, color: 'var(--color-warning-strong)' }}>{problem}</div>}
               </div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'start' }}>
                 <Button size="sm" variant="outline" onClick={() => setEditing(i.id)}>Edit</Button>
@@ -146,7 +146,7 @@ function Editor({ installer, onDone }: { installer?: Installer; onDone: (msg?: s
       <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
         <Button size="sm" onClick={save}>Save</Button>
         <Button size="sm" variant="outline" onClick={() => onDone()}>Cancel</Button>
-        {err && <span role="alert" style={{ ...muted, color: '#c0392b' }}>{err}</span>}
+        {err && <span role="alert" style={{ ...muted, color: 'var(--color-danger)' }}>{err}</span>}
       </div>
     </div>
   )

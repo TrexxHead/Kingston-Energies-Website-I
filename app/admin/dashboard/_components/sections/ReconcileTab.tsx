@@ -241,7 +241,7 @@ function Session({ id, onBack }: { id: string; onBack: () => void }) {
         <Metric label="Difference" value={fmt(Math.round(data.difference))} tone={data.balanced ? 'good' : 'warn'} />
         <div style={{ display: 'flex', alignItems: 'center' }}>
           {done ? (
-            <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ke-green-700)' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--color-primary-strong)' }}>
               <CheckCircle2 size={16} /> Complete
             </span>
           ) : (
@@ -253,7 +253,7 @@ function Session({ id, onBack }: { id: string; onBack: () => void }) {
       </div>
 
       {!data.balanced && !done && (
-        <p style={{ fontSize: 12.5, color: 'var(--ke-sun-600,#b45309)', margin: 0, fontWeight: 600 }}>
+        <p style={{ fontSize: 12.5, color: 'var(--color-warning-strong)', margin: 0, fontWeight: 600 }}>
           Out by {fmt(Math.round(Math.abs(data.difference)))}. Tick off the transactions that appear on the statement until this reaches zero.
           {' '}A line tagged &ldquo;On statement&rdquo; has a real match from Bank feeds behind it; one tagged &ldquo;No bank feed match&rdquo; is
           ticked on judgment alone — worth a second look before finishing.
@@ -275,7 +275,7 @@ function Session({ id, onBack }: { id: string; onBack: () => void }) {
           data.lines.map((l) => (
             <label
               key={l.id}
-              style={{ display: 'grid', gridTemplateColumns: '40px 90px 1fr 100px 100px', gap: 10, alignItems: 'center', padding: '11px 18px', borderTop: '1px solid var(--color-border)', cursor: done ? 'default' : 'pointer', background: l.cleared ? 'var(--ke-green-50)' : 'transparent' }}
+              style={{ display: 'grid', gridTemplateColumns: '40px 90px 1fr 100px 100px', gap: 10, alignItems: 'center', padding: '11px 18px', borderTop: '1px solid var(--color-border)', cursor: done ? 'default' : 'pointer', background: l.cleared ? 'var(--color-primary-soft)' : 'transparent' }}
             >
               <input type="checkbox" checked={l.cleared} disabled={done} onChange={() => toggle(l)} />
               <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
@@ -303,7 +303,7 @@ function Session({ id, onBack }: { id: string; onBack: () => void }) {
 }
 
 function Metric({ label, value, tone }: { label: string; value: string; tone?: 'good' | 'warn' }) {
-  const color = tone === 'good' ? 'var(--ke-green-700)' : tone === 'warn' ? 'var(--ke-sun-600,#b45309)' : undefined
+  const color = tone === 'good' ? 'var(--color-primary-strong)' : tone === 'warn' ? 'var(--color-warning-strong)' : undefined
   return (
     <div>
       <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 20, color }}>{value}</div>

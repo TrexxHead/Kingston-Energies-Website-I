@@ -106,7 +106,7 @@ export default function MarketingContent() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <Button size="sm" variant="primary" onClick={save}>{busy ? 'Saving…' : 'Save homepage promos'}</Button>
         {saved && (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12.5, color: 'var(--ke-green-700)' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12.5, color: 'var(--color-primary-strong)' }}>
             <Check size={14} /> Saved: live on the homepage
           </span>
         )}

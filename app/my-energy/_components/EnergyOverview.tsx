@@ -66,7 +66,7 @@ export default function EnergyOverview({ profile }: { profile: EnergyProfile }) 
           {car ? (
             <>
               <div className="ke-ov-car">
-                <VehicleModel3D bodyStyle={car.bodyStyle} colour={car.colour} powertrain={car.powertrain} make={car.make} model={car.model} height={150} />
+                <VehicleModel3D bodyStyle={car.bodyStyle} colour={car.colour} powertrain={car.powertrain} make={car.make} model={car.model} year={car.year} height={150} />
               </div>
               <strong>{vehicleName(car)}</strong>
               <span>

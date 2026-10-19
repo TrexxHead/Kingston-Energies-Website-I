@@ -50,6 +50,15 @@ The default tab on `/energy-map`. Nothing to sign up for and no keys: every file
 ## 2e. Road routing for the trip planner
 - `/trip-planner` needs an OSRM-compatible routing server: `OSRM_BASE_URL`. Recommended: self-host OSRM on the Jamaica OpenStreetMap extract (small — a basic VPS is enough); the public OSRM demo server is not for production use. Until set, the page is unlisted and says planning isn’t on yet. When it’s live, add it to the footer and sitemap.
 
+## 2f. Apple Maps satellite imagery (solar estimator) — recommended
+Apple’s aerial imagery over Kingston is sharper and cleaner than Google’s, so the rooftop estimator uses it first when set up (Google stays as the fallback, and visitors can switch between them).
+1. An **Apple Developer Program** membership (US$99/year) — developer.apple.com.
+2. developer.apple.com/account → **Certificates, IDs & Profiles → Services → Maps → Configure → Tokens → (+)**. Token type **MapKit JS**, restriction **Domain**, validity **No expiration** (or a long period), websites: `kingstonenergies.com, www.kingstonenergies.com, *.vercel.app` (add the staging domain).
+3. Vercel → Environment Variables (Production **and** Preview): `NEXT_PUBLIC_MAPKIT_TOKEN` = the token. Redeploy (it is read at build time).
+- The token is meant to be public — its domain restriction is what protects it. MapKit JS includes a large free daily allowance; usage shows in the Maps dashboard.
+- The site’s security policy already allows Apple’s map domains on `/solar` only.
+- Labels, points of interest and rotation are off; the view is straight down and north-up, as panels are planned.
+
 ## 2. Google Maps Platform (Energy Map — M01, M04)
 
 **Account**

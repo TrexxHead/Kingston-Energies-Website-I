@@ -55,7 +55,7 @@ export function ChargeEstimate({ vehicle, groups, price }: { vehicle: Vehicle; g
   const carKw = current === 'DC' ? vehicle.specs.dcChargeKw?.value : vehicle.specs.acChargeKw?.value
   const p = price && now ? priceAt(price.data, now) : null
   const r = chargeSession({ batteryKwh: vehicle.specs.batteryKwh?.value ?? 0, fromPct: from, toPct: to, current, chargerKw: best.g.maxPowerKw ?? 0, carKw, pricePerKwh: p?.pricePerKwh ?? null, sessionFee: price?.data.sessionFee ?? null })
-  const sel = { background: 'transparent', color: '#fff', border: '1px solid rgba(255,255,255,.2)', borderRadius: 8, padding: '1px 4px', fontSize: 13 }
+  const sel = { background: 'transparent', color: '#fff', colorScheme: 'dark' as const, border: '1px solid rgba(255,255,255,.2)', borderRadius: 8, padding: '1px 4px', fontSize: 13 }
 
   return (
     <div style={{ display: 'grid', gap: 4, fontSize: 13, color: 'var(--ke-dark-text-muted)' }} data-testid="charge-estimate">
@@ -64,13 +64,13 @@ export function ChargeEstimate({ vehicle, groups, price }: { vehicle: Vehicle; g
         {vehicleName(vehicle)} from
         <select aria-label="Starting charge" value={from} onChange={(e) => setFrom(Number(e.target.value))} style={sel}>
           {[5, 10, 20, 30, 40, 50].map((v) => (
-            <option key={v} value={v} style={{ color: '#000' }}>{v}%</option>
+            <option key={v} value={v}>{v}%</option>
           ))}
         </select>
         to
         <select aria-label="Finishing charge" value={to} onChange={(e) => setTo(Number(e.target.value))} style={sel}>
           {[60, 70, 80, 90, 100].map((v) => (
-            <option key={v} value={v} style={{ color: '#000' }}>{v}%</option>
+            <option key={v} value={v}>{v}%</option>
           ))}
         </select>
         on {best.g.connectorType}

@@ -141,7 +141,7 @@ export default function SegmentsCard() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {items.map((s) => (
             <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', border: '1px solid var(--color-border)', borderRadius: 10 }}>
-              <Users size={15} style={{ color: 'var(--ke-green-600)', flexShrink: 0 }} />
+              <Users size={15} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13.5 }}>{s.name}</div>
                 <div style={{ fontSize: 11.5, color: 'var(--color-text-subtle)' }}>{s.description || summarize(s.criteria)}</div>
@@ -199,7 +199,7 @@ export default function SegmentsCard() {
               Never purchased (leads/signups with no order yet)
             </label>
 
-            <div style={{ background: 'var(--ke-green-50)', color: 'var(--ke-green-700)', borderRadius: 10, padding: '10px 12px', fontSize: 12.5, fontFamily: 'var(--font-display)', fontWeight: 600 }}>
+            <div style={{ background: 'var(--color-primary-soft)', color: 'var(--color-primary-strong)', borderRadius: 10, padding: '10px 12px', fontSize: 12.5, fontFamily: 'var(--font-display)', fontWeight: 600 }}>
               {preview === null ? 'Pick at least one filter to see the audience size.' : `${preview} customer${preview === 1 ? '' : 's'} match right now`}
             </div>
           </div>

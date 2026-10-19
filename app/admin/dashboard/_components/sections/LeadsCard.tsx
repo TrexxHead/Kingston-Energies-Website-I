@@ -127,7 +127,7 @@ export default function LeadsCard() {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span style={{ fontSize: 12.5, fontWeight: 700 }}>Indicative total: {fmt(quoteValue)}</span>
                       {l.convertedOrderNo ? (
-                        <a href="/admin/dashboard/orders" style={{ fontSize: 11.5, color: 'var(--ke-green-700)', display: 'inline-flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}>
+                        <a href="/admin/dashboard/orders" style={{ fontSize: 11.5, color: 'var(--color-primary-strong)', display: 'inline-flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}>
                           Order {l.convertedOrderNo} <ExternalLink size={11} />
                         </a>
                       ) : (
@@ -137,7 +137,7 @@ export default function LeadsCard() {
                           disabled={converting === l.id}
                           style={{
                             display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11.5, fontWeight: 600,
-                            color: '#fff', background: 'var(--ke-green-600)', border: 'none', borderRadius: 999,
+                            color: 'var(--color-primary-contrast)', background: 'var(--color-primary)', border: 'none', borderRadius: 999,
                             padding: '5px 10px', cursor: converting === l.id ? 'default' : 'pointer', opacity: converting === l.id ? 0.6 : 1,
                           }}
                         >

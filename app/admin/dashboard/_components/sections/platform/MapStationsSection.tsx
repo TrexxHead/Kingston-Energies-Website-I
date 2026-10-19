@@ -335,7 +335,7 @@ function StationEditor({ station, prefill, onBack, onSaved }: { station?: Statio
                 {s.url && (
                   <>
                     {' · '}
-                    <a href={s.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--ke-blue-500)' }}>link</a>
+                    <a href={s.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-link)' }}>link</a>
                   </>
                 )}
                 {s.permissionScope && <div style={muted}>Permission: {s.permissionScope}</div>}

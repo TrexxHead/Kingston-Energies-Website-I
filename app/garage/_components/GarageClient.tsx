@@ -9,6 +9,7 @@ import { POWERTRAIN_LABEL, BODY_LABEL, PAINT, SPEC_BASIS_LABEL, VEHICLE_LIMIT, p
 import { card, muted, h2, Btn } from '@/app/my-energy/_components/ui'
 import VehicleForm from './VehicleForm'
 
+import DesignNote from '@/components/garage/DesignNote'
 const VehicleModel3D = dynamic(() => import('@/components/garage/VehicleModel3D'), { ssr: false, loading: () => <div style={{ height: 380 }} /> })
 
 export default function GarageClient({ tripPlanner = false }: { tripPlanner?: boolean }) {
@@ -119,13 +120,16 @@ function Showcase({ v, onEdit, onRemove, onPrimary, onPaint, single, tripPlanner
   return (
     <section className="ke-gar-show" aria-label={vehicleName(v)}>
       <div className="ke-gar-stage">
-        <VehicleModel3D bodyStyle={v.bodyStyle} colour={v.colour} powertrain={v.powertrain} make={v.make} model={v.model} height={420} />
+        <VehicleModel3D bodyStyle={v.bodyStyle} colour={v.colour} powertrain={v.powertrain} make={v.make} model={v.model} year={v.year} height={420} />
         <div className="ke-gar-paint" role="group" aria-label="Paint colour">
           {PAINT.map((p) => (
             <button key={p.hex} type="button" title={p.name} aria-label={p.name} aria-pressed={v.colour.toLowerCase() === p.hex} onClick={() => onPaint(p.hex)} style={{ background: p.hex }} />
           ))}
         </div>
-        <p className="ke-gar-note">Illustration of {v.bodyStyle === 'suv' ? 'an SUV' : `a ${BODY_LABEL[v.bodyStyle].toLowerCase()}`} in your colour, not your exact model — drag to turn it.</p>
+        <div className="ke-gar-note">
+          <DesignNote make={v.make} model={v.model} year={v.year} bodyStyle={v.bodyStyle} />
+          <span style={{ display: 'block', marginTop: 2 }}>Drag to turn it.</span>
+        </div>
       </div>
 
       <div className="ke-gar-info">

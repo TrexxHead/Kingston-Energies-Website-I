@@ -95,7 +95,7 @@ export default async function InstallersPage({ searchParams }: { searchParams: P
 
 const CSS = `
 .ke-in-filters{display:flex;gap:8px;flex-wrap:wrap}
-.ke-in-filters select,.ke-in-filters button{height:40px;border-radius:10px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.04);color:#fff;font:inherit;font-size:14px;padding:0 12px}
+.ke-in-filters select,.ke-in-filters button{color-scheme:dark;height:40px;border-radius:10px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.04);color:#fff;font:inherit;font-size:14px;padding:0 12px}
 .ke-in-filters button{background:var(--ke-green-500);color:#0d1714;font-weight:700;border:0;cursor:pointer}
 .ke-in-empty{margin:0;padding:22px;border-radius:18px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.08);color:#fff;line-height:1.6}
 .ke-in-empty a,.ke-in-fine a{color:var(--ke-green-400);font-weight:600}

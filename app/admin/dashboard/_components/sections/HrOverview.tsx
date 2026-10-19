@@ -112,10 +112,10 @@ export default function HrOverview() {
           arrangement — then keep their contracts, IDs and personnel files together in Documents.
         </p>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <Link href="/admin/dashboard/hr/people" style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12.5, color: 'var(--ke-green-700)', textDecoration: 'none' }}>
+          <Link href="/admin/dashboard/hr/people" style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12.5, color: 'var(--color-primary-strong)', textDecoration: 'none' }}>
             Go to People →
           </Link>
-          <Link href="/admin/dashboard/hr/documents" style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12.5, color: 'var(--ke-green-700)', textDecoration: 'none' }}>
+          <Link href="/admin/dashboard/hr/documents" style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 12.5, color: 'var(--color-primary-strong)', textDecoration: 'none' }}>
             Go to Documents →
           </Link>
         </div>

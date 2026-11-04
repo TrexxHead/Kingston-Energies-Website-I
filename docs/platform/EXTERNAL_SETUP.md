@@ -15,6 +15,12 @@ To get a shareable staging site:
 | Schema | Engineer | `DATABASE_URL=… DIRECT_URL=… npx prisma db push` against staging, then run `prisma/enable-rls.sql` in the staging SQL editor. |
 | Separate Google keys for staging | Owner | See §2 — referrer restriction for the staging domain. |
 
+## 1b. Database schema for PR #48 (new tables only)
+Nothing existing is changed or removed: 17 new tables (energy profile, vehicles, catalogue evidence, Energy Map, bookings, installers, calculation runs) plus one enum.
+- **Production (schema = `main`)** — no terminal needed: Supabase → SQL Editor → New query → paste `prisma/sql/energy-platform-pr48.sql` → Run. One transaction: if anything fails, nothing is applied. Run it just before merging PR #48 (the merged site needs these tables). It also enables row level security on the new tables.
+- **Preview / any database that already has some of these tables** — `npx prisma db push` (adds only what's missing), then `prisma/enable-rls.sql` in the SQL editor. To have Claude run it from a cloud session: add `DATABASE_URL` (pooled, port 6543) and `DIRECT_URL` (direct, port 5432) as environment variables in the cloud environment's settings, allow the Supabase host in its network access, and start a new session. Never paste connection strings into chat.
+- Verified: the SQL applied to a database built from `main`'s schema leaves no difference from this branch's schema (`prisma migrate diff … --exit-code` = 0); a second run fails on the first statement and changes nothing.
+
 ## 2a. Kingston Energies map (self-hosted — no account needed)
 
 The default tab on `/energy-map`. Nothing to sign up for and no keys: every file is served from this site (`public/maps/`).

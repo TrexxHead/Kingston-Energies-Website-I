@@ -1,4 +1,4 @@
-import { Warehouse, PlugZap, Gauge, Sun, Receipt, Landmark, FileCheck2, MapPin, Car, CloudLightning, Tractor, BadgeCheck, CalendarCheck, type LucideIcon } from 'lucide-react'
+import { Sparkles, Warehouse, PlugZap, Gauge, Sun, Receipt, Landmark, FileCheck2, MapPin, Car, CloudLightning, Tractor, BadgeCheck, CalendarCheck, type LucideIcon } from 'lucide-react'
 
 /** The My Energy tools, grouped — one source for the navbar dropdown, the phone menu and the footer. */
 export interface EnergyLink {
@@ -13,9 +13,11 @@ export const ENERGY_GROUPS: { title: string; links: EnergyLink[] }[] = [
     title: 'Plan & save',
     links: [
       { href: '/my-energy', label: 'My Energy', blurb: 'Your devices, backup needs and saved results', Icon: Gauge },
+      { href: '/solar/design', label: 'Design your system', blurb: 'Panels, inverter and battery from your bill', Icon: Sparkles },
       { href: '/solar', label: 'Rooftop solar estimator', blurb: 'Tap your roof: panels, output, savings', Icon: Sun },
       { href: '/bill-explainer', label: 'Bill Explainer', blurb: 'Why your JPS bill went up', Icon: Receipt },
       { href: '/financing', label: 'Financing calculator', blurb: 'Monthly cost, fees and the true rate', Icon: Landmark },
+      { href: '/guides/going-solar', label: 'Going solar, step by step', blurb: 'Survey, approvals, install, handover', Icon: FileCheck2 },
       { href: '/net-billing', label: 'Net billing guide', blurb: 'Going solar with JPS, step by step', Icon: FileCheck2 },
     ],
   },

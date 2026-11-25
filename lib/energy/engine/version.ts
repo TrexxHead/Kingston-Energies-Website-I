@@ -44,5 +44,12 @@
  * 1.8.0 (2026-10-18) — solar + battery: midday surplus stored up to the
  *   battery size and returned in the evening at 90% round trip; suggested
  *   size = average day's shiftable energy; covered share feeds savings.
+ * 1.9.0 (2026-11-25) — whole-system design from household use (owner's PV
+ *   course notebook, corrections C02/C03/C21 applied): loss-chain derate
+ *   (0.779 direct; stored share × 0.90), array = daily Wh ÷ (PSH × derate)
+ *   (off-grid +20%), panels = ⌈array ÷ panel W⌉, inverter ≥ 1.25 × peak
+ *   (grid-tied: array ÷ 1.2), surge ≤ 2 × rating, battery nameplate =
+ *   energy × autonomy ÷ (DoD × efficiency), battery DC current = inverter W ÷
+ *   (V × 0.943), bill cross-check ±15%; performance ratio check (0.75).
  */
-export const CALC_ENGINE_VERSION = '1.8.0'
+export const CALC_ENGINE_VERSION = '1.9.0'

@@ -260,6 +260,12 @@ export const NAV: NavGroup[] = [
         keywords: 'tariff jps our fuel petrojam price shelter odpem reference data approve',
       },
       {
+        href: `${BASE}/platform/projects`,
+        label: 'Solar projects',
+        description: 'Designs from customers, through survey, quote, approvals, install and handover',
+        keywords: 'solar project quote quotation survey install handover documents certificate tracker design',
+      },
+      {
         href: `${BASE}/platform/bookings`,
         label: 'Bookings',
         description: 'Service bookings, deposits, and the services and capacity customers can book',

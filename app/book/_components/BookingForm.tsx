@@ -17,7 +17,7 @@ interface Avail {
 const money = (n: number) => `J$${n.toLocaleString('en-JM')}`
 const dayLabel = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString('en-JM', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
 
-export default function BookingForm() {
+export default function BookingForm({ projectNo }: { projectNo?: string } = {}) {
   const [avail, setAvail] = useState<Avail | null>(null)
   const [failed, setFailed] = useState(false)
   const [serviceId, setServiceId] = useState('')
@@ -41,6 +41,16 @@ export default function BookingForm() {
   useEffect(() => {
     load()
   }, [])
+  // Coming from the solar designer: contact details the customer just entered (kept in this tab only).
+  useEffect(() => {
+    if (!projectNo) return
+    try {
+      const c = JSON.parse(sessionStorage.getItem('ke-solar-contact') ?? 'null')
+      if (c && c.projectNo === projectNo) setF((x) => ({ ...x, customerName: c.name ?? '', phone: c.phone ?? '', email: c.email ?? '', parish: c.parish ?? '', address: c.address ?? '' }))
+    } catch {
+      /* storage unavailable */
+    }
+  }, [projectNo])
 
   const service = avail?.services.find((s) => s.id === serviceId)
   const day = avail?.days.find((d) => d.date === date)
@@ -57,7 +67,7 @@ export default function BookingForm() {
     const res = await fetch('/api/bookings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ serviceId, date, window: win, customerName: f.customerName, phone: f.phone, email: f.email || undefined, parish: f.parish, address: f.address || undefined, notes: f.notes || undefined, whatsappOptIn: waOptIn }),
+      body: JSON.stringify({ serviceId, date, window: win, customerName: f.customerName, phone: f.phone, email: f.email || undefined, parish: f.parish, address: f.address || undefined, notes: f.notes || undefined, whatsappOptIn: waOptIn, projectNo }),
     }).catch(() => null)
     const d = await res?.json().catch(() => ({}))
     if (!res?.ok) {
@@ -96,6 +106,11 @@ export default function BookingForm() {
   return (
     <form onSubmit={submit} style={{ display: 'grid', gap: 16 }}>
       <style>{CSS}</style>
+      {projectNo && (
+        <p style={{ ...muted, margin: 0, padding: '12px 14px', borderRadius: 14, background: 'rgba(62,207,142,.08)', border: '1px solid rgba(62,207,142,.25)', color: 'var(--ke-dark-text)' }}>
+          Booking the site survey for solar project <strong style={{ color: '#fff' }}>{projectNo}</strong>. Use the same e-mail or phone number so we can link them.
+        </p>
+      )}
       <section style={{ ...card, display: 'grid', gap: 12 }} aria-labelledby="bk-svc">
         <h2 id="bk-svc" style={h2}>1. Service</h2>
         <div className="ke-bk-services" role="radiogroup" aria-label="Service">

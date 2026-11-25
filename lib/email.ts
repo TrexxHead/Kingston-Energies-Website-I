@@ -573,3 +573,42 @@ function renderVerificationHtml(input: VerificationEmailInput): string {
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string))
 }
+
+/**
+ * Solar project emails: a new project from the online designer (customer
+ * confirmation + admin alert), a quote ready to review, and stage updates.
+ * Best-effort; never throws.
+ */
+export async function sendSolarProjectEmail(input: {
+  kind: 'created' | 'quote_sent' | 'stage'
+  projectNo: string
+  customerName: string
+  email: string
+  summary: string[]
+  stageLabel?: string
+  stageText?: string
+}): Promise<void> {
+  if (!isEmailConfigured()) {
+    console.info(`[email] skipped solar-project ${input.kind} email for ${input.projectNo} (no provider configured)`)
+    return
+  }
+  const site = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://kingstonenergies.com'
+  const link = `${site}/hub/projects`
+  const btn = (href: string, text: string) => `<a href="${href}" style="display:inline-block;margin-top:14px;background:#1f6b45;color:#fff;text-decoration:none;padding:10px 20px;border-radius:999px;font-weight:600;font-size:13px">${text}</a>`
+  const list = `<ul style="font-size:13.5px;color:#1c2a25;padding-left:18px">${input.summary.map((l) => `<li>${escapeHtml(l)}</li>`).join('')}</ul>`
+  const hi = `<p>Hi ${escapeHtml(input.customerName)},</p>`
+  const ref = `<p style="font-size:12.5px;color:#556059">Project ${escapeHtml(input.projectNo)}. Sign in with ${escapeHtml(input.email)} to follow it.</p>`
+  try {
+    if (input.kind === 'created') {
+      await deliver({ to: input.email, subject: `Your solar design ${input.projectNo}`, html: wrapEmailHtml('We have your solar design', `${hi}<p>Thanks — here’s the design you sent. We’ll call to arrange a site survey, then send your quote.</p>${list}${ref}${btn(link, 'Follow your project')}`) })
+      const admins = await adminRecipients()
+      await Promise.all(admins.map((to) => deliver({ to, subject: `New solar project ${input.projectNo}: ${input.customerName}`, html: wrapEmailHtml('New solar project', `<p><strong>${escapeHtml(input.customerName)}</strong> (${escapeHtml(input.email)}) sent a design.</p>${list}${btn(`${site}/admin/dashboard/platform/projects`, 'Open the project')}`) })))
+    } else if (input.kind === 'quote_sent') {
+      await deliver({ to: input.email, subject: `Your solar quote ${input.projectNo} is ready`, html: wrapEmailHtml('Your quote is ready', `${hi}<p>Your quotation is ready to review and accept online.</p>${list}${ref}${btn(link, 'Review your quote')}`) })
+    } else {
+      await deliver({ to: input.email, subject: `Solar project ${input.projectNo}: ${input.stageLabel ?? 'update'}`, html: wrapEmailHtml(input.stageLabel ?? 'Project update', `${hi}<p>${escapeHtml(input.stageText ?? 'Your project has moved forward.')}</p>${ref}${btn(link, 'See the details')}`) })
+    }
+  } catch (err) {
+    console.error('[email] solar project email failed:', err)
+  }
+}

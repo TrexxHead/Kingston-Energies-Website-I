@@ -342,6 +342,60 @@ CREATE TABLE "Installer" (
     CONSTRAINT "Installer_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "SolarProject" (
+    "id" TEXT NOT NULL,
+    "projectNo" TEXT NOT NULL,
+    "userId" TEXT,
+    "customerName" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "phone" TEXT NOT NULL,
+    "parish" TEXT,
+    "address" TEXT,
+    "note" TEXT,
+    "exportsToGrid" BOOLEAN NOT NULL DEFAULT false,
+    "stage" TEXT NOT NULL DEFAULT 'enquiry',
+    "design" JSONB NOT NULL,
+    "quote" JSONB,
+    "quoteStatus" TEXT NOT NULL DEFAULT 'none',
+    "quoteSentAt" TIMESTAMP(3),
+    "quoteAcceptedAt" TIMESTAMP(3),
+    "bookingNo" TEXT,
+    "staffNote" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "SolarProject_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "SolarProjectEvent" (
+    "id" TEXT NOT NULL,
+    "projectId" TEXT NOT NULL,
+    "stage" TEXT,
+    "note" TEXT,
+    "customerVisible" BOOLEAN NOT NULL DEFAULT true,
+    "createdBy" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "SolarProjectEvent_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "SolarProjectDocument" (
+    "id" TEXT NOT NULL,
+    "projectId" TEXT NOT NULL,
+    "kind" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "path" TEXT,
+    "url" TEXT,
+    "customerVisible" BOOLEAN NOT NULL DEFAULT true,
+    "uploadedBy" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "SolarProjectDocument_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE INDEX "EnergyProperty_userId_idx" ON "EnergyProperty"("userId");
 
@@ -426,6 +480,24 @@ CREATE INDEX "ServiceBooking_status_createdAt_idx" ON "ServiceBooking"("status",
 -- CreateIndex
 CREATE INDEX "Installer_status_idx" ON "Installer"("status");
 
+-- CreateIndex
+CREATE UNIQUE INDEX "SolarProject_projectNo_key" ON "SolarProject"("projectNo");
+
+-- CreateIndex
+CREATE INDEX "SolarProject_stage_createdAt_idx" ON "SolarProject"("stage", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "SolarProject_userId_idx" ON "SolarProject"("userId");
+
+-- CreateIndex
+CREATE INDEX "SolarProject_email_idx" ON "SolarProject"("email");
+
+-- CreateIndex
+CREATE INDEX "SolarProjectEvent_projectId_createdAt_idx" ON "SolarProjectEvent"("projectId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "SolarProjectDocument_projectId_idx" ON "SolarProjectDocument"("projectId");
+
 -- AddForeignKey
 ALTER TABLE "EnergyProperty" ADD CONSTRAINT "EnergyProperty_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -477,6 +549,15 @@ ALTER TABLE "EvStatusObservation" ADD CONSTRAINT "EvStatusObservation_connectorG
 -- AddForeignKey
 ALTER TABLE "EvCommunityReport" ADD CONSTRAINT "EvCommunityReport_stationId_fkey" FOREIGN KEY ("stationId") REFERENCES "EvStation"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
+-- AddForeignKey
+ALTER TABLE "SolarProject" ADD CONSTRAINT "SolarProject_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SolarProjectEvent" ADD CONSTRAINT "SolarProjectEvent_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "SolarProject"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SolarProjectDocument" ADD CONSTRAINT "SolarProjectDocument_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "SolarProject"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
 
 -- Row level security (deny-all to Supabase's public API; the app's own connection bypasses it).
 ALTER TABLE public."EnergyProperty" ENABLE ROW LEVEL SECURITY;
@@ -497,5 +578,8 @@ ALTER TABLE public."EvCommunityReport" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public."MapCoverageReview" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public."ServiceBooking" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public."Installer" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public."SolarProject" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public."SolarProjectEvent" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public."SolarProjectDocument" ENABLE ROW LEVEL SECURITY;
 
 COMMIT;

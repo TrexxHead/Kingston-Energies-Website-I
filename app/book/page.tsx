@@ -11,7 +11,9 @@ export const metadata = {
 
 const breadcrumbs = buildBreadcrumbs([{ name: 'Home', path: '/' }, { name: 'Book a visit' }])
 
-export default function BookPage() {
+export default async function BookPage({ searchParams }: { searchParams: Promise<{ project?: string }> }) {
+  const { project } = await searchParams
+  const projectNo = project && /^SP-[A-Z0-9]{6}$/.test(project) ? project : undefined
   return (
     <div style={{ fontFamily: 'var(--font-body)', color: 'var(--ke-dark-text)', background: 'var(--ke-dark-bg)', minHeight: '100vh' }}>
       <JsonLd data={breadcrumbs} />
@@ -27,7 +29,7 @@ export default function BookPage() {
           </p>
         </section>
         <section style={{ maxWidth: 900, margin: '0 auto', padding: '0 20px 80px' }}>
-          <BookingForm />
+          <BookingForm projectNo={projectNo} />
         </section>
       </main>
       <Footer />

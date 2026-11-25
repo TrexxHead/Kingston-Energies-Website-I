@@ -14,6 +14,8 @@ import { CALC_ENGINE_VERSION } from '@/lib/energy/engine/version'
 import { useActiveRecord } from '@/lib/refdata/useRefData'
 import { tariffFromPublic } from '@/lib/refdata/types'
 import SystemVisual from './SystemVisual'
+import QuoteRequest from './QuoteRequest'
+import type { DesignSnapshot } from '@/lib/solarProjects'
 
 /**
  * “Design your system” — one flow from a household to a system, a price and
@@ -58,6 +60,7 @@ export default function SystemDesigner() {
   const [psh, setPsh] = useState(DESIGN_DEFAULTS.peakSunHours)
   const [showWorking, setShowWorking] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [quoteOpen, setQuoteOpen] = useState(false)
 
   // Prefill from the bill history kept on this device (Bill Explainer).
   useEffect(() => {
@@ -136,6 +139,36 @@ export default function SystemDesigner() {
   }
   useEffect(() => setSaved(false), [d])
 
+  // What “Get my quote” sends: the design's inputs, outputs and stated assumptions.
+  const snapshot: DesignSnapshot | null =
+    d && design?.ok
+      ? {
+          engine: CALC_ENGINE_VERSION,
+          type: d.type,
+          source,
+          billMonthlyKwh: billMonthly,
+          dailyWh: Math.round(dailyWh),
+          nightWh: Math.round(nightWh),
+          storageWh: d.battery ? Math.round(storageWh) : null,
+          peakW: peakW ? Math.round(peakW) : null,
+          surgeW: surgeW ? Math.round(surgeW) : null,
+          backup: offGrid ? 'night' : backup,
+          peakSunHours: psh,
+          derate: d.derate,
+          modules: d.array.modules,
+          moduleWatts: d.array.moduleWatts,
+          kwp: d.array.kwp,
+          expectedDailyKwh: Math.round(d.array.expectedDailyWh / 100) / 10,
+          inverterKw: d.inverter.sizeKw,
+          batteryKwh: d.battery ? Math.round(d.battery.nameplateWh / 100) / 10 : null,
+          batteryDcCurrentA: d.battery?.dcCurrentA ? Math.round(d.battery.dcCurrentA) : null,
+          solarShare: d.solarShare,
+          priceRange: price?.ok ? { low: Math.round(price.value.total.low), high: Math.round(price.value.total.high) } : null,
+          assumptions: design.assumptions.map((a) => `${a.description}${a.value != null ? `: ${a.value}${a.unit ? ` ${a.unit}` : ''}` : ''}`).slice(0, 30),
+        }
+      : null
+  useEffect(() => setQuoteOpen(false), [snapshot?.kwp, snapshot?.batteryKwh, snapshot?.inverterKw])
+
   const priceMid = price?.ok ? Math.round((price.value.total.low + price.value.total.high) / 2) : null
   const financeHref = priceMid ? `/financing?price=${priceMid}${savings?.ok ? `&saving=${Math.round(savings.value.annualDaytime / 12)}` : ''}` : '/financing'
 
@@ -193,10 +226,11 @@ export default function SystemDesigner() {
                 <p style={{ ...muted, margin: 0, fontSize: 13 }}>{priceRecord === undefined ? 'Loading prices…' : 'Installed prices aren’t published yet — a site survey gives you an exact quote.'}</p>
               )}
             </div>
-            <div className="ke-sd-ctas">
-              <Link href="/book" className="ke-sd-primary">
-                <CalendarCheck size={16} aria-hidden /> Book a site survey
-              </Link>
+            {quoteOpen && snapshot && <QuoteRequest design={snapshot} onClose={() => setQuoteOpen(false)} />}
+            <div className="ke-sd-ctas" hidden={quoteOpen}>
+              <button type="button" className="ke-sd-primary" onClick={() => setQuoteOpen(true)}>
+                <CalendarCheck size={16} aria-hidden /> Get my quote
+              </button>
               <Link href={financeHref} className="ke-sd-ghost">
                 Monthly payments
               </Link>
@@ -475,7 +509,7 @@ const CSS = `
 .ke-sd-money strong{color:#fff;font-family:var(--font-display);font-size:17px}
 .ke-sd-k{font-size:12px;color:var(--ke-dark-text-muted)}
 .ke-sd-ctas{display:flex;gap:8px;flex-wrap:wrap}
-.ke-sd a.ke-sd-primary{flex:1 1 200px;display:inline-flex;justify-content:center;align-items:center;gap:8px;height:48px;border-radius:999px;background:var(--ke-green-500);color:#0d1714;font-weight:700;font-size:15px;text-decoration:none}
+.ke-sd .ke-sd-primary{border:0;cursor:pointer;flex:1 1 200px;display:inline-flex;justify-content:center;align-items:center;gap:8px;height:48px;border-radius:999px;background:var(--ke-green-500);color:#0d1714;font-weight:700;font-size:15px;text-decoration:none}
 .ke-sd a.ke-sd-ghost,.ke-sd button.ke-sd-ghost{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:48px;padding:0 18px;border-radius:999px;border:1px solid rgba(255,255,255,.22);background:transparent;color:#fff;font-weight:600;font-size:14px;text-decoration:none;cursor:pointer}
 .ke-sd-steps{display:grid;gap:16px}
 .ke-sd-n{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:999px;background:rgba(62,207,142,.14);color:var(--ke-green-400);font-size:14px;font-family:var(--font-mono)}

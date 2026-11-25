@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
+import AmbientVideo from './AmbientVideo'
 
 /**
  * Battery-backup backdrop: the same street with the grid on, then in an
@@ -9,7 +10,7 @@ import { useEffect, useRef, useState } from 'react'
  * once when the panel comes into view; the switch lets visitors flip it.
  * An illustration of what backup does, not live grid data.
  */
-export default function OutageScene({ gridOn, outage }: { gridOn: string; outage: string }) {
+export default function OutageScene({ gridOn, outage, gridOnVideo, outageVideo }: { gridOn: string; outage: string; gridOnVideo?: string; outageVideo?: string }) {
   const wrap = useRef<HTMLDivElement>(null)
   const [out, setOut] = useState(false)
   const [touched, setTouched] = useState(false)
@@ -37,8 +38,14 @@ export default function OutageScene({ gridOn, outage }: { gridOn: string; outage
   return (
     <>
       <div ref={wrap} className="ke-bd in" aria-hidden>
-        <Image src={gridOn} alt="" fill sizes="100vw" quality={78} className="ke-bd-img" style={{ objectFit: 'cover' }} />
-        <Image src={outage} alt="" fill sizes="100vw" quality={78} className={`ke-bd-img ke-en-out${out ? ' on' : ''}`} style={{ objectFit: 'cover' }} />
+        <div className="ke-en-layer">
+          <Image src={gridOn} alt="" fill sizes="100vw" quality={78} className="ke-bd-img" style={{ objectFit: 'cover' }} />
+          {gridOnVideo && <AmbientVideo src={gridOnVideo} poster={gridOn} />}
+        </div>
+        <div className={`ke-en-layer ke-en-out${out ? ' on' : ''}`}>
+          <Image src={outage} alt="" fill sizes="100vw" quality={78} className="ke-bd-img" style={{ objectFit: 'cover' }} />
+          {outageVideo && <AmbientVideo src={outageVideo} poster={outage} />}
+        </div>
       </div>
       <button
         type="button"

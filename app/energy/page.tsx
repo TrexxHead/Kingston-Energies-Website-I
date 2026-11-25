@@ -106,7 +106,7 @@ export default function EnergyHome() {
       <style>{CSS}</style>
       <Navbar />
       <main className="ke-en">
-        <HeroSunset day={`${IMG}/home-day.webp`} dusk={`${IMG}/home-dusk.webp`}>
+        <HeroSunset day={`${IMG}/home-day.webp`} dusk={`${IMG}/home-dusk.webp`} dayVideo={`${IMG}/home-day.mp4`} duskVideo={`${IMG}/home-dusk.mp4`}>
           <div className="ke-en-copy">
             <div className="ke-en-over">KINGSTON ENERGIES · SOLAR &amp; ENERGY</div>
             <h1 id="en-hero">Power that stays on.</h1>
@@ -126,7 +126,7 @@ export default function EnergyHome() {
 
         {PANELS.map((p) => (
           <section key={p.id} id={p.id} className="ke-en-panel" aria-labelledby={`en-${p.id}`}>
-            {p.id === 'backup' ? <OutageScene gridOn={`${IMG}/grid-on.webp`} outage={p.image} /> : <Backdrop src={p.image} video={p.video} position={p.position} />}
+            {p.id === 'backup' ? <OutageScene gridOn={`${IMG}/grid-on.webp`} outage={p.image} gridOnVideo={`${IMG}/grid-on.mp4`} outageVideo={`${IMG}/outage.mp4`} /> : <Backdrop src={p.image} video={p.video} position={p.position} />}
             <div className="ke-en-shade" />
             <div className="ke-en-copy">
               <h2 id={`en-${p.id}`}>{p.title}</h2>
@@ -197,6 +197,7 @@ html{scroll-snap-type:y proximity}
 .ke-bd{position:absolute;inset:0;z-index:-1;overflow:hidden;background:#0b1210}
 .ke-bd-img{transform:scale(1.06);transition:transform 2.4s cubic-bezier(.2,.7,.2,1),opacity 1.6s ease}
 .ke-bd.in .ke-bd-img{transform:scale(1)}
+.ke-bd-vbox,.ke-en-layer{position:absolute;inset:0}
 .ke-bd-vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .9s ease}
 .ke-bd-vid.on{opacity:1}
 .ke-en-panel{position:relative;min-height:100svh;display:flex;flex-direction:column;align-items:center;overflow:hidden;scroll-snap-align:start;isolation:isolate}
@@ -219,16 +220,16 @@ html{scroll-snap-type:y proximity}
 .ke-en-sunset{--p:0;position:relative;height:190svh}
 .ke-en-sticky{position:sticky;top:0;height:100svh;display:flex;flex-direction:column;align-items:center;overflow:hidden;isolation:isolate}
 .ke-en-sunset .ke-en-copy{padding-top:13vh}
-.ke-en-sunset .ke-bd-img{transition:none}
+.ke-en-sunset .ke-bd-img{transition:none;transform:none}
 .ke-en-dusk{opacity:var(--p)}
-.ke-en-sunset .ke-bd-img:not(.ke-en-dusk){transform:scale(calc(1 + var(--p) * .04))}
+.ke-en-day{transform:scale(calc(1 + var(--p) * .04))}
 .ke-en-sunline{position:relative;z-index:1;margin:auto 0 11vh;display:flex;align-items:center;gap:14px;font-family:var(--font-mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.82);text-shadow:0 1px 10px rgba(0,0,0,.5)}
 .ke-en-sunline i{position:relative;display:block;width:min(220px,30vw);height:2px;border-radius:2px;background:rgba(255,255,255,.3);overflow:hidden}
 .ke-en-sunline i::after{content:'';position:absolute;inset:0;transform-origin:left;transform:scaleX(var(--p));background:linear-gradient(90deg,#ffd27a,#f2a640)}
 .ke-en-sunline span:first-child{opacity:calc(1 - var(--p) * .5)}
 .ke-en-sunline span:last-child{opacity:calc(.5 + var(--p) * .5)}
 /* Battery backup: grid on → outage */
-.ke-en-out{opacity:0}
+.ke-en-out{opacity:0;transition:opacity 1.6s ease}
 .ke-en-out.on{opacity:1}
 .ke-en button.ke-en-grid{position:absolute;z-index:2;right:clamp(16px,4vw,48px);bottom:clamp(120px,18vh,170px);display:inline-flex;align-items:center;gap:10px;height:44px;padding:0 18px 0 14px;border-radius:999px;border:1px solid rgba(255,255,255,.22);background:rgba(10,16,14,.62);color:#fff;font:600 14px var(--font-body);backdrop-filter:blur(10px);cursor:pointer;white-space:nowrap}
 .ke-en-grid .dot{width:10px;height:10px;border-radius:50%;background:#f2c14e;box-shadow:0 0 0 4px rgba(242,193,78,.18)}

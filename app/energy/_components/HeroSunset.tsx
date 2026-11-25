@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import { useEffect, useRef } from 'react'
+import AmbientVideo from './AmbientVideo'
 
 /**
  * The hero: the same home by day and at dusk. The hero is taller than the
@@ -9,7 +10,7 @@ import { useEffect, useRef } from 'react'
  * lights come on as you read — a crossfade driven by scroll position.
  * Reduced-motion visitors get the daytime still with no scroll effect.
  */
-export default function HeroSunset({ day, dusk, children }: { day: string; dusk: string; children: React.ReactNode }) {
+export default function HeroSunset({ day, dusk, dayVideo, duskVideo, children }: { day: string; dusk: string; dayVideo?: string; duskVideo?: string; children: React.ReactNode }) {
   const root = useRef<HTMLElement>(null)
 
   useEffect(() => {
@@ -41,8 +42,14 @@ export default function HeroSunset({ day, dusk, children }: { day: string; dusk:
     <section ref={root} className="ke-en-sunset" aria-labelledby="en-hero">
       <div className="ke-en-sticky">
         <div className="ke-bd in">
-          <Image src={day} alt="" fill priority sizes="100vw" quality={78} className="ke-bd-img" style={{ objectFit: 'cover' }} />
-          <Image src={dusk} alt="" fill sizes="100vw" quality={78} className="ke-bd-img ke-en-dusk" style={{ objectFit: 'cover' }} />
+          <div className="ke-en-layer ke-en-day">
+            <Image src={day} alt="" fill priority sizes="100vw" quality={78} className="ke-bd-img" style={{ objectFit: 'cover' }} />
+            {dayVideo && <AmbientVideo src={dayVideo} poster={day} />}
+          </div>
+          <div className="ke-en-layer ke-en-dusk">
+            <Image src={dusk} alt="" fill sizes="100vw" quality={78} className="ke-bd-img" style={{ objectFit: 'cover' }} />
+            {duskVideo && <AmbientVideo src={duskVideo} poster={dusk} />}
+          </div>
         </div>
         <div className="ke-en-shade" />
         {children}

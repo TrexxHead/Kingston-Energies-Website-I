@@ -2,6 +2,9 @@
 
 import dynamic from 'next/dynamic'
 import VehicleSide2D from './VehicleSide2D'
+import CarPhoto from './CarPhoto'
+import { designFor } from '@/lib/vehicles/designs'
+import { photoFor } from '@/lib/vehicles/carPhotos'
 import type { BodyStyle, Powertrain } from '@/lib/vehicles/vehicle'
 
 /**
@@ -24,6 +27,9 @@ export interface VehicleIllustrationProps {
 
 export default function VehicleIllustration(props: VehicleIllustrationProps) {
   if (VEHICLE_VIEW === '3d') return <VehicleModel3D {...props} />
+  // A rendered picture for the most common models in Jamaica; the drawn side view for the rest.
+  const photo = photoFor(designFor(props.make, props.model, props.year)?.id)
+  if (photo) return <CarPhoto photo={photo} colour={props.colour} height={props.height} label={`Side view of a ${props.make} ${props.model}`} />
   return (
     // Sized by its width (a side view is wide and short), up to the slot's height.
     <div style={{ minHeight: Math.min(props.height ?? 300, 200) * 0.6, maxHeight: props.height, display: 'grid', alignItems: 'center', padding: '4% 4% 0' }}>

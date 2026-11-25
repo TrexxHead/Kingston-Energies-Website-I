@@ -179,7 +179,7 @@ export default function SystemDesigner() {
       {/* ── Left: the system, live ── */}
       <aside className="ke-sd-stage" aria-live="polite">
         <div className="ke-sd-visual">
-          <SystemVisual modules={d?.array.modules ?? 0} inverterKw={d?.inverter.sizeKw ?? null} batteryKwh={d?.battery ? d.battery.nameplateWh / 1000 : null} solarShare={d?.solarShare ?? 0} />
+          <SystemVisual modules={d?.array.modules ?? 0} moduleWatts={d?.array.moduleWatts} kwp={d?.array.kwp} inverterKw={d?.inverter.sizeKw ?? null} batteryKwh={d?.battery ? d.battery.nameplateWh / 1000 : null} solarShare={d?.solarShare ?? 0} gridTied={d?.type === 'grid_tied'} />
         </div>
         {d ? (
           <>

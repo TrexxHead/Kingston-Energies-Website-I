@@ -81,11 +81,11 @@ export default function GarageClient({ tripPlanner = false }: { tripPlanner?: bo
       {vehicles.length === 0 ? (
         <section className="ke-gar-empty" style={card}>
           <div className="ke-gar-empty__art">
-            <VehicleIllustration bodyStyle="crossover" colour="#0f8c8c" powertrain="bev" height={300} />
+            <VehicleIllustration bodyStyle="crossover" colour="#0f8c8c" powertrain="bev" make="BYD" model="Atto 3" year={2024} height={300} />
           </div>
           <div style={{ display: 'grid', gap: 12, alignContent: 'center' }}>
             <h2 style={{ ...h2, fontSize: 26 }}>Add your vehicle</h2>
-            <p style={{ ...muted, margin: 0 }}>Look it up from the US EPA list or your VIN, or type in your own figures. Your car then shows up in 3D here, and every tool that needs it fills itself in.</p>
+            <p style={{ ...muted, margin: 0 }}>Look it up from the US EPA list or your VIN, or type in your own figures. Your car then shows up here in your colour, and every tool that needs it fills itself in.</p>
             <div>
               <Btn onClick={() => edit('new')}>
                 <Plus size={15} aria-hidden /> Add my EV or hybrid

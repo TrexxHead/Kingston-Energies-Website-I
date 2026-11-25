@@ -106,6 +106,9 @@ export default function Navbar() {
           <Link href="/about" style={{ fontSize: 13.5, color: 'rgba(234,242,236,.72)' }}>
             About
           </Link>
+          <Link href="/energy" style={{ fontSize: 13.5, color: 'rgba(234,242,236,.72)' }}>
+            Solar &amp; Energy
+          </Link>
           <EnergyMenu />
           <Link href="/#ke-roadmap" style={{ fontSize: 13.5, color: 'rgba(234,242,236,.72)' }}>
             Roadmap

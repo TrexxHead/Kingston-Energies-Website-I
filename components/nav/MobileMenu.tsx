@@ -10,6 +10,7 @@ const MAIN = [
   { href: '/shop', label: 'Shop' },
   { href: '/services', label: 'Services' },
   { href: '/about', label: 'About' },
+  { href: '/energy', label: 'Solar & Energy' },
   { href: '/#ke-roadmap', label: 'Roadmap' },
 ]
 

@@ -52,9 +52,23 @@ export interface InvoiceMessageInput {
   expiresAt: Date
 }
 
+const TITLES = /^(mr|mrs|ms|miss|mx|dr|rev|pastor|sir|madam)\.?$/i
+
+/**
+ * How to greet the customer on file: their first name ("Joleen Ellis" →
+ * "Joleen"); with a title, title + surname ("Mrs. Brown", "Dr Clarke");
+ * "there" when no name was taken.
+ */
+export function greetingName(customerName: string | null | undefined): string {
+  const parts = (customerName ?? '').trim().split(/\s+/).filter(Boolean)
+  if (!parts.length) return 'there'
+  if (TITLES.test(parts[0]) && parts.length > 1) return `${parts[0]} ${parts[parts.length - 1]}`
+  return parts[0]
+}
+
 /** The prefilled message: an invoice while unpaid, a receipt once paid. */
 export function invoiceMessage(m: InvoiceMessageInput): string {
-  const first = m.customerName.trim().split(/\s+/)[0] || 'there'
+  const first = greetingName(m.customerName)
   const until = m.expiresAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'America/Jamaica' })
   const lines = m.paid
     ? [`Hi ${first}, thank you for your purchase from Kingston Energies.`, '', `Payment received for order ${m.orderNo} (${jmd(m.total)}). Here is your receipt:`, m.link]

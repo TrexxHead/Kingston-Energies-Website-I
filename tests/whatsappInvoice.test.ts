@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { normalizeWhatsAppNumber, formatWhatsAppNumber, whatsAppSendUrl, invoiceMessage } from '@/lib/whatsappInvoice'
+import { normalizeWhatsAppNumber, formatWhatsAppNumber, whatsAppSendUrl, invoiceMessage, greetingName } from '@/lib/whatsappInvoice'
 import { invoiceLink, checkInvoiceLink, invoiceToken } from '@/lib/invoiceLink'
 
 describe('normalizeWhatsAppNumber', () => {
@@ -65,5 +65,16 @@ describe('invoiceMessage', () => {
     const m = invoiceMessage({ ...base, paid: true })
     expect(m).toContain('Payment received for order KE-1048 (J$3,500)')
     expect(m).toContain('receipt')
+  })
+})
+
+describe('greetingName', () => {
+  it('uses the name on file', () => {
+    expect(greetingName('Joleen Ellis')).toBe('Joleen')
+    expect(greetingName('  marcus  ')).toBe('marcus')
+    expect(greetingName('Mrs. Brown')).toBe('Mrs. Brown')
+    expect(greetingName('Dr Andre Clarke')).toBe('Dr Clarke')
+    expect(greetingName('')).toBe('there')
+    expect(greetingName(null)).toBe('there')
   })
 })

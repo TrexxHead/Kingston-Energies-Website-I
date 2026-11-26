@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { sendInvoiceEmail } from '@/lib/email'
+import { trackToken } from '@/lib/trackToken'
 
 const BUSINESS = {
   name: 'Kingston Energies',
@@ -12,7 +13,7 @@ const BUSINESS = {
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 const logoUrl = `${siteUrl}/images/logo-mark.png`
 
-const PAYMENT_LABEL: Record<string, string> = {
+export const PAYMENT_LABEL: Record<string, string> = {
   bank: 'Bank transfer', lynk: 'Lynk', paypal: 'PayPal', card: 'Card', cod: 'Cash on delivery',
 }
 
@@ -189,7 +190,7 @@ export function buildInvoiceHtml(d: InvoiceData): string {
           <div style="flex:1">
             <div style="font-family:${FONT_HEAD};color:#8fbf9c;text-transform:uppercase;font-size:9.5px;letter-spacing:.1em;font-weight:700">Track this order</div>
             <div style="color:#dbe6dd;font-size:12px;margin-top:7px;line-height:1.7">
-              ${siteUrl.replace(/^https?:\/\//, '')}/track?no=${d.orderNo}
+              <a href="${siteUrl}/track?no=${encodeURIComponent(d.orderNo)}&amp;t=${trackToken(d.orderNo)}" style="color:#dbe6dd;text-decoration:underline">Track order ${escapeHtml(d.orderNo)}</a>
             </div>
           </div>
           ${

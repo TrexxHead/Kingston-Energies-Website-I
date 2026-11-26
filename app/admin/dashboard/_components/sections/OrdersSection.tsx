@@ -315,12 +315,84 @@ export default function OrdersSection() {
     const res = await fetch(`/api/admin/orders/${id}/invoice`, { method: 'POST' })
     if (res.ok) {
       const { sent, to } = await res.json()
-      setInvoiceMsg(sent ? `Invoice emailed to ${to}` : to ? 'Email provider not configured: use View invoice' : 'No email on file: use View invoice to share it')
+      setInvoiceMsg(sent ? `Invoice emailed to ${to}` : to ? 'Email provider not configured: use WhatsApp invoice instead' : 'No email on file: use WhatsApp invoice to send it to their phone')
       setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, invoiced: true } : o)))
       setDetail((d) => (d && d.id === id ? { ...d, invoiced: true } : d))
     } else {
       setInvoiceMsg('Could not send invoice')
     }
+  }
+
+  // WhatsApp: the server mints a fresh signed invoice link, builds the
+  // message and logs it; we open WhatsApp on the customer's chat with it
+  // filled in, and staff press send there.
+  const [waBusy, setWaBusy] = useState(false)
+  const prepareInvoiceLink = async (id: string, phone?: string): Promise<{ url: string | null; link: string; to: string | null; kind: string } | null> => {
+    const res = await fetch(`/api/admin/orders/${id}/whatsapp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ via: 'link', ...(phone ? { phone } : {}) }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (res.ok) return data
+    if (data.needsPhone) {
+      const entered = window.prompt(`${data.error} Enter the customer’s WhatsApp number:`, phone ?? '')
+      return entered?.trim() ? prepareInvoiceLink(id, entered.trim()) : null
+    }
+    setInvoiceMsg(data.error ?? 'Could not prepare the WhatsApp message')
+    return null
+  }
+  const sendWhatsApp = async (id: string, hasPhone: boolean) => {
+    if (waBusy) return
+    // Ask for a number first if the order has none, then open the tab inside
+    // the click (browsers block tabs opened after a network wait).
+    let phone: string | undefined
+    if (!hasPhone) {
+      const entered = window.prompt('This order has no phone number. Enter the customer’s WhatsApp number:')
+      if (!entered?.trim()) return
+      phone = entered.trim()
+    }
+    const tab = window.open('', '_blank')
+    setWaBusy(true)
+    setInvoiceMsg('Opening WhatsApp…')
+    const res = await fetch(`/api/admin/orders/${id}/whatsapp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(phone ? { phone } : {}),
+    })
+    const r = await res.json().catch(() => ({}))
+    setWaBusy(false)
+    if (!res.ok) {
+      tab?.close()
+      setInvoiceMsg(r.error ?? 'Could not prepare the WhatsApp message')
+      // The contact on file wasn't a phone number (e.g. an Instagram handle): ask for one.
+      if (r.needsPhone && !phone) sendWhatsApp(id, false)
+      return
+    }
+    if (tab) {
+      tab.opener = null
+      tab.location.href = r.url
+    } else {
+      // Pop-ups blocked: show the link to open by hand rather than leaving the dashboard.
+      setInvoiceMsg('')
+      window.prompt('Pop-ups are blocked. Open this link to send on WhatsApp:', r.url)
+    }
+    setInvoiceMsg(`WhatsApp opened for ${r.to} with the ${r.kind} link: press send there.`)
+    refreshDetail(id)
+  }
+  const copyInvoiceLink = async (id: string) => {
+    if (waBusy) return
+    setWaBusy(true)
+    const r = await prepareInvoiceLink(id)
+    setWaBusy(false)
+    if (!r) return
+    try {
+      await navigator.clipboard.writeText(r.link)
+      setInvoiceMsg(`${r.kind === 'receipt' ? 'Receipt' : 'Invoice'} link copied: paste it into any chat or SMS.`)
+    } catch {
+      window.prompt('Copy this link:', r.link)
+    }
+    refreshDetail(id)
   }
 
   const setPaid = async (id: string, paid: boolean) => {
@@ -342,7 +414,7 @@ export default function OrdersSection() {
     if (res.ok && paid) {
       const { invoice } = await res.json().catch(() => ({}))
       if (invoice?.sent) setInvoiceMsg(`Paid: invoice emailed to ${invoice.to}`)
-      else if (invoice) setInvoiceMsg('Paid: invoice ready (View invoice to share)')
+      else if (invoice) setInvoiceMsg('Paid: send the receipt with WhatsApp receipt, or View invoice to share it')
     }
     setPaidBusy(false)
     load()
@@ -853,6 +925,15 @@ export default function OrdersSection() {
                 </a>
                 <Button size="sm" variant="outline" onClick={() => sendInvoice(detail.id)}>
                   {detail.invoiced ? 'Resend invoice' : 'Send invoice'}
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => sendWhatsApp(detail.id, Boolean(detail.phone || detail.contact))} disabled={waBusy}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <WhatsAppGlyph />
+                    {detail.paid ? 'WhatsApp receipt' : 'WhatsApp invoice'}
+                  </span>
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => copyInvoiceLink(detail.id)} disabled={waBusy}>
+                  Copy link
                 </Button>
                 {detail.hasProofOfPayment && (
                   <a href={`/api/admin/orders/${detail.id}/proof`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
@@ -1411,3 +1492,12 @@ const detailSelect = {
   outline: 'none',
   appearance: 'none',
 } as const
+
+/** WhatsApp mark (simplified), sized for a small button. */
+function WhatsAppGlyph() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden fill="#25D366">
+      <path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.4a.5.5 0 0 0 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.2 2.2 2.2 0 0 0 .1-1.3c0-.1-.2-.2-.4-.3Z" />
+    </svg>
+  )
+}

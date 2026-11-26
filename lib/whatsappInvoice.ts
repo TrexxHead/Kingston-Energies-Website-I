@@ -1,25 +1,31 @@
-import { toJamaicaE164 } from './whatsapp'
-
 /**
  * Sending an invoice or receipt from the business's own WhatsApp: a wa.me
  * click-to-chat link to the CUSTOMER's number with the message filled in.
  * Staff check it and press send in their WhatsApp Business app — nothing is
- * sent automatically and no WhatsApp API account is involved. (lib/whatsapp.ts
- * covers the chat-with-us button and the optional Cloud API.)
+ * sent automatically and no WhatsApp API account is involved.
  */
 
 /**
  * The customer's number as WhatsApp wants it (country code + number, digits
- * only). Jamaican local formats get +1 (see toJamaicaE164); other North
+ * only). Jamaican local formats get +1 (876/658); other North
  * American 10-digit numbers get 1; anything starting with + or 00 is taken as
  * international. Null for things that aren't a phone number, e.g. an
  * Instagram handle in the order's contact field.
  */
+/** Jamaican local formats → digits-only +1 876/658, or null. */
+function jamaicanNumber(s: string): string | null {
+  const d = s.replace(/\D/g, '')
+  if (d.length === 7) return `1876${d}`
+  if (d.length === 10 && /^(876|658)/.test(d)) return `1${d}`
+  if (d.length === 11 && /^1(876|658)/.test(d)) return d
+  return null
+}
+
 export function normalizeWhatsAppNumber(raw: string | null | undefined): string | null {
   if (!raw) return null
   const s = raw.trim()
   if (!s || /[a-z@]/i.test(s)) return null
-  const jm = toJamaicaE164(s)
+  const jm = jamaicanNumber(s)
   if (jm && !s.startsWith('+') && !s.startsWith('00')) return jm
   let d = s.replace(/\D/g, '')
   if (s.startsWith('00')) d = d.slice(2)

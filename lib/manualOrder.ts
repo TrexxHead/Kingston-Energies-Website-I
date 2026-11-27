@@ -7,6 +7,9 @@ import { logActivity } from '@/lib/activityLog'
 
 export interface ManualOrderInput {
   customerName: string
+  /** For a company order: the company, and its TRN for the invoice. */
+  company?: string | null
+  companyTrn?: string | null
   contact?: string | null
   email?: string | null
   phone?: string | null
@@ -43,7 +46,7 @@ export interface ManualOrderInput {
  * exact path instead of a second, drifting copy of the same logic.
  */
 export async function createManualOrder(input: ManualOrderInput) {
-  const { customerName, contact, email, phone, source, paymentMethod, paid, shippingAddress, estimatedDelivery, createdAt, actorEmail, items } = input
+  const { customerName, company, companyTrn, contact, email, phone, source, paymentMethod, paid, shippingAddress, estimatedDelivery, createdAt, actorEmail, items } = input
   const total = items.reduce((sum, i) => sum + i.price * i.qty, 0)
 
   const order = await withOrderNoRetry((orderNo) =>
@@ -52,6 +55,8 @@ export async function createManualOrder(input: ManualOrderInput) {
         data: {
           orderNo,
           customerName,
+          company: company || null,
+          companyTrn: company ? companyTrn || null : null,
           status: 'PENDING',
           source,
           contact: contact ?? null,

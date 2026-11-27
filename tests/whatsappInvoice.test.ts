@@ -78,3 +78,10 @@ describe('greetingName', () => {
     expect(greetingName(null)).toBe('there')
   })
 })
+
+describe('company orders', () => {
+  it('greets the company when there is no contact person', () => {
+    const m = invoiceMessage({ customerName: 'Island Logistics Ltd', greeting: 'Island Logistics Ltd team', orderNo: 'KE-1', total: 100, paid: false, link: 'x', expiresAt: new Date() })
+    expect(m.startsWith('Hi Island Logistics Ltd team,')).toBe(true)
+  })
+})

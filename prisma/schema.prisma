@@ -399,7 +399,9 @@ model Order {
   id           String      @id @default(cuid())
   orderNo       String      @unique
   userId        String?
-  customerName  String
+  customerName  String      // the person (for a company order, the contact person)
+  company       String?     // company / business the order is for (manual orders)
+  companyTrn    String?     // the company's Taxpayer Registration Number, printed on its invoice
   status        OrderStatus @default(PENDING)
   source        OrderChannel @default(WEBSITE)
   contact       String?     // WhatsApp number / Instagram handle for off-site orders

@@ -582,4 +582,8 @@ ALTER TABLE public."SolarProject" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public."SolarProjectEvent" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public."SolarProjectDocument" ENABLE ROW LEVEL SECURITY;
 
+-- Company orders (manual order form: company name + TRN on the order and its invoice).
+ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "company" TEXT;
+ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "companyTrn" TEXT;
+
 COMMIT;

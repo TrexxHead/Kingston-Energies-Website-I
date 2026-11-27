@@ -6,6 +6,7 @@ import Badge from '../ui/Badge'
 import Button from '../ui/Button'
 import Modal from '../ui/Modal'
 import TextInput from '../ui/TextInput'
+import CustomerPicker, { type CrmCustomer, type CustomerMode } from './CustomerPicker'
 import HoldToConfirm from '../ui/HoldToConfirm'
 import TypeToConfirm from '../ui/TypeToConfirm'
 import { cardStyle, h3Style } from '../ui/card'
@@ -20,6 +21,8 @@ interface Order {
   id: string
   orderNo: string
   customerName: string
+  company: string | null
+  companyTrn: string | null
   status: OrderStatus
   source: OrderChannel
   contact: string | null
@@ -115,9 +118,11 @@ export default function OrdersSection() {
   const [newBusy, setNewBusy] = useState(false)
   const [newError, setNewError] = useState('')
   const [newOrder, setNewOrder] = useState({
-    customerName: '', contact: '', email: '', phone: '', shippingAddress: '',
+    customerName: '', company: '', companyTrn: '', contact: '', email: '', phone: '', shippingAddress: '',
     source: 'FACE_TO_FACE' as OrderChannel, paymentMethod: '', paid: false, orderDate: '',
   })
+  const [customerMode, setCustomerMode] = useState<CustomerMode>('new')
+  const [linkedCustomer, setLinkedCustomer] = useState<CrmCustomer | null>(null)
   const [newItems, setNewItems] = useState([{ name: '', price: '', qty: '1' }])
   const [products, setProducts] = useState<{ id: string; name: string; price: number; salePrice: number | null }[]>([])
   const [suggestFor, setSuggestFor] = useState<number | null>(null)
@@ -473,7 +478,9 @@ export default function OrdersSection() {
   }
 
   const resetNewOrder = () => {
-    setNewOrder({ customerName: '', contact: '', email: '', phone: '', shippingAddress: '', source: 'FACE_TO_FACE', paymentMethod: '', paid: false, orderDate: '' })
+    setNewOrder({ customerName: '', company: '', companyTrn: '', contact: '', email: '', phone: '', shippingAddress: '', source: 'FACE_TO_FACE', paymentMethod: '', paid: false, orderDate: '' })
+    setCustomerMode('new')
+    setLinkedCustomer(null)
     setNewItems([{ name: '', price: '', qty: '1' }])
     setNewError('')
   }
@@ -483,7 +490,12 @@ export default function OrdersSection() {
     const items = newItems
       .filter((i) => i.name.trim())
       .map((i) => ({ name: i.name.trim(), price: Number(i.price) || 0, qty: Math.max(1, Number(i.qty) || 1) }))
-    if (!newOrder.customerName.trim()) return setNewError('Enter the customer’s name.')
+    const company = newOrder.company.trim()
+    // A company order may have no named contact: it's then billed to the company alone.
+    const customerName = newOrder.customerName.trim() || (company && (customerMode === 'company' || linkedCustomer?.company) ? company : '')
+    if (customerMode === 'existing' && !linkedCustomer) return setNewError('Pick a customer from the list, or switch to New customer.')
+    if (customerMode === 'company' && !company) return setNewError('Enter the company name.')
+    if (!customerName) return setNewError('Enter the customer’s name.')
     if (items.length === 0) return setNewError('Add at least one item.')
 
     setNewBusy(true)
@@ -491,7 +503,9 @@ export default function OrdersSection() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        customerName: newOrder.customerName.trim(),
+        customerName,
+        company: company || undefined,
+        companyTrn: company ? newOrder.companyTrn.trim() || undefined : undefined,
         contact: newOrder.contact.trim() || undefined,
         email: newOrder.email.trim() || undefined,
         phone: newOrder.phone.trim() || undefined,
@@ -645,7 +659,7 @@ export default function OrdersSection() {
                       {CHANNEL[card.source] && <Badge tone={CHANNEL[card.source]!.tone}>{CHANNEL[card.source]!.label}</Badge>}
                       <Badge tone={card.registered ? 'blue' : 'grey'}>{card.registered ? 'Registered' : 'Guest'}</Badge>
                     </div>
-                    <div style={{ fontSize: 11.5, color: 'var(--color-text-muted)', marginTop: 3 }}>{card.customerName}</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--color-text-muted)', marginTop: 3 }}>{card.company && card.company !== card.customerName ? `${card.company} · ${card.customerName}` : card.customerName}</div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--color-text-muted)' }}>{card.itemCount} items</span>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -825,6 +839,15 @@ export default function OrdersSection() {
               <span style={{ fontWeight: 600 }}>{detail.customerName}</span>
               <Badge tone={detail.registered ? 'blue' : 'grey'} dot>{detail.registered ? 'Registered' : 'Guest'}</Badge>
             </div>
+            {detail.company && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13 }}>
+                <span style={{ color: 'var(--color-text-muted)' }}>Company</span>
+                <span style={{ fontWeight: 600, textAlign: 'right' }}>
+                  {detail.company}
+                  {detail.companyTrn ? <span style={{ fontWeight: 500, color: 'var(--color-text-muted)' }}> · TRN {detail.companyTrn}</span> : null}
+                </span>
+              </div>
+            )}
             {detail.email && (
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13 }}>
                 <span style={{ color: 'var(--color-text-muted)' }}>Email</span>
@@ -1345,7 +1368,36 @@ export default function OrdersSection() {
             For sales that happened outside checkout: Instagram DM, a phone call, face to face, etc. It joins the normal
             pipeline (status, invoicing, delivery tracking) like any other order, but never creates a customer account or earns loyalty points.
           </p>
-          <TextInput label="Customer name" value={newOrder.customerName} onChange={(v) => setNewOrder({ ...newOrder, customerName: v })} />
+          <CustomerPicker
+            mode={customerMode}
+            onMode={(m) => {
+              setCustomerMode(m)
+              setLinkedCustomer(null)
+              // Leaving company mode drops the company; other fields stay as typed.
+              if (m !== 'company') setNewOrder((o) => ({ ...o, company: '', companyTrn: '' }))
+            }}
+            customerName={newOrder.customerName}
+            company={newOrder.company}
+            companyTrn={newOrder.companyTrn}
+            onField={(f) => setNewOrder((o) => ({ ...o, ...f }))}
+            linked={linkedCustomer}
+            onPick={(c) => {
+              setLinkedCustomer(c)
+              setNewOrder((o) => ({
+                ...o,
+                customerName: c.name,
+                company: c.company ?? '',
+                companyTrn: c.companyTrn ?? '',
+                phone: c.phone ?? '',
+                email: c.email ?? '',
+                shippingAddress: c.address ?? o.shippingAddress,
+              }))
+            }}
+            onUnlink={() => {
+              setLinkedCustomer(null)
+              setNewOrder((o) => ({ ...o, customerName: '', company: '', companyTrn: '', phone: '', email: '', shippingAddress: '' }))
+            }}
+          />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <TextInput label="Phone (optional)" value={newOrder.phone} onChange={(v) => setNewOrder({ ...newOrder, phone: v })} />
             <TextInput label="Email (optional)" value={newOrder.email} onChange={(v) => setNewOrder({ ...newOrder, email: v })} type="email" />

@@ -18,6 +18,8 @@ export async function GET() {
       id: o.id,
       orderNo: o.orderNo,
       customerName: o.customerName,
+      company: o.company,
+      companyTrn: o.companyTrn,
       status: o.status,
       source: o.source,
       contact: o.contact,
@@ -56,6 +58,8 @@ const MANUAL_SOURCES = ['WEBSITE', 'WHATSAPP', 'INSTAGRAM', 'FACE_TO_FACE', 'PHO
 
 const manualOrderSchema = z.object({
   customerName: z.string().min(1).max(120),
+  company: z.string().trim().max(120).optional(),
+  companyTrn: z.string().trim().max(40).optional(),
   contact: z.string().max(120).optional(),
   email: z.string().email().optional(),
   phone: z.string().max(40).optional(),
@@ -89,11 +93,13 @@ export async function POST(request: Request) {
   const parsed = manualOrderSchema.safeParse(await request.json().catch(() => null))
   if (!parsed.success) return NextResponse.json({ error: 'Invalid order' }, { status: 400 })
 
-  const { customerName, contact, email, phone, source, paymentMethod, paid, shippingAddress, estimatedDelivery, orderDate, items } = parsed.data
+  const { customerName, company, companyTrn, contact, email, phone, source, paymentMethod, paid, shippingAddress, estimatedDelivery, orderDate, items } = parsed.data
   const session = await requireAdmin().catch(() => null)
 
   const order = await createManualOrder({
     customerName,
+    company,
+    companyTrn,
     contact,
     email,
     phone,

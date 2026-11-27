@@ -31,7 +31,7 @@ export async function GET() {
       where: { role: 'USER' },
       orderBy: { createdAt: 'asc' },
       include: {
-        orders: { select: { total: true, createdAt: true } },
+        orders: { select: { total: true, createdAt: true, shippingAddress: true, company: true, companyTrn: true }, orderBy: { createdAt: 'asc' } },
         tickets: { select: { status: true } },
       },
     }),
@@ -40,7 +40,7 @@ export async function GET() {
     // manually-entered order may not have one).
     prisma.order.findMany({
       where: { userId: null, status: { not: 'CANCELLED' } },
-      select: { id: true, email: true, customerName: true, phone: true, total: true, createdAt: true },
+      select: { id: true, email: true, customerName: true, phone: true, total: true, createdAt: true, shippingAddress: true, company: true, companyTrn: true },
       orderBy: { createdAt: 'asc' },
     }),
     // Admin-merged duplicates — an aliased email's orders count toward whichever
@@ -59,7 +59,7 @@ export async function GET() {
   const guestKey = (o: (typeof guestOrders)[number]): string =>
     o.email ? resolve(o.email) : o.phone ? `phone:${o.phone}` : `order:${o.id}`
 
-  const guestMap = new Map<string, { name: string; email: string | null; phone: string | null; ltv: number; count: number; first: Date; last: Date }>()
+  const guestMap = new Map<string, { name: string; email: string | null; phone: string | null; ltv: number; count: number; first: Date; last: Date; address: string | null; company: string | null; companyTrn: string | null }>()
   for (const o of guestOrders) {
     if (o.email && registeredEmails.has(resolve(o.email))) continue // folded into a registered user below
     const key = guestKey(o)
@@ -70,8 +70,14 @@ export async function GET() {
       if (o.createdAt < g.first) g.first = o.createdAt
       if (o.createdAt > g.last) g.last = o.createdAt
       if (!g.phone && o.phone) g.phone = o.phone
+      // Orders come oldest first, so the latest address / company wins.
+      if (o.shippingAddress) g.address = o.shippingAddress
+      if (o.company) {
+        g.company = o.company
+        g.companyTrn = o.companyTrn ?? g.companyTrn
+      }
     } else {
-      guestMap.set(key, { name: o.customerName, email: o.email ?? null, phone: o.phone, ltv: o.total, count: 1, first: o.createdAt, last: o.createdAt })
+      guestMap.set(key, { name: o.customerName, email: o.email ?? null, phone: o.phone, ltv: o.total, count: 1, first: o.createdAt, last: o.createdAt, address: o.shippingAddress ?? null, company: o.company ?? null, companyTrn: o.companyTrn ?? null })
     }
   }
 
@@ -117,6 +123,9 @@ export async function GET() {
       name: u.name ?? u.email,
       email: u.email,
       phone: u.phone,
+      address: [...u.orders].reverse().find((o) => o.shippingAddress)?.shippingAddress ?? null,
+      company: [...u.orders].reverse().find((o) => o.company)?.company ?? null,
+      companyTrn: [...u.orders].reverse().find((o) => o.company)?.companyTrn ?? null,
       segment: u.segment,
       loyaltyTier: u.loyaltyTier,
       primaryNeed: u.primaryNeed,
@@ -135,6 +144,9 @@ export async function GET() {
     name: g.name || g.email || g.phone || 'Guest',
     email: g.email,
     phone: g.phone,
+    address: g.address,
+    company: g.company,
+    companyTrn: g.companyTrn,
     segment: null,
     loyaltyTier: null,
     primaryNeed: null,

@@ -56,6 +56,8 @@ export interface InvoiceMessageInput {
   paymentLabel?: string | null
   link: string
   expiresAt: Date
+  /** Overrides the greeting, e.g. "Island Logistics team" for a company order with no contact name. */
+  greeting?: string
 }
 
 const TITLES = /^(mr|mrs|ms|miss|mx|dr|rev|pastor|sir|madam)\.?$/i
@@ -74,7 +76,7 @@ export function greetingName(customerName: string | null | undefined): string {
 
 /** The prefilled message: an invoice while unpaid, a receipt once paid. */
 export function invoiceMessage(m: InvoiceMessageInput): string {
-  const first = greetingName(m.customerName)
+  const first = m.greeting?.trim() || greetingName(m.customerName)
   const until = m.expiresAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'America/Jamaica' })
   const lines = m.paid
     ? [`Hi ${first}, thank you for your purchase from Kingston Energies.`, '', `Payment received for order ${m.orderNo} (${jmd(m.total)}). Here is your receipt:`, m.link]

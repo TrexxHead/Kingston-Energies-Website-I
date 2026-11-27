@@ -30,7 +30,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const order = await prisma.order.findUnique({
     where: { id },
-    select: { id: true, orderNo: true, customerName: true, phone: true, contact: true, total: true, paid: true, paymentMethod: true, invoicedAt: true },
+    select: { id: true, orderNo: true, customerName: true, company: true, phone: true, contact: true, total: true, paid: true, paymentMethod: true, invoicedAt: true },
   })
   if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 })
 
@@ -42,6 +42,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const link = invoiceLink(order.orderNo)
   const message = invoiceMessage({
     customerName: order.customerName,
+    // A company order billed to the company alone greets the company, not "Hi Island".
+    greeting: order.company && order.customerName.trim() === order.company.trim() ? `${order.company} team` : undefined,
     orderNo: order.orderNo,
     total: order.total,
     paid: order.paid,

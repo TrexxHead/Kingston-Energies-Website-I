@@ -30,6 +30,9 @@ function fmtAcct(n: number): string {
 export interface InvoiceData {
   orderNo: string
   customerName: string
+  /** Company orders: billed to the company, attention the contact person. */
+  company?: string | null
+  companyTrn?: string | null
   contact: string | null
   email: string | null
   shippingAddress: string | null
@@ -126,7 +129,7 @@ export function buildInvoiceHtml(d: InvoiceData): string {
 
         <div style="display:flex;gap:36px;padding:26px 0;border-bottom:1px solid #e8ece9">
           <div style="flex:1.1;min-width:0">
-            ${addressBlock('Billed to', [d.customerName, d.billingAddress].filter(Boolean).join('\n'))}
+            ${addressBlock('Billed to', (d.company ? [d.company, d.customerName && d.customerName !== d.company ? `Attn: ${d.customerName}` : null, d.companyTrn ? `TRN: ${d.companyTrn}` : null, d.billingAddress] : [d.customerName, d.billingAddress]).filter(Boolean).join('\n'))}
             ${d.shippingAddress && d.shippingAddress !== d.billingAddress ? addressBlock('Ship to', d.shippingAddress) : ''}
             ${addressBlock('Contact', [d.email, d.contact].filter(Boolean).join(' · ') || null)}
           </div>
@@ -230,6 +233,8 @@ export async function invoiceDataForOrder(orderId: string): Promise<{ data: Invo
     data: {
       orderNo: order.orderNo,
       customerName: order.customerName,
+      company: order.company,
+      companyTrn: order.companyTrn,
       contact: order.contact ?? order.phone,
       email,
       shippingAddress: order.shippingAddress,

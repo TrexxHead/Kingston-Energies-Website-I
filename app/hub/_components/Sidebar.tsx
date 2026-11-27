@@ -23,8 +23,11 @@ import {
   X,
   Gauge,
   CloudLightning,
+  Zap,
+  Map as MapIcon,
   ChevronLeft,
   ChevronRight,
+  Sun,
 } from 'lucide-react'
 import { formatCo2 } from '@/lib/impact'
 import { HUB_MAIN_NAV, HUB_TOOLS_NAV, HUB_FOOTER_NAV, type HubNavItem } from './hubNav'
@@ -42,6 +45,9 @@ const ICONS: Record<string, typeof LayoutDashboard> = {
   settings: Settings,
   gauge: Gauge,
   'cloud-lightning': CloudLightning,
+  zap: Zap,
+  map: MapIcon,
+  sun: Sun,
 }
 
 const COLLAPSE_KEY = 'ke-hub-sidebar-collapsed'

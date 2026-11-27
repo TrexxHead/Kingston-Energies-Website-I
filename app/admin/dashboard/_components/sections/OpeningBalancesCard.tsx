@@ -70,7 +70,7 @@ export default function OpeningBalancesCard({ onDone }: { onDone?: () => void })
   if (data.alreadySet) {
     return (
       <div style={{ ...cardStyle, display: 'flex', alignItems: 'center', gap: 12 }}>
-        <CheckCircle2 size={16} color="var(--ke-green-600)" />
+        <CheckCircle2 size={16} color="var(--color-primary)" />
         <div style={{ flex: 1 }}>
           <h3 style={{ ...h3Style, margin: 0 }}>Opening balances set</h3>
           <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: '4px 0 0' }}>

@@ -23,6 +23,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Command,
+  Zap,
 } from 'lucide-react'
 import { NAV, resolve, type NavGroup } from './nav'
 
@@ -40,6 +41,7 @@ const ICONS: Record<string, typeof LayoutDashboard> = {
   'chart-scatter': ChartScatter,
   'book-open': BookOpen,
   settings: Settings,
+  zap: Zap,
 }
 
 const COLLAPSE_KEY = 'ke-admin-sidebar-collapsed'

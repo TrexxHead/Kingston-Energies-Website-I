@@ -273,7 +273,7 @@ export default function CustomersSection() {
               <div
                 key={c.id}
                 onClick={() => setSelId(c.id)}
-                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', borderTop: '1px solid var(--color-border)', cursor: 'pointer', background: isSelected ? 'var(--ke-green-50)' : 'transparent' }}
+                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', borderTop: '1px solid var(--color-border)', cursor: 'pointer', background: isSelected ? 'var(--color-primary-soft)' : 'transparent' }}
               >
                 <div style={{ width: 34, height: 34, borderRadius: '50%', ...avatarGradient, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 12, flexShrink: 0 }}>
                   {initials(c.name)}
@@ -375,7 +375,7 @@ export default function CustomersSection() {
                   </label>
                 </>
               ) : (
-                <div style={{ background: 'var(--ke-sun-50,#fff7e6)', borderRadius: 10, padding: '10px 12px', marginBottom: 14, fontSize: 12, color: 'var(--color-text-muted)' }}>
+                <div style={{ background: 'var(--color-warning-soft)', borderRadius: 10, padding: '10px 12px', marginBottom: 14, fontSize: 12, color: 'var(--color-text-muted)' }}>
                   Guest customer: profile fields (segment, loyalty, need) unlock automatically if they create an account with this email.
                 </div>
               )}

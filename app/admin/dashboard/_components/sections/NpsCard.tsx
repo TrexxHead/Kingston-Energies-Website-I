@@ -23,7 +23,7 @@ interface NpsData {
 function npsColor(score: number): string {
   if (score < 0) return 'var(--color-danger)'
   if (score < 30) return 'var(--ke-sun-500)'
-  return 'var(--ke-green-600)'
+  return 'var(--color-primary)'
 }
 
 export default function NpsCard() {
@@ -65,7 +65,7 @@ export default function NpsCard() {
               {overall.score}
             </div>
             <div style={{ fontSize: 11.5, color: 'var(--color-text-muted)', paddingBottom: 4 }}>
-              <span style={{ color: 'var(--ke-green-600)' }}>{overall.promoters} promoters</span> ·{' '}
+              <span style={{ color: 'var(--color-primary)' }}>{overall.promoters} promoters</span> ·{' '}
               {overall.passives} passives ·{' '}
               <span style={{ color: 'var(--color-danger)' }}>{overall.detractors} detractors</span>
             </div>

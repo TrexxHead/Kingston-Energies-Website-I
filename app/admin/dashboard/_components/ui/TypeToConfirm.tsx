@@ -51,7 +51,7 @@ export default function TypeToConfirm({ word, label, onConfirm, disabled, busyLa
         style={{
           height: 32, borderRadius: 8, border: 'none', fontSize: 12.5, fontWeight: 700,
           cursor: ready && !disabled ? 'pointer' : 'default',
-          background: 'var(--color-danger)', color: '#fff',
+          background: 'var(--color-danger)', color: 'var(--color-text-inverse)',
           opacity: ready && !disabled ? 1 : 0.4,
         }}
       >

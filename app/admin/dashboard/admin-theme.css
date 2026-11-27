@@ -1,0 +1,26 @@
+/* Console-only theme fixes, scoped to the console shell (.ke-admin) — Next
+   keeps imported CSS on the page after navigating back to the storefront.
+   Everything here matches the light theme's previous look; it exists so dark
+   mode doesn't fall back to fixed light-theme colours. */
+
+/* Plain (class-less) links: the theme-aware version of the shared link green. */
+.ke-admin a:not([class]) { color: var(--color-primary-strong); }
+.ke-admin a:not([class]):hover { color: var(--color-primary); }
+
+/* Native form controls: theme-aware selects (and their option lists) and text
+   fields instead of browser defaults. Inline styles still win where a control
+   sets its own. */
+.ke-admin select,
+.ke-admin option,
+.ke-admin optgroup {
+  color: var(--color-text);
+  background-color: var(--color-surface);
+}
+.ke-admin input,
+.ke-admin textarea {
+  color: var(--color-text);
+}
+.ke-admin input::placeholder,
+.ke-admin textarea::placeholder {
+  color: var(--color-text-subtle);
+}

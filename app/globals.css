@@ -90,3 +90,14 @@ body {
   mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent);
   -webkit-mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent);
 }
+
+/* Native dropdown lists are drawn by the browser in its own colours, but
+   inherit the <select>'s text colour — so a white-text select on one of the
+   dark tool pages opened as white-on-white. Give option lists the browser's
+   matching field colours: dark on dark controls (color-scheme: dark), light
+   elsewhere, always readable. */
+select option,
+select optgroup {
+  color: FieldText;
+  background-color: Field;
+}

@@ -427,6 +427,76 @@ export async function sendPersonalizedBulkEmail(recipients: string[], subject: s
   return sent
 }
 
+/**
+ * Daily station re-check list for admins (Energy Map, roadmap M2). Skipped
+ * — with a log line — when no e-mail provider is configured or nothing is due.
+ */
+export async function sendStationStatusDigest(digest: import('./map/reminders').ReminderDigest): Promise<{ sent: number; skipped?: string }> {
+  if (digest.isEmpty) return { sent: 0, skipped: 'nothing due' }
+  if (!isEmailConfigured()) {
+    console.info('[email] skipped station status digest (no provider configured)')
+    return { sent: 0, skipped: 'no provider' }
+  }
+  const recipients = await adminRecipients()
+  if (recipients.length === 0) return { sent: 0, skipped: 'no admin recipients' }
+  const site = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://kingstonenergies.com'
+  const day = (iso: string) => new Date(iso).toLocaleDateString('en-JM', { timeZone: 'America/Jamaica', day: 'numeric', month: 'short' })
+  const link = (id: string, name: string) => `<a href="${site}/admin/dashboard/platform/map?station=${encodeURIComponent(id)}" style="color:#1f6b45;font-weight:600">${escapeHtml(name)}</a>`
+  const section = (title: string, note: string, rows: string[]) =>
+    rows.length ? `<h3 style="margin:18px 0 4px;font-size:15px">${title} (${rows.length})</h3><p style="margin:0 0 6px;font-size:12.5px;color:#556059">${note}</p><ul style="margin:0;padding-left:18px;font-size:13.5px;line-height:1.6">${rows.join('')}</ul>` : ''
+  const item = (i: import('./map/reminders').ReminderItem, verb: string) => `<li>${link(i.stationId, i.name)} · ${escapeHtml(i.parish)} · ${escapeHtml(i.connectors.join(', '))} — ${verb} ${day(i.checkedAt)}</li>`
+  const html = wrapEmailHtml(
+    'Chargers to re-check today',
+    `<p>These Energy Map stations need a fresh check (site visit, call or operator app) so the public map stays accurate.</p>` +
+      section('Pending “not working” reports', 'Drivers reported a problem. Nothing changes on the map until you record a check.', digest.faultReports.map((r) => `<li>${link(r.stationId, r.stationName)} — ${escapeHtml(r.kind.replace(/_/g, ' '))}, seen ${day(r.observedAt)}</li>`)) +
+      section('Working check expires within a day', 'Re-check today or these show “Status unknown” tomorrow.', digest.expiringSoon.map((i) => item(i, 'confirmed working'))) +
+      section('Now showing “Status unknown”', 'The working check lapsed in the last day.', digest.justLapsed.map((i) => item(i, 'last confirmed'))) +
+      section('Out of service for over a week', 'Has it been repaired?', digest.longFaults.map((i) => item(i, 'marked out of service'))),
+  )
+  const total = digest.faultReports.length + digest.expiringSoon.length + digest.justLapsed.length + digest.longFaults.length
+  let sent = 0
+  await Promise.all(
+    recipients.map(async (to) => {
+      try {
+        await deliver({ to, subject: `Energy Map: ${total} charger${total === 1 ? '' : 's'} to re-check`, html })
+        sent++
+      } catch (err) {
+        console.error('[email] failed to send station status digest:', err)
+      }
+    }),
+  )
+  return { sent }
+}
+
+/** Booking received: confirmation to the customer (if they gave an e-mail) and an alert to admins. */
+export async function sendBookingEmails(b: { bookingNo: string; serviceName: string; date: string; window: string; customerName: string; email: string | null; phone: string; parish: string; address: string | null; notes: string | null; depositAmount: number }, payOnline: boolean): Promise<void> {
+  if (!isEmailConfigured()) {
+    console.info(`[email] skipped booking emails for ${b.bookingNo} (no provider configured)`)
+    return
+  }
+  const site = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://kingstonenergies.com'
+  const when = `${new Date(`${b.date}T12:00:00Z`).toLocaleDateString('en-JM', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' })}, ${b.window}`
+  const deposit = b.depositAmount > 0 ? (payOnline ? `<p>Your booking is held while the ${fmt(b.depositAmount)} deposit is paid. If the payment page closed, reply to this e-mail and we’ll help.</p>` : `<p>A ${fmt(b.depositAmount)} deposit applies — we’ll contact you to arrange it.</p>`) : ''
+  if (b.email) {
+    try {
+      await deliver({
+        to: b.email,
+        subject: `Booking ${b.bookingNo} received — ${b.serviceName}`,
+        html: wrapEmailHtml('Booking received', `<p>Hi ${escapeHtml(b.customerName)}, thanks — we’ve received your request for <strong>${escapeHtml(b.serviceName)}</strong> on <strong>${escapeHtml(when)}</strong> (reference ${b.bookingNo}).</p>${deposit}<p>A member of our team will confirm the visit with you by phone.</p>`),
+      })
+    } catch (err) {
+      console.error('[email] booking confirmation failed:', err)
+    }
+  }
+  try {
+    const recipients = await adminRecipients()
+    const html = wrapEmailHtml('New booking', `<p><strong>${escapeHtml(b.customerName)}</strong> (${escapeHtml(b.phone)}${b.email ? `, ${escapeHtml(b.email)}` : ''}) booked <strong>${escapeHtml(b.serviceName)}</strong> for ${escapeHtml(when)} in ${escapeHtml(b.parish)}.</p>${b.address ? `<p>${escapeHtml(b.address)}</p>` : ''}${b.notes ? `<p>${escapeHtml(b.notes)}</p>` : ''}<p>Deposit: ${b.depositAmount > 0 ? `${fmt(b.depositAmount)} (${payOnline ? 'online, awaiting payment' : 'to arrange'})` : 'none'}</p><a href="${site}/admin/dashboard/platform/bookings" style="color:#1f6b45;font-weight:600">Open bookings</a>`)
+    await Promise.all(recipients.map((to) => deliver({ to, subject: `Booking ${b.bookingNo}: ${b.serviceName}, ${when}`, html })))
+  } catch (err) {
+    console.error('[email] booking admin alert failed:', err)
+  }
+}
+
 async function deliver({ to, subject, html }: { to: string; subject: string; html: string }): Promise<void> {
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -502,4 +572,43 @@ function renderVerificationHtml(input: VerificationEmailInput): string {
 
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string))
+}
+
+/**
+ * Solar project emails: a new project from the online designer (customer
+ * confirmation + admin alert), a quote ready to review, and stage updates.
+ * Best-effort; never throws.
+ */
+export async function sendSolarProjectEmail(input: {
+  kind: 'created' | 'quote_sent' | 'stage'
+  projectNo: string
+  customerName: string
+  email: string
+  summary: string[]
+  stageLabel?: string
+  stageText?: string
+}): Promise<void> {
+  if (!isEmailConfigured()) {
+    console.info(`[email] skipped solar-project ${input.kind} email for ${input.projectNo} (no provider configured)`)
+    return
+  }
+  const site = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://kingstonenergies.com'
+  const link = `${site}/hub/projects`
+  const btn = (href: string, text: string) => `<a href="${href}" style="display:inline-block;margin-top:14px;background:#1f6b45;color:#fff;text-decoration:none;padding:10px 20px;border-radius:999px;font-weight:600;font-size:13px">${text}</a>`
+  const list = `<ul style="font-size:13.5px;color:#1c2a25;padding-left:18px">${input.summary.map((l) => `<li>${escapeHtml(l)}</li>`).join('')}</ul>`
+  const hi = `<p>Hi ${escapeHtml(input.customerName)},</p>`
+  const ref = `<p style="font-size:12.5px;color:#556059">Project ${escapeHtml(input.projectNo)}. Sign in with ${escapeHtml(input.email)} to follow it.</p>`
+  try {
+    if (input.kind === 'created') {
+      await deliver({ to: input.email, subject: `Your solar design ${input.projectNo}`, html: wrapEmailHtml('We have your solar design', `${hi}<p>Thanks — here’s the design you sent. We’ll call to arrange a site survey, then send your quote.</p>${list}${ref}${btn(link, 'Follow your project')}`) })
+      const admins = await adminRecipients()
+      await Promise.all(admins.map((to) => deliver({ to, subject: `New solar project ${input.projectNo}: ${input.customerName}`, html: wrapEmailHtml('New solar project', `<p><strong>${escapeHtml(input.customerName)}</strong> (${escapeHtml(input.email)}) sent a design.</p>${list}${btn(`${site}/admin/dashboard/platform/projects`, 'Open the project')}`) })))
+    } else if (input.kind === 'quote_sent') {
+      await deliver({ to: input.email, subject: `Your solar quote ${input.projectNo} is ready`, html: wrapEmailHtml('Your quote is ready', `${hi}<p>Your quotation is ready to review and accept online.</p>${list}${ref}${btn(link, 'Review your quote')}`) })
+    } else {
+      await deliver({ to: input.email, subject: `Solar project ${input.projectNo}: ${input.stageLabel ?? 'update'}`, html: wrapEmailHtml(input.stageLabel ?? 'Project update', `${hi}<p>${escapeHtml(input.stageText ?? 'Your project has moved forward.')}</p>${ref}${btn(link, 'See the details')}`) })
+    }
+  } catch (err) {
+    console.error('[email] solar project email failed:', err)
+  }
 }

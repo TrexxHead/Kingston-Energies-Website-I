@@ -73,7 +73,7 @@ export default function FeedPreview() {
               {i.priority === 'URGENT' ? (
                 <AlertTriangle size={14} style={{ color: STATUS.critical, flexShrink: 0 }} aria-label="Urgent" />
               ) : (
-                <AlertCircle size={14} style={{ color: 'var(--ke-sun-600,#b45309)', flexShrink: 0 }} aria-label="Needs a look" />
+                <AlertCircle size={14} style={{ color: 'var(--color-warning-strong)', flexShrink: 0 }} aria-label="Needs a look" />
               )}
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: CHROME.text }}>{i.title}</span>

@@ -128,8 +128,8 @@ export default function QuotationsTab() {
       ) : (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }} className="kad-kpi-grid">
-            <div style={cardStyle}><StatTile label="Open quotes" value={String(open.length)} sub={fmt(openValue) + ' indicative'} subTone="var(--ke-green-600)" /></div>
-            <div style={cardStyle}><StatTile label="Converted" value={String(convertedThisSet.length)} sub={fmt(convertedValue) + ' became orders'} subTone="var(--ke-green-600)" /></div>
+            <div style={cardStyle}><StatTile label="Open quotes" value={String(open.length)} sub={fmt(openValue) + ' indicative'} subTone="var(--color-primary)" /></div>
+            <div style={cardStyle}><StatTile label="Converted" value={String(convertedThisSet.length)} sub={fmt(convertedValue) + ' became orders'} subTone="var(--color-primary)" /></div>
             <div style={cardStyle}><StatTile label="All quote requests" value={String(quotes.length)} sub="Since launch" /></div>
           </div>
 
@@ -219,7 +219,7 @@ export default function QuotationsTab() {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--color-border)' }}>
                       <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14 }}>{fmt(total)}</span>
                       {l.convertedOrderNo ? (
-                        <a href="/admin/dashboard/orders" style={{ fontSize: 12.5, color: 'var(--ke-green-700)', display: 'inline-flex', alignItems: 'center', gap: 4, textDecoration: 'none', fontWeight: 600 }}>
+                        <a href="/admin/dashboard/orders" style={{ fontSize: 12.5, color: 'var(--color-primary-strong)', display: 'inline-flex', alignItems: 'center', gap: 4, textDecoration: 'none', fontWeight: 600 }}>
                           View order {l.convertedOrderNo} <ExternalLink size={12} />
                         </a>
                       ) : (
@@ -229,7 +229,7 @@ export default function QuotationsTab() {
                           disabled={converting === l.id}
                           style={{
                             display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12.5, fontWeight: 600,
-                            color: '#fff', background: 'var(--ke-green-600)', border: 'none', borderRadius: 999,
+                            color: 'var(--color-primary-contrast)', background: 'var(--color-primary)', border: 'none', borderRadius: 999,
                             padding: '7px 14px', cursor: converting === l.id ? 'default' : 'pointer', opacity: converting === l.id ? 0.6 : 1,
                           }}
                         >
@@ -585,7 +585,7 @@ function EditQuotationModal({ lead, products, onClose, onSaved }: { lead: Lead; 
         <button
           type="button"
           onClick={() => setRows((prev) => [...prev, { name: '', price: '', qty: '1' }])}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 8, background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: 'var(--ke-green-700,#15803d)', padding: 0 }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 8, background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: 'var(--color-primary-strong)', padding: 0 }}
         >
           <Plus size={13} /> Add item
         </button>

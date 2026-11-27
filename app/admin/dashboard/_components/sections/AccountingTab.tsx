@@ -96,7 +96,7 @@ export default function AccountingTab() {
         <div style={{ flex: 1, minWidth: 220 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {status && status.balanced ? (
-              <CheckCircle2 size={16} color="var(--ke-green-600)" />
+              <CheckCircle2 size={16} color="var(--color-primary)" />
             ) : (
               <AlertTriangle size={16} color="var(--ke-sun-500)" />
             )}
@@ -110,7 +110,7 @@ export default function AccountingTab() {
               : 'Loading…'}
           </p>
           {status && unposted > 0 && (
-            <p style={{ fontSize: 12.5, color: 'var(--ke-sun-600, #b45309)', margin: '6px 0 0', fontWeight: 600 }}>
+            <p style={{ fontSize: 12.5, color: 'var(--color-warning-strong)', margin: '6px 0 0', fontWeight: 600 }}>
               {unposted} operational record{unposted === 1 ? '' : 's'} not yet journalled. Run Sync to bring the books current.
             </p>
           )}
@@ -711,7 +711,7 @@ function BalanceSheet() {
         </div>
 
         {Math.abs(data.outOfBalance) >= 1 && (
-          <p style={{ fontSize: 12.5, color: 'var(--ke-sun-600,#b45309)', fontWeight: 600, marginTop: 14 }}>
+          <p style={{ fontSize: 12.5, color: 'var(--color-warning-strong)', fontWeight: 600, marginTop: 14 }}>
             Out of balance by {fmt(Math.round(data.outOfBalance))}. Check the trial balance for an unbalanced entry.
           </p>
         )}

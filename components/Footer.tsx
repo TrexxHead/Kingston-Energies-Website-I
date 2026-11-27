@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import WhatsAppButton from './WhatsAppButton'
+import { ENERGY_GROUPS } from './nav/energyNav'
 import { ArrowRight, Mail, Phone } from 'lucide-react'
 import { analytics } from '@/lib/analytics'
 
@@ -23,6 +25,9 @@ const SHOP_COLUMN = [
   { href: '/shop?category=stations', label: 'Stations' },
   { href: '/bulk-corporate', label: 'Bulk & corporate' },
 ]
+
+// The energy tools, from the same grouped list as the navbar menu.
+const ENERGY_COLUMN = ENERGY_GROUPS.flatMap((g) => g.links.map((l) => ({ href: l.href, label: l.label })))
 
 const COMPANY_COLUMN = [
   { href: '/about', label: 'About' },
@@ -215,7 +220,7 @@ export default function Footer({ showCta = true }: { showCta?: boolean }) {
           margin: '0 auto',
           padding: showCta ? '48px 32px 40px' : 'clamp(56px,8vw,88px) 32px 40px',
           display: 'grid',
-          gridTemplateColumns: '1.4fr 1fr 1fr 1fr',
+          gridTemplateColumns: '1.4fr 1fr 1fr 1fr 1fr',
           gap: 40,
         }}
         className="ke-footer-grid"
@@ -240,6 +245,7 @@ export default function Footer({ showCta = true }: { showCta?: boolean }) {
               <Mail size={13} />
               kingstonenergygroup@outlook.com
             </a>
+            <WhatsAppButton style={{ height: 32, fontSize: 12.5, padding: '0 12px', alignSelf: 'flex-start' }} />
             <a
               href="https://instagram.com/kingstonenergies"
               target="_blank"
@@ -257,13 +263,14 @@ export default function Footer({ showCta = true }: { showCta?: boolean }) {
         </div>
 
         <FooterColumn title="Shop" links={SHOP_COLUMN} />
+        <FooterColumn title="My Energy" links={ENERGY_COLUMN} />
         <FooterColumn title="Company" links={COMPANY_COLUMN} />
         <FooterColumn title="Legal" links={LEGAL_COLUMN} />
       </div>
 
       <div style={{ borderTop: '1px solid rgba(255,255,255,.06)' }}>
         <div style={{ maxWidth: 1240, margin: '0 auto', padding: '16px 32px', textAlign: 'center' }}>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '.22em', color: 'rgba(234,242,236,.4)' }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '.22em', color: 'rgba(234,242,236,.62)' }}>
             © 2026 KINGSTON ENERGIES: POWERING PROGRESS
           </span>
         </div>

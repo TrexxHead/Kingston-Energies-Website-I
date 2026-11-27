@@ -9,6 +9,8 @@ import CommandPalette, { navCommands } from './_components/CommandPalette'
 import { themeInitScript } from './_components/ThemeToggle'
 import { allPages } from './_components/nav'
 import '../../_design-system/tokens.css'
+// After tokens.css: overrides some of its shared rules at equal specificity.
+import './admin-theme.css'
 
 /**
  * The console shell.
@@ -35,7 +37,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div
-      className={`${keFontVariables} ke-root`}
+      className={`${keFontVariables} ke-root ke-admin`}
       style={{
         fontFamily: 'var(--font-body)',
         color: 'var(--color-text)',

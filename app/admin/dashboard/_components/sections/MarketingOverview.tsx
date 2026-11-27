@@ -116,8 +116,8 @@ export default function MarketingOverview() {
             style={{
               height: 30, padding: '0 12px', borderRadius: 999, fontSize: 12.5, fontFamily: 'var(--font-display)', fontWeight: 600,
               border: '1px solid var(--color-border)', cursor: 'pointer',
-              background: days === r ? 'var(--ke-green-600)' : 'var(--color-surface)',
-              color: days === r ? '#fff' : 'var(--color-text-muted)',
+              background: days === r ? 'var(--color-primary)' : 'var(--color-surface)',
+              color: days === r ? 'var(--color-primary-contrast)' : 'var(--color-text-muted)',
             }}
           >
             {r}d

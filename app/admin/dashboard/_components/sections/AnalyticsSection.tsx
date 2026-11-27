@@ -77,7 +77,7 @@ export default function AnalyticsSection() {
           footnote={
             <>
               Abandoned carts: <strong>{k ? k.abandonedCarts : 'N/A'}</strong> · potential recovery{' '}
-              <strong style={{ color: 'var(--ke-green-700)' }}>{k ? fmt(k.abandonedValue) : 'N/A'}</strong>
+              <strong style={{ color: 'var(--color-primary-strong)' }}>{k ? fmt(k.abandonedValue) : 'N/A'}</strong>
               <span style={{ display: 'block', fontSize: 11, marginTop: 2, color: 'var(--color-text-subtle)' }}>
                 Carts idle 60+ minutes with items in them, since launch (1 Aug 2026) and excluding admin accounts —
                 same figure as the Executive Dashboard.

@@ -89,7 +89,7 @@ export default function ExecutiveSection() {
               label={s.label}
               value={m ? s.value : <Skeleton width={64} height={22} />}
               sub={m ? s.sub : undefined}
-              subTone="var(--ke-green-600)"
+              subTone="var(--color-primary)"
             />
           </div>
         ))}
@@ -172,7 +172,7 @@ export default function ExecutiveSection() {
               <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>total customers</div>
             </div>
             <div>
-              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 26, color: 'var(--ke-green-600)' }}>
+              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 26, color: 'var(--color-primary)' }}>
                 +{m?.customerGrowth.newThisMonth ?? 0}
               </div>
               <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>new this month</div>
@@ -215,7 +215,7 @@ export default function ExecutiveSection() {
           <h3 style={{ ...h3Style, margin: 0 }}>Cash-flow calendar</h3>
           <Link
             href="/admin/dashboard/finance/calendar"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12.5, fontWeight: 600, color: 'var(--ke-green-700,#15803d)', textDecoration: 'none' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12.5, fontWeight: 600, color: 'var(--color-primary-strong)', textDecoration: 'none' }}
           >
             Open in Finance <ArrowUpRight size={13} />
           </Link>

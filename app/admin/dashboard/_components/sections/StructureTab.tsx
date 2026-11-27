@@ -121,10 +121,10 @@ function Branches() {
             gap: 10,
             alignItems: 'flex-start',
             borderColor: 'var(--ke-sun-300,#fcd34d)',
-            background: 'var(--ke-sun-50,#fffbeb)',
+            background: 'var(--color-warning-soft)',
           }}
         >
-          <AlertTriangle size={16} style={{ color: 'var(--ke-sun-600,#b45309)', flexShrink: 0, marginTop: 2 }} />
+          <AlertTriangle size={16} style={{ color: 'var(--color-warning-strong)', flexShrink: 0, marginTop: 2 }} />
           <div style={{ fontSize: 13, lineHeight: 1.55 }}>
             Only {coverage}% of journal entries are attributed to a branch, so per-branch figures will be missing most
             of the business. Group totals are unaffected. They always cover everything.

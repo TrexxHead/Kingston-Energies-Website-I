@@ -86,7 +86,7 @@ export default function ProfitLossCard({ view = 'report' }: { view?: View }) {
     <div style={cardStyle}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-          <Icon size={17} color="var(--ke-green-600)" />
+          <Icon size={17} color="var(--color-primary)" />
           <h3 style={{ ...h3Style, margin: 0 }}>{title}{s ? ` · ${s.periodLabel}` : ''}</h3>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -135,7 +135,7 @@ export default function ProfitLossCard({ view = 'report' }: { view?: View }) {
             divider
           />
           {s.cogsCoverage < 100 && (
-            <p style={{ fontSize: 12, color: 'var(--ke-sun-600, #b45309)', marginTop: 16, fontWeight: 600 }}>
+            <p style={{ fontSize: 12, color: 'var(--color-warning-strong)', marginTop: 16, fontWeight: 600 }}>
               Set each product&apos;s <strong>unit cost</strong> in Inventory for accurate COGS &amp; margins. The figures above overstate profit until you do.
             </p>
           )}
@@ -176,9 +176,9 @@ function Line({ label, value, sub, strong, big, muted, small, divider, warn }: {
     <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, padding: small ? '3px 0' : '5px 0', borderTop: divider ? '1px solid var(--color-border)' : undefined, marginTop: divider ? 6 : 0, paddingTop: divider ? 8 : undefined }}>
       <span style={{ fontSize: small ? 12 : 13, color: muted ? 'var(--color-text-muted)' : 'var(--color-text)', fontWeight: strong ? 700 : 400 }}>
         {label}
-        {sub && <span style={{ display: 'block', fontSize: 10.5, color: warn ? 'var(--ke-sun-600, #b45309)' : 'var(--color-text-subtle)', fontWeight: warn ? 700 : 400 }}>{sub}</span>}
+        {sub && <span style={{ display: 'block', fontSize: 10.5, color: warn ? 'var(--color-warning-strong)' : 'var(--color-text-subtle)', fontWeight: warn ? 700 : 400 }}>{sub}</span>}
       </span>
-      <span style={{ fontFamily: 'var(--font-display)', fontWeight: strong ? 800 : 600, fontSize: big ? 18 : small ? 12.5 : 13.5, color: neg ? 'var(--color-text-muted)' : warn ? 'var(--ke-sun-600, #b45309)' : strong ? 'var(--color-text)' : 'var(--color-text)', whiteSpace: 'nowrap' }}>
+      <span style={{ fontFamily: 'var(--font-display)', fontWeight: strong ? 800 : 600, fontSize: big ? 18 : small ? 12.5 : 13.5, color: neg ? 'var(--color-text-muted)' : warn ? 'var(--color-warning-strong)' : strong ? 'var(--color-text)' : 'var(--color-text)', whiteSpace: 'nowrap' }}>
         {neg ? '−' : ''}{fmt(Math.abs(value))}
       </span>
     </div>

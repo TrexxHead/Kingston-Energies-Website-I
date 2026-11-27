@@ -8,6 +8,7 @@ export interface HubNavItem {
 export const HUB_MAIN_NAV: HubNavItem[] = [
   { icon: 'layout-dashboard', label: 'Overview', href: '/hub' },
   { icon: 'package', label: 'Orders', href: '/hub/orders' },
+  { icon: 'sun', label: 'Solar projects', href: '/hub/projects' },
   { icon: 'bell', label: 'Notifications', href: '/hub/notifications' },
   { icon: 'battery-charging', label: 'My devices', href: '/hub/devices' },
   { icon: 'heart', label: 'Saved', href: '/hub/saved' },
@@ -18,7 +19,9 @@ export const HUB_MAIN_NAV: HubNavItem[] = [
 
 // Tools group — sits below the main account nav, per the Energy Checkup spec.
 export const HUB_TOOLS_NAV: HubNavItem[] = [
+  { icon: 'zap', label: 'My energy', href: '/my-energy' },
   { icon: 'gauge', label: 'Energy checkup', href: '/hub/energy-checkup' },
+  { icon: 'map', label: 'Energy map', href: '/energy-map' },
   { icon: 'cloud-lightning', label: 'Storm prep', href: '/hub/storm-prep' },
 ]
 

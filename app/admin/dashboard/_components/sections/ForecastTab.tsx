@@ -119,7 +119,7 @@ export default function ForecastTab() {
           </div>
 
           {data.cashRunwayMonths && (
-            <p style={{ fontSize: 12.5, color: 'var(--ke-sun-600,#b45309)', fontWeight: 600, margin: 0 }}>
+            <p style={{ fontSize: 12.5, color: 'var(--color-warning-strong)', fontWeight: 600, margin: 0 }}>
               On current trend, cash could go negative in about {data.cashRunwayMonths} month{data.cashRunwayMonths === 1 ? '' : 's'},
               worth treating as an early warning rather than a prediction, given the {CONF_LABEL[data.confidence].toLowerCase()}.
             </p>
@@ -173,7 +173,7 @@ export default function ForecastTab() {
 function Stat({ label, value, warn }: { label: string; value: string; warn?: boolean }) {
   return (
     <div style={{ ...cardStyle, borderRadius: 14, padding: 16 }}>
-      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 21, letterSpacing: '-.01em', color: warn ? 'var(--ke-sun-600,#b45309)' : undefined }}>{value}</div>
+      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 21, letterSpacing: '-.01em', color: warn ? 'var(--color-warning-strong)' : undefined }}>{value}</div>
       <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '.1em', color: 'var(--color-text-muted)', marginTop: 6, textTransform: 'uppercase' }}>{label}</div>
     </div>
   )

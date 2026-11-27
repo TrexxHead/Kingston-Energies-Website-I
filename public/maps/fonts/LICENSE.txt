@@ -1,0 +1,3 @@
+Open Sans glyph ranges (Regular, Semibold, Bold, Italic) for the Kingston Energies map.
+Open Sans by Steve Matteson — Apache License 2.0 (https://www.apache.org/licenses/LICENSE-2.0).
+Glyph PBFs as distributed with the MapLibre/TileServer GL test data.

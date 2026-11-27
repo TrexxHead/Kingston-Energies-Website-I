@@ -9,22 +9,38 @@
 // route handlers — the browser never talks to either directly, so allowing
 // them in connect-src (a directive that only matters for browser
 // fetch/XHR/WebSocket) served no purpose and was pure attack surface.
-const csp = [
-  "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com",
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' https: data: blob:",
-  "font-src 'self' data:",
-  "connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com",
-  "frame-src 'self' https://jm.wipayfinancial.com https://accounts.google.com",
-  "frame-ancestors 'none'",
-  "base-uri 'self'",
-  "object-src 'none'",
-  "worker-src 'self'",
-  "manifest-src 'self'",
-  "form-action 'self' https://jm.wipayfinancial.com",
-  'upgrade-insecure-requests',
-].join('; ')
+function buildCsp({ googleMaps = false, appleMaps = false } = {}) {
+  // Google's allowlist for the Maps JavaScript API includes 'unsafe-eval' and
+  // blob: workers; it is granted on the map page only, never site-wide.
+  const maps = googleMaps ? " 'unsafe-eval' blob: https://*.googleapis.com https://*.gstatic.com https://*.google.com https://*.ggpht.com" : ''
+  // Apple MapKit JS (solar estimator satellite imagery): its CDN, blob workers
+  // and WebAssembly, per Apple's published CSP guidance.
+  const apple = appleMaps ? ' https://*.apple-mapkit.com' : ''
+  return [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com" + maps + (appleMaps ? " 'wasm-unsafe-eval' https://cdn.apple-mapkit.com" : ''),
+    "style-src 'self' 'unsafe-inline'" + (googleMaps ? ' https://fonts.googleapis.com' : ''),
+    "img-src 'self' https: data: blob:",
+    "font-src 'self' data:" + (googleMaps ? ' https://fonts.gstatic.com' : ''),
+    "connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com" + (googleMaps ? ' https://*.googleapis.com https://*.gstatic.com https://*.google.com data: blob:' : '') + (appleMaps ? apple + ' blob:' : ''),
+    "frame-src 'self' https://jm.wipayfinancial.com https://accounts.google.com" + (googleMaps ? ' https://*.google.com' : '') + apple,
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "object-src 'none'",
+    "worker-src 'self'" + (googleMaps || appleMaps ? ' blob:' : '') + apple,
+    "manifest-src 'self'",
+    "form-action 'self' https://jm.wipayfinancial.com",
+    'upgrade-insecure-requests',
+  ].join('; ')
+}
+const csp = buildCsp()
+// The Jamaica Energy Map page alone loads the Google Maps JavaScript API (the
+// Kingston Energies map is fully self-hosted) and may ask (on a tap of
+// "Nearby") for the visitor's location — so only that route widens
+// script/connect sources and allows same-origin geolocation.
+const mapCsp = buildCsp({ googleMaps: true })
+// The solar estimator can also use Apple's satellite imagery.
+const solarCsp = buildCsp({ googleMaps: true, appleMaps: true })
 
 const securityHeaders = [
   { key: 'Content-Security-Policy', value: csp },
@@ -42,6 +58,8 @@ const nextConfig = {
   // Stop advertising the framework in responses — real, one-line fix from
   // the same review (ZAP: "X-Powered-By: Next.js" disclosure, CWE-497).
   poweredByHeader: false,
+  // Station pages read the self-hosted search index from disk for "While you charge".
+  outputFileTracingIncludes: { '/energy-map/station/[slug]': ['./public/maps/data/jamaica-search-*.json'] },
   images: {
     remotePatterns: [
       // Public product images served from Supabase Storage.
@@ -51,6 +69,32 @@ const nextConfig = {
   async headers() {
     return [
       { source: '/:path*', headers: securityHeaders },
+      // Later rules override earlier ones for the same header key.
+      {
+        source: '/energy-map',
+        headers: [
+          { key: 'Content-Security-Policy', value: mapCsp },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(self), payment=()' },
+        ],
+      },
+      // The solar estimator's satellite view uses Google's imagery (Maps JavaScript API).
+      { source: '/solar', headers: [{ key: 'Content-Security-Policy', value: solarCsp }] },
+      // A web worker runs under its own script's CSP; MapLibre's worker gets
+      // the map page's policy so anything the map may fetch is allowed there.
+      {
+        source: '/maps/vendor/:path*',
+        headers: [{ key: 'Content-Security-Policy', value: mapCsp }],
+      },
+      // Self-hosted Jamaica map data: file names carry the data version
+      // (lib/map/mapData.ts), so browsers and the CDN may keep them a year.
+      {
+        source: '/maps/data/:path*',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
+      },
+      {
+        source: '/maps/fonts/:path*',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=2592000' }],
+      },
       // Order/account/admin pages carry another person's data if a shared or
       // CDN cache ever stored a response for them — never let that happen.
       {

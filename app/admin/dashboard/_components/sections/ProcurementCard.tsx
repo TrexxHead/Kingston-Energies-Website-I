@@ -248,7 +248,7 @@ export default function ProcurementCard() {
                   <div style={{ fontSize: 12, color: 'var(--color-text-muted)', display: 'flex', flexDirection: 'column', gap: 3, marginTop: 10 }}>
                     {s.contactEmail && <span>✉ {s.contactEmail}</span>}
                     {s.contactPhone && <span>☎ {s.contactPhone}</span>}
-                    {s.website && <span>🔗 <a href={hrefFor(s.website)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--ke-green-700)' }}>{s.website}</a></span>}
+                    {s.website && <span>🔗 <a href={hrefFor(s.website)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary-strong)' }}>{s.website}</a></span>}
                     {s.address && <span>📍 {s.address}</span>}
                     {s.notes && <span style={{ color: 'var(--color-text-subtle)', fontStyle: 'italic' }}>{s.notes}</span>}
                   </div>
@@ -265,7 +265,7 @@ export default function ProcurementCard() {
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '.1em', color: 'var(--color-text-muted)' }}>PURCHASE ORDERS</span>
-                      <button type="button" onClick={() => { setPoFor(s); setPoForm({ reference: '', amount: '' }) }} style={{ ...plainBtn, fontSize: 11.5, color: 'var(--ke-green-700)', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                      <button type="button" onClick={() => { setPoFor(s); setPoForm({ reference: '', amount: '' }) }} style={{ ...plainBtn, fontSize: 11.5, color: 'var(--color-primary-strong)', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                         <Plus size={12} /> New PO
                       </button>
                     </div>
@@ -280,9 +280,9 @@ export default function ProcurementCard() {
                               {po.amount != null && <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{fmt(po.amount)}</span>}
                               <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
                                 {po.status === 'OPEN' ? (
-                                  <button type="button" onClick={() => receivePO(po.id)} style={{ ...plainBtn, fontSize: 11, color: 'var(--ke-green-700)' }}>Receive</button>
+                                  <button type="button" onClick={() => receivePO(po.id)} style={{ ...plainBtn, fontSize: 11, color: 'var(--color-primary-strong)' }}>Receive</button>
                                 ) : (
-                                  <span style={{ fontSize: 11, color: 'var(--ke-green-700)' }}>{po.status}</span>
+                                  <span style={{ fontSize: 11, color: 'var(--color-primary-strong)' }}>{po.status}</span>
                                 )}
                                 <button type="button" onClick={() => openAttach({ purchaseOrderId: po.id, name: po.reference })} aria-label="Attach to PO" style={iconBtn}><Paperclip size={12} /></button>
                               </span>
@@ -294,14 +294,14 @@ export default function ProcurementCard() {
                               <button
                                 type="button"
                                 onClick={() => togglePOFlag(po.id, { invoiced: !po.invoicedAt })}
-                                style={{ ...plainBtn, fontSize: 11, color: po.invoicedAt ? 'var(--ke-green-700)' : 'var(--color-text-subtle)' }}
+                                style={{ ...plainBtn, fontSize: 11, color: po.invoicedAt ? 'var(--color-primary-strong)' : 'var(--color-text-subtle)' }}
                               >
                                 {po.invoicedAt ? '✓ Invoiced' : 'Mark invoiced'}
                               </button>
                               <button
                                 type="button"
                                 onClick={() => togglePOFlag(po.id, { paid: !po.paid })}
-                                style={{ ...plainBtn, fontSize: 11, color: po.paid ? 'var(--ke-green-700)' : 'var(--color-text-subtle)' }}
+                                style={{ ...plainBtn, fontSize: 11, color: po.paid ? 'var(--color-primary-strong)' : 'var(--color-text-subtle)' }}
                               >
                                 {po.paid ? '✓ Paid' : 'Mark paid'}
                               </button>
@@ -418,7 +418,7 @@ function FileList({ files, onAttach, onDelete, heading, compact }: { files: PFil
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '.1em', color: 'var(--color-text-muted)' }} dangerouslySetInnerHTML={{ __html: heading }} />
           {onAttach && (
-            <button type="button" onClick={onAttach} style={{ ...plainBtn, fontSize: 11.5, color: 'var(--ke-green-700)', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+            <button type="button" onClick={onAttach} style={{ ...plainBtn, fontSize: 11.5, color: 'var(--color-primary-strong)', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
               <Paperclip size={12} /> Attach
             </button>
           )}
@@ -457,9 +457,9 @@ function ModeTab({ active, disabled, onClick, icon, label }: { active: boolean; 
       style={{
         flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
         padding: '8px 10px', borderRadius: 8,
-        border: `1px solid ${active ? 'var(--ke-green-600)' : 'var(--color-border)'}`,
-        background: active ? 'var(--ke-green-50, #eef7f0)' : '#fff',
-        color: disabled ? 'var(--color-text-subtle)' : active ? 'var(--ke-green-700)' : 'var(--color-text-muted)',
+        border: `1px solid ${active ? 'var(--color-primary)' : 'var(--color-border)'}`,
+        background: active ? 'var(--color-primary-soft)' : 'var(--color-surface)',
+        color: disabled ? 'var(--color-text-subtle)' : active ? 'var(--color-primary-strong)' : 'var(--color-text-muted)',
         fontSize: 12.5, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1,
       }}
     >

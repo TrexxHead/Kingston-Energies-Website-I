@@ -65,10 +65,13 @@ function LoginForm() {
       setError('Invalid email or password')
       setSubmitting(false)
     } else {
-      // Route admins straight to the dashboard; everyone else to their hub.
+      // Route admins straight to the dashboard; everyone else back to where
+      // they came from (same-site paths only), or their hub.
       const session = await getSession()
       const role = session?.user?.role
-      router.push(role === 'ADMIN' || role === 'SUPER_ADMIN' ? '/admin/dashboard' : '/hub')
+      const back = searchParams.get('callbackUrl')
+      const safeBack = back && back.startsWith('/') && !back.startsWith('//') && !back.startsWith('/\\') ? back : null
+      router.push(role === 'ADMIN' || role === 'SUPER_ADMIN' ? '/admin/dashboard' : safeBack ?? '/hub')
     }
   }
 

@@ -1,0 +1,878 @@
+{
+ "list": "Kingston Energies station list",
+ "listDate": "2026-10-14",
+ "note": "Supplied by the site owner on 14 Oct 2026, compiled from public listings. Google ratings/reviews deliberately not stored. Not field-checked.",
+ "stations": [
+  {
+   "ref": 1,
+   "name": "JPS Charging Station",
+   "operator": "JPS Charge 'n Go",
+   "address": "20 Tobago Ave, Kingston",
+   "lat": 18.008507,
+   "lng": -76.78416,
+   "parish": "st-andrew",
+   "connectors": [
+    {
+     "type": "CCS",
+     "current": "DC",
+     "kw": 50,
+     "count": 2
+    },
+    {
+     "type": "Type 2",
+     "current": "AC",
+     "kw": 43,
+     "count": 1
+    }
+   ],
+   "hours": "Open 24 hours",
+   "phone": null,
+   "website": "https://www.charge.id/Trafalgar_Pk",
+   "nearby": [
+    {
+     "ref": 19,
+     "metres": 237
+    },
+    {
+     "ref": 10,
+     "metres": 262
+    },
+    {
+     "ref": 4,
+     "metres": 292
+    }
+   ]
+  },
+  {
+   "ref": 2,
+   "name": "Evergo Charging Station",
+   "operator": "Evergo",
+   "address": "Shop# 1, 30 Dominica Dr, Kingston",
+   "lat": 18.006985,
+   "lng": -76.7901,
+   "parish": "st-andrew",
+   "connectors": [
+    {
+     "type": "CHAdeMO",
+     "current": "DC",
+     "kw": 50,
+     "count": 1
+    },
+    {
+     "type": "CCS",
+     "current": "DC",
+     "kw": 50,
+     "count": 1
+    }
+   ],
+   "hours": "Open 24 hours",
+   "phone": null,
+   "website": "https://evergo.com/",
+   "nearby": []
+  },
+  {
+   "ref": 3,
+   "name": "Electric Vehicle Charging Station",
+   "operator": null,
+   "address": "X49J+V5J, Portmore",
+   "lat": 17.969713,
+   "lng": -76.86961,
+   "parish": "st-catherine",
+   "connectors": [
+    {
+     "type": "CHAdeMO",
+     "current": "DC",
+     "kw": 50,
+     "count": 1
+    },
+    {
+     "type": "CCS",
+     "current": "DC",
+     "kw": 50,
+     "count": 1
+    },
+    {
+     "type": "J1772",
+     "current": "AC",
+     "kw": 13,
+     "count": 1
+    }
+   ],
+   "hours": null,
+   "phone": null,
+   "website": null,
+   "nearby": []
+  },
+  {
+   "ref": 4,
+   "name": "JPS Charge 'n Go Charging Station",
+   "operator": "JPS Charge 'n Go",
+   "address": "14 Worthington Ave, Kingston",
+   "lat": 18.007826,
+   "lng": -76.781494,
+   "parish": "st-andrew",
+   "connectors": [
+    {
+     "type": "CCS",
+     "current": "DC",
+     "kw": 150,
+     "count": 1
+    },
+    {
+     "type": "CHAdeMO",
+     "current": "DC",
+     "kw": 100,
+     "count": 1
+    }
+   ],
+   "hours": "Mon–Sat 8 am–8 pm; Sun 9 am–5 pm",
+   "phone": null,
+   "website": null,
+   "nearby": [
+    {
+     "ref": 10,
+     "metres": 71
+    },
+    {
+     "ref": 1,
+     "metres": 292
+    }
+   ]
+  },
+  {
+   "ref": 5,
+   "name": "Evergo Charging Station",
+   "operator": "Evergo",
+   "address": "Kingston",
+   "lat": 17.972248,
+   "lng": -76.80607,
+   "parish": "kingston",
+   "connectors": [
+    {
+     "type": "CCS",
+     "current": "DC",
+     "kw": 50,
+     "count": 1
+    },
+    {
+     "type": "J1772",
+     "current": "AC",
+     "kw": 19,
+     "count": 1
+    }
+   ],
+   "hours": null,
+   "phone": null,
+   "website": null,
+   "nearby": []
+  },
+  {
+   "ref": 6,
+   "name": "JPS Charge 'n Go Charging Station",
+   "operator": "JPS Charge 'n Go",
+   "address": "CRFF+HQQ, Ocho Rios",
+   "lat": 18.42413,
+   "lng": -77.175255,
+   "parish": "st-ann",
+   "connectors": [
+    {
+     "type": "CHAdeMO",
+     "current": "DC",
+     "kw": 50,
+     "count": 1
+    },
+    {
+     "type": "CCS",
+     "current": "DC",
+     "kw": 50,
+     "count": 1
+    }
+   ],
+   "hours": "Open 24 hours",
+   "phone": null,
+   "website": null,
+   "nearby": [
+    {
+     "ref": 27,
+     "metres": 250
+    }
+   ]
+  },
+  {
+   "ref": 7,
+   "name": "JPS Charge 'n Go Charging Station",
+   "operator": "JPS Charge 'n Go",
+   "address": "FJ62+5FH, Main Street, Discovery Bay",
+   "lat": 18.460432,
+   "lng": -77.39877,
+   "parish": "st-ann",
+   "connectors": [
+    {
+     "type": "CHAdeMO",
+     "current": "DC",
+     "kw": 100,
+     "count": 1
+    },
+    {
+     "type": "CCS",
+     "current": "DC",
+     "kw": 100,
+     "count": 1
+    }
+   ],
+   "hours": "Open 24 hours",
+   "phone": null,
+   "website": null,
+   "nearby": [
+    {
+     "ref": 21,
+     "metres": 250
+    }
+   ]
+  },
+  {
+   "ref": 8,
+   "name": "JPS Charge 'n Go Charging Station",
+   "operator": "JPS Charge 'n Go",
+   "address": "1140 Morgan Road Ironshore, Montego Bay",
+   "lat": 18.5153,
+   "lng": -77.88234,
+   "parish": "st-james",
+   "connectors": [
+    {
+     "type": "CHAdeMO",
+     "current": "DC",
+     "kw": 50,
+     "count": 1
+    },
+    {
+     "type": "CCS",
+     "current": "DC",
+     "kw": 50,
+     "count": 1
+    },
+    {
+     "type": "Type 2",
+     "current": "AC",
+     "kw": 43,
+     "count": 1
+    }
+   ],
+   "hours": "Open 24 hours",
+   "phone": "+1 888-225-5577",
+   "website": null,
+   "nearby": []
+  },
+  {
+   "ref": 9,
+   "name": "Evergo Charging Station",
+   "operator": "Evergo",
+   "address": "87 Constant Spring Rd, Kingston",
+   "lat": 18.02553,
+   "lng": -76.796684,
+   "parish": "st-andrew",
+   "connectors": [
+    {
+     "type": "J1772",
+     "current": "AC",
+     "kw": 19,
+     "count": 1
+    }
+   ],
+   "hours": null,
+   "phone": null,
+   "website": null,
+   "nearby": []
+  },
+  {
+   "ref": 10,
+   "name": "Electric Vehicle Charging Station",
+   "operator": null,
+   "address": "15 Trafalgar Rd, Kingston",
+   "lat": 18.00844,
+   "lng": -76.781685,
+   "parish": "st-andrew",
+   "connectors": [],
+   "hours": "Open 24 hours",
+   "phone": "(876) 224-5486",
+   "website": null,
+   "nearby": [
+    {
+     "ref": 4,
+     "metres": 71
+    },
+    {
+     "ref": 1,
+     "metres": 262
+    }
+   ]
+  },
+  {
+   "ref": 11,
+   "name": "JPS Charge 'n Go Charging Station",
+   "operator": "JPS Charge 'n Go",
+   "address": "2F52+MR2, Kingsland Dr, Mandeville",
+   "lat": 18.009138,
+   "lng": -77.54798,
+   "parish": "manchester",
+   "connectors": [
+    {
+     "type": "CHAdeMO",
+     "current": "DC",
+     "kw": 100,
+     "count": 1
+    },
+    {
+     "type": "CCS",
+     "current": "DC",
+     "kw": 100,
+     "count": 1
+    },
+    {
+     "type": "CCS",
+     "current": "DC",
+     "kw": 25,
+     "count": 1
+    }
+   ],
+   "hours": null,
+   "phone": null,
+   "website": null,
+   "nearby": []
+  },
+  {
+   "ref": 12,
+   "name": "Evergo Charging Station",
+   "operator": "Evergo",
+   "address": "XJRJ+4H9, Clarendon Park",
+   "lat": 17.990286,
+   "lng": -77.36852,
+   "parish": "clarendon",
+   "connectors": [
+    {
+     "type": "J1772",
+     "current": "AC",
+     "kw": 19,
+     "count": 1
+    }
+   ],
+   "hours": "Open 24 hours",
+   "phone": "(876) 360-7361",
+   "website": "https://porsche.com/destinationcharging",
+   "nearby": []
+  },
+  {
+   "ref": 13,
+   "name": "JPS Charge 'n Go Charging Station",
+   "operator": "JPS Charge 'n Go",
+   "address": "WQW6+V9H, Sandy Bay",
+   "lat": 17.947556,
+   "lng": -77.23928,
+   "parish": "clarendon",
+   "connectors": [
+    {
+     "type": "Type 2",
+     "current": "AC",
+     "kw": 11,
+     "count": 2
+    }
+   ],
+   "hours": "Open 24 hours",
+   "phone": null,
+   "website": "https://www.jpsco.com/chargengo/",
+   "nearby": []
+  },
+  {
+   "ref": 14,
+   "name": "Electric Vehicle Charging Station",
+   "operator": null,
+   "address": "186C Constant Spring Rd, Kingston",
+   "lat": 18.051054,
+   "lng": -76.79306,
+   "parish": "st-andrew",
+   "connectors": [],
+   "hours": "Open 24 hours",
+   "phone": "(876) 224-5486",
+   "website": null,
+   "nearby": []
+  },
+  {
+   "ref": 15,
+   "name": "Evergo Charging Station",
+   "operator": "Evergo",
+   "address": "37PF+CGQ, Hollywell, Mulleth Hall",
+   "lat": 18.086086,
+   "lng": -76.726135,
+   "parish": "portland",
+   "connectors": [
+    {
+     "type": "J1772",
+     "current": "AC",
+     "kw": 20,
+     "count": 1
+    }
+   ],
+   "hours": null,
+   "phone": null,
+   "website": null,
+   "nearby": []
+  },
+  {
+   "ref": 16,
+   "name": "Evergo Charging Station",
+   "operator": "Evergo",
+   "address": "Bayshore Plaza, Port Antonio",
+   "lat": 18.181677,
+   "lng": -76.4607,
+   "parish": "portland",
+   "connectors": [
+    {
+     "type": "J1772",
+     "current": "AC",
+     "kw": 19,
+     "count": 1
+    }
+   ],
+   "hours": "Open 24 hours",
+   "phone": null,
+   "website": "https://evergo.com/en/",
+   "nearby": [
+    {
+     "ref": 37,
+     "metres": 77
+    }
+   ]
+  },
+  {
+   "ref": 17,
+   "name": "Evergo Charging Station",
+   "operator": "Evergo",
+   "address": "A1",
+   "lat": 18.453653,
+   "lng": -77.23975,
+   "parish": "st-ann",
+   "connectors": [
+    {
+     "type": "J1772",
+     "current": "AC",
+     "kw": 19,
+     "count": 1
+    }
+   ],
+   "hours": null,
+   "phone": null,
+   "website": null,
+   "nearby": [
+    {
+     "ref": 20,
+     "metres": 139
+    }
+   ]
+  },
+  {
+   "ref": 18,
+   "name": "Evergo Charging Station",
+   "operator": "Evergo",
+   "address": "FQ23+RR9, Plantation Village",
+   "lat": 18.452034,
+   "lng": -77.24538,
+   "parish": "st-ann",
+   "connectors": [
+    {
+     "type": "J1772",
+     "current": "AC",
+     "kw": 20,
+     "count": 1
+    }
+   ],
+   "hours": null,
+   "phone": null,
+   "website": null,
+   "nearby": []
+  },
+  {
+   "ref": 19,
+   "name": "ChargenGo Charging Station",
+   "operator": "JPS Charge 'n Go",
+   "address": "6 Knutsford Blvd, Kingston",
+   "lat": 18.008358,
+   "lng": -76.7864,
+   "parish": "st-andrew",
+   "connectors": [],
+   "hours": null,
+   "phone": null,
+   "website": null,
+   "nearby": [
+    {
+     "ref": 1,
+     "metres": 237
+    }
+   ]
+  },
+  {
+   "ref": 20,
+   "name": "Porsche Destination Charging",
+   "operator": "Porsche Destination Charging",
+   "address": "FQ25+XWR na Richmond Llandovery",
+   "lat": 18.452492,
+   "lng": -77.240234,
+   "parish": "st-ann",
+   "connectors": [
+    {
+     "type": "J1772",
+     "current": "AC",
+     "kw": 19,
+     "count": 1
+    }
+   ],
+   "hours": "Open 24 hours",
+   "phone": null,
+   "website": "https://porsche.com/destinationcharging",
+   "nearby": [
+    {
+     "ref": 17,
+     "metres": 139
+    }
+   ]
+  },
+  {
+   "ref": 21,
+   "name": "Electric Vehicle Charging Station",
+   "operator": null,
+   "address": "FJ52+7JJ, Discovery Bay",
+   "lat": 18.458202,
+   "lng": -77.39847,
+   "parish": "st-ann",
+   "connectors": [
+    {
+     "type": "Type 2",
+     "current": "AC",
+     "kw": 11,
+     "count": 2
+    }
+   ],
+   "hours": "Open 24 hours",
+   "phone": null,
+   "website": null,
+   "nearby": [
+    {
+     "ref": 7,
+     "metres": 250
+    }
+   ]
+  },
+  {
+   "ref": 22,
+   "name": "Evergo Charging Station",
+   "operator": "Evergo",
+   "address": "86 Elizabeth Ave, Kingston",
+   "lat": 18.032585,
+   "lng": -76.80663,
+   "parish": "st-andrew",
+   "connectors": [],
+   "hours": null,
+   "phone": null,
+   "website": "https://evergo.com/en",
+   "nearby": []
+  },
+  {
+   "ref": 23,
+   "name": "JPS Charge 'n Go Charging Station",
+   "operator": "JPS Charge 'n Go",
+   "address": "5GMM+PQQ, Boundbrook, Port Antonio",
+   "lat": 18.184334,
+   "lng": -76.465515,
+   "parish": "portland",
+   "connectors": [],
+   "hours": "Open 24 hours",
+   "phone": null,
+   "website": "https://www.jpsco.com/chargengo/",
+   "nearby": []
+  },
+  {
+   "ref": 24,
+   "name": "Evergo Charging Station",
+   "operator": "Evergo",
+   "address": "2C76+G68, Spur Tree Rd, Spur Tree",
+   "lat": 18.013617,
+   "lng": -77.58936,
+   "parish": "manchester",
+   "connectors": [
+    {
+     "type": "J1772",
+     "current": "AC",
+     "kw": 20,
+     "count": 1
+    }
+   ],
+   "hours": null,
+   "phone": null,
+   "website": null,
+   "nearby": []
+  },
+  {
+   "ref": 25,
+   "name": "Porsche Destination Charging",
+   "operator": "Porsche Destination Charging",
+   "address": "3F4F+XXJ na, Winston Jones Hwy, Mandeville",
+   "lat": 18.057455,
+   "lng": -77.52512,
+   "parish": "manchester",
+   "connectors": [
+    {
+     "type": "J1772",
+     "current": "AC",
+     "kw": 19,
+     "count": 1
+    }
+   ],
+   "hours": "Open 24 hours",
+   "phone": null,
+   "website": "https://porsche.com/destinationcharging",
+   "nearby": [
+    {
+     "ref": 33,
+     "metres": 52
+    }
+   ]
+  },
+  {
+   "ref": 26,
+   "name": "Evergo Charging Station",
+   "operator": "Evergo",
+   "address": "2FQQ+7QX, Manchester Road, Mandeville",
+   "lat": 18.038288,
+   "lng": -77.51048,
+   "parish": "manchester",
+   "connectors": [
+    {
+     "type": "Wall outlet",
+     "current": "AC",
+     "kw": 12,
+     "count": 15
+    }
+   ],
+   "hours": null,
+   "phone": null,
+   "website": null,
+   "nearby": []
+  },
+  {
+   "ref": 27,
+   "name": "JPS Charge 'n Go Charging Station",
+   "operator": "JPS Charge 'n Go",
+   "address": "5 Greenwich Park, Ocho Rios",
+   "lat": 18.425274,
+   "lng": -77.17322,
+   "parish": "st-ann",
+   "connectors": [],
+   "hours": "Open 24 hours",
+   "phone": "+1 888-225-5577",
+   "website": null,
+   "nearby": [
+    {
+     "ref": 6,
+     "metres": 250
+    }
+   ]
+  },
+  {
+   "ref": 28,
+   "name": "Electric Vehicle Charging Station",
+   "operator": null,
+   "address": "W96V+7CP, Top Hill",
+   "lat": 17.910864,
+   "lng": -77.60621,
+   "parish": "st-elizabeth",
+   "connectors": [],
+   "hours": null,
+   "phone": null,
+   "website": null,
+   "nearby": []
+  },
+  {
+   "ref": 29,
+   "name": "Evergo Charging Station",
+   "operator": "Evergo",
+   "address": "G478+F6G, Montego Bay",
+   "lat": 18.513523,
+   "lng": -77.88465,
+   "parish": "st-james",
+   "connectors": [
+    {
+     "type": "J1772",
+     "current": "AC",
+     "kw": 20,
+     "count": 1
+    }
+   ],
+   "hours": null,
+   "phone": null,
+   "website": null,
+   "nearby": []
+  },
+  {
+   "ref": 30,
+   "name": "JPS Charge 'n Go Charging Station",
+   "operator": "JPS Charge 'n Go",
+   "address": "7MH6+XFF, Whitehall Rd, Negril",
+   "lat": 18.279945,
+   "lng": -78.33881,
+   "parish": "westmoreland",
+   "connectors": [
+    {
+     "type": "J1772",
+     "current": "AC",
+     "kw": 7,
+     "count": 2
+    },
+    {
+     "type": "Type 2",
+     "current": "AC",
+     "kw": 7,
+     "count": 1
+    }
+   ],
+   "hours": "Open 24 hours",
+   "phone": null,
+   "website": null,
+   "nearby": []
+  },
+  {
+   "ref": 31,
+   "name": "Evergo Charging Station",
+   "operator": "Evergo",
+   "address": "F33G+MM3, Alice Eldemire Dr, Montego Bay",
+   "lat": 18.45416,
+   "lng": -77.92332,
+   "parish": "st-james",
+   "connectors": [
+    {
+     "type": "J1772",
+     "current": "AC",
+     "kw": 20,
+     "count": 1
+    }
+   ],
+   "hours": null,
+   "phone": null,
+   "website": null,
+   "nearby": []
+  },
+  {
+   "ref": 32,
+   "name": "Evergo Charging Station",
+   "operator": "Evergo",
+   "address": "F3CF+MGR, Howard Cooke Hwy, Montego Bay",
+   "lat": 18.471733,
+   "lng": -77.92623,
+   "parish": "st-james",
+   "connectors": [
+    {
+     "type": "J1772",
+     "current": "AC",
+     "kw": 19,
+     "count": 1
+    }
+   ],
+   "hours": null,
+   "phone": null,
+   "website": null,
+   "nearby": []
+  },
+  {
+   "ref": 33,
+   "name": "Evergo Charging Station",
+   "operator": "Evergo",
+   "address": "Mandeville",
+   "lat": 18.057003,
+   "lng": -77.524994,
+   "parish": "manchester",
+   "connectors": [],
+   "hours": null,
+   "phone": null,
+   "website": null,
+   "nearby": [
+    {
+     "ref": 25,
+     "metres": 52
+    }
+   ]
+  },
+  {
+   "ref": 34,
+   "name": "Evergo Charging Station",
+   "operator": "Evergo",
+   "address": "6RHF+RJ6, Big Bridge Main Road, Savanna la Mar",
+   "lat": 18.229537,
+   "lng": -78.175984,
+   "parish": "westmoreland",
+   "connectors": [
+    {
+     "type": "J1772",
+     "current": "AC",
+     "kw": 20,
+     "count": 1
+    }
+   ],
+   "hours": null,
+   "phone": null,
+   "website": null,
+   "nearby": []
+  },
+  {
+   "ref": 35,
+   "name": "Evergo Charging Station",
+   "operator": "Evergo",
+   "address": "6V9X+VWG, Paradise Road, Savanna la Mar",
+   "lat": 18.219677,
+   "lng": -78.10016,
+   "parish": "westmoreland",
+   "connectors": [
+    {
+     "type": "J1772",
+     "current": "AC",
+     "kw": 20,
+     "count": 1
+    }
+   ],
+   "hours": null,
+   "phone": null,
+   "website": null,
+   "nearby": []
+  },
+  {
+   "ref": 36,
+   "name": "Jruncarservicelimited",
+   "operator": "Jrun Car Service Ltd",
+   "address": "Clear ground, Bamboo",
+   "lat": 18.385626,
+   "lng": -77.2663,
+   "parish": "st-ann",
+   "connectors": [],
+   "hours": "Open 24 hours",
+   "phone": "(876) 816-5541",
+   "website": null,
+   "nearby": []
+  },
+  {
+   "ref": 37,
+   "name": "JPS Charge 'n Go Charging Station",
+   "operator": "JPS Charge 'n Go",
+   "address": "5GMQ+3PX, Port Antonio",
+   "lat": 18.182364,
+   "lng": -76.46058,
+   "parish": "portland",
+   "connectors": [],
+   "hours": null,
+   "phone": null,
+   "website": "https://www.jpsco.com/chargengo/",
+   "nearby": [
+    {
+     "ref": 16,
+     "metres": 77
+    }
+   ]
+  }
+ ]
+}

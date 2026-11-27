@@ -26,7 +26,7 @@ export interface ProductReview {
 
 const monoOverline = { fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '.24em', color: 'var(--color-text-muted)' } as const
 
-export default function ProductClient({ product, initialReviews = [] }: { product: ShopProduct; initialReviews?: ProductReview[] }) {
+export default function ProductClient({ product, initialReviews = [], children }: { product: ShopProduct; initialReviews?: ProductReview[]; children?: React.ReactNode }) {
   const { addItem } = useCart()
   const { pushToast } = useToast()
   const { status } = useSession()
@@ -384,6 +384,8 @@ export default function ProductClient({ product, initialReviews = [] }: { produc
           )}
         </section>
       )}
+
+      {children}
 
       <section style={{ maxWidth: 1240, margin: '0 auto', padding: '40px 32px 72px' }}>
         <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 40, display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>

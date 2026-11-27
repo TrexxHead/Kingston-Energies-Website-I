@@ -230,10 +230,10 @@ export default function FinanceOverview() {
             gap: 10,
             alignItems: 'flex-start',
             borderColor: 'var(--ke-sun-300,#fcd34d)',
-            background: 'var(--ke-sun-50,#fffbeb)',
+            background: 'var(--color-warning-soft)',
           }}
         >
-          <AlertTriangle size={16} style={{ color: 'var(--ke-sun-600,#b45309)', flexShrink: 0, marginTop: 2 }} aria-hidden />
+          <AlertTriangle size={16} style={{ color: 'var(--color-warning-strong)', flexShrink: 0, marginTop: 2 }} aria-hidden />
           <div style={{ fontSize: 13, lineHeight: 1.55 }}>
             No unit costs are recorded, so cost of sales is zero and gross profit currently equals revenue. Add a cost
             to each product in Inventory and the margin figures become real.

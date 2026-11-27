@@ -38,7 +38,7 @@ export default function SheetsSyncCard() {
     <div style={cardStyle}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Sheet size={16} color="var(--ke-green-600)" />
+          <Sheet size={16} color="var(--color-primary)" />
           <h3 style={{ ...h3Style, margin: 0 }}>Live spreadsheet</h3>
         </div>
         {configured === false && <Badge tone="orange">Not configured</Badge>}
@@ -68,7 +68,7 @@ export default function SheetsSyncCard() {
                 href={lastResult.sheetUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12.5, color: 'var(--ke-green-600)' }}
+                style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12.5, color: 'var(--color-primary)' }}
               >
                 Open sheet <ExternalLink size={12} />
               </a>

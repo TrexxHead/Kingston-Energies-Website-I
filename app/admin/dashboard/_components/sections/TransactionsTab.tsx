@@ -96,7 +96,7 @@ export default function TransactionsTab() {
                     width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     background: t.type === 'in' ? 'var(--color-success-soft)' : 'var(--color-danger-soft)',
-                    color: t.type === 'in' ? 'var(--ke-green-700)' : 'var(--color-danger)',
+                    color: t.type === 'in' ? 'var(--color-primary-strong)' : 'var(--color-danger)',
                   }}
                 >
                   {t.type === 'in' ? <ArrowDownLeft size={15} /> : <ArrowUpRight size={15} />}
@@ -105,7 +105,7 @@ export default function TransactionsTab() {
                   <span style={{ display: 'block', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13.5 }}>{t.label}</span>
                   <span style={{ display: 'block', fontSize: 11.5, color: 'var(--color-text-muted)' }}>{t.detail ? `${t.detail} · ` : ''}{t.date}</span>
                 </span>
-                <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14, color: t.type === 'in' ? 'var(--ke-green-700)' : 'var(--color-text)', whiteSpace: 'nowrap' }}>
+                <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14, color: t.type === 'in' ? 'var(--color-primary-strong)' : 'var(--color-text)', whiteSpace: 'nowrap' }}>
                   {t.type === 'in' ? '+' : '−'}{fmt(t.amount)}
                 </span>
               </div>

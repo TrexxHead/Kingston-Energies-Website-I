@@ -197,7 +197,7 @@ function PriorityMark({ priority }: { priority: Item['priority'] }) {
   }
   if (priority === 'ATTENTION') {
     return (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: 'var(--ke-sun-600,#b45309)', fontSize: 11.5, fontWeight: 700 }}>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: 'var(--color-warning-strong)', fontSize: 11.5, fontWeight: 700 }}>
         <AlertCircle size={13} aria-hidden /> Needs a look
       </span>
     )

@@ -5,6 +5,7 @@ import { getShopProduct } from '@/lib/products'
 import { prisma } from '@/lib/prisma'
 import { fmt } from '@/lib/catalog'
 import JsonLd from '@/components/JsonLd'
+import CompatibilityCheck from '@/components/shop/CompatibilityCheck'
 import { buildBreadcrumbs, productSchema } from '@/lib/structuredData'
 
 // See app/shop/page.tsx for why a short ISR window (not force-dynamic) is
@@ -44,6 +45,12 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
     reviews = []
   }
 
+  // "Will it run my devices?" only once staff have published this power station's verified specs.
+  const hasSpecs = await prisma.catalogueSku
+    .count({ where: { catalogId: id, kind: 'power_station', status: 'published', evidence: { some: { reviewState: 'verified' } } } })
+    .then((n) => n > 0)
+    .catch(() => false)
+
   const breadcrumbs = buildBreadcrumbs([
     { name: 'Home', path: '/' },
     { name: 'Shop', path: '/shop' },
@@ -54,7 +61,9 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
     <>
       <JsonLd data={breadcrumbs} />
       <JsonLd data={productSchema(product, `/product/${id}`)} />
-      <ProductClient product={product} initialReviews={reviews} />
+      <ProductClient product={product} initialReviews={reviews}>
+        {hasSpecs && <CompatibilityCheck catalogId={id} productName={product.name} />}
+      </ProductClient>
     </>
   )
 }

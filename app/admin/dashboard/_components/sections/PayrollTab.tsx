@@ -63,10 +63,10 @@ function RatesWarning() {
         gap: 10,
         alignItems: 'flex-start',
         borderColor: 'var(--ke-sun-300,#fcd34d)',
-        background: 'var(--ke-sun-50,#fffbeb)',
+        background: 'var(--color-warning-soft)',
       }}
     >
-      <AlertTriangle size={16} style={{ color: 'var(--ke-sun-600,#b45309)', flexShrink: 0, marginTop: 2 }} />
+      <AlertTriangle size={16} style={{ color: 'var(--color-warning-strong)', flexShrink: 0, marginTop: 2 }} />
       <div style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--color-text)' }}>
         <strong>Confirm the statutory rates before you approve a run.</strong> PAYE, NIS, NHT, education tax and HEART
         rates and thresholds are set by Tax Administration Jamaica and change, often annually. The values here are
@@ -285,7 +285,7 @@ function Employees() {
                   <tr key={r.id}>
                     <td style={td}>
                       {r.linkedPerson ? (
-                        <Link href={`/admin/dashboard/hr/people/${r.linkedPerson.id}`} style={{ fontWeight: 600, color: 'var(--ke-green-700)', textDecoration: 'none' }}>
+                        <Link href={`/admin/dashboard/hr/people/${r.linkedPerson.id}`} style={{ fontWeight: 600, color: 'var(--color-primary-strong)', textDecoration: 'none' }}>
                           {r.name}
                         </Link>
                       ) : (
@@ -450,7 +450,7 @@ function ContractorsCard() {
                 return (
                   <tr key={r.id}>
                     <td style={td}>
-                      <Link href={`/admin/dashboard/hr/people/${r.id}`} style={{ fontWeight: 600, color: 'var(--ke-green-700)', textDecoration: 'none' }}>
+                      <Link href={`/admin/dashboard/hr/people/${r.id}`} style={{ fontWeight: 600, color: 'var(--color-primary-strong)', textDecoration: 'none' }}>
                         {r.firstName} {r.lastName}
                       </Link>
                       {r.role && <div style={{ fontSize: 11.5, color: 'var(--color-text-muted)' }}>{r.role}</div>}

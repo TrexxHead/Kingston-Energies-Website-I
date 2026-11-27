@@ -276,7 +276,7 @@ function ImportModal({ connection, onClose, onDone }: { connection: Connection; 
             )}
           </div>
           {result.skipped.length > 0 && (
-            <div style={{ fontSize: 13, color: 'var(--ke-sun-600,#b45309)', lineHeight: 1.6 }}>
+            <div style={{ fontSize: 13, color: 'var(--color-warning-strong)', lineHeight: 1.6 }}>
               {result.skipped.length} row{result.skipped.length === 1 ? '' : 's'} could not be read:
               <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
                 {result.skipped.slice(0, 5).map((s) => (

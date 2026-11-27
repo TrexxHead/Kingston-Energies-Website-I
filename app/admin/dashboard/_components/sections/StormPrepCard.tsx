@@ -96,7 +96,7 @@ export default function StormPrepCard() {
   return (
     <div style={cardStyle}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 6 }}>
-        <CloudLightning size={17} color="var(--ke-green-600)" />
+        <CloudLightning size={17} color="var(--color-primary)" />
         <h3 style={{ ...h3Style, margin: 0 }}>Storm prep</h3>
       </div>
       <p style={{ fontSize: 12.5, color: 'var(--color-text-muted)', margin: '0 0 16px' }}>
@@ -144,14 +144,14 @@ export default function StormPrepCard() {
               style={{
                 display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 10, cursor: 'pointer',
                 border: `1.5px solid ${picked ? 'var(--ke-green-500)' : 'var(--color-border)'}`,
-                background: picked ? 'var(--ke-green-50)' : 'transparent',
+                background: picked ? 'var(--color-primary-soft)' : 'transparent',
               }}
             >
               <input type="checkbox" checked={picked} onChange={() => toggleKitProduct(p.id)} style={{ display: 'none' }} />
               <span
                 style={{
                   width: 16, height: 16, borderRadius: 4, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  border: picked ? 'none' : '1.5px solid var(--color-border-strong)', background: picked ? 'var(--ke-green-500)' : '#fff',
+                  border: picked ? 'none' : '1.5px solid var(--color-border-strong)', background: picked ? 'var(--ke-green-500)' : 'var(--color-surface)',
                 }}
               >
                 {picked && <Check size={11} color="#fff" />}
@@ -209,7 +209,7 @@ export default function StormPrepCard() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 18 }}>
         <Button size="sm" variant="primary" onClick={save}>{busy ? 'Saving…' : 'Save Storm prep content'}</Button>
         {saved && (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12.5, color: 'var(--ke-green-700)' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12.5, color: 'var(--color-primary-strong)' }}>
             <Check size={14} /> Saved: live on the site
           </span>
         )}
